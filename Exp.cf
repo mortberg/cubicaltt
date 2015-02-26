@@ -1,0 +1,56 @@
+entrypoints Module, Exp ;
+
+comment "--" ;
+comment "{-" "-}" ;
+
+layout "where", "let", "mutual", "split" ;
+layout stop "in" ;
+-- Do not use layout toplevel as it makes pExp fail!
+
+Module.   Module ::= "module" AIdent "where" "{" [Imp] [Decl] "}" ;
+
+Import.   Imp ::= "import" AIdent ;
+separator Imp ";" ;
+
+DeclDef.    Decl ::= AIdent [AIdent] "=" ExpWhere ;
+DeclType.   Decl ::= AIdent ":" Exp ;
+DeclMutual. Decl ::= "mutual" "{" [Decl] "}" ;
+DeclData.   Decl ::= "data" AIdent [AIdent] "=" [Label] ;
+separator   Decl ";" ;
+
+Where.    ExpWhere ::= Exp "where" "{" [Decl] "}" ;
+NoWhere.  ExpWhere ::= Exp ;
+
+Let.      Exp  ::= "let" "{" [Decl] "}" "in" Exp ;
+Lam.      Exp  ::= "\\" AIdent [AIdent] "->" Exp ;
+Split.    Exp  ::= "split" "{" [Branch] "}" ;
+Fun.      Exp1 ::= Exp2 "->" Exp1 ;
+Pi.       Exp1 ::= [PTele] "->" Exp1 ;
+Sigma.    Exp1 ::= [PTele] "*" Exp1 ;
+App.      Exp2 ::= Exp2 Exp3 ;
+Var.      Exp3 ::= AIdent ;
+U.        Exp3 ::= "U" ;
+Fst.      Exp3 ::= Exp3 ".1" ;
+Snd.      Exp3 ::= Exp3 ".2" ;
+Pair.     Exp3 ::= "(" Exp "," Exp ")" ;
+coercions Exp 3 ;
+
+-- Branches
+Branch.   Branch ::= AIdent [AIdent] "->" ExpWhere ;
+separator Branch ";" ;
+
+-- Labelled sum alternatives
+Label.    Label   ::= AIdent [Tele] ;
+separator Label "|" ;
+
+-- Telescopes
+Tele.     Tele ::= "(" AIdent [AIdent] ":" Exp ")" ;
+terminator Tele "" ;
+
+-- Nonempty telescopes with Exp:s, this is hack to avoid ambiguities
+-- in the grammar when parsing Pi
+PTele.    PTele ::= "(" Exp ":" Exp ")" ;
+terminator nonempty PTele "" ;
+
+position token AIdent ((letter|'\''|'_')(letter|digit|'\''|'_')*) ;
+terminator AIdent "" ;

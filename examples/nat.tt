@@ -1,0 +1,20 @@
+module nat where
+
+nat : U
+data nat = zero | suc (n : nat)
+
+one : nat
+one = suc zero
+
+two : nat
+two = suc one
+
+pred : nat -> nat
+pred = split
+  zero -> zero
+  suc n -> n
+
+add : nat -> nat -> nat
+add m = split
+  zero  -> m
+  suc n -> suc (add m n)

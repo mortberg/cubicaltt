@@ -1,20 +1,36 @@
 module nat where
 
-nat : U
 data nat = zero | suc (n : nat)
 
-one : nat
-one = suc zero
+zero' : nat = zero
+one : nat = suc zero
+two : nat = suc one
 
-two : nat
-two = suc one
 
-pred : nat -> nat
-pred = split
+pred : nat -> nat = split
   zero -> zero
   suc n -> n
 
-add : nat -> nat -> nat
-add m = split
+add (m : nat) : nat -> nat = split
   zero  -> m
   suc n -> suc (add m n)
+
+add' : nat -> nat -> nat = split
+  zero -> \(x : nat) -> x
+  suc n -> \(x : nat) -> suc (add' n x)
+
+id (A : U) (a : A) : A = a
+
+
+data list (A : U) = nil | cons (a : A) (as : list A)
+
+l : list nat = cons one (cons two nil)
+
+append (A : U) : list A -> list A -> list A = split
+  nil -> id (list A)
+  cons x xs -> \(ys : list A) -> cons x (append A xs ys)
+
+reverse (A : U) : list A -> list A = split
+  nil -> nil
+  cons x xs -> append A (reverse A xs) (cons x nil)
+  

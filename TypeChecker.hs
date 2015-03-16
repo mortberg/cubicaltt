@@ -18,45 +18,31 @@ import Eval
 -- Type checking monad
 type Typing a = ReaderT TEnv (ErrorT String IO) a
 
--- Context gives type values to identifiers
-type Ctxt   = [(Binder,Val)]
-
 -- Environment for type checker
 data TEnv = TEnv { index   :: Int   -- for de Bruijn levels
                  , env     :: Env
-                 , ctxt    :: Ctxt
                  , verbose :: Bool  -- Should it be verbose and print
                                     -- what it typechecks?
                  }
   deriving (Eq,Show)
 
 verboseEnv, silentEnv :: TEnv
-verboseEnv = TEnv 0 Empty [] True
-silentEnv  = TEnv 0 Empty [] False
+verboseEnv = TEnv 0 Empty True
+silentEnv  = TEnv 0 Empty False
 
 addTypeVal :: (Binder,Val) -> TEnv -> TEnv
-addTypeVal p@(x,_) (TEnv k rho gam v) =
-  TEnv (k+1) (Pair rho (x,mkVar k)) (p:gam) v
+addTypeVal (x,a) (TEnv k rho v) =
+  TEnv (k+1) (Pair rho (x,mkVar k a)) v
 
 addType :: (Binder,Ter) -> TEnv -> Typing TEnv
-addType (x,a) tenv@(TEnv _ rho _ _) = return $ addTypeVal (x,eval rho a) tenv
+addType (x,a) tenv@(TEnv _ rho _) = return $ addTypeVal (x,eval rho a) tenv
 
-addC :: Ctxt -> (Tele,Env) -> [(Binder,Val)] -> Typing Ctxt
-addC gam _             []          = return gam
-addC gam ((y,a):as,nu) ((x,u):xus) = 
-  addC ((x,eval nu a):gam) (as,Pair nu (y,u)) xus
+addBranch :: [(Binder,Val)] -> (Tele,Env) -> TEnv -> TEnv
+addBranch nvs (tele,env) (TEnv k rho v) =
+  TEnv (k + length nvs) (pairs rho nvs) v
 
-addBranch :: [(Binder,Val)] -> (Tele,Env) -> TEnv -> Typing TEnv
-addBranch nvs (tele,env) (TEnv k rho gam v) = do
-  e <- addC gam (tele,env) nvs
-  return $ TEnv (k + length nvs) (pairs rho nvs) e v
-
-addDecls :: Decls -> TEnv -> Typing TEnv
-addDecls d (TEnv k rho gam v) = do
-  let rho1 = PDef [ (x,y) | (x,_,y) <- d ] rho
-      es' = evals rho1 (declDefs d)
-  gam' <- addC gam (declTele d,rho) es'
-  return $ TEnv k rho1 gam' v
+addDecls :: Decls -> TEnv -> TEnv
+addDecls d (TEnv k rho v) = TEnv k (PDef d rho) v
 
 addTele :: Tele -> TEnv -> Typing TEnv
 addTele xas lenv = foldM (flip addType) lenv xas
@@ -73,7 +59,7 @@ runTyping env t = runErrorT $ runReaderT t env
 runDecls :: TEnv -> Decls -> IO (Either String TEnv)
 runDecls tenv d = runTyping tenv $ do
   checkDecls d
-  addDecls d tenv
+  return $ addDecls d tenv
 
 runDeclss :: TEnv -> [Decls] -> IO (Maybe String,TEnv)
 runDeclss tenv []         = return (Nothing, tenv)
@@ -101,11 +87,11 @@ localM f r = do
   a <- f e
   local (const a) r
 
-getFresh :: Typing Val
-getFresh = do
+getFresh :: Val -> Typing Val
+getFresh a = do
     k <- index <$> ask
     e <- asks env
-    return $ mkVar k
+    return $ mkVar k a
 
 checkDecls :: Decls -> Typing ()
 checkDecls d = do
@@ -121,28 +107,38 @@ checkTele ((x,a):xas) = do
   check VU a
   localM (addType (x,a)) $ checkTele xas
 
+checkFam :: Ter -> Typing ()
+checkFam (Lam x a b) = do
+  check VU a
+  localM (addType (x,a)) $ check VU b
+checkFam _ = throwError "checkFam"
+
 -- Check that t has type a
 check :: Val -> Ter -> Typing ()
 check a t = case (a,t) of
   (_,Con c es) -> do
     (bs,nu) <- getLblType c a
     checks (bs,nu) es
-  (VU,Pi a (Lam x b)) -> do
-    check VU a
-    localM (addType (x,a)) $ check VU b
-  (VU,Sigma a (Lam x b)) -> do
-    check VU a
-    localM (addType (x,a)) $ check VU b
+  (VU,Pi f) -> checkFam f
+  (VU,Sigma f) -> checkFam f
   (VU,Sum _ bs) -> sequence_ [checkTele as | (_,as) <- bs]
-  (VPi (Ter (Sum _ cas) nu) f,Split _ ces) -> do
+  (VPi (Ter (Sum _ cas) nu) f,Split _ f' ces) -> do
+    checkFam f'
+    k <- asks index
+    rho <- asks env
+    unless (conv k f (eval rho f')) $ throwError "check: split annotations"
     let cas' = sortBy (compare `on` fst . fst) cas
         ces' = sortBy (compare `on` fst) ces
     if map (fst . fst) cas' == map fst ces'
        then sequence_ [ checkBranch (as,nu) f brc
                       | (brc, (_,as)) <- zip ces' cas' ]
        else throwError "case branches does not match the data type"
-  (VPi a f,Lam x t)  -> do
-    var <- getFresh
+  (VPi a f,Lam x a' t)  -> do
+    check VU a'
+    k <- asks index
+    rho <- asks env
+    unless (conv k a (eval rho a')) $ throwError "check: lam types don't match"
+    var <- getFresh a
     local (addTypeVal (x,a)) $ check (app f var) t
   (VSigma a f, SPair t1 t2) -> do
     check a t1
@@ -151,7 +147,7 @@ check a t = case (a,t) of
     check (app f v) t2
   (_,Where e d) -> do
     checkDecls d
-    localM (addDecls d) $ check a e
+    local (addDecls d) $ check a e
   (_,Undef _) -> return ()
   _ -> do
     v <- infer t
@@ -163,19 +159,25 @@ checkBranch :: (Tele,Env) -> Val -> Branch -> Typing ()
 checkBranch (xas,nu) f (c,(xs,e)) = do
   k   <- asks index
   env <- asks env
-  let l  = length xas
-      us = map mkVar [k..k+l-1]
-  localM (addBranch (zip xs us) (xas,nu)) $ check (app f (VCon c us)) e
+  let us = mkVars k xas nu
+  local (addBranch (zip xs us) (xas,nu)) $ check (app f (VCon c us)) e
+
+mkVars k [] _ = []
+mkVars k ((x,a):xas) nu =
+  let w = mkVar k (eval nu a)
+  in w : mkVars (k+1) xas (Pair nu (x,w))
+
+-- inferNeutral :: Val -> Val
+-- inferNeutral (VN (VVar _ a)) = a
+-- inferNeutral _ = error "not done yet"
 
 -- infer the type of e
 infer :: Ter -> Typing Val
 infer e = case e of
   U     -> return VU  -- U : U
   Var n -> do
-    gam <- ctxt <$> ask
-    case lookupIdent n gam of
-      Just v  -> return v
-      Nothing -> throwError $ show n ++ " is not declared!"
+    rho <- env <$> ask
+    return $ lookType n rho
   App t u -> do
     c <- infer t
     case c of
@@ -200,7 +202,7 @@ infer e = case e of
       _          -> throwError $ show c ++ " is not a sigma-type"
   Where t d -> do
     checkDecls d
-    localM (addDecls d) $ infer t
+    local (addDecls d) $ infer t
   _ -> throwError ("infer " ++ show e)
 
 checks :: (Tele,Env) -> [Ter] -> Typing ()

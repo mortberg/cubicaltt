@@ -89,6 +89,7 @@ initLoop flags f = do
       putStrLn $ "Resolver failed: " ++ err
       runInputT (settings []) (loop flags f [] TC.verboseEnv)
     Right (adefs,names) -> do
+      -- putStrLn $ "adefs = " ++ show adefs
       (merr,tenv) <- TC.runDeclss TC.verboseEnv adefs
       case merr of
         Just err -> putStrLn $ "Type checking failed: " ++ err
@@ -99,7 +100,7 @@ initLoop flags f = do
 
 -- The main loop
 loop :: [Flag] -> FilePath -> [(Binder,SymKind)] -> TC.TEnv -> Interpreter ()
-loop flags f names tenv@(TC.TEnv _ rho _ _) = do
+loop flags f names tenv@(TC.TEnv _ rho _) = do
   input <- getInputLine prompt
   case input of
     Nothing    -> outputStrLn help >> loop flags f names tenv

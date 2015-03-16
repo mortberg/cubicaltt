@@ -29,36 +29,36 @@ type Tele   = [(Binder,Ter)]
 type LblSum = [(Binder,Tele)]
 
 -- Mutual recursive definitions: (x1 : A1) .. (xn : An) and x1 = e1 .. xn = en
-type Decls  = [(Binder,Ter,Ter)]
+type Decls  = [(Binder,(Ter,Ter))]
 
 declBinders :: Decls -> [Binder]
-declBinders decls = [ x | (x,_,_) <- decls ]
+declBinders decls = [ x | (x,_) <- decls ]
 
 declTers :: Decls -> [Ter]
-declTers decls = [ d | (_,_,d) <- decls ]
+declTers decls = [ d | (_,(_,d)) <- decls ]
 
 declTele :: Decls -> Tele
-declTele decls = [ (x,t) | (x,t,_) <- decls ]
+declTele decls = [ (x,t) | (x,(t,_)) <- decls ]
 
 declDefs :: Decls -> [(Binder,Ter)]
-declDefs decls = [ (x,d) | (x,_,d) <- decls ]
+declDefs decls = [ (x,d) | (x,(_,d)) <- decls ]
 
 -- Terms
 data Ter = App Ter Ter
-         | Pi Ter Ter
-         | Lam Binder Ter
+         | Pi Ter
+         | Lam Binder Ter Ter
          | Where Ter Decls
          | Var String
          | U
            -- Sigma types:
-         | Sigma Ter Ter
+         | Sigma Ter
          | SPair Ter Ter
          | Fst Ter
          | Snd Ter
            -- constructor c Ms
          | Con Label [Ter]
            -- branches c1 xs1  -> M1,..., cn xsn -> Mn
-         | Split Loc [Branch]
+         | Split Loc Ter [Branch]
            -- labelled sum c1 A1s,..., cn Ans (assumes terms are constructors)
          | Sum Binder LblSum
            -- undefined
@@ -76,8 +76,8 @@ mkApps :: Ter -> [Ter] -> Ter
 mkApps (Con l us) vs = Con l (us ++ vs)
 mkApps t ts          = foldl App t ts
 
-mkLams :: [String] -> Ter -> Ter
-mkLams bs t = foldr Lam t [ noLoc b | b <- bs ]
+-- mkLams :: [String] -> Ter -> Ter
+-- mkLams bs t = foldr Lam t [ noLoc b | b <- bs ]
 
 mkWheres :: [Decls] -> Ter -> Ter
 mkWheres []     e = e
@@ -97,22 +97,22 @@ data Val = VU
   deriving Eq
 
 -- neutral values
-data Neutral = VVar String
+data Neutral = VVar String Val
              | VFst Neutral
              | VSnd Neutral
              | VSplit Val Neutral
              | VApp Neutral Val
   deriving Eq
 
-mkVar :: Int -> Val
-mkVar k = VN (VVar ('X' : show k))
+mkVar :: Int -> Val -> Val
+mkVar k t = VN (VVar ('X' : show k) t)
 
 --------------------------------------------------------------------------------
 -- | Environments
 
 data Env = Empty
          | Pair Env (Binder,Val)
-         | PDef [(Binder,Ter)] Env
+         | PDef Decls Env
   deriving Eq
 
 pairs :: Env -> [(Binder,Val)] -> Env
@@ -159,16 +159,16 @@ showTer :: Ter -> Doc
 showTer v = case v of
   U           -> char 'U'
   App e0 e1   -> showTer e0 <+> showTer1 e1
-  Pi e0 e1    -> text "Pi" <+> showTers [e0,e1]
-  Lam (x,_) e -> char '\\' <> text x <+> text "->" <+> showTer e
+  Pi e0       -> text "Pi" <+> showTer e0
+  Lam (x,_) t e -> char '\\' <> text x <+> text "->" <+> showTer e
   Fst e       -> showTer e <> text ".1"
   Snd e       -> showTer e <> text ".2"
-  Sigma e0 e1 -> text "Sigma" <+> showTers [e0,e1]
+  Sigma e0    -> text "Sigma" <+> showTer e0
   SPair e0 e1 -> parens (showTer1 e0 <> comma <> showTer1 e1)
   Where e d   -> showTer e <+> text "where" <+> showDecls d
   Var x       -> text x
   Con c es    -> text c <+> showTers es
-  Split l _   -> text "split" <+> showLoc l
+  Split l _ _ -> text "split" <+> showLoc l
   Sum (n,l) _ -> text "sum" <+> text n
   Undef _     -> text "undefined"
 
@@ -186,7 +186,7 @@ showTer1 t = case t of
 
 showDecls :: Decls -> Doc
 showDecls defs = hsep $ punctuate (char ',')
-                      [ text x <+> equals <+> showTer d | ((x,_),_,d) <- defs ]
+                      [ text x <+> equals <+> showTer d | ((x,_),(_,d)) <- defs ]
 
 instance Show Val where
   show = render . showVal
@@ -197,7 +197,7 @@ showVal v = case v of
   Ter t env  -> showTer t <+> showEnv env
   VId a u v  -> text "Id" <+> showVals [a,u,v]
   VCon c us  -> text c <+> showVals us
-  VPi a f    -> text "Pi" <+> showVals [a,f]
+  VPi a b    -> text "Pi" <+> showVals [a,b]
   VSPair u v -> parens (showVal1 u <> comma <> showVal1 v)
   VSigma u v -> text "Sigma" <+> showVals [u,v]
   VN n       -> showNeutral n
@@ -216,7 +216,7 @@ showNeutral, showNeutral1 :: Neutral -> Doc
 showNeutral n = case n of
   VApp u v   -> showNeutral u <+> showVal1 v
   VSplit u v -> showVal u <+> showNeutral1 v
-  VVar x     -> text x
+  VVar x t   -> text x
   VFst u     -> showNeutral u <> text ".1"
   VSnd u     -> showNeutral u <> text ".2"
 showNeutral1 n = case n of

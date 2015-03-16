@@ -12,18 +12,17 @@ Module.   Module ::= "module" AIdent "where" "{" [Imp] [Decl] "}" ;
 Import.   Imp ::= "import" AIdent ;
 separator Imp ";" ;
 
-DeclDef.    Decl ::= AIdent [AIdent] "=" ExpWhere ;
-DeclType.   Decl ::= AIdent ":" Exp ;
-DeclMutual. Decl ::= "mutual" "{" [Decl] "}" ;
-DeclData.   Decl ::= "data" AIdent [AIdent] "=" [Label] ;
+DeclDef.    Decl ::= AIdent [Tele] ":" Exp "=" ExpWhere ;
+DeclData.   Decl ::= "data" AIdent [Tele] "=" [Label] ;
+DeclSplit.  Decl ::= AIdent [Tele] ":" Exp "=" "split" "{" [Branch] "}" ;
+-- DeclMutual. Decl ::= "mutual" "{" [Decl] "}" ;
 separator   Decl ";" ;
 
 Where.    ExpWhere ::= Exp "where" "{" [Decl] "}" ;
 NoWhere.  ExpWhere ::= Exp ;
 
 Let.      Exp  ::= "let" "{" [Decl] "}" "in" Exp ;
-Lam.      Exp  ::= "\\" AIdent [AIdent] "->" Exp ;
-Split.    Exp  ::= "split" "{" [Branch] "}" ;
+Lam.      Exp  ::= "\\" [PTele] "->" Exp ;
 Fun.      Exp1 ::= Exp2 "->" Exp1 ;
 Pi.       Exp1 ::= [PTele] "->" Exp1 ;
 Sigma.    Exp1 ::= [PTele] "*" Exp1 ;

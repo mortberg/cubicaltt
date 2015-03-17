@@ -78,9 +78,6 @@ mkApps :: Ter -> [Ter] -> Ter
 mkApps (Con l us) vs = Con l (us ++ vs)
 mkApps t ts          = foldl App t ts
 
--- mkLams :: [String] -> Ter -> Ter
--- mkLams bs t = foldr Lam t [ noLoc b | b <- bs ]
-
 mkWheres :: [Decls] -> Ter -> Ter
 mkWheres []     e = e
 mkWheres (d:ds) e = Where (mkWheres ds e) d
@@ -95,19 +92,25 @@ data Val = VU
          | VSigma Val Val
          | VSPair Val Val
          | VCon String [Val]
-         | VN Neutral
+         -- Neutral values:
+         | VVar String Val
+         | VFst Val
+         | VSnd Val
+         | VSplit Val Val
+         | VApp Val Val
   deriving Eq
 
--- neutral values
-data Neutral = VVar String Val
-             | VFst Neutral
-             | VSnd Neutral
-             | VSplit Val Neutral
-             | VApp Neutral Val
-  deriving Eq
+isNeutral :: Val -> Bool
+isNeutral v = case v of
+  VVar _ _   -> True
+  VFst v     -> isNeutral v
+  VSnd v     -> isNeutral v
+  VSplit _ v -> isNeutral v
+  VApp v _   -> isNeutral v
+  _          -> False
 
 mkVar :: Int -> Val -> Val
-mkVar k t = VN (VVar ('X' : show k) t)
+mkVar k = VVar ('X' : show k)
 
 --------------------------------------------------------------------------------
 -- | Environments
@@ -187,7 +190,7 @@ showTer1 t = case t of
   _        -> parens (showTer t)
 
 showDecls :: Decls -> Doc
-showDecls defs = hsep $ punctuate (char ',')
+showDecls defs = hsep $ punctuate comma
                       [ text x <+> equals <+> showTer d | ((x,_),(_,d)) <- defs ]
 
 instance Show Val where
@@ -202,25 +205,17 @@ showVal v = case v of
   VPi a b    -> text "Pi" <+> showVals [a,b]
   VSPair u v -> parens (showVal1 u <> comma <> showVal1 v)
   VSigma u v -> text "Sigma" <+> showVals [u,v]
-  VN n       -> showNeutral n
+  VApp u v   -> showVal u <+> showVal1 v
+  VSplit u v -> showVal u <+> showVal1 v
+  VVar x t   -> text x
+  VFst u     -> showVal u <> text ".1"
+  VSnd u     -> showVal u <> text ".2"
 showVal1 v = case v of
   VU        -> char 'U'
   VCon c [] -> text c
+  VVar{}    -> showVal v
   _         -> parens (showVal v)
 
 showVals :: [Val] -> Doc
 showVals = hsep . map showVal1
 
-instance Show Neutral where
-  show = render . showNeutral
-
-showNeutral, showNeutral1 :: Neutral -> Doc
-showNeutral n = case n of
-  VApp u v   -> showNeutral u <+> showVal1 v
-  VSplit u v -> showVal u <+> showNeutral1 v
-  VVar x t   -> text x
-  VFst u     -> showNeutral u <> text ".1"
-  VSnd u     -> showNeutral u <> text ".2"
-showNeutral1 n = case n of
-  VVar{} -> showNeutral n
-  _      -> parens (showNeutral n)

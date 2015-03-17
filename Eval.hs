@@ -13,8 +13,8 @@ look x r@(PDef es r1) = case lookupIdent x es of
   Nothing -> look x r1
 
 lookType :: String -> Env -> Val
-lookType x (Pair rho ((y,_),VN (VVar _ a))) | x == y    = a
-                                            | otherwise = lookType x rho
+lookType x (Pair rho ((y,_),VVar _ a)) | x == y    = a
+                                       | otherwise = lookType x rho
 lookType x r@(PDef es r1) = case lookupIdent x es of
   Just (a,_) -> eval r a
   Nothing -> lookType x r1
@@ -45,14 +45,15 @@ app (Ter (Split _ _ nvs) e) (VCon name us) = case lookup name nvs of
   Just (xs,t) -> eval (pairs e (zip xs us)) t
   Nothing     -> error $ "app: Split with insufficient arguments; " ++
                          " missing case for " ++ name
-app u@(Ter (Split _ _ _) _) (VN v) = VN (VSplit u v)
-app (VN r) s = VN (VApp r s)
+app u@(Ter (Split _ _ _) _) v | isNeutral v = VSplit u v
+app r s | isNeutral r = VApp r s
+app _ _ = error "app"
 
 fstVal, sndVal :: Val -> Val
-fstVal (VSPair a b) = a
-fstVal (VN u)       = VN (VFst u)
-sndVal (VSPair a b) = b
-sndVal (VN u)       = VN (VSnd u)
+fstVal (VSPair a b)    = a
+fstVal u | isNeutral u = VFst u
+sndVal (VSPair a b)    = b
+sndVal u | isNeutral u = VSnd u
 
 -------------------------------------------------------------------------------
 -- | Conversion
@@ -82,16 +83,12 @@ conv k u v | u == v    = True
   (VSPair u v,VSPair u' v') -> conv k u u' && conv k v v'
   (VSPair u v,w)            -> conv k u (fstVal w) && conv k v (sndVal w)
   (w,VSPair u v)            -> conv k (fstVal w) u && conv k (sndVal w) v
-  (VN u,VN v)               -> convNeutral k u v
-  _                         -> False
-
-convNeutral :: Int -> Neutral -> Neutral -> Bool
-convNeutral k u v = case (u,v) of
-  (VFst u,VFst u')          -> convNeutral k u u'
-  (VSnd u,VSnd u')          -> convNeutral k u u'
-  (VApp u v,VApp u' v')     -> convNeutral k u u' && conv k v v'
-  (VSplit u v,VSplit u' v') -> conv k u u' && convNeutral k v v'
+  (VFst u,VFst u')          -> conv k u u'
+  (VSnd u,VSnd u')          -> conv k u u'
+  (VApp u v,VApp u' v')     -> conv k u u' && conv k v v'
+  (VSplit u v,VSplit u' v') -> conv k u u' && conv k v v'
   (VVar x _, VVar x' _)     -> x == x'
+  _                         -> False
 
 convEnv :: Int -> Env -> Env -> Bool
 convEnv k e e' = and $ zipWith (conv k) (valOfEnv e) (valOfEnv e')

@@ -106,7 +106,7 @@ data Val = VU
          | VPath Name Val
          | VComp Val Val (System Val)
          | VTrans Val Val
-           
+
            -- Neutral values:
          | VVar String Val
          | VFst Val
@@ -215,7 +215,7 @@ showTer v = case v of
   Path i e         -> char '<' <> text (show i) <> char '>' <+> showTer e
   AppFormula e phi -> showTer1 e <> char '@' <> text (show phi)
   Comp e0 e1 es    -> text "comp" <+> showTers [e0,e1] <+> text (showSystem es)
-  Trans e0 e1      -> text "trans" <+> showTers [e0,e1]
+  Trans e0 e1      -> text "transport" <+> showTers [e0,e1]
 
 showTers :: [Ter] -> Doc
 showTers = hsep . map showTer1

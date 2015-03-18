@@ -3,7 +3,7 @@ module Eval where
 import Data.List
 import Data.Maybe (fromMaybe)
 
-import TT
+import CTT
 
 look :: String -> Env -> Val
 look x (Pair rho ((y,_),u)) | x == y    = u

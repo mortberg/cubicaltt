@@ -12,7 +12,7 @@ import Control.Monad.Trans.Reader
 import Control.Monad.Error (throwError)
 import Control.Applicative
 
-import TT
+import CTT
 import Eval
 
 -- Type checking monad

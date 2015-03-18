@@ -1,4 +1,4 @@
-module TT where
+module CTT where
 
 import Control.Applicative
 import Data.List
@@ -28,8 +28,10 @@ type Tele   = [(Binder,Ter)]
 -- Labelled sum: c (x1 : A1) .. (xn : An)
 type LblSum = [(Binder,Tele)]
 
+type Decl   = (Binder,(Ter,Ter))
+    
 -- Mutual recursive definitions: (x1 : A1) .. (xn : An) and x1 = e1 .. xn = en
-type Decls  = [(Binder,(Ter,Ter))]
+type Decls  = [Decl]
 
 declBinders :: Decls -> [Binder]
 declBinders decls = [ x | (x,_) <- decls ]

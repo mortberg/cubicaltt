@@ -16,7 +16,7 @@ import Exp.Abs hiding (NoArg)
 import Exp.Layout
 import Exp.ErrM
 
-import TT
+import CTT
 import Resolver
 import qualified TypeChecker as TC
 import qualified Eval as E

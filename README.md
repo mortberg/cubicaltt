@@ -1,1 +1,1 @@
-# minitt
+# cubical type theory

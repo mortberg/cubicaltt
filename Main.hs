@@ -35,8 +35,8 @@ options = [ Option "d" ["debug"]   (NoArg Debug)   "run in debugging mode"
 -- Version number, welcome message, usage and prompt strings
 version, welcome, usage, prompt :: String
 version = "1.0"
-welcome = "minitt, version: " ++ version ++ "  (:h for help)\n"
-usage   = "Usage: minitt [options] <file.tt>\nOptions:"
+welcome = "cubical, version: " ++ version ++ "  (:h for help)\n"
+usage   = "Usage: cubical [options] <file.ctt>\nOptions:"
 prompt  = "> "
 
 lexer :: String -> [Token]
@@ -149,14 +149,13 @@ imports v st@(notok,loaded,mods) f
           Bad s  -> do
             putStrLn $ "Parse failed in " ++ show f ++ "\n" ++ show s
             return ([],[],[])
-          Ok mod@(Module id imp decls) ->
-            let name    = unAIdent id
-                imp_tt = [prefix ++ unAIdent i ++ ".tt" | Import i <- imp]
+          Ok mod@(Module (AIdent (_,name)) imp decls) ->
+            let imp_ctt = [prefix ++ i ++ ".ctt" | Import (AIdent (_,i)) <- imp]
             in do
               when (name /= dropExtension (takeFileName f)) $
                 error $ "Module name mismatch " ++ show (f,name)
               (notok1,loaded1,mods1) <-
-                foldM (imports v) (f:notok,loaded,mods) imp_tt
+                foldM (imports v) (f:notok,loaded,mods) imp_ctt
               when v $ putStrLn $ "Parsed " ++ show f ++ " successfully!"
               return (notok,f:loaded1,mods1 ++ [mod])
 

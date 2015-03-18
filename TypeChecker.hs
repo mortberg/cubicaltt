@@ -156,7 +156,8 @@ check a t = case (a,t) of
   (VU,IdP a e0 e1) -> case a of
     Path i b -> do
       rho <- asks env
-      when (i `elem` support rho) (throwError (show i ++ " is already declared"))
+      when (i `elem` support rho)
+        (throwError (show i ++ " is already declared"))
       local (addSub (i,Atom i)) $ check VU b
       check (eval (Sub rho (i,Dir 0)) b) e0
       check (eval (Sub rho (i,Dir 1)) b) e1
@@ -169,7 +170,8 @@ check a t = case (a,t) of
         _ -> throwError ("IdP expects a path but got " ++ show a)
   (VIdP p a b,Path i e) -> do
     rho <- asks env
-    when (i `elem` support rho) (throwError (show i ++ " is already declared"))
+    when (i `elem` support rho)
+      (throwError (show i ++ " is already declared"))
     local (addSub (i,Atom i)) $ check (p @@ i) e
   _ -> do
     v <- infer t
@@ -234,7 +236,20 @@ infer e = case e of
     t <- infer e
     case t of
       VIdP a _ _ -> return $ a @@ phi
-      _ -> throwError (show e ++ " is not a path") 
+      _ -> throwError (show e ++ " is not a path")
+  Trans p t -> case p of
+    Path i a -> do
+      rho <- asks env
+      when (i `elem` support rho)
+        (throwError $ show i ++ " is already declared")
+      local (addSub (i,Atom i)) $ check VU a
+      check (eval (Sub rho (i,Dir 0)) a) t
+      return $ (eval (Sub rho (i,Dir 1)) a)
+    _ -> do
+      b <- infer p
+      case b of
+        VIdP (VPath _ VU) _ b1 -> return b1
+        _ -> throwError $ "transport expects a path but got " ++ show p
   _ -> throwError ("infer " ++ show e)
 
 checks :: (Tele,Env) -> [Ter] -> Typing ()

@@ -30,7 +30,7 @@ lookName :: Name -> Env -> Formula
 lookName i (Pair rho _) = lookName i rho
 lookName i (Def _ rho)  = lookName i rho
 lookName i (Sub rho (j,phi)) | i == j    = phi
-                             | otherwise = lookName i rho 
+                             | otherwise = lookName i rho
 
 -----------------------------------------------------------------------
 -- Nominal instances
@@ -47,15 +47,16 @@ instance Nominal Val where
   support (VComp a u ts)                = support (a,u,ts)
   support (VIdP a v0 v1)                = support [a,v0,v1]
   support (VPath i v)                   = i `delete` support v
+  support (VTrans u v)                  = support (u,v)
   support (VSigma u v)                  = support (u,v)
   support (VSPair u v)                  = support (u,v)
   support (VFst u)                      = support u
   support (VSnd u)                      = support u
   support (VCon _ vs)                   = support vs
   support (VVar _ v)                    = support v
-  support (VApp u v)                    = support (u, v)
-  support (VAppFormula u phi)           = support (u, phi)
-  support (VSplit u v)                  = support (u, v)
+  support (VApp u v)                    = support (u,v)
+  support (VAppFormula u phi)           = support (u,phi)
+  support (VSplit u v)                  = support (u,v)
 
   act u (i, phi) =
     let acti :: Nominal a => a -> a
@@ -68,8 +69,9 @@ instance Nominal Val where
          VComp a v ts -> comp (acti a) (acti v) (acti ts)
          VIdP a u v -> VIdP (acti a) (acti u) (acti v)
          VPath j v | j `notElem` sphi -> VPath j (acti v)
-                  | otherwise -> VPath k (v `swap` (j,k))
+                   | otherwise -> VPath k (v `swap` (j,k))
               where k = fresh (v, Atom i, phi)
+         VTrans u v -> trans' (acti u) (acti v)
          VSigma a f -> VSigma (acti a) (acti f)
          VSPair u v -> VSPair (acti u) (acti v)
          VFst u     -> VFst (acti u)
@@ -91,6 +93,7 @@ instance Nominal Val where
          VComp a v ts -> VComp (sw a) (sw v) (sw ts)
          VIdP a u v -> VIdP (sw a) (sw u) (sw v)
          VPath k v -> VPath (swapName k ij) (sw v)
+         VTrans u v -> VTrans (sw u) (sw v)
          VSigma a f -> VSigma (sw a) (sw f)
          VSPair u v -> VSPair (sw u) (sw v)
          VFst u     -> VFst (sw u)
@@ -103,7 +106,7 @@ instance Nominal Val where
 
 -----------------------------------------------------------------------
 -- The evaluator
-  
+
 eval :: Env -> Ter -> Val
 eval rho v = case v of
   U                   -> VU
@@ -121,14 +124,13 @@ eval rho v = case v of
   Sum pr lbls         -> Ter (Sum pr lbls) rho
   Undef l             -> error $ "eval: undefined at " ++ show l
   IdP a e0 e1         -> VIdP (eval rho a) (eval rho e0) (eval rho e1)
-  Path i t            -> 
+  Path i t            ->
     let j = fresh rho
     in VPath j (eval (Sub rho (i,Atom j)) t)
-  Trans u v -> case eval rho u of
-    VPath i u0 -> trans i u0 (eval rho v)
-    u0         -> VTrans u0 (eval rho v)
+  Trans u v -> trans' (eval rho u) (eval rho v)
   AppFormula e phi -> (eval rho e) @@ (evalFormula rho phi)
--- Comp 
+
+-- Comp
 
 evalFormula :: Env -> Formula -> Formula
 evalFormula rho phi = case phi of
@@ -165,13 +167,18 @@ v @@ phi          = VAppFormula v (toFormula phi)
 -----------------------------------------------------------
 -- Transport
 
+trans' :: Val -> Val -> Val
+trans' u v = case u of
+  VPath i u0 -> trans i u0 v
+  u0         -> VTrans u0 v
+
 trans :: Name -> Val -> Val -> Val
 trans i v0 v1 = case (v0,v1) of
   (VIdP a u v,w) ->
     let j   = fresh (Atom i, v0, w)
         ts' = mkSystem [(j ~> 0,u),(j ~> 1,v)]
     in VPath j $ genComp i (a @@ j) (w @@ j) ts'
-  (VSigma a f,u) -> 
+  (VSigma a f,u) ->
     let (u1,u2) = (fstVal u,sndVal u)
         fill_u1 = transFill i a u1
         ui1     = trans i a u1
@@ -244,7 +251,7 @@ comps _ _ _ _ = error "comps: different lengths of types and values"
 conv :: Int -> Val -> Val -> Bool
 conv k u v | u == v    = True
            | otherwise = let j = fresh (u,v) in case (u,v) of
-  (Ter (Lam x a u) e,Ter (Lam x' a' u') e') -> 
+  (Ter (Lam x a u) e,Ter (Lam x' a' u') e') ->
     let v = mkVar k (eval e a)
     in conv (k+1) (eval (Pair e (x,v)) u) (eval (Pair e' (x',v)) u')
   (Ter (Lam x a u) e,u') ->
@@ -274,7 +281,10 @@ conv k u v | u == v    = True
   (VIdP a b c,VIdP a' b' c') -> conv k a a' && conv k b b' && conv k c c'
   (VPath i a,VPath i' a') -> conv k (a `swap` (i,j)) (a' `swap` (i',j))
   (VPath i a,p') -> conv k (a `swap` (i,j)) (p' @@ j)
-  (p,VPath i' a')             -> conv k (p @@ j) (a' `swap` (i',j))
+  (p,VPath i' a')              -> conv k (p @@ j) (a' `swap` (i',j))
+  (VTrans p u,v) | isIndep k j (p @@ j) -> conv k u v
+  (u,VTrans p v) | isIndep k j (p @@ j) -> conv k u v
+  (VTrans p u,VTrans p' u') -> conv k p p' && conv k u u'
   -- VAppformula
   -- VTrans
   -- VComp
@@ -282,3 +292,6 @@ conv k u v | u == v    = True
 
 convEnv :: Int -> Env -> Env -> Bool
 convEnv k e e' = and $ zipWith (conv k) (valOfEnv e) (valOfEnv e')
+
+isIndep :: Int -> Name -> Val -> Bool
+isIndep k i u = conv k u (u `face` (i ~> 0))

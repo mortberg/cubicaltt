@@ -55,8 +55,11 @@ test : Id (nat -> nat) idnat (id nat) = funExt nat (\(_ : nat) -> nat) idnat (id
     zero -> refl nat zero
     suc n -> mapOnPath nat nat (\(x : nat) -> suc x) (idnat n) n (rem n)
 
--- subst (A : U) (P : A -> U) (a b : A) (p : Id A a b) (e : P a) : P b =
---   transport (mapOnPath A U P a b p) e
+subst (A : U) (P : A -> U) (a b : A) (p : Id A a b) (e : P a) : P b =
+  transport (mapOnPath A U P a b p) e
+
+substRefl (A : U) (P : A -> U) (a : A) (e : P a) : Id (P a) (subst A P a a (refl A a) e) e =
+  refl (P a) e
 
 singl (A : U) (a : A) : U = (x : A) * Id A a x
 

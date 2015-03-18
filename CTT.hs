@@ -30,9 +30,8 @@ type Tele   = [(Binder,Ter)]
 -- Labelled sum: c (x1 : A1) .. (xn : An)
 type LblSum = [(Binder,Tele)]
 
+-- Declarations: x : A = e
 type Decl   = (Binder,(Ter,Ter))
-    
--- Mutual recursive definitions: (x1 : A1) .. (xn : An) and x1 = e1 .. xn = en
 type Decls  = [Decl]
 
 declBinders :: Decls -> [Binder]
@@ -73,7 +72,8 @@ data Ter = App Ter Ter
          | Path Name Ter
          | AppFormula Ter Formula
            -- Kan Composition
-         | Comp Name Ter Ter (System Ter)
+         | Comp Ter Ter (System Ter)
+         | Trans Ter Ter
   deriving Eq
 
 -- For an expression t, returns (u,ts) where u is no application and t = u ts
@@ -104,7 +104,8 @@ data Val = VU
            -- Id values
          | VIdP Val Val Val
          | VPath Name Val
-         | VComp Name Val Val (System Val)
+         | VComp Val Val (System Val)
+         | VTrans Val Val
            
            -- Neutral values:
          | VVar String Val
@@ -133,7 +134,8 @@ mkVar k = VVar ('X' : show k)
 
 data Env = Empty
          | Pair Env (Binder,Val)
-         | PDef Decls Env
+         | Def Decls Env
+         | Sub Env (Name,Formula)
   deriving Eq
 
 pairs :: Env -> [(Binder,Val)] -> Env
@@ -142,15 +144,32 @@ pairs = foldl Pair
 lookupIdent :: Ident -> [(Binder,a)] -> Maybe a
 lookupIdent x defs = listToMaybe [ t | ((y,l),t) <- defs, x == y ]
 
-mapEnv :: (Val -> Val) -> Env -> Env
-mapEnv _ Empty          = Empty
-mapEnv f (Pair e (x,v)) = Pair (mapEnv f e) (x,f v)
-mapEnv f (PDef ts e)    = PDef ts (mapEnv f e)
+mapEnv :: (Val -> Val) -> (Formula -> Formula) -> Env -> Env
+mapEnv f g e = case e of
+  Empty         -> Empty
+  Pair e (x,v)  -> Pair (mapEnv f g e) (x,f v)
+  Def ts e      -> Def ts (mapEnv f g e)
+  Sub e (i,phi) -> Sub (mapEnv f g e) (i,g phi)
 
 valOfEnv :: Env -> [Val]
 valOfEnv Empty            = []
 valOfEnv (Pair env (_,v)) = v : valOfEnv env
-valOfEnv (PDef _ env)     = valOfEnv env
+valOfEnv (Def _ env)      = valOfEnv env
+valOfEnv (Sub env _)      = valOfEnv env
+
+formulaOfEnv :: Env -> [Formula]
+formulaOfEnv e = case e of
+  Empty           -> []
+  Pair rho _      -> formulaOfEnv rho
+  Def _ rho       -> formulaOfEnv rho
+  Sub rho (_,phi) -> phi : formulaOfEnv rho
+
+domainEnv :: Env -> [Name]
+domainEnv rho = case rho of
+  Empty        -> []
+  Pair e (x,v) -> domainEnv e
+  Def ts e     -> domainEnv e
+  Sub e (i,_)  -> i : domainEnv e
 
 --------------------------------------------------------------------------------
 -- | Pretty printing
@@ -158,14 +177,14 @@ valOfEnv (PDef _ env)     = valOfEnv env
 instance Show Env where
   show = render . showEnv
 
-showEnv :: Env -> Doc
+showEnv, showEnv1 :: Env -> Doc
 showEnv e = case e of
-  Empty          -> PP.empty
-  PDef _ env     -> showEnv env
-  Pair env (x,u) -> parens (showEnv1 env <> showVal u)
-    where
-      showEnv1 (Pair env (x,u)) = showEnv1 env <> showVal u <> text ", "
-      showEnv1 e                = showEnv e
+  Empty           -> PP.empty
+  Def _ env       -> showEnv env
+  Pair env (x,u)  -> parens (showEnv1 env <> showVal u)
+  Sub env (i,phi) -> parens (showEnv1 env <> text (show phi))
+showEnv1 (Pair env (x,u)) = showEnv1 env <> showVal u <> text ", "
+showEnv1 e                = showEnv e
 
 instance Show Loc where
   show = render . showLoc
@@ -195,8 +214,8 @@ showTer v = case v of
   IdP e0 e1 e2     -> text "IdP" <+> showTers [e0,e1,e2]
   Path i e         -> char '<' <> text (show i) <> char '>' <+> showTer e
   AppFormula e phi -> showTer1 e <> char '@' <> text (show phi)
-  Comp i e0 e1 es  -> text "comp" <+> text (show i) <+> showTers [e0,e1] <+>
-                      text (showSystem es)
+  Comp e0 e1 es    -> text "comp" <+> showTers [e0,e1] <+> text (showSystem es)
+  Trans e0 e1      -> text "trans" <+> showTers [e0,e1]
 
 showTers :: [Ter] -> Doc
 showTers = hsep . map showTer1
@@ -233,8 +252,8 @@ showVal v = case v of
   VIdP v0 v1 v2     -> text "IdP" <+> showVals [v0,v1,v2]
   VPath i v         -> char '<' <> text (show i) <> char '>' <+> showVal v
   VAppFormula v phi -> showVal1 v <> char '@' <> text (show phi)
-  VComp i v0 v1 vs  -> text "comp" <+> text (show i) <+> showVals [v0,v1] <+>
-                       text (showSystem vs)
+  VComp v0 v1 vs    -> text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)
+  VTrans v0 v1      -> text "trans" <+> showVals [v0,v1]
 showVal1 v = case v of
   VU        -> char 'U'
   VCon c [] -> text c

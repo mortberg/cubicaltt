@@ -5,6 +5,7 @@ module Resolver where
 
 import Exp.Abs
 import qualified CTT
+import qualified Connections as C
 
 import Control.Applicative
 import Control.Monad.Trans
@@ -102,7 +103,10 @@ noLoc = AIdent ((0,0),"_")
            
 resolveAIdent :: AIdent -> Resolver CTT.Binder
 resolveAIdent (AIdent (l,x)) = (x,) <$> getLoc l
- 
+
+resolveName :: Name -> Resolver C.Name
+resolveName (Name (_,n)) = return $ C.Name $ read $ tail n
+  
 resolveVar :: AIdent -> Resolver Ter
 resolveVar (AIdent (l,x))
   | (x == "_") || (x == "undefined") = CTT.Undef <$> getLoc l
@@ -130,11 +134,20 @@ bind f (x,t) e = f <$> lam (x,t) e
 binds :: (Ter -> Ter) -> [(AIdent,Exp)] -> Resolver Ter -> Resolver Ter
 binds f = flip $ foldr $ bind f
 
+resolveApps :: Exp -> [Exp] -> Resolver Ter
+resolveApps Trans (x:y:xs) = do
+  let c = CTT.Trans <$> resolveExp x <*> resolveExp y
+  CTT.mkApps <$> c <*> mapM resolveExp xs
+resolveApps IdP (x:y:z:xs) = do
+  let c = CTT.IdP <$> resolveExp x <*> resolveExp y <*> resolveExp z
+  CTT.mkApps <$> c <*> mapM resolveExp xs
+resolveApps x xs = CTT.mkApps <$> resolveExp x <*> mapM resolveExp xs
+
 resolveExp :: Exp -> Resolver Ter
 resolveExp e = case e of
   U             -> return CTT.U
   Var x         -> resolveVar x
-  App t s       -> CTT.mkApps <$> resolveExp x <*> mapM resolveExp xs
+  App t s       -> resolveApps x xs
       where (x,xs) = unApps t [s]
   Sigma ptele b -> do
     tele <- flattenPTele ptele
@@ -152,7 +165,9 @@ resolveExp e = case e of
   Let decls e   -> do
     (rdecls,names) <- resolveDecls decls
     CTT.mkWheres rdecls <$> local (insertBinders names) (resolveExp e)
-
+  Path i e -> CTT.Path <$> resolveName i <*> resolveExp e 
+  AppFormula e n -> CTT.AppFormula <$> resolveExp e <*> (C.Atom <$> resolveName n)
+    
 resolveWhere :: ExpWhere -> Resolver Ter
 resolveWhere = resolveExp . unWhere
 

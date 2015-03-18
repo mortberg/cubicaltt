@@ -21,17 +21,21 @@ separator   Decl ";" ;
 Where.    ExpWhere ::= Exp "where" "{" [Decl] "}" ;
 NoWhere.  ExpWhere ::= Exp ;
 
-Let.      Exp  ::= "let" "{" [Decl] "}" "in" Exp ;
-Lam.      Exp  ::= "\\" [PTele] "->" Exp ;
-Fun.      Exp1 ::= Exp2 "->" Exp1 ;
-Pi.       Exp1 ::= [PTele] "->" Exp1 ;
-Sigma.    Exp1 ::= [PTele] "*" Exp1 ;
-App.      Exp2 ::= Exp2 Exp3 ;
-Var.      Exp3 ::= AIdent ;
-U.        Exp3 ::= "U" ;
-Fst.      Exp3 ::= Exp3 ".1" ;
-Snd.      Exp3 ::= Exp3 ".2" ;
-Pair.     Exp3 ::= "(" Exp "," Exp ")" ;
+Let.        Exp  ::= "let" "{" [Decl] "}" "in" Exp ;
+Lam.        Exp  ::= "\\" [PTele] "->" Exp ;
+Path.       Exp  ::= "<" Name ">" Exp ;
+Fun.        Exp1 ::= Exp2 "->" Exp1 ;
+Pi.         Exp1 ::= [PTele] "->" Exp1 ;
+Sigma.      Exp1 ::= [PTele] "*" Exp1 ;
+App.        Exp2 ::= Exp2 Exp3 ;
+Var.        Exp3 ::= AIdent ;
+AppFormula. Exp3 ::= Exp3 "@" Name ;
+U.          Exp3 ::= "U" ;
+Fst.        Exp3 ::= Exp3 ".1" ;
+Snd.        Exp3 ::= Exp3 ".2" ;
+IdP.        Exp3 ::= "IdP" ;
+Trans.      Exp3 ::= "transport" ;
+Pair.       Exp3 ::= "(" Exp "," Exp ")" ;
 coercions Exp 3 ;
 
 -- Branches
@@ -53,3 +57,6 @@ terminator nonempty PTele "" ;
 
 position token AIdent ((letter|'\''|'_')(letter|digit|'\''|'_')*) ;
 terminator AIdent "" ;
+
+position token Name (('?')(digit)*);
+terminator Name "" ;

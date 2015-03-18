@@ -22,7 +22,6 @@ swapName k (i,j) | k == i    = j
                  | k == j    = i
                  | otherwise = k
 
-
 -- | Directions
 data Dir = Zero | One
   deriving (Eq,Ord)
@@ -68,16 +67,6 @@ showFace alpha = concat [ "(" ++ show i ++ "," ++ show d ++ ")"
 swapFace :: Face -> (Name,Name) -> Face
 swapFace alpha ij = Map.mapKeys (`swapName` ij) alpha
 
--- i,j,k,l :: Name
--- i = Name 0
--- j = Name 1
--- k = Name 2
--- l = Name 3
-
--- f1,f2 :: Face
--- f1 = Map.fromList [(i,0),(j,1),(k,0)]
--- f2 = Map.fromList [(i,0),(j,1),(l,1)]
-
 -- Check if two faces are compatible
 compatible :: Face -> Face -> Bool
 compatible xs ys = and (Map.elems (Map.intersectionWith (==) xs ys))
@@ -107,8 +96,6 @@ meetId xs = xs `meet` xs == xs
 meets :: [Face] -> [Face] -> [Face]
 meets xs ys = nub [ meet x y | x <- xs, y <- ys, compatible x y ]
 
--- instance Ord Face where
-
 leq :: Face -> Face -> Bool
 alpha `leq` beta = meetMaybe alpha beta == Just alpha
 
@@ -128,12 +115,6 @@ eps = Map.empty
 -- Compute the witness of A <= B, ie compute C s.t. B = CA
 -- leqW :: Face -> Face -> Face
 -- leqW = undefined
-
--- data Faces = Faces (Set Face)
-
--- instance Nominal Faces where
---   support (Faces f)      =
---   act (Faces f) (i, phi) = Faces f
 
 -- | Formulas
 data Formula = Dir Dir
@@ -199,9 +180,9 @@ orFormula (Dir Zero) phi = phi
 orFormula phi (Dir Zero) = phi
 orFormula phi psi        = phi :\/: psi
 
-evalFormula :: Formula -> Face -> Formula
-evalFormula phi alpha =
-  Map.foldWithKey (\i d psi -> act psi (i,Dir d)) phi alpha
+-- evalFormula :: Formula -> Face -> Formula
+-- evalFormula phi alpha =
+--   Map.foldWithKey (\i d psi -> act psi (i,Dir d)) phi alpha
 
   -- (Dir b) alpha  = Dir b
 -- evalFormula (Atom i) alpha = case Map.lookup i alpha of
@@ -218,22 +199,17 @@ evalFormula phi alpha =
 invFormula :: Formula -> Dir -> [Face]
 invFormula (Dir b') b          = [ eps | b == b' ]
 invFormula (Atom i) b          = [ Map.singleton i b ]
-invFormula (NegAtom i) b         = [ Map.singleton i (- b) ]
+invFormula (NegAtom i) b       = [ Map.singleton i (- b) ]
 invFormula (phi :/\: psi) Zero = invFormula phi 0 `union` invFormula psi 0
-invFormula (phi :/\: psi) One  =
-  meets (invFormula phi 1) (invFormula psi 1)
+invFormula (phi :/\: psi) One  = meets (invFormula phi 1) (invFormula psi 1)
 invFormula (phi :\/: psi) b    = invFormula (negFormula phi :/\: negFormula psi) (- b)
-
--- primeImplicants :: Formula -> Dir -> System ()
--- primeImplicants phi Zero = primeImplicants (NegAtom phi) One
--- primeImplicants phi One  = undefined
 
 propInvFormulaIncomp :: Formula -> Dir -> Bool
 propInvFormulaIncomp phi b = incomparables (invFormula phi b)
 
-prop_invFormula :: Formula -> Dir -> Bool
-prop_invFormula phi b =
-  all (\alpha -> phi `evalFormula` alpha == Dir b) (invFormula phi b)
+-- prop_invFormula :: Formula -> Dir -> Bool
+-- prop_invFormula phi b =
+--   all (\alpha -> phi `evalFormula` alpha == Dir b) (invFormula phi b)
 
 testInvFormula :: [Face]
 testInvFormula = invFormula (Atom (Name 0) :/\: Atom (Name 1)) 1
@@ -249,12 +225,8 @@ gensyms d = let x = gensym d in x : gensyms (x : d)
 
 class Nominal a where
   support :: a -> [Name]
--- act u (i,phi) should have u # (phi - i) ??
   act     :: a -> (Name,Formula) -> a
-
-  swap :: a -> (Name,Name) -> a
-  -- swap u (i,j) =
-  --    where k = fresh (u,i,j)
+  swap    :: a -> (Name,Name) -> a
 
 fresh :: Nominal a => a -> Name
 fresh = gensym . support
@@ -351,11 +323,10 @@ showSystem ts = concat $ intersperse ", " [ showFace alpha ++ " |-> " ++ show u
                                           | (alpha,u) <- Map.toList ts ]
 
 insertSystem :: Face -> a -> System a -> System a
-insertSystem alpha v ts =
-  case find (comparable alpha) (Map.keys ts) of
-    Just beta | alpha `leq` beta -> ts
-              | otherwise        -> Map.insert alpha v (Map.delete beta ts)
-    Nothing -> Map.insert alpha v ts
+insertSystem alpha v ts = case find (comparable alpha) (Map.keys ts) of
+  Just beta | alpha `leq` beta -> ts
+            | otherwise        -> Map.insert alpha v (Map.delete beta ts)
+  Nothing -> Map.insert alpha v ts
 
 insertsSystem :: [(Face, a)] -> System a -> System a
 insertsSystem faces us =
@@ -364,7 +335,7 @@ insertsSystem faces us =
 mkSystem :: [(Face, a)] -> System a
 mkSystem = flip insertsSystem Map.empty
 
-unionSystem :: System a  -> System a  -> System a
+unionSystem :: System a -> System a -> System a
 unionSystem us vs = insertsSystem (Map.assocs us) vs
 
 -- could something like that work??
@@ -376,10 +347,6 @@ transposeSystemAndList :: System [a] -> [b] -> [(System a,b)]
 transposeSystemAndList _  []      = []
 transposeSystemAndList tss (u:us) =
   (Map.map head tss,u):transposeSystemAndList (Map.map tail tss) us
-
--- transposeSystem :: System [a] -> [System a]
--- transposeSystem ts =
---   Map.map (\as -> head a) ts : transposeSystem (Map.map (\as -> tail as) ts)
 
 -- Quickcheck this:
 -- (i = phi) * beta = (beta - i) * (i = phi beta)
@@ -426,8 +393,9 @@ sym a i = a `act` (i, NegAtom i)
 rename :: Nominal a => a -> (Name, Name) -> a
 rename a (i, j) = a `act` (i, Atom j)
 
-connect :: Nominal a => a -> (Name, Name) -> a
-connect a (i, j) = a `act` (i, Atom i :/\: Atom j)
+conj, disj :: Nominal a => a -> (Name, Name) -> a
+conj a (i, j) = a `act` (i, Atom i :/\: Atom j)
+disj a (i, j) = a `act` (i, Atom i :\/: Atom j)
 
 leqSystem :: Face -> System a -> Bool
 alpha `leqSystem` us =
@@ -440,6 +408,3 @@ proj us alpha | eps `Map.member` usalpha = usalpha ! eps
   error $ "proj: eps not in " ++ show usalpha ++ "\nwhich  is the "
     ++ show alpha ++ "\nface of " ++ show us
   where usalpha = us `face` alpha
-
--- actSystemCom :: Formula -> Name -> Formula -> Bool
--- actSystemCom psi i phi = border phi

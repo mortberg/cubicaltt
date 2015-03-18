@@ -12,6 +12,7 @@ import Control.Monad.Trans.Reader
 import Control.Monad.Error (throwError)
 import Control.Applicative
 
+import Connections
 import CTT
 import Eval
 
@@ -34,6 +35,9 @@ addTypeVal :: (Binder,Val) -> TEnv -> TEnv
 addTypeVal (x,a) (TEnv k rho v) =
   TEnv (k+1) (Pair rho (x,mkVar k a)) v
 
+addSub :: (Name,Formula) -> TEnv -> TEnv
+addSub iphi (TEnv k rho v) = TEnv k (Sub rho iphi) v
+
 addType :: (Binder,Ter) -> TEnv -> Typing TEnv
 addType (x,a) tenv@(TEnv _ rho _) = return $ addTypeVal (x,eval rho a) tenv
 
@@ -42,7 +46,7 @@ addBranch nvs (tele,env) (TEnv k rho v) =
   TEnv (k + length nvs) (pairs rho nvs) v
 
 addDecls :: Decls -> TEnv -> TEnv
-addDecls d (TEnv k rho v) = TEnv k (PDef d rho) v
+addDecls d (TEnv k rho v) = TEnv k (Def d rho) v
 
 addTele :: Tele -> TEnv -> Typing TEnv
 addTele xas lenv = foldM (flip addType) lenv xas
@@ -149,6 +153,24 @@ check a t = case (a,t) of
     checkDecls d
     local (addDecls d) $ check a e
   (_,Undef _) -> return ()
+  (VU,IdP a e0 e1) -> case a of
+    Path i b -> do
+      rho <- asks env
+      when (i `elem` support rho) (throwError (show i ++ " is already declared"))
+      local (addSub (i,Atom i)) $ check VU b
+      check (eval (Sub rho (i,Dir 0)) b) e0
+      check (eval (Sub rho (i,Dir 1)) b) e1
+    _ -> do
+      b <- infer a
+      case b of
+        VIdP (VPath _ VU) b0 b1 -> do
+          check b0 e0
+          check b1 e1
+        _ -> throwError ("IdP expects a path but got " ++ show a)
+  (VIdP p a b,Path i e) -> do
+    rho <- asks env
+    when (i `elem` support rho) (throwError (show i ++ " is already declared"))
+    local (addSub (i,Atom i)) $ check (p @@ i) e
   _ -> do
     v <- infer t
     k <- index <$> ask
@@ -167,9 +189,13 @@ mkVars k ((x,a):xas) nu =
   let w = mkVar k (eval nu a)
   in w : mkVars (k+1) xas (Pair nu (x,w))
 
--- inferNeutral :: Val -> Val
--- inferNeutral (VN (VVar _ a)) = a
--- inferNeutral _ = error "not done yet"
+checkFormula :: Formula -> Typing ()
+checkFormula phi = do
+  rho <- asks env
+  let dom = domainEnv rho
+  if all (\x -> x `elem` dom) (support phi)
+    then return ()
+    else throwError ("checkFormula: " ++ show phi)
 
 -- infer the type of e
 infer :: Ter -> Typing Val
@@ -203,6 +229,12 @@ infer e = case e of
   Where t d -> do
     checkDecls d
     local (addDecls d) $ infer t
+  AppFormula e phi -> do
+    checkFormula phi
+    t <- infer e
+    case t of
+      VIdP a _ _ -> return $ a @@ phi
+      _ -> throwError (show e ++ " is not a path") 
   _ -> throwError ("infer " ++ show e)
 
 checks :: (Tele,Env) -> [Ter] -> Typing ()

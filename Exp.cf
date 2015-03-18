@@ -29,7 +29,7 @@ Pi.         Exp1 ::= [PTele] "->" Exp1 ;
 Sigma.      Exp1 ::= [PTele] "*" Exp1 ;
 App.        Exp2 ::= Exp2 Exp3 ;
 Var.        Exp3 ::= AIdent ;
-AppFormula. Exp3 ::= Exp3 "@" Name ;
+AppFormula. Exp3 ::= Exp3 "@" Formula ;
 U.          Exp3 ::= "U" ;
 Fst.        Exp3 ::= Exp3 ".1" ;
 Snd.        Exp3 ::= Exp3 ".2" ;
@@ -37,6 +37,14 @@ IdP.        Exp3 ::= "IdP" ;
 Trans.      Exp3 ::= "transport" ;
 Pair.       Exp3 ::= "(" Exp "," Exp ")" ;
 coercions Exp 3 ;
+
+
+Conj.     Formula  ::= Formula "|" Formula1 ;
+Disj.     Formula1 ::= Formula1 "&" Formula2 ;
+Neg.      Formula2 ::= "-" Formula2 ;
+Atom.     Formula2 ::= Name ;
+coercions Formula 2 ;
+
 
 -- Branches
 Branch.   Branch ::= AIdent [AIdent] "->" ExpWhere ;

@@ -166,10 +166,19 @@ resolveExp e = case e of
     (rdecls,names) <- resolveDecls decls
     CTT.mkWheres rdecls <$> local (insertBinders names) (resolveExp e)
   Path i e -> CTT.Path <$> resolveName i <*> resolveExp e 
-  AppFormula e n -> CTT.AppFormula <$> resolveExp e <*> (C.Atom <$> resolveName n)
+  AppFormula e phi -> CTT.AppFormula <$> resolveExp e <*> resolveFormula phi
     
 resolveWhere :: ExpWhere -> Resolver Ter
 resolveWhere = resolveExp . unWhere
+
+resolveFormula :: Formula -> Resolver C.Formula
+resolveFormula (Atom i)       = C.Atom <$> resolveName i
+resolveFormula (Neg phi)      = C.negFormula <$> resolveFormula phi
+resolveFormula (Conj phi psi) = C.andFormula <$> resolveFormula phi
+                                <*> resolveFormula psi
+resolveFormula (Disj phi psi) = C.orFormula <$> resolveFormula phi
+                                <*> resolveFormula psi
+
 
 resolveBranch :: Branch -> Resolver (CTT.Label,([CTT.Binder],Ter))
 resolveBranch (Branch (AIdent (_,lbl)) args e) = do

@@ -5,6 +5,8 @@ import Data.List
 import Data.Maybe
 import Text.PrettyPrint as PP
 
+import Connections
+
 --------------------------------------------------------------------------------
 -- | Terms
 
@@ -65,6 +67,13 @@ data Ter = App Ter Ter
          | Sum Binder LblSum
            -- undefined
          | Undef Loc
+
+           -- Id type
+         | IdP Ter Ter Ter
+         | Path Name Ter
+         | AppFormula Ter Formula
+           -- Kan Composition
+         | Comp Name Ter Ter (System Ter)
   deriving Eq
 
 -- For an expression t, returns (u,ts) where u is no application and t = u ts
@@ -88,26 +97,33 @@ mkWheres (d:ds) e = Where (mkWheres ds e) d
 data Val = VU
          | Ter Ter Env
          | VPi Val Val
-         | VId Val Val Val
          | VSigma Val Val
          | VSPair Val Val
          | VCon String [Val]
-         -- Neutral values:
+
+           -- Id values
+         | VIdP Val Val Val
+         | VPath Name Val
+         | VComp Name Val Val (System Val)
+           
+           -- Neutral values:
          | VVar String Val
          | VFst Val
          | VSnd Val
          | VSplit Val Val
          | VApp Val Val
+         | VAppFormula Val Formula
   deriving Eq
 
 isNeutral :: Val -> Bool
 isNeutral v = case v of
-  VVar _ _   -> True
-  VFst v     -> isNeutral v
-  VSnd v     -> isNeutral v
-  VSplit _ v -> isNeutral v
-  VApp v _   -> isNeutral v
-  _          -> False
+  VVar _ _        -> True
+  VFst v          -> isNeutral v
+  VSnd v          -> isNeutral v
+  VSplit _ v      -> isNeutral v
+  VApp v _        -> isNeutral v
+  VAppFormula v _ -> isNeutral v
+  _               -> False
 
 mkVar :: Int -> Val -> Val
 mkVar k = VVar ('X' : show k)
@@ -162,20 +178,25 @@ instance Show Ter where
 
 showTer :: Ter -> Doc
 showTer v = case v of
-  U           -> char 'U'
-  App e0 e1   -> showTer e0 <+> showTer1 e1
-  Pi e0       -> text "Pi" <+> showTer e0
-  Lam (x,_) t e -> char '\\' <> text x <+> text "->" <+> showTer e
-  Fst e       -> showTer e <> text ".1"
-  Snd e       -> showTer e <> text ".2"
-  Sigma e0    -> text "Sigma" <+> showTer e0
-  SPair e0 e1 -> parens (showTer1 e0 <> comma <> showTer1 e1)
-  Where e d   -> showTer e <+> text "where" <+> showDecls d
-  Var x       -> text x
-  Con c es    -> text c <+> showTers es
-  Split l _ _ -> text "split" <+> showLoc l
-  Sum (n,l) _ -> text "sum" <+> text n
-  Undef _     -> text "undefined"
+  U                -> char 'U'
+  App e0 e1        -> showTer e0 <+> showTer1 e1
+  Pi e0            -> text "Pi" <+> showTer e0
+  Lam (x,_) t e    -> char '\\' <> text x <+> text "->" <+> showTer e
+  Fst e            -> showTer e <> text ".1"
+  Snd e            -> showTer e <> text ".2"
+  Sigma e0         -> text "Sigma" <+> showTer e0
+  SPair e0 e1      -> parens (showTer1 e0 <> comma <> showTer1 e1)
+  Where e d        -> showTer e <+> text "where" <+> showDecls d
+  Var x            -> text x
+  Con c es         -> text c <+> showTers es
+  Split l _ _      -> text "split" <+> showLoc l
+  Sum (n,l) _      -> text "sum" <+> text n
+  Undef _          -> text "undefined"
+  IdP e0 e1 e2     -> text "IdP" <+> showTers [e0,e1,e2]
+  Path i e         -> char '<' <> text (show i) <> char '>' <+> showTer e
+  AppFormula e phi -> showTer1 e <> char '@' <> text (show phi)
+  Comp i e0 e1 es  -> text "comp" <+> text (show i) <+> showTers [e0,e1] <+>
+                      text (showSystem es)
 
 showTers :: [Ter] -> Doc
 showTers = hsep . map showTer1
@@ -198,18 +219,22 @@ instance Show Val where
 
 showVal, showVal1 :: Val -> Doc
 showVal v = case v of
-  VU         -> char 'U'
-  Ter t env  -> showTer t <+> showEnv env
-  VId a u v  -> text "Id" <+> showVals [a,u,v]
-  VCon c us  -> text c <+> showVals us
-  VPi a b    -> text "Pi" <+> showVals [a,b]
-  VSPair u v -> parens (showVal1 u <> comma <> showVal1 v)
-  VSigma u v -> text "Sigma" <+> showVals [u,v]
-  VApp u v   -> showVal u <+> showVal1 v
-  VSplit u v -> showVal u <+> showVal1 v
-  VVar x t   -> text x
-  VFst u     -> showVal u <> text ".1"
-  VSnd u     -> showVal u <> text ".2"
+  VU                -> char 'U'
+  Ter t env         -> showTer t <+> showEnv env
+  VCon c us         -> text c <+> showVals us
+  VPi a b           -> text "Pi" <+> showVals [a,b]
+  VSPair u v        -> parens (showVal1 u <> comma <> showVal1 v)
+  VSigma u v        -> text "Sigma" <+> showVals [u,v]
+  VApp u v          -> showVal u <+> showVal1 v
+  VSplit u v        -> showVal u <+> showVal1 v
+  VVar x t          -> text x
+  VFst u            -> showVal u <> text ".1"
+  VSnd u            -> showVal u <> text ".2"
+  VIdP v0 v1 v2     -> text "IdP" <+> showVals [v0,v1,v2]
+  VPath i v         -> char '<' <> text (show i) <> char '>' <+> showVal v
+  VAppFormula v phi -> showVal1 v <> char '@' <> text (show phi)
+  VComp i v0 v1 vs  -> text "comp" <+> text (show i) <+> showVals [v0,v1] <+>
+                       text (showSystem vs)
 showVal1 v = case v of
   VU        -> char 'U'
   VCon c [] -> text c

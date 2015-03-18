@@ -3,6 +3,7 @@ module Eval where
 import Data.List
 import Data.Maybe (fromMaybe)
 
+import Connections
 import CTT
 
 look :: String -> Env -> Val
@@ -20,21 +21,26 @@ lookType x r@(PDef es r1) = case lookupIdent x es of
   Nothing -> lookType x r1
 
 eval :: Env -> Ter -> Val
-eval e v = case v of
-  U             -> VU
-  App r s       -> app (eval e r) (eval e s)
-  Var i         -> look i e
-  Pi t@(Lam _ a _) -> VPi (eval e a) (eval e t)
-  Lam x a t       -> Ter (Lam x a t) e
-  Sigma t@(Lam _ a _) -> VSigma (eval e a) (eval e t)
-  SPair a b     -> VSPair (eval e a) (eval e b)
-  Fst a         -> fstVal (eval e a)
-  Snd a         -> sndVal (eval e a)
-  Where t decls -> eval (PDef decls e) t
-  Con name ts   -> VCon name (map (eval e) ts)
-  Split l t brcs  -> Ter (Split l t brcs) e
-  Sum pr lbls   -> Ter (Sum pr lbls) e
-  Undef l       -> error $ "eval: undefined at " ++ show l
+eval rho v = case v of
+  U                   -> VU
+  App r s             -> app (eval rho r) (eval rho s)
+  Var i               -> look i rho
+  Pi t@(Lam _ a _)    -> VPi (eval rho a) (eval rho t)
+  Lam x a t           -> Ter (Lam x a t) rho
+  Sigma t@(Lam _ a _) -> VSigma (eval rho a) (eval rho t)
+  SPair a b           -> VSPair (eval rho a) (eval rho b)
+  Fst a               -> fstVal (eval rho a)
+  Snd a               -> sndVal (eval rho a)
+  Where t decls       -> eval (PDef decls rho) t
+  Con name ts         -> VCon name (map (eval rho) ts)
+  Split l t brcs      -> Ter (Split l t brcs) rho
+  Sum pr lbls         -> Ter (Sum pr lbls) rho
+  Undef l             -> error $ "eval: undefined at " ++ show l
+  IdP a e0 e1         -> VIdP (eval rho a) (eval rho e0) (eval rho e1)
+  Path i t            -> Ter (Path i t) rho
+    -- let j = fresh (t,rho)
+    -- in VPath j (eval rho (t `swap` (i,j)))
+
 
 evals :: Env -> [(Binder,Ter)] -> [(Binder,Val)]
 evals env bts = [ (b,eval env t) | (b,t) <- bts ]

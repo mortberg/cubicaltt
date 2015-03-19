@@ -265,51 +265,74 @@ comps _ _ _ _ = error "comps: different lengths of types and values"
 -------------------------------------------------------------------------------
 -- | Conversion
 
-conv :: Int -> Val -> Val -> Bool
-conv k u v | u == v    = True
-           | otherwise = let j = fresh (u,v) in case (u,v) of
-  (Ter (Lam x a u) e,Ter (Lam x' a' u') e') ->
-    let v = mkVar k (eval e a)
-    in conv (k+1) (eval (Pair e (x,v)) u) (eval (Pair e' (x',v)) u')
-  (Ter (Lam x a u) e,u') ->
-    let v = mkVar k (eval e a)
-    in conv (k+1) (eval (Pair e (x,v)) u) (app u' v)
-  (u',Ter (Lam x a u) e) ->
-    let v = mkVar k (eval e a)
-    in conv (k+1) (app u' v) (eval (Pair e (x,v)) u)
-  (Ter (Split p _ _) e,Ter (Split p' _ _) e') -> (p == p') && convEnv k e e'
-  (Ter (Sum p _) e,Ter (Sum p' _) e')     -> (p == p') && convEnv k e e'
-  (Ter (Undef p) e,Ter (Undef p') e')     -> (p == p') && convEnv k e e'
-  (VPi u v,VPi u' v') ->
-    let w = mkVar k u
-    in conv k u u' && conv (k+1) (app v w) (app v' w)
-  (VSigma u v,VSigma u' v') ->
-    let w = mkVar k u
-    in conv k u u' && conv (k+1) (app v w) (app v' w)
-  (VCon c us,VCon c' us')   -> (c == c') && and (zipWith (conv k) us us')
-  (VSPair u v,VSPair u' v') -> conv k u u' && conv k v v'
-  (VSPair u v,w)            -> conv k u (fstVal w) && conv k v (sndVal w)
-  (w,VSPair u v)            -> conv k (fstVal w) u && conv k (sndVal w) v
-  (VFst u,VFst u')          -> conv k u u'
-  (VSnd u,VSnd u')          -> conv k u u'
-  (VApp u v,VApp u' v')     -> conv k u u' && conv k v v'
-  (VSplit u v,VSplit u' v') -> conv k u u' && conv k v v'
-  (VVar x _, VVar x' _)     -> x == x'
-  (VIdP a b c,VIdP a' b' c') -> conv k a a' && conv k b b' && conv k c c'
-  (VPath i a,VPath i' a') -> conv k (a `swap` (i,j)) (a' `swap` (i',j))
-  (VPath i a,p') -> conv k (a `swap` (i,j)) (p' @@ j)
-  (p,VPath i' a')              -> conv k (p @@ j) (a' `swap` (i',j))
-  (VTrans p u,v) | isIndep k j (p @@ j) -> conv k u v
-  (u,VTrans p v) | isIndep k j (p @@ j) -> conv k u v
-  (VTrans p u,VTrans p' u') -> conv k p p' && conv k u u'
-  (VAppFormula u x,VAppFormula u' x') -> conv k u u' && (x == x')
-  -- VAppformula
-  -- VTrans
-  -- VComp
-  _                         -> False
 
-convEnv :: Int -> Env -> Env -> Bool
-convEnv k e e' = and $ zipWith (conv k) (valOfEnv e) (valOfEnv e')
+class Convertible a where
+  conv   :: Int -> a -> a -> Bool
 
-isIndep :: Int -> Name -> Val -> Bool
+isIndep :: (Nominal a, Convertible a) => Int -> Name -> a -> Bool
 isIndep k i u = conv k u (u `face` (i ~> 0))
+
+instance Convertible Val where
+  conv k u v | u == v    = True
+             | otherwise = let j = fresh (u,v) in case (u,v) of
+    (Ter (Lam x a u) e,Ter (Lam x' a' u') e') ->
+      let v = mkVar k (eval e a)
+      in conv (k+1) (eval (Pair e (x,v)) u) (eval (Pair e' (x',v)) u')
+    (Ter (Lam x a u) e,u') ->
+      let v = mkVar k (eval e a)
+      in conv (k+1) (eval (Pair e (x,v)) u) (app u' v)
+    (u',Ter (Lam x a u) e) ->
+      let v = mkVar k (eval e a)
+      in conv (k+1) (app u' v) (eval (Pair e (x,v)) u)
+    (Ter (Split p _ _) e,Ter (Split p' _ _) e') -> (p == p') && conv k e e'
+    (Ter (Sum p _) e,Ter (Sum p' _) e')     -> (p == p') && conv k e e'
+    (Ter (Undef p) e,Ter (Undef p') e')     -> (p == p') && conv k e e'
+    (VPi u v,VPi u' v') ->
+      let w = mkVar k u
+      in conv k u u' && conv (k+1) (app v w) (app v' w)
+    (VSigma u v,VSigma u' v') ->
+      let w = mkVar k u
+      in conv k u u' && conv (k+1) (app v w) (app v' w)
+    (VCon c us,VCon c' us')   -> (c == c') && conv k us us'
+    (VSPair u v,VSPair u' v') -> conv k u u' && conv k v v'
+    (VSPair u v,w)            -> conv k u (fstVal w) && conv k v (sndVal w)
+    (w,VSPair u v)            -> conv k (fstVal w) u && conv k (sndVal w) v
+    (VFst u,VFst u')          -> conv k u u'
+    (VSnd u,VSnd u')          -> conv k u u'
+    (VApp u v,VApp u' v')     -> conv k u u' && conv k v v'
+    (VSplit u v,VSplit u' v') -> conv k u u' && conv k v v'
+    (VVar x _, VVar x' _)     -> x == x'
+    (VIdP a b c,VIdP a' b' c') -> conv k a a' && conv k b b' && conv k c c'
+    (VPath i a,VPath i' a')    -> conv k (a `swap` (i,j)) (a' `swap` (i',j))
+    (VPath i a,p')             -> conv k (a `swap` (i,j)) (p' @@ j)
+    (p,VPath i' a')            -> conv k (p @@ j) (a' `swap` (i',j))
+    (VTrans p u,v) | isIndep k j (p @@ j) -> conv k u v
+    (u,VTrans p v) | isIndep k j (p @@ j) -> conv k u v
+    (VTrans p u,VTrans p' u') -> conv k p p' && conv k u u'
+    (VAppFormula u x,VAppFormula u' x') -> conv k (u,x) (u',x')
+    -- VComp
+    _                         -> False
+
+instance Convertible Env where
+  conv k e e' =
+    and $ zipWith (conv k) (valAndFormulaOfEnv e) (valAndFormulaOfEnv e')
+
+instance Convertible () where conv _ _ _ = True
+
+instance (Convertible a, Convertible b) => Convertible (a, b) where
+  conv k (u, v) (u', v') = conv k u u' && conv k v v'
+
+instance (Convertible a, Convertible b, Convertible c)
+      => Convertible (a, b, c) where
+  conv k (u, v, w) (u', v', w') = conv k (u,(v,w)) (u',(v',w'))
+
+instance (Convertible a,Convertible b,Convertible c,Convertible d)
+      => Convertible (a,b,c,d) where
+  conv k (u,v,w,x) (u',v',w',x') = conv k (u,v,(w,x)) (u',v',(w',x'))
+
+instance Convertible a => Convertible [a] where
+  conv k us us' = length us == length us' &&
+                  and [conv k u u' | (u,u') <- zip us us']
+
+instance Convertible Formula where
+  conv _ phi psi = sort (invFormula phi 1) == sort (invFormula psi 1)

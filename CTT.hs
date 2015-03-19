@@ -154,15 +154,17 @@ mapEnv f g e = case e of
 valAndFormulaOfEnv :: Env -> ([Val],[Formula])
 valAndFormulaOfEnv rho = case rho of
   Empty -> ([],[])
-  Pair rho (_,u) -> let (us,phis) in (u:us,phis)
-  Sub rho (_,phi) -> let (us,phis) in (us,phi:phis)
+  Pair rho (_,u) -> let (us,phis) = valAndFormulaOfEnv rho
+                    in (u:us,phis)
+  Sub rho (_,phi) -> let (us,phis) = valAndFormulaOfEnv rho
+                     in (us,phi:phis)
   Def _ rho -> valAndFormulaOfEnv rho
 
 valOfEnv :: Env -> [Val]
-valOfEnv = valAndFormulaOfEnv . fst
+valOfEnv = fst . valAndFormulaOfEnv
 
 formulaOfEnv :: Env -> [Formula]
-formulaOfEnv = valAndFormulaOfEnv . snd
+formulaOfEnv = snd . valAndFormulaOfEnv
 
 domainEnv :: Env -> [Name]
 domainEnv rho = case rho of

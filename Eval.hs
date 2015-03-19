@@ -36,7 +36,11 @@ lookName i (Sub rho (j,phi)) | i == j    = phi
 -- Nominal instances
 
 instance Nominal Env where
-  support    = support . formulaOfEnv
+  support Empty             = []
+  support (Pair rho (_,u))  = support u `union` support rho
+  support (Sub rho (_,phi)) = support phi `union` support rho
+  support (Def _ rho)       = support rho
+
   act e iphi = mapEnv (`act` iphi) (`act` iphi) e
   swap e ij  = mapEnv (`swap` ij) (`swap` ij) e
 

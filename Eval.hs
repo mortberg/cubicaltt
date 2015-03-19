@@ -167,11 +167,21 @@ sndVal u | isNeutral u = VSnd u
 inferType :: Val -> Val
 inferType v = case v of
   VVar _ t -> t
-  VFst t -> undefined
-  VSnd t -> undefined
-  VSplit t0 t1 -> undefined
-  VApp t0 t1 -> undefined
-  VAppFormula t phi -> undefined
+  VFst t -> case inferType t of
+    VSigma a _ -> a
+    _       -> error $ "inferType: not neutral " ++ show v
+  VSnd t -> case inferType t of
+    VSigma _ f -> app f (VFst t)
+    _       -> error $ "inferType: not neutral " ++ show v
+  VSplit t0 t1 -> case inferType t0 of
+    VPi _ f -> app f t1
+    _       -> error $ "inferType: not neutral " ++ show v
+  VApp t0 t1 -> case inferType t0 of
+    VPi _ f -> app f t1
+    _       -> error $ "inferType: not neutral " ++ show v
+  VAppFormula t phi -> case inferType t of
+    VIdP a _ _ -> a @@ phi
+    _          -> error $ "inferType: not neutral " ++ show v
 
 (@@) :: ToFormula a => Val -> a -> Val
 (VPath i u) @@ phi = u `act` (i,toFormula phi)

@@ -165,11 +165,16 @@ check a t = case (a,t) of
           check b0 e0
           check b1 e1
         _ -> throwError ("IdP expects a path but got " ++ show a)
-  (VIdP p a b,Path i e) -> do
+  (VIdP p a0 a1,Path i e) -> do
     rho <- asks env
+    k   <- asks index
     when (i `elem` support rho)
       (throwError (show i ++ " is already declared"))
     local (addSub (i,Atom i)) $ check (p @@ i) e
+    let u0 = eval (Sub rho (i,Dir 0)) e
+        u1 = eval (Sub rho (i,Dir 1)) e
+    unless (conv k a0 u0 && conv k a1 u1) $
+      throwError $ "path endpoints don't match " ++ show e
   _ -> do
     v <- infer t
     k <- index <$> ask

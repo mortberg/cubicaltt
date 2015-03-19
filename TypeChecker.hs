@@ -154,13 +154,10 @@ check a t = case (a,t) of
     local (addDecls d) $ check a e
   (_,Undef _) -> return ()
   (VU,IdP a e0 e1) -> case a of
-    Path i b -> do
-      rho <- asks env
-      when (i `elem` support rho)
-        (throwError (show i ++ " is already declared"))
-      local (addSub (i,Atom i)) $ check VU b
-      check (eval (Sub rho (i,Dir 0)) b) e0
-      check (eval (Sub rho (i,Dir 1)) b) e1
+    Path{} -> do
+      (b0,b1) <- checkPath a
+      check b0 e0
+      check b1 e1
     _ -> do
       b <- infer a
       case b of

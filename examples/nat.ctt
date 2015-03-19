@@ -6,7 +6,6 @@ zero' : nat = zero
 one : nat = suc zero
 two : nat = suc one
 
-
 pred : nat -> nat = split
   zero -> zero
   suc n -> n
@@ -32,7 +31,6 @@ append (A : U) : list A -> list A -> list A = split
 reverse (A : U) : list A -> list A = split
   nil -> nil
   cons x xs -> append A (reverse A xs) (cons x nil)
-
 
 Id (A : U) (a0 a1 : A) : U = IdP (<?0> A) a0 a1
 
@@ -65,3 +63,11 @@ singl (A : U) (a : A) : U = (x : A) * Id A a x
 
 contrSingl (A : U) (a b : A) (p : Id A a b) :
   Id (singl A a) (a,refl A a) (b,p) = <?0> (p @ ?0,<?1> p @ ?0 & ?1)
+
+J (A : U) (a : A) (C : (x : A) -> Id A a x -> U)
+  (d : C a (refl A a)) (x : A) (p : Id A a x) : C x p =
+    subst (singl A a) T (a, refl A a) (x, p) (contrSingl A a x p) d
+      where T (z : singl A a) : U = C (z.1) (z.2)
+
+defEqJ (A : U) (a : A) (C : (x : A) -> Id A a x -> U) (d : C a (refl A a)) :
+       Id (C a (refl A a)) (J A a C d a (refl A a)) d = refl (C a (refl A a)) d

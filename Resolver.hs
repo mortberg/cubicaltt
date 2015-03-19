@@ -15,6 +15,8 @@ import Control.Monad.Error (throwError)
 import Control.Monad (when)
 import Data.Functor.Identity
 import Data.List (nub)
+import Data.Map (Map,(!))
+import qualified Data.Map as Map
 import Prelude hiding (pi)
 
 type Ter = CTT.Ter
@@ -50,7 +52,7 @@ appsToIdents = mapM unVar . uncurry (:) . flip unApps []
 -- Flatten a tele
 flattenTele :: [Tele] -> [(Ident,Exp)]
 flattenTele tele =
-  [ (resolveIdent i,typ) | Tele id ids typ <- tele, i <- id:ids ]
+  [ (unAIdent i,typ) | Tele id ids typ <- tele, i <- id:ids ]
 
 -- Flatten a PTele
 flattenPTele :: [PTele] -> Resolver [(Ident,Exp)]
@@ -115,11 +117,17 @@ getLoc l = CTT.Loc <$> asks envModule <*> pure l
 -- resolveAIdent :: AIdent -> Resolver (Ident,CTT.Loc)
 -- resolveAIdent (AIdent (l,x)) = (x,) <$> getLoc l
 
-resolveIdent :: AIdent -> Ident
-resolveIdent (AIdent (_,x)) = x
+unAIdent :: AIdent -> Ident
+unAIdent (AIdent (_,x)) = x
 
-resolveName :: AIdent -> C.Name
-resolveName (AIdent (_,n)) = C.Name n
+resolveName :: AIdent -> Resolver C.Name
+resolveName (AIdent (l,x)) = do
+  modName <- asks envModule
+  vars <- asks variables
+  case lookup x vars of
+    Just Name -> return $ C.Name x
+    _ -> throwError $ "Cannot resolve name " ++ x ++ " at position " ++
+                      show l ++ " in module " ++ modName
 
 resolveVar :: AIdent -> Resolver Ter
 resolveVar (AIdent (l,x))
@@ -155,6 +163,9 @@ resolveApps Trans (x:y:xs) = do
 resolveApps IdP (x:y:z:xs) = do
   let c = CTT.IdP <$> resolveExp x <*> resolveExp y <*> resolveExp z
   CTT.mkApps <$> c <*> mapM resolveExp xs
+resolveApps Comp (u:v:ts:xs) = do
+  let c = CTT.Comp <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
+  CTT.mkApps <$> c <*> mapM resolveExp xs
 resolveApps x xs = CTT.mkApps <$> resolveExp x <*> mapM resolveExp xs
 
 resolveExp :: Exp -> Resolver Ter
@@ -180,16 +191,31 @@ resolveExp e = case e of
     (rdecls,names) <- resolveDecls decls
     CTT.mkWheres rdecls <$> local (insertIdents names) (resolveExp e)
   Path i e      ->
-    CTT.Path (resolveName i) <$> local (insertName i) (resolveExp e)
+    CTT.Path (C.Name (unAIdent i)) <$> local (insertName i) (resolveExp e)
   AppFormula e phi -> CTT.AppFormula <$> resolveExp e <*> resolveFormula phi
 
 resolveWhere :: ExpWhere -> Resolver Ter
 resolveWhere = resolveExp . unWhere
 
+resolveSystem :: Exp -> Resolver (C.System Ter)
+resolveSystem (System ts) =
+  -- TODO: Erase alpha when resolving u??
+  Map.fromList <$> sequence [ (,) <$> resolveFace alpha <*> resolveExp u
+                            | Side alpha u <- ts ]
+resolveSystem e = throwError $ show e ++ " is not a system"
+
+resolveFace :: [Face] -> Resolver C.Face
+resolveFace alpha =
+  Map.fromList <$> sequence [ (,) <$> resolveName i <*> resolveDir d
+                            | Face i d <- alpha ]
+
+resolveDir :: Dir -> Resolver C.Dir
+resolveDir Dir0 = return 0 
+resolveDir Dir1 = return 1
+
 resolveFormula :: Formula -> Resolver C.Formula
-resolveFormula Dir0           = return $ C.Dir 0
-resolveFormula Dir1           = return $ C.Dir 1
-resolveFormula (Atom i)       = return $ C.Atom $ resolveName i
+resolveFormula (Dir d)        = C.Dir <$> resolveDir d
+resolveFormula (Atom i)       = C.Atom <$> resolveName i
 resolveFormula (Neg phi)      = C.negFormula <$> resolveFormula phi
 resolveFormula (Conj phi psi) = C.andFormula <$> resolveFormula phi
                                 <*> resolveFormula psi
@@ -199,7 +225,7 @@ resolveFormula (Disj phi psi) = C.orFormula <$> resolveFormula phi
 resolveBranch :: Branch -> Resolver (CTT.Label,([CTT.Label],Ter))
 resolveBranch (Branch (AIdent (_,lbl)) args e) = do
     re      <- local (insertAIdents args) $ resolveWhere e
-    return (lbl, (map resolveIdent args, re))
+    return (lbl, (map unAIdent args, re))
 
 resolveTele :: [(Ident,Exp)] -> Resolver CTT.Tele
 resolveTele []        = return []
@@ -207,10 +233,10 @@ resolveTele ((i,d):t) =
   ((i,) <$> resolveExp d) <:> local (insertVar i) (resolveTele t)
 
 resolveLabel :: Label -> Resolver (CTT.Label,CTT.Tele)
-resolveLabel (Label n vdecl) = (resolveIdent n,) <$> resolveTele (flattenTele vdecl)
+resolveLabel (Label n vdecl) = (unAIdent n,) <$> resolveTele (flattenTele vdecl)
 
 declsLabels :: [Decl] -> [Ident]
-declsLabels decls = map resolveIdent [ lbl | Label lbl _ <- sums ]
+declsLabels decls = map unAIdent [ lbl | Label lbl _ <- sums ]
   where sums = concat [ sum | DeclData _ _ sum <- decls ]
 
 piToFam :: Exp -> Resolver Ter
@@ -232,7 +258,7 @@ resolveDecl d = case d of
     a  <- binds CTT.Pi tele' (return CTT.U)
     d  <- lams tele' $ local (insertVar f) $
             CTT.Sum <$> getLoc l <*> pure f <*> mapM resolveLabel sums
-    let cs = map resolveIdent [ lbl | Label lbl _ <- sums ]
+    let cs = map unAIdent [ lbl | Label lbl _ <- sums ]
     return ((f,(a,d)),(f,Variable):map (,Constructor) cs)
   DeclSplit (AIdent (l,f)) tele t brs -> do
     let tele' = flattenTele tele

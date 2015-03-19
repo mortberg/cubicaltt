@@ -129,8 +129,20 @@ data Formula = Dir Dir
              | NegAtom Name
              | Formula :/\: Formula
              | Formula :\/: Formula
-  deriving (Eq,Show)
+  deriving Eq
 
+instance Show Formula where
+  show (Dir Zero)  = "0"
+  show (Dir One)   = "1"
+  show (NegAtom a) = "-" ++ show a
+  show (Atom a)    = show a
+  show (a :\/: b)  = show1 a ++ " \\/ " ++ show1 b
+    where show1 v@(a :/\: b) = "(" ++ show v ++ ")"
+          show1 a = show a
+  show (a :/\: b) = show1 a ++ " /\\ " ++ show1 b
+    where show1 v@(a :\/: b) = "(" ++ show v ++ ")"
+          show1 a = show a
+          
 arbFormula :: [Name] -> Int -> Gen Formula
 arbFormula names s =
       frequency [ (1, Dir <$> arbitrary)
@@ -157,14 +169,6 @@ instance ToFormula Name where
 
 instance ToFormula Dir where
   toFormula = Dir
-
--- TODO: FINISH!
--- instance Show a => Show (Formula a) where
---   show Zero = "0"
---   show One  = "1"
---   show (NegAtom a)  = "~" ++ show a
---   show (Atom a) = show a
---   show (a :/\: b) = show a ++ " /\ " ++ show b
 
 negFormula :: Formula -> Formula
 negFormula (Dir b)        = Dir (- b)

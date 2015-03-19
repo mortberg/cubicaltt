@@ -35,15 +35,25 @@ Fst.        Exp3 ::= Exp3 ".1" ;
 Snd.        Exp3 ::= Exp3 ".2" ;
 IdP.        Exp3 ::= "IdP" ;
 Trans.      Exp3 ::= "transport" ;
+Comp.       Exp3 ::= "comp" ;
+System.     Exp3 ::= "[" [Side] "]" ;
 Pair.       Exp3 ::= "(" Exp "," Exp ")" ;
 coercions Exp 3 ;
 
-Disj.     Formula  ::= Formula "|" Formula1 ;
-Conj.     Formula1 ::= Formula1 "&" Formula2 ;
+Dir0.       Dir ::= "0" ;
+Dir1.       Dir ::= "1" ;
+
+Face.     Face ::= "(" AIdent "=" Dir ")" ;
+separator Face "" ;
+
+Side.   Side ::= [Face] "->" Exp ;
+separator Side "," ;
+
+Disj.     Formula  ::= Formula "\\/" Formula1 ;
+Conj.     Formula1 ::= Formula1 "/\\ " Formula2 ; -- Why do we need a space?
 Neg.      Formula2 ::= "-" Formula2 ;
 Atom.     Formula2 ::= AIdent ;
-Dir0.     Formula2 ::= "0" ;
-Dir1.     Formula2 ::= "1" ;
+Dir.      Formula2 ::= Dir ;
 coercions Formula 2 ;
 
 -- Branches
@@ -63,5 +73,5 @@ terminator Tele "" ;
 PTele.    PTele ::= "(" Exp ":" Exp ")" ;
 terminator nonempty PTele "" ;
 
-position token AIdent ((letter|'\''|'_')(letter|digit|'\''|'_')*) ;
+position token AIdent ((letter|'_')(letter|digit|'\''|'_')*) ;
 terminator AIdent "" ;

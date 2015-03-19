@@ -71,3 +71,6 @@ J (A : U) (a : A) (C : (x : A) -> Id A a x -> U)
 
 defEqJ (A : U) (a : A) (C : (x : A) -> Id A a x -> U) (d : C a (refl A a)) :
        Id (C a (refl A a)) (J A a C d a (refl A a)) d = refl (C a (refl A a)) d
+
+
+test0 (A : U) (a b : A) (p : Id A a b) : Id A a a = refl A (p @ 0)

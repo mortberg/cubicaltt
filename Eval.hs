@@ -159,10 +159,23 @@ fstVal u | isNeutral u = VFst u
 sndVal (VSPair a b)    = b
 sndVal u | isNeutral u = VSnd u
 
+-- infer the type of a neutral value
+inferType :: Val -> Val
+inferType v = case v of
+  VVar _ t -> t
+  VFst t -> undefined
+  VSnd t -> undefined
+  VSplit t0 t1 -> undefined
+  VApp t0 t1 -> undefined
+  VAppFormula t phi -> undefined
+
 (@@) :: ToFormula a => Val -> a -> Val
-(VPath i u) @@ phi    = u `act` (i, toFormula phi)
+(VPath i u) @@ phi = u `act` (i,toFormula phi)
 -- (KanUElem _ u) @@ phi = u @@ phi
-v @@ phi          = VAppFormula v (toFormula phi)
+v @@ phi = case (inferType v,toFormula phi) of
+  (VIdP  _ a0 _,Dir 0) -> a0
+  (VIdP  _ _ a1,Dir 1) -> a1
+  _  -> VAppFormula v (toFormula phi)
 
 -----------------------------------------------------------
 -- Transport
@@ -285,6 +298,7 @@ conv k u v | u == v    = True
   (VTrans p u,v) | isIndep k j (p @@ j) -> conv k u v
   (u,VTrans p v) | isIndep k j (p @@ j) -> conv k u v
   (VTrans p u,VTrans p' u') -> conv k p p' && conv k u u'
+  (VAppFormula u x,VAppFormula u' x') -> conv k u u' && (x == x')
   -- VAppformula
   -- VTrans
   -- VComp

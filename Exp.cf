@@ -42,6 +42,8 @@ Disj.     Formula  ::= Formula "|" Formula1 ;
 Conj.     Formula1 ::= Formula1 "&" Formula2 ;
 Neg.      Formula2 ::= "-" Formula2 ;
 Atom.     Formula2 ::= AIdent ;
+Dir0.     Formula2 ::= "0" ;
+Dir1.     Formula2 ::= "1" ;
 coercions Formula 2 ;
 
 -- Branches

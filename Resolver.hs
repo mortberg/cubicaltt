@@ -180,6 +180,8 @@ resolveWhere :: ExpWhere -> Resolver Ter
 resolveWhere = resolveExp . unWhere
 
 resolveFormula :: Formula -> Resolver C.Formula
+resolveFormula Dir0           = return $ C.Dir 0
+resolveFormula Dir1           = return $ C.Dir 1
 resolveFormula (Atom i)       = C.Atom <$> resolveName i
 resolveFormula (Neg phi)      = C.negFormula <$> resolveFormula phi
 resolveFormula (Conj phi psi) = C.andFormula <$> resolveFormula phi

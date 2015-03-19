@@ -14,44 +14,39 @@ data Loc = Loc { locFile :: String
                , locPos  :: (Int,Int) }
   deriving Eq
 
-type Binder = (String,Loc)
 type Ident  = String
 type Label  = String
 
-noLoc :: String -> Binder
-noLoc x = (x, Loc "" (0,0))
-
 -- Branch of the form: c x1 .. xn -> e
-type Branch = (Label,([Binder],Ter))
+type Branch = (Label,([Ident],Ter))
 
 -- Telescope (x1 : A1) .. (xn : An)
-type Tele   = [(Binder,Ter)]
+type Tele   = [(Ident,Ter)]
 
 -- Labelled sum: c (x1 : A1) .. (xn : An)
-type LblSum = [(Binder,Tele)]
+type LblSum = [(Ident,Tele)]
 
 -- Declarations: x : A = e
-type Decl   = (Binder,(Ter,Ter))
-type Decls  = [Decl]
+type Decl   = (Ident,(Ter,Ter))
 
-declBinders :: Decls -> [Binder]
-declBinders decls = [ x | (x,_) <- decls ]
+declIdents :: [Decl] -> [Ident]
+declIdents decls = [ x | (x,_) <- decls ]
 
-declTers :: Decls -> [Ter]
+declTers :: [Decl] -> [Ter]
 declTers decls = [ d | (_,(_,d)) <- decls ]
 
-declTele :: Decls -> Tele
+declTele :: [Decl] -> Tele
 declTele decls = [ (x,t) | (x,(t,_)) <- decls ]
 
-declDefs :: Decls -> [(Binder,Ter)]
+declDefs :: [Decl] -> [(Ident,Ter)]
 declDefs decls = [ (x,d) | (x,(_,d)) <- decls ]
 
 -- Terms
 data Ter = App Ter Ter
          | Pi Ter
-         | Lam Binder Ter Ter
-         | Where Ter Decls
-         | Var String
+         | Lam Ident Ter Ter
+         | Where Ter [Decl]
+         | Var Ident
          | U
            -- Sigma types:
          | Sigma Ter
@@ -63,7 +58,7 @@ data Ter = App Ter Ter
            -- branches c1 xs1  -> M1,..., cn xsn -> Mn
          | Split Loc Ter [Branch]
            -- labelled sum c1 A1s,..., cn Ans (assumes terms are constructors)
-         | Sum Binder LblSum
+         | Sum Loc Ident LblSum
            -- undefined
          | Undef Loc
 
@@ -87,7 +82,7 @@ mkApps :: Ter -> [Ter] -> Ter
 mkApps (Con l us) vs = Con l (us ++ vs)
 mkApps t ts          = foldl App t ts
 
-mkWheres :: [Decls] -> Ter -> Ter
+mkWheres :: [[Decl]] -> Ter -> Ter
 mkWheres []     e = e
 mkWheres (d:ds) e = Where (mkWheres ds e) d
 
@@ -99,7 +94,7 @@ data Val = VU
          | VPi Val Val
          | VSigma Val Val
          | VSPair Val Val
-         | VCon String [Val]
+         | VCon Label [Val]
 
            -- Id values
          | VIdP Val Val Val
@@ -108,7 +103,7 @@ data Val = VU
          | VTrans Val Val
 
            -- Neutral values:
-         | VVar String Val
+         | VVar Ident Val
          | VFst Val
          | VSnd Val
          | VSplit Val Val
@@ -133,16 +128,16 @@ mkVar k = VVar ('X' : show k)
 -- | Environments
 
 data Env = Empty
-         | Pair Env (Binder,Val)
-         | Def Decls Env
+         | Pair Env (Ident,Val)
+         | Def [Decl] Env
          | Sub Env (Name,Formula)
   deriving Eq
 
-pairs :: Env -> [(Binder,Val)] -> Env
+pairs :: Env -> [(Ident,Val)] -> Env
 pairs = foldl Pair
 
-lookupIdent :: Ident -> [(Binder,a)] -> Maybe a
-lookupIdent x defs = listToMaybe [ t | ((y,l),t) <- defs, x == y ]
+-- lookupIdent :: Ident -> [(Ident,a)] -> Maybe a
+-- lookupIdent x defs = listToMaybe [ t | ((y,l),t) <- defs, x == y ]
 
 mapEnv :: (Val -> Val) -> (Formula -> Formula) -> Env -> Env
 mapEnv f g e = case e of
@@ -202,7 +197,7 @@ showTer v = case v of
   U                -> char 'U'
   App e0 e1        -> showTer e0 <+> showTer1 e1
   Pi e0            -> text "Pi" <+> showTer e0
-  Lam (x,_) t e    -> char '\\' <> text x <+> text "->" <+> showTer e
+  Lam x t e        -> char '\\' <> text x <+> text "->" <+> showTer e
   Fst e            -> showTer e <> text ".1"
   Snd e            -> showTer e <> text ".2"
   Sigma e0         -> text "Sigma" <+> showTer e0
@@ -211,7 +206,7 @@ showTer v = case v of
   Var x            -> text x
   Con c es         -> text c <+> showTers es
   Split l _ _      -> text "split" <+> showLoc l
-  Sum (n,l) _      -> text "sum" <+> text n
+  Sum _ n _        -> text "sum" <+> text n
   Undef _          -> text "undefined"
   IdP e0 e1 e2     -> text "IdP" <+> showTers [e0,e1,e2]
   Path i e         -> char '<' <> text (show i) <> char '>' <+> showTer e
@@ -231,9 +226,9 @@ showTer1 t = case t of
   Sum{}    -> showTer t
   _        -> parens (showTer t)
 
-showDecls :: Decls -> Doc
+showDecls :: [Decl] -> Doc
 showDecls defs = hsep $ punctuate comma
-                      [ text x <+> equals <+> showTer d | ((x,_),(_,d)) <- defs ]
+                      [ text x <+> equals <+> showTer d | (x,(_,d)) <- defs ]
 
 instance Show Val where
   show = render . showVal

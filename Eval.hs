@@ -11,17 +11,17 @@ import Connections
 import CTT
 
 look :: String -> Env -> Val
-look x (Pair rho ((y,_),u)) | x == y    = u
-                            | otherwise = look x rho
-look x r@(Def rho r1) = case lookupIdent x rho of
+look x (Pair rho (y,u)) | x == y    = u
+                        | otherwise = look x rho
+look x r@(Def rho r1) = case lookup x rho of
   Just (_,t) -> eval r t
   Nothing    -> look x r1
 look x (Sub rho _) = look x rho
 
 lookType :: String -> Env -> Val
-lookType x (Pair rho ((y,_),VVar _ a)) | x == y    = a
-                                       | otherwise = lookType x rho
-lookType x r@(Def rho r1) = case lookupIdent x rho of
+lookType x (Pair rho (y,VVar _ a)) | x == y    = a
+                                   | otherwise = lookType x rho
+lookType x r@(Def rho r1) = case lookup x rho of
   Just (a,_) -> eval r a
   Nothing -> lookType x r1
 lookType x (Sub rho _) = lookType x rho
@@ -117,15 +117,15 @@ eval rho v = case v of
   App r s             -> app (eval rho r) (eval rho s)
   Var i               -> look i rho
   Pi t@(Lam _ a _)    -> VPi (eval rho a) (eval rho t)
-  Lam x a t           -> Ter (Lam x a t) rho
+  Lam{}               -> Ter v rho
   Sigma t@(Lam _ a _) -> VSigma (eval rho a) (eval rho t)
   SPair a b           -> VSPair (eval rho a) (eval rho b)
   Fst a               -> fstVal (eval rho a)
   Snd a               -> sndVal (eval rho a)
   Where t decls       -> eval (Def decls rho) t
   Con name ts         -> VCon name (map (eval rho) ts)
-  Split l t brcs      -> Ter (Split l t brcs) rho
-  Sum pr lbls         -> Ter (Sum pr lbls) rho
+  Split{}             -> Ter v rho
+  Sum{}               -> Ter v rho
   Undef l             -> error $ "eval: undefined at " ++ show l
   IdP a e0 e1         -> VIdP (eval rho a) (eval rho e0) (eval rho e1)
   Path i t            ->
@@ -144,7 +144,7 @@ evalFormula rho phi = case phi of
   phi1 :\/: phi2 -> evalFormula rho phi1 `orFormula` evalFormula rho phi2
   _              -> phi
 
-evals :: Env -> [(Binder,Ter)] -> [(Binder,Val)]
+evals :: Env -> [(Ident,Ter)] -> [(Ident,Val)]
 evals env bts = [ (b,eval env t) | (b,t) <- bts ]
 
 app :: Val -> Val -> Val
@@ -202,7 +202,7 @@ trans i v0 v1 = case (v0,v1) of
         comp_u2 = trans i (app f fill_u1) u2
     in VSPair ui1 comp_u2
   (VPi{},_) -> VTrans (VPath i v0) v1
-  (Ter (Sum _ nass) env,VCon n us) -> case lookupIdent n nass of
+  (Ter (Sum _ _ nass) env,VCon n us) -> case lookup n nass of
     Just as -> VCon n $ transps i as env us
     Nothing -> error $ "comp: missing constructor in labelled sum " ++ n
   _ | isNeutral v0 || isNeutral v1 -> VTrans (VPath i v0) v1
@@ -213,7 +213,7 @@ transFill i a u = trans j (a `conj` (i,j)) u
   where j = fresh (Atom i,a,u)
 transFillNeg i a u = (transFill i (a `sym` i) u) `sym` i
 
-transps :: Name -> [(Binder,Ter)] -> Env -> [Val] -> [Val]
+transps :: Name -> [(Ident,Ter)] -> Env -> [Val] -> [Val]
 transps i []         _ []     = []
 transps i ((x,a):as) e (u:us) =
   let v   = transFill i (eval e a) u
@@ -243,7 +243,7 @@ genFill i a u ts = genComp j (a `conj` (i,j)) u (ts `conj` (i,j))
   where j = fresh (Atom i,a,u,ts)
 genFillNeg i a u ts = (genFill i (a `sym` i) u (ts `sym` i)) `sym` i
 
-comps :: Name -> [(Binder,Ter)] -> Env -> [(System Val,Val)] -> [Val]
+comps :: Name -> [(Ident,Ter)] -> Env -> [(System Val,Val)] -> [Val]
 comps i []         _ []         = []
 comps i ((x,a):as) e ((ts,u):tsus) =
   let v   = genFill i (eval e a) u ts
@@ -253,7 +253,7 @@ comps i ((x,a):as) e ((ts,u):tsus) =
 comps _ _ _ _ = error "comps: different lengths of types and values"
 
 
--- fills :: Name -> [(Binder,Ter)] -> Env -> [(System Val,Val)] -> [Val]
+-- fills :: Name -> [(Ident,Ter)] -> Env -> [(System Val,Val)] -> [Val]
 -- fills i []         _ []         = []
 -- fills i ((x,a):as) e ((ts,u):tsus) =
 --   let v  = genFill i (eval e a) ts u
@@ -285,8 +285,8 @@ instance Convertible Val where
       let v = mkVar k (eval e a)
       in conv (k+1) (app u' v) (eval (Pair e (x,v)) u)
     (Ter (Split p _ _) e,Ter (Split p' _ _) e') -> (p == p') && conv k e e'
-    (Ter (Sum p _) e,Ter (Sum p' _) e')     -> (p == p') && conv k e e'
-    (Ter (Undef p) e,Ter (Undef p') e')     -> (p == p') && conv k e e'
+    (Ter (Sum p _ _) e,Ter (Sum p' _ _) e')     -> (p == p') && conv k e e'
+    (Ter (Undef p) e,Ter (Undef p') e')         -> (p == p') && conv k e e'
     (VPi u v,VPi u' v') ->
       let w = mkVar k u
       in conv k u u' && conv (k+1) (app v w) (app v' w)
@@ -315,7 +315,7 @@ instance Convertible Val where
 
 instance Convertible Env where
   conv k e e' =
-    and $ zipWith (conv k) (valAndFormulaOfEnv e) (valAndFormulaOfEnv e')
+    conv k (valAndFormulaOfEnv e) (valAndFormulaOfEnv e')
 
 instance Convertible () where conv _ _ _ = True
 

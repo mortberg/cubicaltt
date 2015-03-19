@@ -18,6 +18,7 @@ import Data.List (nub)
 import Prelude hiding (pi)
 
 type Ter = CTT.Ter
+type Ident = CTT.Ident
 
 -- | Useful auxiliary functions
 
@@ -26,9 +27,9 @@ type Ter = CTT.Ter
 a <:> b = (:) <$> a <*> b
 
 -- Un-something functions
-unVar :: Exp -> Maybe AIdent
-unVar (Var x) = Just x
-unVar _       = Nothing
+unVar :: Exp -> Maybe Ident
+unVar (Var (AIdent (_,x))) = Just x
+unVar _                    = Nothing
 
 unWhere :: ExpWhere -> Exp
 unWhere (Where e ds) = Let ds e
@@ -43,18 +44,19 @@ unApps u         ws = (u, ws)
 
 -- Turns an expression of the form App (... (App id1 id2) ... idn)
 -- into a list of idents
-appsToIdents :: Exp -> Maybe [AIdent]
+appsToIdents :: Exp -> Maybe [Ident]
 appsToIdents = mapM unVar . uncurry (:) . flip unApps []
 
 -- Flatten a tele
-flattenTele :: [Tele] -> [(AIdent,Exp)]
-flattenTele tele = [ (i,typ) | Tele id ids typ <- tele, i <- id:ids ]
+flattenTele :: [Tele] -> [(Ident,Exp)]
+flattenTele tele =
+  [ (resolveIdent i,typ) | Tele id ids typ <- tele, i <- id:ids ]
 
 -- Flatten a PTele
-flattenPTele :: [PTele] -> Resolver [(AIdent,Exp)]
+flattenPTele :: [PTele] -> Resolver [(Ident,Exp)]
 flattenPTele []                   = return []
 flattenPTele (PTele exp typ : xs) = case appsToIdents exp of
-  Just ids -> do 
+  Just ids -> do
     pt <- flattenPTele xs
     return $ map (,typ) ids ++ pt
   Nothing -> throwError "malformed ptele"
@@ -67,7 +69,7 @@ data SymKind = Variable | Constructor | Name
 
 -- local environment for constructors
 data Env = Env { envModule :: String,
-                 variables :: [(CTT.Binder,SymKind)] }
+                 variables :: [(Ident,SymKind)] }
   deriving (Eq,Show)
 
 type Resolver a = ReaderT Env (ErrorT String Identity) a
@@ -81,42 +83,51 @@ runResolver x = runIdentity $ runErrorT $ runReaderT x emptyEnv
 updateModule :: String -> Env -> Env
 updateModule mod e = e{envModule = mod}
 
-insertBinder :: (CTT.Binder,SymKind) -> Env -> Env
-insertBinder (x@(n,_),var) e
+insertIdent :: (Ident,SymKind) -> Env -> Env
+insertIdent (n,var) e
   | n == "_" || n == "undefined" = e
-  | otherwise                    = e{variables = (x,var) : variables e}
+  | otherwise                    = e{variables = (n,var) : variables e}
 
-insertBinders :: [(CTT.Binder,SymKind)] -> Env -> Env
-insertBinders = flip $ foldr insertBinder
+insertIdents :: [(Ident,SymKind)] -> Env -> Env
+insertIdents = flip $ foldr insertIdent
 
-insertVar :: CTT.Binder -> Env -> Env
-insertVar x = insertBinder (x,Variable)
+insertName :: AIdent -> Env -> Env
+insertName (AIdent (_,x)) = insertIdent (x,Name)
 
-insertVars :: [CTT.Binder] -> Env -> Env
+insertVar :: Ident -> Env -> Env
+insertVar x = insertIdent (x,Variable)
+
+insertVars :: [Ident] -> Env -> Env
 insertVars = flip $ foldr insertVar
 
-insertName :: CTT.Binder -> Env -> Env
-insertName x = insertBinder (x,Name)
+insertAIdent :: AIdent -> Env -> Env
+insertAIdent (AIdent (_,x)) = insertIdent (x,Variable)
+
+insertAIdents :: [AIdent] -> Env -> Env
+insertAIdents  = flip $ foldr insertAIdent
 
 getLoc :: (Int,Int) -> Resolver CTT.Loc
 getLoc l = CTT.Loc <$> asks envModule <*> pure l
 
-noLoc :: AIdent
-noLoc = AIdent ((0,0),"_")
-           
-resolveAIdent :: AIdent -> Resolver CTT.Binder
-resolveAIdent (AIdent (l,x)) = (x,) <$> getLoc l
+-- noLoc :: AIdent
+-- noLoc = AIdent ((0,0),"_")
 
-resolveName :: AIdent -> Resolver C.Name
-resolveName (AIdent (_,n)) = return $ C.Name n
-  
+-- resolveAIdent :: AIdent -> Resolver (Ident,CTT.Loc)
+-- resolveAIdent (AIdent (l,x)) = (x,) <$> getLoc l
+
+resolveIdent :: AIdent -> Ident
+resolveIdent (AIdent (_,x)) = x
+
+resolveName :: AIdent -> C.Name
+resolveName (AIdent (_,n)) = C.Name n
+
 resolveVar :: AIdent -> Resolver Ter
 resolveVar (AIdent (l,x))
   | (x == "_") || (x == "undefined") = CTT.Undef <$> getLoc l
   | otherwise = do
     modName <- asks envModule
     vars    <- asks variables
-    case CTT.lookupIdent x vars of
+    case lookup x vars of
       Just Variable    -> return $ CTT.Var x
       Just Constructor -> return $ CTT.Con x []
       Just Name        ->
@@ -125,19 +136,16 @@ resolveVar (AIdent (l,x))
       _ -> throwError $ "Cannot resolve variable " ++ x ++ " at position " ++
                         show l ++ " in module " ++ modName
 
-lam :: (AIdent,Exp) -> Resolver Ter -> Resolver Ter
-lam (a,t) e = do
-  x  <- resolveAIdent a
-  t' <- resolveExp t
-  CTT.Lam x t' <$> local (insertVar x) e
+lam :: (Ident,Exp) -> Resolver Ter -> Resolver Ter
+lam (a,t) e = CTT.Lam a <$> resolveExp t <*> local (insertVar a) e
 
-lams :: [(AIdent,Exp)] -> Resolver Ter -> Resolver Ter
+lams :: [(Ident,Exp)] -> Resolver Ter -> Resolver Ter
 lams = flip $ foldr lam
 
-bind :: (Ter -> Ter) -> (AIdent,Exp) -> Resolver Ter -> Resolver Ter
+bind :: (Ter -> Ter) -> (Ident,Exp) -> Resolver Ter -> Resolver Ter
 bind f (x,t) e = f <$> lam (x,t) e
 
-binds :: (Ter -> Ter) -> [(AIdent,Exp)] -> Resolver Ter -> Resolver Ter
+binds :: (Ter -> Ter) -> [(Ident,Exp)] -> Resolver Ter -> Resolver Ter
 binds f = flip $ foldr $ bind f
 
 resolveApps :: Exp -> [Exp] -> Resolver Ter
@@ -161,7 +169,7 @@ resolveExp e = case e of
   Pi ptele b    -> do
     tele <- flattenPTele ptele
     binds CTT.Pi tele (resolveExp b)
-  Fun a b       -> bind CTT.Pi (noLoc,a) (resolveExp b)
+  Fun a b       -> bind CTT.Pi ("_",a) (resolveExp b)
   Lam ptele t   -> do
     tele <- flattenPTele ptele
     lams tele (resolveExp t)
@@ -170,92 +178,86 @@ resolveExp e = case e of
   Pair t0 t1    -> CTT.SPair <$> resolveExp t0 <*> resolveExp t1
   Let decls e   -> do
     (rdecls,names) <- resolveDecls decls
-    CTT.mkWheres rdecls <$> local (insertBinders names) (resolveExp e)
-  Path i e         -> do
-    x <- resolveAIdent i
-    CTT.Path <$> resolveName i <*> local (insertName x) (resolveExp e)
+    CTT.mkWheres rdecls <$> local (insertIdents names) (resolveExp e)
+  Path i e      ->
+    CTT.Path (resolveName i) <$> local (insertName i) (resolveExp e)
   AppFormula e phi -> CTT.AppFormula <$> resolveExp e <*> resolveFormula phi
-    
+
 resolveWhere :: ExpWhere -> Resolver Ter
 resolveWhere = resolveExp . unWhere
 
 resolveFormula :: Formula -> Resolver C.Formula
 resolveFormula Dir0           = return $ C.Dir 0
 resolveFormula Dir1           = return $ C.Dir 1
-resolveFormula (Atom i)       = C.Atom <$> resolveName i
+resolveFormula (Atom i)       = return $ C.Atom $ resolveName i
 resolveFormula (Neg phi)      = C.negFormula <$> resolveFormula phi
 resolveFormula (Conj phi psi) = C.andFormula <$> resolveFormula phi
                                 <*> resolveFormula psi
 resolveFormula (Disj phi psi) = C.orFormula <$> resolveFormula phi
                                 <*> resolveFormula psi
 
-resolveBranch :: Branch -> Resolver (CTT.Label,([CTT.Binder],Ter))
+resolveBranch :: Branch -> Resolver (CTT.Label,([CTT.Label],Ter))
 resolveBranch (Branch (AIdent (_,lbl)) args e) = do
-    binders <- mapM resolveAIdent args
-    re      <- local (insertVars binders) $ resolveWhere e
-    return (lbl, (binders, re))
+    re      <- local (insertAIdents args) $ resolveWhere e
+    return (lbl, (map resolveIdent args, re))
 
-resolveTele :: [(AIdent,Exp)] -> Resolver CTT.Tele
+resolveTele :: [(Ident,Exp)] -> Resolver CTT.Tele
 resolveTele []        = return []
-resolveTele ((i,d):t) = do
-  x <- resolveAIdent i
-  ((x,) <$> resolveExp d) <:> local (insertVar x) (resolveTele t)
+resolveTele ((i,d):t) =
+  ((i,) <$> resolveExp d) <:> local (insertVar i) (resolveTele t)
 
-resolveLabel :: Label -> Resolver (CTT.Binder,CTT.Tele)
-resolveLabel (Label n vdecl) = (,) <$> resolveAIdent n <*> resolveTele (flattenTele vdecl)
+resolveLabel :: Label -> Resolver (CTT.Label,CTT.Tele)
+resolveLabel (Label n vdecl) = (resolveIdent n,) <$> resolveTele (flattenTele vdecl)
 
-declsLabels :: [Decl] -> Resolver [CTT.Binder]
-declsLabels decls = mapM resolveAIdent [ lbl | Label lbl _ <- sums ]
+declsLabels :: [Decl] -> [Ident]
+declsLabels decls = map resolveIdent [ lbl | Label lbl _ <- sums ]
   where sums = concat [ sum | DeclData _ _ sum <- decls ]
 
 piToFam :: Exp -> Resolver Ter
-piToFam (Fun a b)    = lam (noLoc,a) $ resolveExp b
+piToFam (Fun a b)    = lam ("_",a) $ resolveExp b
 piToFam (Pi ptele b) = do
   (x,a):tele <- flattenPTele ptele
   lam (x,a) (binds CTT.Pi tele (resolveExp b))
 
 -- Resolve Data or Def or Split declarations
-resolveDecl :: Decl -> Resolver (CTT.Decl,[(CTT.Binder,SymKind)])
+resolveDecl :: Decl -> Resolver (CTT.Decl,[(Ident,SymKind)])
 resolveDecl d = case d of
-  DeclDef n tele t body -> do
-    f <- resolveAIdent n
+  DeclDef (AIdent (_,f)) tele t body -> do
     let tele' = flattenTele tele
     a <- binds CTT.Pi tele' (resolveExp t)
     d <- lams tele' (resolveWhere body)
     return ((f,(a,d)),[(f,Variable)])
-  DeclData n tele sums -> do
-    f <- resolveAIdent n
+  DeclData (AIdent (l,f)) tele sums -> do
     let tele' = flattenTele tele
     a  <- binds CTT.Pi tele' (return CTT.U)
     d  <- lams tele' $ local (insertVar f) $
-            CTT.Sum <$> resolveAIdent n <*> mapM resolveLabel sums
-    cs <- mapM resolveAIdent [ lbl | Label lbl _ <- sums ]
+            CTT.Sum <$> getLoc l <*> pure f <*> mapM resolveLabel sums
+    let cs = map resolveIdent [ lbl | Label lbl _ <- sums ]
     return ((f,(a,d)),(f,Variable):map (,Constructor) cs)
-  DeclSplit n tele t brs -> do
-    f <- resolveAIdent n
+  DeclSplit (AIdent (l,f)) tele t brs -> do
     let tele' = flattenTele tele
-        loc   = snd f
+    loc  <- getLoc l
     a    <- binds CTT.Pi tele' (resolveExp t)
-    vars <- mapM resolveAIdent $ map fst tele'
+    let vars = map fst tele'
     fam  <- local (insertVars vars) $ piToFam t
     brs' <- local (insertVars (f:vars)) (mapM resolveBranch brs)
     body <- lams tele' (return $ CTT.Split loc fam brs')
     return ((f,(a,body)),[(f,Variable)])
 
-resolveDecls :: [Decl] -> Resolver ([CTT.Decls],[(CTT.Binder,SymKind)])
+resolveDecls :: [Decl] -> Resolver ([[CTT.Decl]],[(Ident,SymKind)])
 resolveDecls []     = return ([],[])
 resolveDecls (d:ds) = do
     (rtd,names)  <- resolveDecl d
-    (rds,names') <- local (insertBinders names) $ resolveDecls ds
+    (rds,names') <- local (insertIdents names) $ resolveDecls ds
     return ([rtd] : rds, names' ++ names)
 
-resolveModule :: Module -> Resolver ([CTT.Decls],[(CTT.Binder,SymKind)])
+resolveModule :: Module -> Resolver ([[CTT.Decl]],[(Ident,SymKind)])
 resolveModule (Module (AIdent (_,n)) _ decls) =
   local (updateModule n) $ resolveDecls decls
 
-resolveModules :: [Module] -> Resolver ([CTT.Decls],[(CTT.Binder,SymKind)])
+resolveModules :: [Module] -> Resolver ([[CTT.Decl]],[(Ident,SymKind)])
 resolveModules []         = return ([],[])
 resolveModules (mod:mods) = do
   (rmod, names)  <- resolveModule mod
-  (rmods,names') <- local (insertBinders names) $ resolveModules mods
+  (rmods,names') <- local (insertIdents names) $ resolveModules mods
   return (rmod ++ rmods, names' ++ names)

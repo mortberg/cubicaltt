@@ -96,10 +96,10 @@ initLoop flags f = do
         Nothing  -> return ()
       putStrLn "File loaded."
       -- Compute names for auto completion
-      runInputT (settings [n | ((n,_),_) <- names]) (loop flags f names tenv)
+      runInputT (settings [n | (n,_) <- names]) (loop flags f names tenv)
 
 -- The main loop
-loop :: [Flag] -> FilePath -> [(Binder,SymKind)] -> TC.TEnv -> Interpreter ()
+loop :: [Flag] -> FilePath -> [(CTT.Ident,SymKind)] -> TC.TEnv -> Interpreter ()
 loop flags f names tenv@(TC.TEnv _ rho _) = do
   input <- getInputLine prompt
   case input of
@@ -116,7 +116,7 @@ loop flags f names tenv@(TC.TEnv _ rho _) = do
     Just str   -> case pExp (lexer str) of
       Bad err -> outputStrLn ("Parse error: " ++ err) >> loop flags f names tenv
       Ok  exp ->
-        case runResolver $ local (insertBinders names) $ resolveExp exp of
+        case runResolver $ local (insertIdents names) $ resolveExp exp of
           Left  err  -> do outputStrLn ("Resolver failed: " ++ err)
                            loop flags f names tenv
           Right body -> do

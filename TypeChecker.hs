@@ -31,21 +31,21 @@ verboseEnv, silentEnv :: TEnv
 verboseEnv = TEnv 0 Empty True
 silentEnv  = TEnv 0 Empty False
 
-addTypeVal :: (Binder,Val) -> TEnv -> TEnv
+addTypeVal :: (Ident,Val) -> TEnv -> TEnv
 addTypeVal (x,a) (TEnv k rho v) =
   TEnv (k+1) (Pair rho (x,mkVar k a)) v
 
 addSub :: (Name,Formula) -> TEnv -> TEnv
 addSub iphi (TEnv k rho v) = TEnv k (Sub rho iphi) v
 
-addType :: (Binder,Ter) -> TEnv -> Typing TEnv
+addType :: (Ident,Ter) -> TEnv -> Typing TEnv
 addType (x,a) tenv@(TEnv _ rho _) = return $ addTypeVal (x,eval rho a) tenv
 
-addBranch :: [(Binder,Val)] -> (Tele,Env) -> TEnv -> TEnv
+addBranch :: [(Ident,Val)] -> (Tele,Env) -> TEnv -> TEnv
 addBranch nvs (tele,env) (TEnv k rho v) =
   TEnv (k + length nvs) (pairs rho nvs) v
 
-addDecls :: Decls -> TEnv -> TEnv
+addDecls :: [Decl] -> TEnv -> TEnv
 addDecls d (TEnv k rho v) = TEnv k (Def d rho) v
 
 addTele :: Tele -> TEnv -> Typing TEnv
@@ -60,12 +60,12 @@ runTyping :: TEnv -> Typing a -> IO (Either String a)
 runTyping env t = runErrorT $ runReaderT t env
 
 -- Used in the interaction loop
-runDecls :: TEnv -> Decls -> IO (Either String TEnv)
+runDecls :: TEnv -> [Decl] -> IO (Either String TEnv)
 runDecls tenv d = runTyping tenv $ do
   checkDecls d
   return $ addDecls d tenv
 
-runDeclss :: TEnv -> [Decls] -> IO (Maybe String,TEnv)
+runDeclss :: TEnv -> [[Decl]] -> IO (Maybe String,TEnv)
 runDeclss tenv []         = return (Nothing, tenv)
 runDeclss tenv (d:ds) = do
   x <- runDecls tenv d
@@ -78,7 +78,7 @@ runInfer lenv e = runTyping lenv (infer e)
 
 -- Extract the type of a label as a closure
 getLblType :: String -> Val -> Typing (Tele, Env)
-getLblType c (Ter (Sum _ cas) r) = case lookupIdent c cas of
+getLblType c (Ter (Sum _ _ cas) r) = case lookup c cas of
   Just as -> return (as,r)
   Nothing -> throwError ("getLblType: " ++ show c)
 getLblType c u = throwError ("expected a data type for the constructor "
@@ -97,10 +97,10 @@ getFresh a = do
     e <- asks env
     return $ mkVar k a
 
-checkDecls :: Decls -> Typing ()
+checkDecls :: [Decl] -> Typing ()
 checkDecls d = do
-  let (idents, tele, ters) = (declBinders d, declTele d, declTers d)
-  trace ("Checking: " ++ unwords (map fst idents))
+  let (idents, tele, ters) = (declIdents d, declTele d, declTers d)
+  trace ("Checking: " ++ unwords idents)
   checkTele tele
   rho <- asks env
   localM (addTele tele) $ checks (tele,rho) ters
@@ -125,15 +125,15 @@ check a t = case (a,t) of
     checks (bs,nu) es
   (VU,Pi f) -> checkFam f
   (VU,Sigma f) -> checkFam f
-  (VU,Sum _ bs) -> sequence_ [checkTele as | (_,as) <- bs]
-  (VPi (Ter (Sum _ cas) nu) f,Split _ f' ces) -> do
+  (VU,Sum _ _ bs) -> sequence_ [checkTele as | (_,as) <- bs]
+  (VPi (Ter (Sum _ _ cas) nu) f,Split _ f' ces) -> do
     checkFam f'
     k <- asks index
     rho <- asks env
     unless (conv k f (eval rho f')) $ throwError "check: split annotations"
-    let cas' = sortBy (compare `on` fst . fst) cas
+    let cas' = sortBy (compare `on` fst) cas
         ces' = sortBy (compare `on` fst) ces
-    if map (fst . fst) cas' == map fst ces'
+    if map fst cas' == map fst ces'
        then sequence_ [ checkBranch (as,nu) f brc
                       | (brc, (_,as)) <- zip ces' cas' ]
        else throwError "case branches does not match the data type"

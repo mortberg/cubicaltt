@@ -11,11 +11,11 @@ import qualified Data.Set as Set
 import Data.Maybe
 import Test.QuickCheck
 
-newtype Name = Name Integer
+newtype Name = Name String
   deriving (Arbitrary,Eq,Ord)
 
 instance Show Name where
-  show (Name i) = 'i' : show i
+  show (Name i) = i
 
 swapName :: Name -> (Name,Name) -> Name
 swapName k (i,j) | k == i    = j
@@ -137,7 +137,7 @@ arbFormula names s =
 instance Arbitrary Formula where
   arbitrary = do
       n <- arbitrary :: Gen Integer
-      sized $ arbFormula (map Name [0..(abs n)])
+      sized $ arbFormula (map (\x -> Name ('?' : show x))  [0..(abs n)])
 
 class ToFormula a where
   toFormula :: a -> Formula
@@ -211,14 +211,14 @@ propInvFormulaIncomp phi b = incomparables (invFormula phi b)
 -- prop_invFormula phi b =
 --   all (\alpha -> phi `evalFormula` alpha == Dir b) (invFormula phi b)
 
-testInvFormula :: [Face]
-testInvFormula = invFormula (Atom (Name 0) :/\: Atom (Name 1)) 1
+-- testInvFormula :: [Face]
+-- testInvFormula = invFormula (Atom (Name 0) :/\: Atom (Name 1)) 1
 
 -- | Nominal
 gensym :: [Name] -> Name
-gensym [] = Name 0
-gensym xs = Name (max+1)
-  where Name max = maximum xs
+gensym [] = Name "?0"
+gensym xs = Name ('?' : show (max+1))
+  where max = maximum [ read x | Name ('?':x) <- xs ]
 
 gensyms :: [Name] -> [Name]
 gensyms d = let x = gensym d in x : gensyms (x : d)

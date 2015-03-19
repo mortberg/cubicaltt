@@ -238,19 +238,25 @@ infer e = case e of
       VIdP a _ _ -> return $ a @@ phi
       _ -> throwError (show e ++ " is not a path")
   Trans p t -> case p of
-    Path i a -> do
-      rho <- asks env
-      when (i `elem` support rho)
-        (throwError $ show i ++ " is already declared")
-      local (addSub (i,Atom i)) $ check VU a
-      check (eval (Sub rho (i,Dir 0)) a) t
-      return $ (eval (Sub rho (i,Dir 1)) a)
+    Path{} -> do
+      (a0,a1) <- checkPath p
+      check a0 t
+      return a1
     _ -> do
       b <- infer p
       case b of
         VIdP (VPath _ VU) _ b1 -> return b1
         _ -> throwError $ "transport expects a path but got " ++ show p
   _ -> throwError ("infer " ++ show e)
+
+-- Check that a term is a path and output the source and target
+checkPath :: Ter -> Typing (Val,Val)
+checkPath (Path i a) = do
+  rho <- asks env
+  when (i `elem` support rho)
+    (throwError $ show i ++ " is already declared")
+  local (addSub (i,Atom i)) $ check VU a
+  return (eval (Sub rho (i,Dir 0)) a,eval (Sub rho (i,Dir 1)) a)
 
 checks :: (Tele,Env) -> [Ter] -> Typing ()
 checks _              []     = return ()

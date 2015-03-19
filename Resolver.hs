@@ -62,7 +62,7 @@ flattenPTele (PTele exp typ : xs) = case appsToIdents exp of
 -------------------------------------------------------------------------------
 -- | Resolver and environment
 
-data SymKind = Variable | Constructor
+data SymKind = Variable | Constructor | Name
   deriving (Eq,Show)
 
 -- local environment for constructors
@@ -95,6 +95,9 @@ insertVar x = insertBinder (x,Variable)
 insertVars :: [CTT.Binder] -> Env -> Env
 insertVars = flip $ foldr insertVar
 
+insertName :: CTT.Binder -> Env -> Env
+insertName x = insertBinder (x,Name)
+
 getLoc :: (Int,Int) -> Resolver CTT.Loc
 getLoc l = CTT.Loc <$> asks envModule <*> pure l
 
@@ -104,8 +107,8 @@ noLoc = AIdent ((0,0),"_")
 resolveAIdent :: AIdent -> Resolver CTT.Binder
 resolveAIdent (AIdent (l,x)) = (x,) <$> getLoc l
 
-resolveName :: Name -> Resolver C.Name
-resolveName (Name (_,n)) = return $ C.Name $ read $ tail n
+resolveName :: AIdent -> Resolver C.Name
+resolveName (AIdent (_,n)) = return $ C.Name n
   
 resolveVar :: AIdent -> Resolver Ter
 resolveVar (AIdent (l,x))
@@ -116,6 +119,9 @@ resolveVar (AIdent (l,x))
     case CTT.lookupIdent x vars of
       Just Variable    -> return $ CTT.Var x
       Just Constructor -> return $ CTT.Con x []
+      Just Name        ->
+        throwError $ "Name " ++ x ++ " used as a variable at position " ++
+                     show l ++ " in module " ++ modName
       _ -> throwError $ "Cannot resolve variable " ++ x ++ " at position " ++
                         show l ++ " in module " ++ modName
 
@@ -165,7 +171,9 @@ resolveExp e = case e of
   Let decls e   -> do
     (rdecls,names) <- resolveDecls decls
     CTT.mkWheres rdecls <$> local (insertBinders names) (resolveExp e)
-  Path i e -> CTT.Path <$> resolveName i <*> resolveExp e 
+  Path i e         -> do
+    x <- resolveAIdent i
+    CTT.Path <$> resolveName i <*> local (insertName x) (resolveExp e)
   AppFormula e phi -> CTT.AppFormula <$> resolveExp e <*> resolveFormula phi
     
 resolveWhere :: ExpWhere -> Resolver Ter
@@ -178,7 +186,6 @@ resolveFormula (Conj phi psi) = C.andFormula <$> resolveFormula phi
                                 <*> resolveFormula psi
 resolveFormula (Disj phi psi) = C.orFormula <$> resolveFormula phi
                                 <*> resolveFormula psi
-
 
 resolveBranch :: Branch -> Resolver (CTT.Label,([CTT.Binder],Ter))
 resolveBranch (Branch (AIdent (_,lbl)) args e) = do

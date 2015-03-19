@@ -23,7 +23,7 @@ NoWhere.  ExpWhere ::= Exp ;
 
 Let.        Exp  ::= "let" "{" [Decl] "}" "in" Exp ;
 Lam.        Exp  ::= "\\" [PTele] "->" Exp ;
-Path.       Exp  ::= "<" Name ">" Exp ;
+Path.       Exp  ::= "<" AIdent ">" Exp ;
 Fun.        Exp1 ::= Exp2 "->" Exp1 ;
 Pi.         Exp1 ::= [PTele] "->" Exp1 ;
 Sigma.      Exp1 ::= [PTele] "*" Exp1 ;
@@ -41,7 +41,7 @@ coercions Exp 3 ;
 Disj.     Formula  ::= Formula "|" Formula1 ;
 Conj.     Formula1 ::= Formula1 "&" Formula2 ;
 Neg.      Formula2 ::= "-" Formula2 ;
-Atom.     Formula2 ::= Name ;
+Atom.     Formula2 ::= AIdent ;
 coercions Formula 2 ;
 
 -- Branches
@@ -63,6 +63,3 @@ terminator nonempty PTele "" ;
 
 position token AIdent ((letter|'\''|'_')(letter|digit|'\''|'_')*) ;
 terminator AIdent "" ;
-
-position token Name (('?')(digit)*);
-terminator Name "" ;

@@ -147,8 +147,14 @@ evals :: Env -> [(Ident,Ter)] -> [(Ident,Val)]
 evals env bts = [ (b,eval env t) | (b,t) <- bts ]
 
 evalSystem :: Env -> System Ter -> System Val
-evalSystem rho = undefined -- Map.mapWithKey (\alpha -> eval (rho `face` alpha))
+evalSystem rho ts = 
+  let out = concat [ let betas = meetss [ invFormula (lookName i rho) d
+                                        | (i,d) <- Map.assocs alpha ]
+                     in [ (beta,eval (rho `face` beta) talpha) | beta <- betas ]
+                   | (alpha,talpha) <- Map.assocs ts ]
+  in mkSystem out
 
+-- TODO: Write using case-of
 app :: Val -> Val -> Val
 app (Ter (Lam x _ t) e) u                  = eval (Pair e (x,u)) t
 app (Ter (Split _ _ nvs) e) (VCon name us) = case lookup name nvs of
@@ -156,6 +162,18 @@ app (Ter (Split _ _ nvs) e) (VCon name us) = case lookup name nvs of
   Nothing     -> error $ "app: Split with insufficient arguments; " ++
                          " missing case for " ++ name
 app u@(Ter (Split _ _ _) _) v | isNeutral v = VSplit u v
+
+app kan@(VTrans (VPath i (VPi a f)) li0) ui1 =
+    let j   = fresh (kan,ui1)
+        (aj,fj) = (a,f) `swap` (i,j)
+        u   = transFillNeg j aj ui1
+        ui0 = transNeg j aj ui1
+    in trans j (app fj u) (app li0 ui0)
+app kan@(VComp (VPi a f) li0 ts) ui1 =
+    let j   = fresh (kan,ui1)
+        tsj = Map.map (@@ j) ts
+    in comp j (app f ui1) (app li0 ui1)
+              (Map.intersectionWith app tsj (border ui1 tsj))
 app r s | isNeutral r = VApp r s
 app _ _ = error "app"
 
@@ -198,7 +216,7 @@ transLine :: Val -> Val -> Val
 transLine u v = trans i (u @@ i) v
   where i = fresh (u,v)
 
-trans :: Name -> Val -> Val -> Val
+trans, transNeg :: Name -> Val -> Val -> Val
 trans i v0 v1 = case (v0,v1) of
   (VIdP a u v,w) ->
     let j   = fresh (Atom i, v0, w)
@@ -216,6 +234,7 @@ trans i v0 v1 = case (v0,v1) of
     Nothing -> error $ "comp: missing constructor in labelled sum " ++ n
   _ | isNeutral v0 || isNeutral v1 -> VTrans (VPath i v0) v1
     | otherwise -> error "trans not implemented"
+transNeg i a u = trans i (a `sym` i) u
 
 transFill, transFillNeg :: Name -> Val -> Val -> Val
 transFill i a u = trans j (a `conj` (i,j)) u
@@ -238,10 +257,6 @@ compLine :: Val -> Val -> System Val -> Val
 compLine a u ts = comp i (a @@ i) u (Map.map (@@ i) ts)
   where i = fresh (a,u,ts)
 
--- compNeg a u ts = comp a u (ts `sym` i)
-comp :: Name -> Val -> Val -> System Val -> Val
-comp = undefined
-
 genComp, genCompNeg :: Name -> Val -> Val -> System Val -> Val
 genComp i a u ts | Map.null ts = trans i a u
 genComp i a u ts = comp i ai1 (trans i a u) ts'
@@ -250,6 +265,11 @@ genComp i a u ts = comp i ai1 (trans i a u) ts'
         comp' alpha u = VPath i (trans j ((a `face` alpha) `disj` (i,j)) u)
         ts' = Map.mapWithKey comp' ts
 genCompNeg i a u ts = genComp i (a `sym` i) u (ts `sym` i)
+
+fill, fillNeg :: Name -> Val -> Val -> System Val -> Val
+fill i a u ts = comp j a u (ts `conj` (i,j))
+  where j = fresh (Atom i,a,u,ts)
+fillNeg i a u ts = (fill i a u (ts `sym` i)) `sym` i
 
 genFill, genFillNeg :: Name -> Val -> Val -> System Val -> Val
 genFill i a u ts = genComp j (a `conj` (i,j)) u (ts `conj` (i,j))
@@ -265,6 +285,33 @@ comps i ((x,a):as) e ((ts,u):tsus) =
   in vi1 : vs
 comps _ _ _ _ = error "comps: different lengths of types and values"
 
+-- compNeg a u ts = comp a u (ts `sym` i)
+
+-- i is independent of a and u
+comp :: Name -> Val -> Val -> System Val -> Val
+comp i a u ts | eps `Map.member` ts    = (ts ! eps) `face` (i ~> 1)
+comp i a u ts | i `notElem` support ts = u
+comp i a u ts | not (Map.null indep)   = comp i a u ts'
+  where (ts',indep) = Map.partition (\t -> i `elem` support t) ts
+comp i a u ts = let j = fresh (Atom i,a,u,ts) -- maybe only in vid??
+                in case a of
+  VIdP p _ _ -> VPath j $ comp i (p @@ j) (u @@ j) (Map.map (@@ j) ts)
+  VSigma a f -> VSPair ui1 comp_u2
+    where (t1s, t2s) = (Map.map fstVal ts, Map.map sndVal ts)
+          (u1,  u2)  = (fstVal u, sndVal u)
+          fill_u1    = fill i a u1 t1s
+          ui1        = comp i a u1 t1s
+          comp_u2    = genComp i (app f fill_u1) u2 t2s
+  VPi{} -> VComp a u (Map.map (VPath i) ts)
+  VU -> VComp VU u (Map.map (VPath i) ts)
+  _ | isNeutral a || isNeutralSystem ts || isNeutral u ->
+    VComp a u (Map.map (VPath i) ts)
+  Ter (Sum _ _ nass) env -> case u of
+    VCon n us -> case lookup n nass of
+      Just as -> VCon n $ comps i as env tsus
+        where tsus = transposeSystemAndList (Map.map unCon ts) us
+      Nothing -> error $ "comp: missing constructor in labelled sum " ++ n
+    _ -> error "comp ter sum"
 
 -- fills :: Name -> [(Ident,Ter)] -> Env -> [(System Val,Val)] -> [Val]
 -- fills i []         _ []         = []
@@ -277,6 +324,9 @@ comps _ _ _ _ = error "comps: different lengths of types and values"
 
 -------------------------------------------------------------------------------
 -- | Conversion
+
+isNeutralSystem :: System Val -> Bool
+isNeutralSystem = any isNeutral . Map.elems
 
 class Convertible a where
   conv :: Int -> a -> a -> Bool

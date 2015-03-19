@@ -61,7 +61,7 @@ instance Arbitrary Face where
   arbitrary = Map.fromList <$> arbitrary
 
 showFace :: Face -> String
-showFace alpha = concat [ "(" ++ show i ++ "," ++ show d ++ ")"
+showFace alpha = concat [ "(" ++ show i ++ " = " ++ show d ++ ")"
                         | (i,d) <- Map.toList alpha ]
 
 swapFace :: Face -> (Name,Name) -> Face
@@ -99,6 +99,9 @@ meetId xs = xs `meet` xs == xs
 
 meets :: [Face] -> [Face] -> [Face]
 meets xs ys = nub [ meet x y | x <- xs, y <- ys, compatible x y ]
+
+meetss :: [[Face]] -> [Face]
+meetss xss = foldr meets [eps] xss
 
 leq :: Face -> Face -> Bool
 alpha `leq` beta = meetMaybe alpha beta == Just alpha
@@ -330,8 +333,9 @@ face = Map.foldWithKey (\i d a -> act a (i,Dir d))
 type System a = Map Face a
 
 showSystem :: Show a => System a -> String
-showSystem ts = concat $ intersperse ", " [ showFace alpha ++ " |-> " ++ show u
-                                          | (alpha,u) <- Map.toList ts ]
+showSystem ts =
+  "[ " ++ concat (intersperse ", " [ showFace alpha ++ " |-> " ++ show u
+                                   | (alpha,u) <- Map.toList ts ]) ++ " ]"
 
 insertSystem :: Face -> a -> System a -> System a
 insertSystem alpha v ts = case find (comparable alpha) (Map.keys ts) of

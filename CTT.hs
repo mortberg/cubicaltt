@@ -124,6 +124,11 @@ isNeutral v = case v of
 mkVar :: Int -> Val -> Val
 mkVar k = VVar ('X' : show k)
 
+unCon :: Val -> [Val]
+unCon (VCon _ vs) = vs
+-- unCon (KanUElem _ u) = unCon u
+unCon v           = error $ "unCon: not a constructor: " ++ show v
+
 --------------------------------------------------------------------------------
 -- | Environments
 
@@ -248,7 +253,7 @@ showVal v = case v of
   VSnd u            -> showVal u <> text ".2"
   VIdP v0 v1 v2     -> text "IdP" <+> showVals [v0,v1,v2]
   VPath i v         -> char '<' <> text (show i) <> char '>' <+> showVal v
-  VAppFormula v phi -> showVal1 v <> char '@' <> text (show phi)
+  VAppFormula v phi -> showVal1 v <+> char '@' <+> text (show phi)
   VComp v0 v1 vs    -> text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)
   VTrans v0 v1      -> text "trans" <+> showVals [v0,v1]
 showVal1 v = case v of

@@ -122,6 +122,9 @@ checkFam (Lam x a b) = do
   localM (addType (x,a)) $ check VU b
 checkFam _ = throwError "checkFam"
 
+constPath :: Val -> Val
+constPath v = VPath (Name "_") v
+
 -- Check that t has type a
 check :: Val -> Ter -> Typing ()
 check a t = case (a,t) of
@@ -158,18 +161,10 @@ check a t = case (a,t) of
     checkDecls d
     local (addDecls d) $ check a e
   (_,Undef _) -> return ()
-  (VU,IdP a e0 e1) -> case a of
-    Path{} -> do
-      (b0,b1) <- checkPath a
-      check b0 e0
-      check b1 e1
-    _ -> do
-      b <- infer a
-      case b of
-        VIdP (VPath _ VU) b0 b1 -> do
-          check b0 e0
-          check b1 e1
-        _ -> throwError ("IdP expects a path but got " ++ show a)
+  (VU,IdP a e0 e1) -> do
+    (a0,a1) <- checkPath (constPath VU) a
+    check a0 e0
+    check a1 e1
   (VIdP p a0 a1,Path i e) -> do
     rho <- asks env
     k   <- asks index
@@ -179,7 +174,7 @@ check a t = case (a,t) of
     let u0 = eval (Sub rho (i,Dir 0)) e
         u1 = eval (Sub rho (i,Dir 1)) e
     unless (conv k a0 u0 && conv k a1 u1) $
-      throwError $ "path endpoints don't match " ++ show e
+      throwError $ "path endpoints don't match " ++ show e ++ " \nu0 = " ++ show u0 ++ " \nu1 = " ++ show u1 ++ " \na0 = " ++ show a0 ++ " \na1 = " ++ show a1 ++ " \np = " ++ show p
   _ -> do
     v <- infer t
     k <- index <$> ask
@@ -244,16 +239,10 @@ infer e = case e of
     case t of
       VIdP a _ _ -> return $ a @@ phi
       _ -> throwError (show e ++ " is not a path")
-  Trans p t -> case p of
-    Path{} -> do
-      (a0,a1) <- checkPath p
-      check a0 t
-      return a1
-    _ -> do
-      b <- infer p
-      case b of
-        VIdP (VPath _ VU) _ b1 -> return b1
-        _ -> throwError $ "transport expects a path but got " ++ show p
+  Trans p t -> do
+    (a0,a1) <- checkPath (constPath VU) p
+    check a0 t
+    return a1
   Comp a t0 ts -> do
     check VU a
     rho <- asks env
@@ -263,7 +252,14 @@ infer e = case e of
     -- check rho alpha |- t_alpha : a alpha
     sequence $ Map.elems $
       Map.mapWithKey (\alpha talpha ->
-                       local (faceEnv alpha) (check (va `face` alpha) talpha)) ts
+                       local (faceEnv alpha) $ do
+                         rhoAlpha <- asks env
+                         (a0,_) <- checkPath (constPath (va `face` alpha)) talpha
+                         k <- asks index
+                         unless (conv k a0 (eval rhoAlpha t0))
+                           (throwError ("incompatible system with " ++ show t0))
+                     ) ts
+    
 
     -- check that the system is compatible
     k <- asks index
@@ -272,15 +268,22 @@ infer e = case e of
     return va
   _ -> throwError ("infer " ++ show e)
 
-
 -- Check that a term is a path and output the source and target
-checkPath :: Ter -> Typing (Val,Val)
-checkPath (Path i a) = do
+checkPath :: Val -> Ter -> Typing (Val,Val)
+checkPath v (Path i a) = do
   rho <- asks env
   when (i `elem` support rho)
     (throwError $ show i ++ " is already declared")
-  local (addSub (i,Atom i)) $ check VU a
+  local (addSub (i,Atom i)) $ check (v @@ i) a
   return (eval (Sub rho (i,Dir 0)) a,eval (Sub rho (i,Dir 1)) a)
+checkPath v t = do
+  vt <- infer t
+  k  <- asks index
+  case vt of
+    VIdP a a0 a1 -> do
+      unless (conv k a v) (throwError "checkPath")
+      return (a0,a1)
+    _ -> throwError "checkPath"    
 
 checks :: (Tele,Env) -> [Ter] -> Typing ()
 checks _              []     = return ()

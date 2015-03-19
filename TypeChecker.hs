@@ -4,6 +4,8 @@ import Data.Either
 import Data.Function
 import Data.List
 import Data.Maybe
+import Data.Map (Map,(!))
+import qualified Data.Map as Map
 import Data.Monoid hiding (Sum)
 import Control.Monad
 import Control.Monad.Trans
@@ -50,6 +52,9 @@ addDecls d (TEnv k rho v) = TEnv k (Def d rho) v
 
 addTele :: Tele -> TEnv -> Typing TEnv
 addTele xas lenv = foldM (flip addType) lenv xas
+
+faceEnv :: Face -> TEnv -> TEnv
+faceEnv alpha tenv = tenv{env=env tenv `face` alpha}
 
 trace :: String -> Typing ()
 trace s = do
@@ -249,7 +254,24 @@ infer e = case e of
       case b of
         VIdP (VPath _ VU) _ b1 -> return b1
         _ -> throwError $ "transport expects a path but got " ++ show p
+  Comp a t0 ts -> do
+    check VU a
+    rho <- asks env
+    let va = eval rho a
+    check va t0
+
+    -- check rho alpha |- t_alpha : a alpha
+    sequence $ Map.elems $
+      Map.mapWithKey (\alpha talpha ->
+                       local (faceEnv alpha) (check (va `face` alpha) talpha)) ts
+
+    -- check that the system is compatible
+    k <- asks index
+    unless (isCompSystem k (evalSystem rho ts))
+      (throwError ("Incompatible system " ++ show ts))
+    return va
   _ -> throwError ("infer " ++ show e)
+
 
 -- Check that a term is a path and output the source and target
 checkPath :: Ter -> Typing (Val,Val)

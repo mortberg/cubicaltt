@@ -70,12 +70,12 @@ instance Nominal Val where
          VU      -> VU
          Ter t e -> Ter t (acti e)
          VPi a f -> VPi (acti a) (acti f)
-         VComp a v ts -> comp (acti a) (acti v) (acti ts)
+         VComp a v ts -> compLine (acti a) (acti v) (acti ts)
          VIdP a u v -> VIdP (acti a) (acti u) (acti v)
          VPath j v | j `notElem` sphi -> VPath j (acti v)
                    | otherwise -> VPath k (v `swap` (j,k))
               where k = fresh (v, Atom i, phi)
-         VTrans u v -> trans' (acti u) (acti v)
+         VTrans u v -> transLine (acti u) (acti v)
          VSigma a f -> VSigma (acti a) (acti f)
          VSPair u v -> VSPair (acti u) (acti v)
          VFst u     -> VFst (acti u)
@@ -131,10 +131,9 @@ eval rho v = case v of
   Path i t            ->
     let j = fresh rho
     in VPath j (eval (Sub rho (i,Atom j)) t)
-  Trans u v -> trans' (eval rho u) (eval rho v)
+  Trans u v        -> transLine (eval rho u) (eval rho v)
   AppFormula e phi -> (eval rho e) @@ (evalFormula rho phi)
-
--- Comp
+  Comp a t0 ts     -> compLine (eval rho a) (eval rho t0) (evalSystem rho ts)
 
 evalFormula :: Env -> Formula -> Formula
 evalFormula rho phi = case phi of
@@ -146,6 +145,9 @@ evalFormula rho phi = case phi of
 
 evals :: Env -> [(Ident,Ter)] -> [(Ident,Val)]
 evals env bts = [ (b,eval env t) | (b,t) <- bts ]
+
+evalSystem :: Env -> System Ter -> System Val
+evalSystem rho = undefined -- Map.mapWithKey (\alpha -> eval (rho `face` alpha))
 
 app :: Val -> Val -> Val
 app (Ter (Lam x _ t) e) u                  = eval (Pair e (x,u)) t
@@ -173,9 +175,7 @@ inferType v = case v of
   VSnd t -> case inferType t of
     VSigma _ f -> app f (VFst t)
     _       -> error $ "inferType: not neutral " ++ show v
-  VSplit t0 t1 -> case inferType t0 of
-    VPi _ f -> app f t1
-    _       -> error $ "inferType: not neutral " ++ show v
+  VSplit (Ter (Split _ f _) rho) v1 -> app (eval rho f) v1
   VApp t0 t1 -> case inferType t0 of
     VPi _ f -> app f t1
     _       -> error $ "inferType: not neutral " ++ show v
@@ -194,10 +194,9 @@ v @@ phi = case (inferType v,toFormula phi) of
 -----------------------------------------------------------
 -- Transport
 
-trans' :: Val -> Val -> Val
-trans' u v = case u of
-  VPath i u0 -> trans i u0 v
-  u0         -> VTrans u0 v
+transLine :: Val -> Val -> Val
+transLine u v = trans i (u @@ i) v
+  where i = fresh (u,v)
 
 trans :: Name -> Val -> Val -> Val
 trans i v0 v1 = case (v0,v1) of
@@ -235,15 +234,19 @@ transps _ _ _ _ = error "transps: different lengths of types and values"
 -----------------------------------------------------------
 -- Composition
 
-comp :: Val -> Val -> System Val -> Val
-comp a u ts = error "comp"
+compLine :: Val -> Val -> System Val -> Val
+compLine a u ts = comp i (a @@ i) u (Map.map (@@ i) ts)
+  where i = fresh (a,u,ts)
+
 -- compNeg a u ts = comp a u (ts `sym` i)
+comp :: Name -> Val -> Val -> System Val -> Val
+comp = undefined
 
 genComp, genCompNeg :: Name -> Val -> Val -> System Val -> Val
 genComp i a u ts | Map.null ts = trans i a u
-genComp i a u ts = comp ai1 (trans i a u) ts'
-  where ai1   = a `face` (i ~> 1)
-        j     = fresh (a,Atom i,ts,u)
+genComp i a u ts = comp i ai1 (trans i a u) ts'
+  where ai1 = a `face` (i ~> 1)
+        j   = fresh (a,Atom i,ts,u)
         comp' alpha u = VPath i (trans j ((a `face` alpha) `disj` (i,j)) u)
         ts' = Map.mapWithKey comp' ts
 genCompNeg i a u ts = genComp i (a `sym` i) u (ts `sym` i)
@@ -275,12 +278,16 @@ comps _ _ _ _ = error "comps: different lengths of types and values"
 -------------------------------------------------------------------------------
 -- | Conversion
 
-
 class Convertible a where
-  conv   :: Int -> a -> a -> Bool
+  conv :: Int -> a -> a -> Bool
 
 isIndep :: (Nominal a, Convertible a) => Int -> Name -> a -> Bool
 isIndep k i u = conv k u (u `face` (i ~> 0))
+
+isCompSystem :: (Nominal a, Convertible a) => Int -> System a -> Bool
+isCompSystem k ts = and [ conv k (getFace alpha beta) (getFace beta alpha)
+                        | (alpha,beta) <- allCompatible (Map.keys ts) ]
+    where getFace a b = face (ts ! a) (b `minus` a)
 
 instance Convertible Val where
   conv k u v | u == v    = True

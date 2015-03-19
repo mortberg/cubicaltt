@@ -1,5 +1,5 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances,
-             GeneralizedNewtypeDeriving #-}
+             GeneralizedNewtypeDeriving, TupleSections #-}
 module Connections where
 
 import Control.Applicative
@@ -75,6 +75,10 @@ compatibles :: [Face] -> Bool
 compatibles []     = True
 compatibles (x:xs) = all (x `compatible`) xs && compatibles xs
 
+allCompatible :: [Face] -> [(Face,Face)]
+allCompatible []     = []
+allCompatible (f:fs) = map (f,) (filter (compatible f) fs) ++ allCompatible fs
+
 -- Partial composition operation
 meet :: Face -> Face -> Face
 meet = Map.unionWith f
@@ -111,6 +115,9 @@ i ~> d = Map.singleton i d
 
 eps :: Face
 eps = Map.empty
+
+minus :: Face -> Face -> Face
+minus alpha beta = alpha Map.\\ beta
 
 -- Compute the witness of A <= B, ie compute C s.t. B = CA
 -- leqW :: Face -> Face -> Face

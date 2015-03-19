@@ -38,13 +38,11 @@ Trans.      Exp3 ::= "transport" ;
 Pair.       Exp3 ::= "(" Exp "," Exp ")" ;
 coercions Exp 3 ;
 
-
-Conj.     Formula  ::= Formula "|" Formula1 ;
-Disj.     Formula1 ::= Formula1 "&" Formula2 ;
+Disj.     Formula  ::= Formula "|" Formula1 ;
+Conj.     Formula1 ::= Formula1 "&" Formula2 ;
 Neg.      Formula2 ::= "-" Formula2 ;
 Atom.     Formula2 ::= Name ;
 coercions Formula 2 ;
-
 
 -- Branches
 Branch.   Branch ::= AIdent [AIdent] "->" ExpWhere ;

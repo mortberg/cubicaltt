@@ -199,6 +199,9 @@ resolveExp e = case e of
     CTT.mkWheres rdecls <$> local (insertIdents names) (resolveExp e)
   Path is e     -> paths is (resolveExp e)
   AppFormula e phi -> CTT.AppFormula <$> resolveExp e <*> resolveFormula phi
+  _             -> do
+    modName <- asks envModule
+    throwError ("Could not resolve " ++ show e ++ " in module " ++ modName)
 
 resolveWhere :: ExpWhere -> Resolver Ter
 resolveWhere = resolveExp . unWhere
@@ -216,7 +219,7 @@ resolveFace alpha =
                             | Face i d <- alpha ]
 
 resolveDir :: Dir -> Resolver C.Dir
-resolveDir Dir0 = return 0 
+resolveDir Dir0 = return 0
 resolveDir Dir1 = return 1
 
 resolveFormula :: Formula -> Resolver C.Formula

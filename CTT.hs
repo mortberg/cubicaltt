@@ -215,7 +215,7 @@ showTer v = case v of
   Undef _          -> text "undefined"
   IdP e0 e1 e2     -> text "IdP" <+> showTers [e0,e1,e2]
   Path i e         -> char '<' <> text (show i) <> char '>' <+> showTer e
-  AppFormula e phi -> showTer1 e <> char '@' <> text (show phi)
+  AppFormula e phi -> showTer1 e <+> char '@' <+> text (show phi)
   Comp e0 e1 es    -> text "comp" <+> showTers [e0,e1] <+> text (showSystem es)
   Trans e0 e1      -> text "transport" <+> showTers [e0,e1]
 

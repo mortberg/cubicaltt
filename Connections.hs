@@ -145,7 +145,7 @@ instance Show Formula where
   show (a :/\: b) = show1 a ++ " /\\ " ++ show1 b
     where show1 v@(a :\/: b) = "(" ++ show v ++ ")"
           show1 a = show a
-          
+
 arbFormula :: [Name] -> Int -> Gen Formula
 arbFormula names s =
       frequency [ (1, Dir <$> arbitrary)
@@ -335,7 +335,7 @@ type System a = Map Face a
 
 showSystem :: Show a => System a -> String
 showSystem ts =
-  "[ " ++ concat (intersperse ", " [ showFace alpha ++ " |-> " ++ show u
+  "[ " ++ concat (intersperse ", " [ showFace alpha ++ " -> " ++ show u
                                    | (alpha,u) <- Map.toList ts ]) ++ " ]"
 
 insertSystem :: Face -> a -> System a -> System a

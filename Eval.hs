@@ -147,7 +147,7 @@ evals :: Env -> [(Ident,Ter)] -> [(Ident,Val)]
 evals env bts = [ (b,eval env t) | (b,t) <- bts ]
 
 evalSystem :: Env -> System Ter -> System Val
-evalSystem rho ts = 
+evalSystem rho ts =
   let out = concat [ let betas = meetss [ invFormula (lookName i rho) d
                                         | (i,d) <- Map.assocs alpha ]
                      in [ (beta,eval (rho `face` beta) talpha) | beta <- betas ]
@@ -189,25 +189,31 @@ inferType v = case v of
   VVar _ t -> t
   VFst t -> case inferType t of
     VSigma a _ -> a
-    _       -> error $ "inferType: not neutral " ++ show v
+    ty         -> error $ "inferType: expected Sigma type for " ++ show v
+                  ++ ", got " ++ show ty
   VSnd t -> case inferType t of
     VSigma _ f -> app f (VFst t)
-    _       -> error $ "inferType: not neutral " ++ show v
+    ty         -> error $ "inferType: expected Sigma type for " ++ show v
+                  ++ ", got " ++ show ty
   VSplit (Ter (Split _ f _) rho) v1 -> app (eval rho f) v1
   VApp t0 t1 -> case inferType t0 of
     VPi _ f -> app f t1
-    _       -> error $ "inferType: not neutral " ++ show v
+    ty      -> error $ "inferType: expected Pi type for " ++ show v
+               ++ ", got " ++ show ty
   VAppFormula t phi -> case inferType t of
     VIdP a _ _ -> a @@ phi
-    _          -> error $ "inferType: not neutral " ++ show v
+    ty         -> error $ "inferType: expected IdP type for " ++ show v
+                  ++ ", got " ++ show ty
+  _ -> error "inferType: not neutral " ++ show v
 
 (@@) :: ToFormula a => Val -> a -> Val
 (VPath i u) @@ phi = u `act` (i,toFormula phi)
 -- (KanUElem _ u) @@ phi = u @@ phi
-v @@ phi = case (inferType v,toFormula phi) of
+v @@ phi | isNeutral v = case (inferType v,toFormula phi) of
   (VIdP  _ a0 _,Dir 0) -> a0
   (VIdP  _ _ a1,Dir 1) -> a1
   _  -> VAppFormula v (toFormula phi)
+v @@ phi = error $ "(@@): " ++ show v ++ " should be neutral."
 
 -----------------------------------------------------------
 -- Transport
@@ -254,7 +260,7 @@ transps _ _ _ _ = error "transps: different lengths of types and values"
 -- Composition
 
 compLine :: Val -> Val -> System Val -> Val
-compLine a u ts = comp i (a @@ i) u (Map.map (@@ i) ts)
+compLine a u ts = comp i a u (Map.map (@@ i) ts)
   where i = fresh (a,u,ts)
 
 genComp, genCompNeg :: Name -> Val -> Val -> System Val -> Val

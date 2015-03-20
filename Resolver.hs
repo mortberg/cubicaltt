@@ -205,7 +205,7 @@ resolveWhere = resolveExp . unWhere
 
 resolveSystem :: Exp -> Resolver (C.System Ter)
 resolveSystem (System ts) =
-  -- TODO: Erase alpha when resolving u??
+  -- Note: the symbols in alpha are in scope in u, but they mean 0 or 1
   Map.fromList <$> sequence [ (,) <$> resolveFace alpha <*> resolveExp u
                             | Side alpha u <- ts ]
 resolveSystem e = throwError $ show e ++ " is not a system"

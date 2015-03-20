@@ -194,6 +194,12 @@ instance Show Loc where
 showLoc :: Loc -> Doc
 showLoc (Loc name (i,j)) = hcat [text name,text "_L",int i,text "_C",int j]
 
+showFormula :: Formula -> Doc
+showFormula phi = case phi of
+  _ :\/: _ -> parens (text (show phi))
+  _ :/\: _ -> parens (text (show phi))
+  _ -> text $ show phi
+
 instance Show Ter where
   show = render . showTer
 
@@ -215,7 +221,7 @@ showTer v = case v of
   Undef _          -> text "undefined"
   IdP e0 e1 e2     -> text "IdP" <+> showTers [e0,e1,e2]
   Path i e         -> char '<' <> text (show i) <> char '>' <+> showTer e
-  AppFormula e phi -> showTer1 e <+> char '@' <+> text (show phi)
+  AppFormula e phi -> showTer1 e <+> char '@' <+> showFormula phi
   Comp e0 e1 es    -> text "comp" <+> showTers [e0,e1] <+> text (showSystem es)
   Trans e0 e1      -> text "transport" <+> showTers [e0,e1]
 
@@ -253,7 +259,7 @@ showVal v = case v of
   VSnd u            -> showVal u <> text ".2"
   VIdP v0 v1 v2     -> text "IdP" <+> showVals [v0,v1,v2]
   VPath i v         -> char '<' <> text (show i) <> char '>' <+> showVal v
-  VAppFormula v phi -> showVal1 v <+> char '@' <+> text (show phi)
+  VAppFormula v phi -> showVal1 v <+> char '@' <+> showFormula phi
   VComp v0 v1 vs    -> text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)
   VTrans v0 v1      -> text "trans" <+> showVals [v0,v1]
 showVal1 v = case v of

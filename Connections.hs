@@ -230,9 +230,10 @@ propInvFormulaIncomp phi b = incomparables (invFormula phi b)
 
 -- | Nominal
 gensym :: [Name] -> Name
-gensym [] = Name "?0"
-gensym xs = Name ('?' : show (max+1))
-  where max = maximum [ read x | Name ('?':x) <- xs ]
+gensym xs = Name ('?' : show max)
+  where max = maximum' [ read x | Name ('?':x) <- xs ]
+        maximum' [] = 0
+        maximum' xs = maximum xs + 1
 
 gensyms :: [Name] -> [Name]
 gensyms d = let x = gensym d in x : gensyms (x : d)

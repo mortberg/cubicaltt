@@ -23,7 +23,7 @@ NoWhere.  ExpWhere ::= Exp ;
 
 Let.        Exp  ::= "let" "{" [Decl] "}" "in" Exp ;
 Lam.        Exp  ::= "\\" [PTele] "->" Exp ;
-Path.       Exp  ::= "<" AIdent ">" Exp ;
+Path.       Exp  ::= "<" [AIdent] ">" Exp ;
 Fun.        Exp1 ::= Exp2 "->" Exp1 ;
 Pi.         Exp1 ::= [PTele] "->" Exp1 ;
 Sigma.      Exp1 ::= [PTele] "*" Exp1 ;
@@ -74,4 +74,4 @@ PTele.    PTele ::= "(" Exp ":" Exp ")" ;
 terminator nonempty PTele "" ;
 
 position token AIdent ((letter|'_')(letter|digit|'\''|'_')*) ;
-terminator AIdent "" ;
+separator AIdent "" ;

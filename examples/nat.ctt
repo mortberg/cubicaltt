@@ -114,7 +114,7 @@ Square (A : U) (a0 a1 : A) (u : Id A a0 a1)
   = IdP (<i> (IdP (<j> A) (u @ i) (v @ i))) r0 r1
 
 testSquare (A : U) (a : A) (p : Id A a a) : Square A a a p a a p p p =
-  <i> <j> comp A a
+  <i j> comp A a
      [(i = 0) -> <k> p @ (j \/ - k),
       (i = 1) -> <k> p @ (j /\ k),
       (j = 0) -> <k> p @ (i \/ - k),

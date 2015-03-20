@@ -150,6 +150,13 @@ lam (a,t) e = CTT.Lam a <$> resolveExp t <*> local (insertVar a) e
 lams :: [(Ident,Exp)] -> Resolver Ter -> Resolver Ter
 lams = flip $ foldr lam
 
+path :: AIdent -> Resolver Ter -> Resolver Ter
+path i e = CTT.Path (C.Name (unAIdent i)) <$> local (insertName i) e
+
+paths :: [AIdent] -> Resolver Ter -> Resolver Ter
+paths [] _ = throwError "Empty path lambda"
+paths xs e = foldr path e xs
+
 bind :: (Ter -> Ter) -> (Ident,Exp) -> Resolver Ter -> Resolver Ter
 bind f (x,t) e = f <$> lam (x,t) e
 
@@ -173,7 +180,7 @@ resolveExp e = case e of
   U             -> return CTT.U
   Var x         -> resolveVar x
   App t s       -> resolveApps x xs
-      where (x,xs) = unApps t [s]
+    where (x,xs) = unApps t [s]
   Sigma ptele b -> do
     tele <- flattenPTele ptele
     binds CTT.Sigma tele (resolveExp b)
@@ -190,8 +197,7 @@ resolveExp e = case e of
   Let decls e   -> do
     (rdecls,names) <- resolveDecls decls
     CTT.mkWheres rdecls <$> local (insertIdents names) (resolveExp e)
-  Path i e      ->
-    CTT.Path (C.Name (unAIdent i)) <$> local (insertName i) (resolveExp e)
+  Path is e     -> paths is (resolveExp e)
   AppFormula e phi -> CTT.AppFormula <$> resolveExp e <*> resolveFormula phi
 
 resolveWhere :: ExpWhere -> Resolver Ter

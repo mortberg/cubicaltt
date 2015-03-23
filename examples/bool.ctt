@@ -1,0 +1,50 @@
+module bool where
+
+import prelude
+
+data bool = true | false
+
+neg : bool -> bool = split
+  true  -> false
+  false -> true
+
+negK : (b : bool) -> Id bool (neg (neg b)) b = split
+  true -> refl bool true
+  false -> refl bool false
+
+negEq : Id U bool bool =
+  <i> glue bool [ (i = 0) -> (bool,(neg,(neg,(negK,negK)))) ]
+
+test : bool = transport negEq true
+
+data F2 = zero | one
+
+f2ToBool : F2 -> bool = split
+  zero -> false
+  one -> true
+
+boolToF2 : bool -> F2 = split
+  false -> zero
+  true -> one
+
+f2ToBoolK : (x : F2) -> Id F2 (boolToF2 (f2ToBool x)) x = split
+  zero -> refl F2 zero
+  one -> refl F2 one
+
+boolToF2K : (b : bool) -> Id bool (f2ToBool (boolToF2 b)) b = split
+  false -> refl bool false
+  true -> refl bool true
+
+boolEqF2 : Id U bool F2 =
+ -- <i> glue F2 [ (i = 0) -> (bool,(boolToF2,(f2ToBool,(f2ToBoolK,boolToF2K))))]
+  isoId bool F2 boolToF2 f2ToBool f2ToBoolK boolToF2K
+  
+negF2 : F2 -> F2 = subst U (\(X : U) -> (X -> X)) bool F2 boolEqF2 neg
+
+test : IdP boolEqF2 true one = <i> glueElem one [ (i = 0) -> true ]
+test1 : IdP boolEqF2 true one = lemTest bool F2 boolEqF2 true
+
+F2EqBool : Id U F2 bool = inv U bool F2 boolEqF2
+
+negBool : bool -> bool = subst U (\(X : U) -> (X -> X)) F2 bool F2EqBool negF2
+

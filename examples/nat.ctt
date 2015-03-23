@@ -32,17 +32,6 @@ reverse (A : U) : list A -> list A = split
   nil -> nil
   cons x xs -> append A (reverse A xs) (cons x nil)
 
-Id (A : U) (a0 a1 : A) : U = IdP (<i> A) a0 a1
-
-refl (A : U) (a : A) : Id A a a = <i> a
-
-mapOnPath (A B : U) (f : A -> B) (a b : A)
-          (p : Id A a b) : Id B (f a) (f b) = <i> f (p @ i)
-
-funExt (A : U) (B : A -> U) (f g : (x : A) -> B x)
-       (p : (x : A) -> Id (B x) (f x) (g x)) :
-       Id ((y : A) -> B y) f g = <i> \(a : A) -> (p a) @ i
-
 idnat : nat -> nat = split
   zero -> zero
   suc n -> suc (idnat n)
@@ -52,25 +41,6 @@ test : Id (nat -> nat) idnat (id nat) = funExt nat (\(_ : nat) -> nat) idnat (id
   rem : (n : nat) -> Id nat (idnat n) n = split
     zero -> refl nat zero
     suc n -> mapOnPath nat nat (\(x : nat) -> suc x) (idnat n) n (rem n)
-
-subst (A : U) (P : A -> U) (a b : A) (p : Id A a b) (e : P a) : P b =
-  transport (mapOnPath A U P a b p) e
-
-substRefl (A : U) (P : A -> U) (a : A) (e : P a) : Id (P a) (subst A P a a (refl A a) e) e =
-  refl (P a) e
-
-singl (A : U) (a : A) : U = (x : A) * Id A a x
-
-contrSingl (A : U) (a b : A) (p : Id A a b) :
-  Id (singl A a) (a,refl A a) (b,p) = <i> (p @ i,<j> p @ i /\ j)
-
-J (A : U) (a : A) (C : (x : A) -> Id A a x -> U)
-  (d : C a (refl A a)) (x : A) (p : Id A a x) : C x p =
-    subst (singl A a) T (a, refl A a) (x, p) (contrSingl A a x p) d
-      where T (z : singl A a) : U = C (z.1) (z.2)
-
-defEqJ (A : U) (a : A) (C : (x : A) -> Id A a x -> U) (d : C a (refl A a)) :
-       Id (C a (refl A a)) (J A a C d a (refl A a)) d = refl (C a (refl A a)) d
 
 test0 (A : U) (a b : A) (p : Id A a b) : Id A a a = refl A (p @ 0)
 test1 (A : U) (a b : A) (p : Id A a b) : Id A b b = refl A (p @ 1)
@@ -85,7 +55,6 @@ kan (A : U) (a b c d : A) (p : Id A a b) (q : Id A a c)
                           (r : Id A b d) : Id A c d =
   <i> comp A (p @ i) [ (i = 0) -> q, (i = 1) -> r ]
 
-inv (A : U) (a b : A) (p : Id A a b) : Id A b a = <i> p @ -i
 
 -- lemSimpl (A : U) (a b c : A) (p : Id A a b) (q q' : Id A b c)
 --          (s : Id (Id A a c) (compId A a b c p q) (compId A a b c p q')) : Id (Id A b c) q q' =

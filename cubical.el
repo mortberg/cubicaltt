@@ -5,7 +5,7 @@
 
 ;; create regex strings
 (setq cubical-keywords-regexp (regexp-opt cubical-keywords 'words))
-(setq cubical-operators-regexp (regexp-opt '(":" "->" "=" "\\" "|" "\\" "*" "_") t))
+(setq cubical-operators-regexp (regexp-opt '(":" "->" "=" "\\" "|" "\\" "*" "_" "<" ">") t))
 (setq cubical-special-regexp (regexp-opt cubical-special 'words))
 (setq cubical-def-regexp "^[[:word:]]+")
 

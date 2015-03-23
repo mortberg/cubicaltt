@@ -12,7 +12,7 @@ import Control.Monad.Trans
 import Control.Monad.Trans.Reader
 import Control.Monad.Trans.Error hiding (throwError)
 import Control.Monad.Error (throwError)
-import Control.Monad (when)
+import Control.Monad
 import Data.Functor.Identity
 import Data.List (nub)
 import Data.Map (Map,(!))
@@ -173,6 +173,17 @@ resolveApps IdP (x:y:z:xs) = do
 resolveApps Comp (u:v:ts:xs) = do
   let c = CTT.Comp <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
   CTT.mkApps <$> c <*> mapM resolveExp xs
+resolveApps Glue (u:ts:xs) = do
+  rs <- resolveSystem ts
+  let isIso (CTT.Pair _ (CTT.Pair _ (CTT.Pair _ (CTT.Pair _ _)))) = True
+      isIso _ = False
+  unless (all isIso $ Map.elems rs)
+    (throwError $ "Not a system of isomorphisms: " ++ show rs)
+  let c = CTT.Glue <$> resolveExp u <*> pure rs
+  CTT.mkApps <$> c <*> mapM resolveExp xs
+resolveApps GlueElem (u:ts:xs) = do
+  let c = CTT.GlueElem <$> resolveExp u <*> resolveSystem ts
+  CTT.mkApps <$> c <*> mapM resolveExp xs
 resolveApps x xs = CTT.mkApps <$> resolveExp x <*> mapM resolveExp xs
 
 resolveExp :: Exp -> Resolver Ter
@@ -193,7 +204,7 @@ resolveExp e = case e of
     lams tele (resolveExp t)
   Fst t         -> CTT.Fst <$> resolveExp t
   Snd t         -> CTT.Snd <$> resolveExp t
-  Pair t0 t1    -> CTT.SPair <$> resolveExp t0 <*> resolveExp t1
+  Pair t0 t1    -> CTT.Pair <$> resolveExp t0 <*> resolveExp t1
   Let decls e   -> do
     (rdecls,names) <- resolveDecls decls
     CTT.mkWheres rdecls <$> local (insertIdents names) (resolveExp e)

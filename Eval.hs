@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 module Eval where
 
 import Data.List
@@ -241,7 +242,7 @@ trans i v0 v1 = case (v0,v1) of
   (VPi{},_) -> VTrans (VPath i v0) v1
   (Ter (Sum _ _ nass) env,VCon n us) -> case lookup n nass of
     Just as -> VCon n $ transps i as env us
-    Nothing -> error $ "comp: missing constructor in labelled sum " ++ n
+    Nothing -> error $ "comp: missing constructor in labelled sum " ++ n ++ " v0 = " ++ show v0
   _ | isNeutral v0 || isNeutral v1 -> VTrans (VPath i v0) v1
   (VGlue a ts,_) -> transGlue i a ts v1
   _ | otherwise -> error "trans not implemented"
@@ -519,14 +520,22 @@ instance Convertible Val where
     (u,VTrans p v) | isIndep k j (p @@ j) -> conv k u v
     (VTrans p u,VTrans p' u') -> conv k p p' && conv k u u'
     (VAppFormula u x,VAppFormula u' x') -> conv k (u,x) (u',x')
-    -- VComp
+    (VComp a u ts,v)  | isIndep k j (Map.map (@@ j) ts) -> conv k u v
+    (VComp a u ts,v') | not (Map.null indep) -> conv k (VComp a u ts') v'
+      where (ts',indep) = Map.partition (\t -> isIndep k j (t @@ j)) ts
+    (v,VComp a u ts)  | isIndep k j (Map.map (@@ j) ts) -> conv k u v
+    (v',VComp a u ts) | not (Map.null indep) -> conv k (VComp a u ts') v'
+      where (ts',indep) = Map.partition (\t -> isIndep k j (t @@ j)) ts
+    (VComp a u ts,VComp a' u' ts') -> conv k (a,u,ts) (a',u',ts')
+    (VGlue v hisos,VGlue v' hisos') -> conv k (v,hisos) (v',hisos')
+    (VGlueElem u us,VGlueElem u' us') -> conv k (u,us) (u',us')
     _                         -> False
 
 instance Convertible Env where
-  conv k e e' =
-    conv k (valAndFormulaOfEnv e) (valAndFormulaOfEnv e')
+  conv k e e' = conv k (valAndFormulaOfEnv e) (valAndFormulaOfEnv e')
 
-instance Convertible () where conv _ _ _ = True
+instance Convertible () where
+  conv _ _ _ = True
 
 instance (Convertible a, Convertible b) => Convertible (a, b) where
   conv k (u, v) (u', v') = conv k u u' && conv k v v'
@@ -542,6 +551,10 @@ instance (Convertible a,Convertible b,Convertible c,Convertible d)
 instance Convertible a => Convertible [a] where
   conv k us us' = length us == length us' &&
                   and [conv k u u' | (u,u') <- zip us us']
+
+instance Convertible a => Convertible (System a) where
+  conv k ts ts' = Map.keys ts == Map.keys ts' &&
+                  and (Map.elems (Map.intersectionWith (conv k) ts ts'))
 
 instance Convertible Formula where
   conv _ phi psi = sort (invFormula phi 1) == sort (invFormula psi 1)

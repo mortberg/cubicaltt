@@ -174,13 +174,80 @@ check a t = case (a,t) of
     let u0 = eval (Sub rho (i,Dir 0)) e
         u1 = eval (Sub rho (i,Dir 1)) e
     unless (conv k a0 u0 && conv k a1 u1) $
-      throwError $ "path endpoints don't match " ++ show e ++ " \nu0 = " ++ show u0 ++ " \nu1 = " ++ show u1 ++ " \na0 = " ++ show a0 ++ " \na1 = " ++ show a1 ++ " \np = " ++ show p
+      throwError $ "path endpoints don't match " ++ show e ++
+                   " \nu0 = " ++ show u0 ++ " \nu1 = " ++ show u1 ++
+                   " \na0 = " ++ show a0 ++ " \na1 = " ++ show a1 ++
+                   " \np = " ++ show p
+  (VU,Glue a ts) -> do
+    check VU a
+    rho <- asks env
+    checkGlue (eval rho a) ts
+  (VGlue va ts,GlueElem u us) -> do
+    check va u
+    rho <- asks env
+    let vu = eval rho u
+    checkGlueElem vu ts us
   _ -> do
     v <- infer t
     k <- index <$> ask
     unless (conv k v a) $
       throwError $ "check conv: " ++ show v ++ " /= " ++ show a
 
+checkGlueElem :: Val -> System Val -> System Ter -> Typing ()
+checkGlueElem vu ts us = do
+  unless (Map.keys ts == Map.keys us)
+    (throwError ("Keys don't match in " ++ show ts ++ " and " ++ show us))
+  rho <- asks env
+  k <- asks index
+  sequence_ $ Map.elems $ Map.intersectionWithKey
+    (\alpha vt u -> check (hisoDom vt) u) ts us
+    
+  let vus = evalSystem rho us
+  sequence_ $ Map.elems $ Map.intersectionWithKey
+    (\alpha vt vAlpha -> do
+       unless (conv k (app (hisoFun vt) vAlpha) (vu `face` alpha))
+          (throwError $ "Image of glueElem component " ++ show vAlpha ++
+                        " doesn't match " ++ show vu)) ts vus
+  unless (isCompSystem k vus)
+    (throwError $ "Incompatible system " ++ show vus)
+
+checkGlue :: Val -> System Ter -> Typing ()
+checkGlue va ts = do
+  sequence_ $ Map.elems $
+    Map.mapWithKey (\alpha tAlpha -> checkIso (va `face` alpha) tAlpha) ts
+  k <- asks index
+  rho <- asks env
+  unless (isCompSystem k (evalSystem rho ts))
+    (throwError ("Incompatible system " ++ show ts))
+
+-- An hiso for a type a is a five-tuple: (b,f,g,r,s)   where
+--  b : U
+--  f : b -> a
+--  g : a -> b
+--  s : forall (y : a), f (g y) = y
+--  t : forall (x : b), g (f x) = x
+checkIso :: Val -> Ter -> Typing ()
+checkIso va (Pair b (Pair f (Pair g (Pair s t)))) = do
+  check VU b
+  rho <- asks env
+  let vb = eval rho b
+  check (mkFun vb va) f
+  check (mkFun va vb) g
+  let vf = eval rho f
+      vg = eval rho g
+  check (mkSection va vb vf vg) s
+  check (mkSection vb va vg vf) t
+
+mkFun :: Val -> Val -> Val
+mkFun va vb = VPi va (eval rho (Lam "_" (Var "a") (Var "b")))
+  where rho = Upd (Upd Empty ("a",va)) ("b",vb)
+
+mkSection :: Val -> Val -> Val -> Val -> Val
+mkSection va _ vf vg =
+  VPi va (eval rho (Lam "y" a (IdP (Path (Name "_") a) (App f (App g y)) y)))
+  where [a,y,f,g] = map Var ["a","y","f","g"]
+        rho = Upd (Upd (Upd Empty ("a",va)) ("f",vf)) ("g",vg)
+  
 checkBranch :: (Tele,Env) -> Val -> Branch -> Typing ()
 checkBranch (xas,nu) f (c,(xs,e)) = do
   k   <- asks index

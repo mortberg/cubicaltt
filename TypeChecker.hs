@@ -35,7 +35,7 @@ silentEnv  = TEnv 0 Empty False
 
 addTypeVal :: (Ident,Val) -> TEnv -> TEnv
 addTypeVal (x,a) (TEnv k rho v) =
-  TEnv (k+1) (Pair rho (x,mkVar k a)) v
+  TEnv (k+1) (Upd rho (x,mkVar k a)) v
 
 addSub :: (Name,Formula) -> TEnv -> TEnv
 addSub iphi (TEnv k rho v) = TEnv k (Sub rho iphi) v
@@ -45,7 +45,7 @@ addType (x,a) tenv@(TEnv _ rho _) = return $ addTypeVal (x,eval rho a) tenv
 
 addBranch :: [(Ident,Val)] -> (Tele,Env) -> TEnv -> TEnv
 addBranch nvs (tele,env) (TEnv k rho v) =
-  TEnv (k + length nvs) (pairs rho nvs) v
+  TEnv (k + length nvs) (upds rho nvs) v
 
 addDecls :: [Decl] -> TEnv -> TEnv
 addDecls d (TEnv k rho v) = TEnv k (Def d rho) v
@@ -152,7 +152,7 @@ check a t = case (a,t) of
     unless (conv k a (eval rho a')) $ throwError "check: lam types don't match"
     var <- getFresh a
     local (addTypeVal (x,a)) $ check (app f var) t
-  (VSigma a f, SPair t1 t2) -> do
+  (VSigma a f, Pair t1 t2) -> do
     check a t1
     e <- asks env
     let v = eval e t1
@@ -191,7 +191,7 @@ checkBranch (xas,nu) f (c,(xs,e)) = do
 mkVars k [] _ = []
 mkVars k ((x,a):xas) nu =
   let w = mkVar k (eval nu a)
-  in w : mkVars (k+1) xas (Pair nu (x,w))
+  in w : mkVars (k+1) xas (Upd nu (x,w))
 
 checkFormula :: Formula -> Typing ()
 checkFormula phi = do
@@ -292,7 +292,7 @@ checks ((x,a):xas,nu) (e:es) = do
   check v e
   rho <- asks env
   let v' = eval rho e
-  checks (xas,Pair nu (x,v')) es
+  checks (xas,Upd nu (x,v')) es
 checks _              _      = throwError "checks"
 
 -- Not used since we have U : U

@@ -4,14 +4,12 @@ import Data.List
 import Data.Maybe (fromMaybe)
 import Data.Map (Map,(!))
 import qualified Data.Map as Map
--- import Data.Set (Set)
--- import qualified Data.Set as Set
 
 import Connections
 import CTT
 
 look :: String -> Env -> Val
-look x (Pair rho (y,u)) | x == y    = u
+look x (Upd rho (y,u)) | x == y    = u
                         | otherwise = look x rho
 look x r@(Def rho r1) = case lookup x rho of
   Just (_,t) -> eval r t
@@ -19,7 +17,7 @@ look x r@(Def rho r1) = case lookup x rho of
 look x (Sub rho _) = look x rho
 
 lookType :: String -> Env -> Val
-lookType x (Pair rho (y,VVar _ a)) | x == y    = a
+lookType x (Upd rho (y,VVar _ a)) | x == y    = a
                                    | otherwise = lookType x rho
 lookType x r@(Def rho r1) = case lookup x rho of
   Just (a,_) -> eval r a
@@ -27,7 +25,7 @@ lookType x r@(Def rho r1) = case lookup x rho of
 lookType x (Sub rho _) = lookType x rho
 
 lookName :: Name -> Env -> Formula
-lookName i (Pair rho _) = lookName i rho
+lookName i (Upd rho _) = lookName i rho
 lookName i (Def _ rho)  = lookName i rho
 lookName i (Sub rho (j,phi)) | i == j    = phi
                              | otherwise = lookName i rho
@@ -37,7 +35,7 @@ lookName i (Sub rho (j,phi)) | i == j    = phi
 
 instance Nominal Env where
   support Empty             = []
-  support (Pair rho (_,u))  = support u `union` support rho
+  support (Upd rho (_,u))   = support u `union` support rho
   support (Sub rho (_,phi)) = support phi `union` support rho
   support (Def _ rho)       = support rho
 
@@ -53,7 +51,7 @@ instance Nominal Val where
   support (VPath i v)                   = i `delete` support v
   support (VTrans u v)                  = support (u,v)
   support (VSigma u v)                  = support (u,v)
-  support (VSPair u v)                  = support (u,v)
+  support (VPair u v)                   = support (u,v)
   support (VFst u)                      = support u
   support (VSnd u)                      = support u
   support (VCon _ vs)                   = support vs
@@ -61,6 +59,8 @@ instance Nominal Val where
   support (VApp u v)                    = support (u,v)
   support (VAppFormula u phi)           = support (u,phi)
   support (VSplit u v)                  = support (u,v)
+  support (VGlue a ts)                  = support (a,ts)
+  support (VGlueElem a ts)              = support (a,ts)
 
   act u (i, phi) =
     let acti :: Nominal a => a -> a
@@ -77,7 +77,7 @@ instance Nominal Val where
               where k = fresh (v, Atom i, phi)
          VTrans u v -> transLine (acti u) (acti v)
          VSigma a f -> VSigma (acti a) (acti f)
-         VSPair u v -> VSPair (acti u) (acti v)
+         VPair u v -> VPair (acti u) (acti v)
          VFst u     -> VFst (acti u)
          VSnd u     -> VSnd (acti u)
          VCon c vs  -> VCon c (acti vs)
@@ -85,6 +85,8 @@ instance Nominal Val where
          VAppFormula u psi -> acti u @@ acti psi
          VApp u v   -> app (acti u) (acti v)
          VSplit u v -> app (acti u) (acti v)
+         VGlue a ts -> glue (acti a) (acti ts)
+         VGlueElem a ts -> glueElem (acti a) (acti ts)
 
   -- This increases efficiency as it won't trigger computation.
   swap u ij@ (i,j) =
@@ -99,7 +101,7 @@ instance Nominal Val where
          VPath k v -> VPath (swapName k ij) (sw v)
          VTrans u v -> VTrans (sw u) (sw v)
          VSigma a f -> VSigma (sw a) (sw f)
-         VSPair u v -> VSPair (sw u) (sw v)
+         VPair u v -> VPair (sw u) (sw v)
          VFst u     -> VFst (sw u)
          VSnd u     -> VSnd (sw u)
          VCon c vs  -> VCon c (sw vs)
@@ -107,7 +109,8 @@ instance Nominal Val where
          VAppFormula u psi -> VAppFormula (sw u) (sw psi)
          VApp u v          -> VApp (sw u) (sw v)
          VSplit u v        -> VSplit (sw u) (sw v)
-
+         VGlue a ts        -> VGlue (sw a) (sw ts)
+         VGlueElem a ts    -> VGlueElem (sw a) (sw ts)
 -----------------------------------------------------------------------
 -- The evaluator
 
@@ -119,7 +122,7 @@ eval rho v = case v of
   Pi t@(Lam _ a _)    -> VPi (eval rho a) (eval rho t)
   Lam{}               -> Ter v rho
   Sigma t@(Lam _ a _) -> VSigma (eval rho a) (eval rho t)
-  SPair a b           -> VSPair (eval rho a) (eval rho b)
+  Pair a b            -> VPair (eval rho a) (eval rho b)
   Fst a               -> fstVal (eval rho a)
   Snd a               -> sndVal (eval rho a)
   Where t decls       -> eval (Def decls rho) t
@@ -134,6 +137,8 @@ eval rho v = case v of
   Trans u v        -> transLine (eval rho u) (eval rho v)
   AppFormula e phi -> (eval rho e) @@ (evalFormula rho phi)
   Comp a t0 ts     -> compLine (eval rho a) (eval rho t0) (evalSystem rho ts)
+  Glue a ts        -> glue (eval rho a) (evalSystem rho ts)
+  GlueElem a ts    -> glueElem (eval rho a) (evalSystem rho ts)
 
 evalFormula :: Env -> Formula -> Formula
 evalFormula rho phi = case phi of
@@ -156,13 +161,12 @@ evalSystem rho ts =
 
 -- TODO: Write using case-of
 app :: Val -> Val -> Val
-app (Ter (Lam x _ t) e) u                  = eval (Pair e (x,u)) t
+app (Ter (Lam x _ t) e) u                  = eval (Upd e (x,u)) t
 app (Ter (Split _ _ nvs) e) (VCon name us) = case lookup name nvs of
-  Just (xs,t) -> eval (pairs e (zip xs us)) t
+  Just (xs,t) -> eval (upds e (zip xs us)) t
   Nothing     -> error $ "app: Split with insufficient arguments; " ++
                          " missing case for " ++ name
 app u@(Ter (Split _ _ _) _) v | isNeutral v = VSplit u v
-
 app kan@(VTrans (VPath i (VPi a f)) li0) ui1 =
     let j   = fresh (kan,ui1)
         (aj,fj) = (a,f) `swap` (i,j)
@@ -178,9 +182,9 @@ app r s | isNeutral r = VApp r s
 app _ _ = error "app"
 
 fstVal, sndVal :: Val -> Val
-fstVal (VSPair a b)    = a
+fstVal (VPair a b)    = a
 fstVal u | isNeutral u = VFst u
-sndVal (VSPair a b)    = b
+sndVal (VPair a b)    = b
 sndVal u | isNeutral u = VSnd u
 
 -- infer the type of a neutral value
@@ -204,7 +208,7 @@ inferType v = case v of
     VIdP a _ _ -> a @@ phi
     ty         -> error $ "inferType: expected IdP type for " ++ show v
                   ++ ", got " ++ show ty
-  _ -> error "inferType: not neutral " ++ show v
+  _ -> error $ "inferType: not neutral " ++ show v
 
 (@@) :: ToFormula a => Val -> a -> Val
 (VPath i u) @@ phi = u `act` (i,toFormula phi)
@@ -233,13 +237,14 @@ trans i v0 v1 = case (v0,v1) of
         fill_u1 = transFill i a u1
         ui1     = trans i a u1
         comp_u2 = trans i (app f fill_u1) u2
-    in VSPair ui1 comp_u2
+    in VPair ui1 comp_u2
   (VPi{},_) -> VTrans (VPath i v0) v1
   (Ter (Sum _ _ nass) env,VCon n us) -> case lookup n nass of
     Just as -> VCon n $ transps i as env us
     Nothing -> error $ "comp: missing constructor in labelled sum " ++ n
   _ | isNeutral v0 || isNeutral v1 -> VTrans (VPath i v0) v1
-    | otherwise -> error "trans not implemented"
+  (VGlue a ts,_) -> transGlue i a ts v1
+  _ | otherwise -> error "trans not implemented"
 transNeg i a u = trans i (a `sym` i) u
 
 transFill, transFillNeg :: Name -> Val -> Val -> Val
@@ -252,9 +257,73 @@ transps i []         _ []     = []
 transps i ((x,a):as) e (u:us) =
   let v   = transFill i (eval e a) u
       vi1 = trans i (eval e a) u
-      vs  = transps i as (Pair e (x,v)) us
+      vs  = transps i as (Upd e (x,v)) us
   in vi1 : vs
 transps _ _ _ _ = error "transps: different lengths of types and values"
+
+transGlue :: Name -> Val -> System Val -> Val -> Val
+transGlue i b hisos wi0 = glueElem vi1'' usi1
+  where vi0  = unGlue (hisos `face` (i ~> 0)) wi0 -- in b(i0)
+
+        v    = transFill i b vi0           -- in b
+        vi1  = trans i b vi0           -- in b(i1)
+
+        hisosI1 = hisos `face` (i ~> 1)
+        hisos'' =
+          Map.filterWithKey (\alpha _ -> alpha `Map.notMember` hisos) hisosI1
+
+        -- set of elements in hisos independent of i
+        hisos'  = Map.filterWithKey (\alpha _ -> i `Map.notMember` alpha) hisos
+
+        us'    = Map.mapWithKey (\gamma _ ->
+                  transFill i (b `face` gamma) (wi0 `face` gamma))
+                 hisos'
+        usi1'  = Map.mapWithKey (\gamma _ ->
+                  trans i (b `face` gamma) (wi0 `face` gamma))
+                 hisos'
+
+        ls'    = Map.mapWithKey (\gamma isoG ->
+                  pathComp i (hisoDom isoG) (v `face` gamma)
+                           ((hisoFun isoG) `app` (us' ! gamma)) Map.empty)
+                 hisos'
+        bi1   = b `face` (i ~> 1)
+        vi1'  = compLine bi1 vi1 ls'
+
+        uls''   = Map.mapWithKey (\gamma isoG ->
+                     gradLemma (bi1 `face` gamma) isoG (usi1' `face` gamma)
+                               (vi1' `face` gamma))
+                   hisos''
+
+        vi1''   = compLine bi1 vi1' (Map.map snd uls'')
+
+        usi1    = Map.mapWithKey (\gamma _ ->
+                    if gamma `Map.member` usi1'
+                       then usi1' ! gamma
+                       else fst (uls'' ! gamma))
+                  hisosI1
+
+-- Grad Lemma, takes a iso an L-system ts a value v s.t. sigma us = border v
+-- outputs u s.t. border u = us and an L-path between v and sigma u
+-- an theta is a L path if L-border theta is constant
+gradLemma :: Val -> Val -> System Val -> Val -> (Val, Val)
+gradLemma a hiso@(VPair b (VPair f (VPair g (VPair s t)))) us v = (u, VPath i theta'')
+  where i:j:_   = freshs (a,hiso,us,v)
+        us'     = Map.mapWithKey (\alpha uAlpha ->
+                                   app (t `face` alpha) uAlpha @@ i) us
+        theta   = fill i a (app g v) us'
+        u       = comp i a (app g v) us'
+        ws      = insertSystem (i ~> 1) (app t u @@ j) $
+                  Map.mapWithKey
+                    (\alpha uAlpha ->
+                      app (t `face` alpha) uAlpha @@ (Atom i :/\: Atom j)) us
+        theta'  = compNeg j a theta ws
+        xs      = insertSystem (i ~> 0) (app s v @@ j) $
+                  insertSystem (i ~> 1) (app s (app f u) @@ j) $
+                  Map.mapWithKey
+                    (\alpha uAlpha ->
+                      app (s `face` alpha) (app (f `face` alpha) uAlpha) @@ j) us
+        theta'' = comp j b (app f theta') xs
+
 
 -----------------------------------------------------------
 -- Composition
@@ -287,11 +356,9 @@ comps i []         _ []         = []
 comps i ((x,a):as) e ((ts,u):tsus) =
   let v   = genFill i (eval e a) u ts
       vi1 = genComp i (eval e a) u ts
-      vs  = comps i as (Pair e (x,v)) tsus
+      vs  = comps i as (Upd e (x,v)) tsus
   in vi1 : vs
 comps _ _ _ _ = error "comps: different lengths of types and values"
-
--- compNeg a u ts = comp a u (ts `sym` i)
 
 -- i is independent of a and u
 comp :: Name -> Val -> Val -> System Val -> Val
@@ -302,7 +369,7 @@ comp i a u ts | not (Map.null indep)   = comp i a u ts'
 comp i a u ts = let j = fresh (Atom i,a,u,ts) -- maybe only in vid??
                 in case a of
   VIdP p _ _ -> VPath j $ comp i (p @@ j) (u @@ j) (Map.map (@@ j) ts)
-  VSigma a f -> VSPair ui1 comp_u2
+  VSigma a f -> VPair ui1 comp_u2
     where (t1s, t2s) = (Map.map fstVal ts, Map.map sndVal ts)
           (u1,  u2)  = (fstVal u, sndVal u)
           fill_u1    = fill i a u1 t1s
@@ -312,6 +379,7 @@ comp i a u ts = let j = fresh (Atom i,a,u,ts) -- maybe only in vid??
   VU -> VComp VU u (Map.map (VPath i) ts)
   _ | isNeutral a || isNeutralSystem ts || isNeutral u ->
     VComp a u (Map.map (VPath i) ts)
+  VGlue b hisos -> compGlue i b hisos u ts
   Ter (Sum _ _ nass) env -> case u of
     VCon n us -> case lookup n nass of
       Just as -> VCon n $ comps i as env tsus
@@ -319,20 +387,88 @@ comp i a u ts = let j = fresh (Atom i,a,u,ts) -- maybe only in vid??
       Nothing -> error $ "comp: missing constructor in labelled sum " ++ n
     _ -> error "comp ter sum"
 
+compNeg :: Name -> Val -> Val -> System Val -> Val
+compNeg i a u ts = comp i a u (ts `sym` i)
+
+unGlue :: System Val -> Val -> Val
+unGlue hisos w
+    | Map.null hisos         = w
+    | eps `Map.member` hisos = app (hisoFun (hisos ! eps)) w
+    | otherwise              = case w of
+       VGlueElem v us   -> v
+--       KanUElem _ v    -> app g v
+       _ -> error $ "unGlue: " ++ show w ++ " should be neutral!"
+
+compGlue :: Name -> Val -> System Val -> Val -> System Val -> Val
+compGlue i b hisos wi0 ws = glueElem vi1' usi1'
+  where vs   = Map.mapWithKey
+                 (\alpha wAlpha -> unGlue (hisos `face` alpha) wAlpha) ws
+        vi0  = unGlue hisos wi0 -- in b
+
+        v    = fill i b vi0 vs           -- in b
+        vi1  = comp i b vi0 vs           -- in b
+
+        us'    = Map.mapWithKey (\gamma _ ->
+                   fill i (b `face` gamma) (wi0 `face` gamma) (ws `face` gamma))
+                 hisos
+        usi1'  = Map.mapWithKey (\gamma _ ->
+                   comp i (b `face` gamma) (wi0 `face` gamma) (ws `face` gamma))
+                 hisos
+
+        ls'    = Map.mapWithKey (\gamma isoG ->
+                  pathComp i (hisoDom isoG) (v `face` gamma)
+                             (hisoFun isoG `app` (us' ! gamma)) (vs `face` gamma))
+                 hisos
+
+        vi1'  = compLine b vi1 ls'
+
+-- assumes u and u' : A are solutions of us + (i0 -> u(i0))
+-- The output is an L-path in A(i1) between u(i1) and u'(i1)
+pathComp :: Name -> Val -> Val -> Val -> System Val -> Val
+pathComp i a u u' us = VPath j $ genComp i a (u `face` (i ~> 0)) us'
+  where j   = fresh (Atom i, a, us, u, u')
+        us' = insertsSystem [(j ~> 0, u), (j ~> 1, u')] us
+
+
+
 -- fills :: Name -> [(Ident,Ter)] -> Env -> [(System Val,Val)] -> [Val]
 -- fills i []         _ []         = []
 -- fills i ((x,a):as) e ((ts,u):tsus) =
 --   let v  = genFill i (eval e a) ts u
---       vs = fills i as (Pair e (x,v)) tsus
+--       vs = fills i as (Upd e (x,v)) tsus
 --   in v : vs
 -- fills _ _ _ _ = error "fills: different lengths of types and values"
 
+-------------------------------------------------------------------------------
+-- | Glue
+-- 
+-- An hiso for a type a is a five-tuple: (b,f,g,r,s)   where
+--  b : U
+--  f : b -> a
+--  g : a -> b
+--  s : forall (y : a), f (g y) = y
+--  t : forall (x : b), g (f x) = x
+
+hisoDom :: Val -> Val
+hisoDom (VPair b _) = b
+hisoDom x           = error $ "HisoDom: Not an hiso: " ++ show x
+
+hisoFun :: Val -> Val
+hisoFun (VPair _ (VPair f _)) = f
+hisoFun x                     = error $ "HisoFun: Not an hiso: " ++ show x
+
+glue :: Val -> System Val -> Val
+glue b ts | Map.null ts         = b
+          | eps `Map.member` ts = hisoDom (ts ! eps)
+          | otherwise           = VGlue b ts
+
+glueElem :: Val -> System Val -> Val
+glueElem v us | Map.null us         = v
+              | eps `Map.member` us = us ! eps
+              | otherwise           = VGlueElem v us
 
 -------------------------------------------------------------------------------
 -- | Conversion
-
-isNeutralSystem :: System Val -> Bool
-isNeutralSystem = any isNeutral . Map.elems
 
 class Convertible a where
   conv :: Int -> a -> a -> Bool
@@ -350,13 +486,13 @@ instance Convertible Val where
              | otherwise = let j = fresh (u,v) in case (u,v) of
     (Ter (Lam x a u) e,Ter (Lam x' a' u') e') ->
       let v = mkVar k (eval e a)
-      in conv (k+1) (eval (Pair e (x,v)) u) (eval (Pair e' (x',v)) u')
+      in conv (k+1) (eval (Upd e (x,v)) u) (eval (Upd e' (x',v)) u')
     (Ter (Lam x a u) e,u') ->
       let v = mkVar k (eval e a)
-      in conv (k+1) (eval (Pair e (x,v)) u) (app u' v)
+      in conv (k+1) (eval (Upd e (x,v)) u) (app u' v)
     (u',Ter (Lam x a u) e) ->
       let v = mkVar k (eval e a)
-      in conv (k+1) (app u' v) (eval (Pair e (x,v)) u)
+      in conv (k+1) (app u' v) (eval (Upd e (x,v)) u)
     (Ter (Split p _ _) e,Ter (Split p' _ _) e') -> (p == p') && conv k e e'
     (Ter (Sum p _ _) e,Ter (Sum p' _ _) e')     -> (p == p') && conv k e e'
     (Ter (Undef p) e,Ter (Undef p') e')         -> (p == p') && conv k e e'
@@ -367,9 +503,9 @@ instance Convertible Val where
       let w = mkVar k u
       in conv k u u' && conv (k+1) (app v w) (app v' w)
     (VCon c us,VCon c' us')   -> (c == c') && conv k us us'
-    (VSPair u v,VSPair u' v') -> conv k u u' && conv k v v'
-    (VSPair u v,w)            -> conv k u (fstVal w) && conv k v (sndVal w)
-    (w,VSPair u v)            -> conv k (fstVal w) u && conv k (sndVal w) v
+    (VPair u v,VPair u' v') -> conv k u u' && conv k v v'
+    (VPair u v,w)            -> conv k u (fstVal w) && conv k v (sndVal w)
+    (w,VPair u v)            -> conv k (fstVal w) u && conv k (sndVal w) v
     (VFst u,VFst u')          -> conv k u u'
     (VSnd u,VSnd u')          -> conv k u u'
     (VApp u v,VApp u' v')     -> conv k u u' && conv k v v'

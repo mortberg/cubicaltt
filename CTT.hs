@@ -3,6 +3,8 @@ module CTT where
 import Control.Applicative
 import Data.List
 import Data.Maybe
+import Data.Map (Map,(!))
+import qualified Data.Map as Map
 import Text.PrettyPrint as PP
 
 import Connections
@@ -50,7 +52,7 @@ data Ter = App Ter Ter
          | U
            -- Sigma types:
          | Sigma Ter
-         | SPair Ter Ter
+         | Pair Ter Ter
          | Fst Ter
          | Snd Ter
            -- constructor c Ms
@@ -69,6 +71,9 @@ data Ter = App Ter Ter
            -- Kan Composition
          | Comp Ter Ter (System Ter)
          | Trans Ter Ter
+           -- Glue
+         | Glue Ter (System Ter)
+         | GlueElem Ter (System Ter)
   deriving Eq
 
 -- For an expression t, returns (u,ts) where u is no application and t = u ts
@@ -93,7 +98,7 @@ data Val = VU
          | Ter Ter Env
          | VPi Val Val
          | VSigma Val Val
-         | VSPair Val Val
+         | VPair Val Val
          | VCon Label [Val]
 
            -- Id values
@@ -101,6 +106,10 @@ data Val = VU
          | VPath Name Val
          | VComp Val Val (System Val)
          | VTrans Val Val
+
+           -- Glue values
+         | VGlue Val (System Val)
+         | VGlueElem Val (System Val)
 
            -- Neutral values:
          | VVar Ident Val
@@ -119,7 +128,33 @@ isNeutral v = case v of
   VSplit _ v      -> isNeutral v
   VApp v _        -> isNeutral v
   VAppFormula v _ -> isNeutral v
+  VComp a u ts    -> isNeutralComp a u ts
+  VTrans a u      -> isNeutralTrans a u -- isNeutral a || isNeutralComp (a @@ 0) u Map.empty
   _               -> False
+
+isNeutralSystem :: System Val -> Bool
+isNeutralSystem = any isNeutral . Map.elems
+
+isNeutralTrans :: Val -> Val -> Bool
+isNeutralTrans (VPath i a) u = foo i a u
+  where foo :: Name -> Val -> Val -> Bool
+        foo i a u | isNeutral a = True
+        foo i (Ter Sum{} _) u   = isNeutral u
+        foo i (VGlue _ as) u    =
+          let shasBeta = (shape as) `face` (i ~> 0)
+          in shasBeta /= Map.empty && eps `Map.notMember` shasBeta && isNeutral u
+isNeutralTrans u _ = isNeutral u
+
+isNeutralComp :: Val -> Val -> System Val -> Bool
+isNeutralComp a _ _ | isNeutral a = True
+isNeutralComp (Ter Sum{} _) u ts  = isNeutral u || isNeutralSystem ts
+isNeutralComp (VGlue _ as) u ts | isNeutral u = True
+                                | otherwise   =
+  let shas = shape as
+      testFace beta _ = let shasBeta = shas `face` beta
+                        in shasBeta /= Map.empty && eps `Map.notMember` shasBeta
+  in isNeutralSystem (Map.filterWithKey testFace ts)
+isNeutralComp _ _ _ = False
 
 mkVar :: Int -> Val -> Val
 mkVar k = VVar ('X' : show k)
@@ -133,29 +168,26 @@ unCon v           = error $ "unCon: not a constructor: " ++ show v
 -- | Environments
 
 data Env = Empty
-         | Pair Env (Ident,Val)
+         | Upd Env (Ident,Val)
          | Def [Decl] Env
          | Sub Env (Name,Formula)
   deriving Eq
 
-pairs :: Env -> [(Ident,Val)] -> Env
-pairs = foldl Pair
-
--- lookupIdent :: Ident -> [(Ident,a)] -> Maybe a
--- lookupIdent x defs = listToMaybe [ t | ((y,l),t) <- defs, x == y ]
+upds :: Env -> [(Ident,Val)] -> Env
+upds = foldl Upd
 
 mapEnv :: (Val -> Val) -> (Formula -> Formula) -> Env -> Env
 mapEnv f g e = case e of
   Empty         -> Empty
-  Pair e (x,v)  -> Pair (mapEnv f g e) (x,f v)
+  Upd e (x,v)   -> Upd (mapEnv f g e) (x,f v)
   Def ts e      -> Def ts (mapEnv f g e)
   Sub e (i,phi) -> Sub (mapEnv f g e) (i,g phi)
 
 valAndFormulaOfEnv :: Env -> ([Val],[Formula])
 valAndFormulaOfEnv rho = case rho of
   Empty -> ([],[])
-  Pair rho (_,u) -> let (us,phis) = valAndFormulaOfEnv rho
-                    in (u:us,phis)
+  Upd rho (_,u) -> let (us,phis) = valAndFormulaOfEnv rho
+                   in (u:us,phis)
   Sub rho (_,phi) -> let (us,phis) = valAndFormulaOfEnv rho
                      in (us,phi:phis)
   Def _ rho -> valAndFormulaOfEnv rho
@@ -168,10 +200,10 @@ formulaOfEnv = snd . valAndFormulaOfEnv
 
 domainEnv :: Env -> [Name]
 domainEnv rho = case rho of
-  Empty        -> []
-  Pair e (x,v) -> domainEnv e
-  Def ts e     -> domainEnv e
-  Sub e (i,_)  -> i : domainEnv e
+  Empty       -> []
+  Upd e (x,v) -> domainEnv e
+  Def ts e    -> domainEnv e
+  Sub e (i,_) -> i : domainEnv e
 
 --------------------------------------------------------------------------------
 -- | Pretty printing
@@ -183,10 +215,10 @@ showEnv, showEnv1 :: Env -> Doc
 showEnv e = case e of
   Empty           -> PP.empty
   Def _ env       -> showEnv env
-  Pair env (x,u)  -> parens (showEnv1 env <> showVal u)
+  Upd env (x,u)   -> parens (showEnv1 env <> showVal u)
   Sub env (i,phi) -> parens (showEnv1 env <> text (show phi))
-showEnv1 (Pair env (x,u)) = showEnv1 env <> showVal u <> text ", "
-showEnv1 e                = showEnv e
+showEnv1 (Upd env (x,u)) = showEnv1 env <> showVal u <> text ", "
+showEnv1 e               = showEnv e
 
 instance Show Loc where
   show = render . showLoc
@@ -212,7 +244,7 @@ showTer v = case v of
   Fst e            -> showTer e <> text ".1"
   Snd e            -> showTer e <> text ".2"
   Sigma e0         -> text "Sigma" <+> showTer e0
-  SPair e0 e1      -> parens (showTer1 e0 <> comma <> showTer1 e1)
+  Pair e0 e1       -> parens (showTer1 e0 <> comma <> showTer1 e1)
   Where e d        -> showTer e <+> text "where" <+> showDecls d
   Var x            -> text x
   Con c es         -> text c <+> showTers es
@@ -224,6 +256,8 @@ showTer v = case v of
   AppFormula e phi -> showTer1 e <+> char '@' <+> showFormula phi
   Comp e0 e1 es    -> text "comp" <+> showTers [e0,e1] <+> text (showSystem es)
   Trans e0 e1      -> text "transport" <+> showTers [e0,e1]
+  Glue a ts        -> text "glue" <+> showTer a <+> text (showSystem ts)
+  GlueElem a ts    -> text "glueElem" <+> showTer a <+> text (showSystem ts)
 
 showTers :: [Ter] -> Doc
 showTers = hsep . map showTer1
@@ -250,7 +284,7 @@ showVal v = case v of
   Ter t env         -> showTer t <+> showEnv env
   VCon c us         -> text c <+> showVals us
   VPi a b           -> text "Pi" <+> showVals [a,b]
-  VSPair u v        -> parens (showVal1 u <> comma <> showVal1 v)
+  VPair u v         -> parens (showVal1 u <> comma <> showVal1 v)
   VSigma u v        -> text "Sigma" <+> showVals [u,v]
   VApp u v          -> showVal u <+> showVal1 v
   VSplit u v        -> showVal u <+> showVal1 v
@@ -262,6 +296,8 @@ showVal v = case v of
   VAppFormula v phi -> showVal1 v <+> char '@' <+> showFormula phi
   VComp v0 v1 vs    -> text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)
   VTrans v0 v1      -> text "trans" <+> showVals [v0,v1]
+  VGlue a ts        -> text "glue" <+> showVal a <+> text (showSystem ts)
+  VGlueElem a ts    -> text "glueElem" <+> showVal a <+> text (showSystem ts)
 showVal1 v = case v of
   VU        -> char 'U'
   VCon c [] -> text c
@@ -270,4 +306,3 @@ showVal1 v = case v of
 
 showVals :: [Val] -> Doc
 showVals = hsep . map showVal1
-

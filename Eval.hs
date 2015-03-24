@@ -7,8 +7,6 @@ import Data.Map (Map,(!),mapWithKey,assocs,filterWithKey
                 ,elems,intersectionWith,intersection,keys)
 import qualified Data.Map as Map
 
-import Debug.Trace
-
 import Connections
 import CTT
 
@@ -78,8 +76,9 @@ instance Nominal Val where
          VPi a f -> VPi (acti a) (acti f)
          VComp a v ts -> compLine (acti a) (acti v) (acti ts)
          VIdP a u v -> VIdP (acti a) (acti u) (acti v)
-         VPath j v | j `notElem` sphi -> VPath j (acti v)
-                   | otherwise -> VPath k (v `swap` (j,k))
+         VPath j v | j == i -> u
+                   | j `notElem` sphi -> VPath j (acti v)
+                   | otherwise -> VPath k (acti (v `swap` (j,k)))
               where k = fresh (v, Atom i, phi)
          VTrans u v -> transLine (acti u) (acti v)
          VSigma a f -> VSigma (acti a) (acti f)
@@ -383,11 +382,6 @@ comps _ _ _ _ = error "comps: different lengths of types and values"
 
 -- i is independent of a and u
 comp :: Name -> Val -> Val -> System Val -> Val
-comp i a u ts | trace ("comp: \n a = " ++ show a
-                       ++ "\n u = " ++ show u
-                       ++ "\n ts = " ++ show ts
-                       ++ "\n support ts = " ++ show (support ts))
-                False = undefined
 comp i a u ts | eps `Map.member` ts    = (ts ! eps) `face` (i ~> 1)
 comp i a u ts | i `notElem` support ts = u
 comp i a u ts | not (Map.null indep)   = comp i a u ts'

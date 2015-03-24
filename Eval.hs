@@ -487,52 +487,54 @@ isCompSystem k ts = and [ conv k (getFace alpha beta) (getFace beta alpha)
 
 instance Convertible Val where
   conv k u v | u == v    = True
-             | otherwise = let j = fresh (u,v) in case (u,v) of
-    (Ter (Lam x a u) e,Ter (Lam x' a' u') e') ->
-      let v = mkVar k (eval e a)
-      in conv (k+1) (eval (Upd e (x,v)) u) (eval (Upd e' (x',v)) u')
-    (Ter (Lam x a u) e,u') ->
-      let v = mkVar k (eval e a)
-      in conv (k+1) (eval (Upd e (x,v)) u) (app u' v)
-    (u',Ter (Lam x a u) e) ->
-      let v = mkVar k (eval e a)
-      in conv (k+1) (app u' v) (eval (Upd e (x,v)) u)
-    (Ter (Split p _ _) e,Ter (Split p' _ _) e') -> (p == p') && conv k e e'
-    (Ter (Sum p _ _) e,Ter (Sum p' _ _) e')     -> (p == p') && conv k e e'
-    (Ter (Undef p) e,Ter (Undef p') e')         -> (p == p') && conv k e e'
-    (VPi u v,VPi u' v') ->
-      let w = mkVar k u
-      in conv k u u' && conv (k+1) (app v w) (app v' w)
-    (VSigma u v,VSigma u' v') ->
-      let w = mkVar k u
-      in conv k u u' && conv (k+1) (app v w) (app v' w)
-    (VCon c us,VCon c' us')   -> (c == c') && conv k us us'
-    (VPair u v,VPair u' v') -> conv k u u' && conv k v v'
-    (VPair u v,w)            -> conv k u (fstVal w) && conv k v (sndVal w)
-    (w,VPair u v)            -> conv k (fstVal w) u && conv k (sndVal w) v
-    (VFst u,VFst u')          -> conv k u u'
-    (VSnd u,VSnd u')          -> conv k u u'
-    (VApp u v,VApp u' v')     -> conv k u u' && conv k v v'
-    (VSplit u v,VSplit u' v') -> conv k u u' && conv k v v'
-    (VVar x _, VVar x' _)     -> x == x'
-    (VIdP a b c,VIdP a' b' c') -> conv k a a' && conv k b b' && conv k c c'
-    (VPath i a,VPath i' a')    -> conv k (a `swap` (i,j)) (a' `swap` (i',j))
-    (VPath i a,p')             -> conv k (a `swap` (i,j)) (p' @@ j)
-    (p,VPath i' a')            -> conv k (p @@ j) (a' `swap` (i',j))
-    (VTrans p u,v) | isIndep k j (p @@ j) -> conv k u v
-    (u,VTrans p v) | isIndep k j (p @@ j) -> conv k u v
-    (VTrans p u,VTrans p' u') -> conv k p p' && conv k u u'
-    (VAppFormula u x,VAppFormula u' x') -> conv k (u,x) (u',x')
-    (VComp a u ts,v)  | isIndep k j (Map.map (@@ j) ts) -> conv k u v
-    (VComp a u ts,v') | not (Map.null indep) -> conv k (VComp a u ts') v'
-      where (ts',indep) = Map.partition (\t -> isIndep k j (t @@ j)) ts
-    (v,VComp a u ts)  | isIndep k j (Map.map (@@ j) ts) -> conv k u v
-    (v',VComp a u ts) | not (Map.null indep) -> conv k (VComp a u ts') v'
-      where (ts',indep) = Map.partition (\t -> isIndep k j (t @@ j)) ts
-    (VComp a u ts,VComp a' u' ts') -> conv k (a,u,ts) (a',u',ts')
-    (VGlue v hisos,VGlue v' hisos') -> conv k (v,hisos) (v',hisos')
-    (VGlueElem u us,VGlueElem u' us') -> conv k (u,us) (u',us')
-    _                         -> False
+             | otherwise =
+    let j = fresh (u,v)
+    in case (simplify k j u, simplify k j v) of
+      (Ter (Lam x a u) e,Ter (Lam x' a' u') e') ->
+        let v = mkVar k (eval e a)
+        in conv (k+1) (eval (Upd e (x,v)) u) (eval (Upd e' (x',v)) u')
+      (Ter (Lam x a u) e,u') ->
+        let v = mkVar k (eval e a)
+        in conv (k+1) (eval (Upd e (x,v)) u) (app u' v)
+      (u',Ter (Lam x a u) e) ->
+        let v = mkVar k (eval e a)
+        in conv (k+1) (app u' v) (eval (Upd e (x,v)) u)
+      (Ter (Split p _ _) e,Ter (Split p' _ _) e') -> (p == p') && conv k e e'
+      (Ter (Sum p _ _) e,Ter (Sum p' _ _) e')     -> (p == p') && conv k e e'
+      (Ter (Undef p) e,Ter (Undef p') e')         -> (p == p') && conv k e e'
+      (VPi u v,VPi u' v') ->
+        let w = mkVar k u
+        in conv k u u' && conv (k+1) (app v w) (app v' w)
+      (VSigma u v,VSigma u' v') ->
+        let w = mkVar k u
+        in conv k u u' && conv (k+1) (app v w) (app v' w)
+      (VCon c us,VCon c' us')   -> (c == c') && conv k us us'
+      (VPair u v,VPair u' v') -> conv k u u' && conv k v v'
+      (VPair u v,w)            -> conv k u (fstVal w) && conv k v (sndVal w)
+      (w,VPair u v)            -> conv k (fstVal w) u && conv k (sndVal w) v
+      (VFst u,VFst u')          -> conv k u u'
+      (VSnd u,VSnd u')          -> conv k u u'
+      (VApp u v,VApp u' v')     -> conv k u u' && conv k v v'
+      (VSplit u v,VSplit u' v') -> conv k u u' && conv k v v'
+      (VVar x _, VVar x' _)     -> x == x'
+      (VIdP a b c,VIdP a' b' c') -> conv k a a' && conv k b b' && conv k c c'
+      (VPath i a,VPath i' a')    -> conv k (a `swap` (i,j)) (a' `swap` (i',j))
+      (VPath i a,p')             -> conv k (a `swap` (i,j)) (p' @@ j)
+      (p,VPath i' a')            -> conv k (p @@ j) (a' `swap` (i',j))
+      (VTrans p u,VTrans p' u') -> conv k p p' && conv k u u'
+      (VAppFormula u x,VAppFormula u' x') -> conv k (u,x) (u',x')
+      (VComp a u ts,VComp a' u' ts') -> conv k (a,u,ts) (a',u',ts')
+      (VGlue v hisos,VGlue v' hisos') -> conv k (v,hisos) (v',hisos')
+      (VGlueElem u us,VGlueElem u' us') -> conv k (u,us) (u',us')
+      _                         -> False
+
+simplify :: Int -> Name -> Val -> Val
+simplify k j v = case v of
+  VTrans p u | isIndep k j (p @@ j) -> simplify k j u
+  VComp a u ts ->
+    let (ts',indep) = Map.partition (\t -> isIndep k j (t @@ j)) ts
+    in if Map.null ts' then simplify k j u else VComp a u ts'
+  _ -> v
 
 instance Convertible Env where
   conv k e e' = conv k (valAndFormulaOfEnv e) (valAndFormulaOfEnv e')

@@ -1,3 +1,4 @@
+{-# LANGUAGE TupleSections #-}
 module TypeChecker where
 
 import Data.Either
@@ -5,7 +6,8 @@ import Data.Function
 import Data.List
 import Data.Maybe
 import Data.Map (Map,(!),mapWithKey,assocs,filterWithKey
-                ,elems,intersectionWith,keys,intersectionWithKey)
+                ,elems,intersectionWith,keys,intersectionWithKey
+                ,intersection)
 import qualified Data.Map as Map
 import Data.Monoid hiding (Sum)
 import Control.Monad
@@ -310,29 +312,82 @@ infer e = case e of
     (a0,a1) <- checkPath (constPath VU) p
     check a0 t
     return a1
-  Comp a t0 ts -> do
+  Comp a t0 ps -> do
     check VU a
     rho <- asks env
     let va = eval rho a
     check va t0
-
-    -- check rho alpha |- t_alpha : a alpha
-    sequence $ elems $
-      mapWithKey (\alpha talpha ->
-                   local (faceEnv alpha) $ do
-                     rhoAlpha <- asks env
-                     (a0,_) <- checkPath (constPath (va `face` alpha)) talpha
-                     k <- asks index
-                     unless (conv k a0 (eval rhoAlpha t0))
-                       (throwError ("incompatible system with " ++ show t0))
-                 ) ts
-
-    -- check that the system is compatible
-    k <- asks index
-    unless (isCompSystem k (evalSystem rho ts))
-      (throwError ("Incompatible system " ++ show ts))
+    checkPathSystem t0 va ps
+    return va
+  CompElem a es u us -> do
+    check VU a
+    rho <- asks env
+    k   <- asks index
+    let va = eval rho a
+    ts <- checkPathSystem a VU es
+    let ves = evalSystem rho es
+    unless (keys es == keys us)
+      (throwError ("Keys don't match in " ++ show es ++ " and " ++ show us))
+    check va u
+    let vu = eval rho u
+    sequence_ $ elems $ intersectionWith check ts us
+    let vus = evalSystem rho us
+    unless (isCompSystem k vus)
+      (throwError ("Incompatible system " ++ show vus))
+    sequence_ $ elems $ intersectionWithKey (\alpha eA vuA ->
+      unless (conv k (transNegLine eA vuA) (vu `face` alpha))
+        (throwError $ "Malformed compElem: " ++ show us)
+      ) ves vus
+    return $ compLine VU va ves
+  ElimComp a es u -> do
+    check VU a
+    rho <- asks env
+    let va = eval rho a
+    checkPathSystem a VU es
+    let ves = evalSystem rho es
+    check (compLine VU va ves) u
     return va
   _ -> throwError ("infer " ++ show e)
+
+-- Return system us such that:
+-- rhoalpha |- p_alpha : Id (va alpha) (t0 rhoalpha) ualpha
+-- Moreover, check that the system ps is compatible.
+checkPathSystem :: Ter -> Val -> System Ter -> Typing (System Val)
+checkPathSystem t0 va ps = do
+  -- TODO: make this nicer!!
+  -- Also return the evaluated ps
+  k <- asks index
+  let alist = Map.toList $ mapWithKey (\alpha pAlpha ->
+                 local (faceEnv alpha) $ do
+                   rhoAlpha <- asks env
+                   (a0,a1) <- checkPath (constPath (va `face` alpha)) pAlpha
+                   unless (conv k a0 (eval rhoAlpha t0))
+                     (throwError ("incompatible system with " ++ show t0))
+                   return a1
+                 ) ps
+  rho <- asks env
+  unless (isCompSystem k (evalSystem rho ps))
+      (throwError ("Incompatible system " ++ show ps))
+  Map.fromList <$> sequence [ (alpha,) <$> t | (alpha,t) <- alist ]
+
+-- checkGlueElem vu ts us = do
+--   unless (keys ts == keys us)
+--     (throwError ("Keys don't match in " ++ show ts ++ " and " ++ show us))
+--   rho <- asks env
+--   k   <- asks index
+--   sequence_ $ elems $ intersectionWithKey
+--     (\alpha vt u -> check (hisoDom vt) u) ts us
+--   let vus = evalSystem rho us
+--   sequence_ $ elems $ intersectionWithKey
+--     (\alpha vt vAlpha -> do
+--        unless (conv k (app (hisoFun vt) vAlpha) (vu `face` alpha))
+--           (throwError $ "Image of glueElem component " ++ show vAlpha ++
+--                         " doesn't match " ++ show vu)) ts vus
+--   unless (isCompSystem k vus)
+--     (throwError $ "Incompatible system " ++ show vus)
+
+--inferCompElem :: Ter -> System Ter
+
 
 -- Check that a term is a path and output the source and target
 checkPath :: Val -> Ter -> Typing (Val,Val)

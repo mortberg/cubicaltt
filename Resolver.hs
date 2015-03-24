@@ -184,6 +184,14 @@ resolveApps Glue (u:ts:xs) = do
 resolveApps GlueElem (u:ts:xs) = do
   let c = CTT.GlueElem <$> resolveExp u <*> resolveSystem ts
   CTT.mkApps <$> c <*> mapM resolveExp xs
+resolveApps CompElem (a:es:t:ts:xs) = do
+  let c = CTT.CompElem <$> resolveExp a <*> resolveSystem es
+          <*> resolveExp t <*> resolveSystem ts
+  CTT.mkApps <$> c <*> mapM resolveExp xs
+resolveApps ElimComp (a:es:t:xs) = do
+  let c = CTT.ElimComp <$> resolveExp a <*> resolveSystem es
+          <*> resolveExp t
+  CTT.mkApps <$> c <*> mapM resolveExp xs
 resolveApps x xs = CTT.mkApps <$> resolveExp x <*> mapM resolveExp xs
 
 resolveExp :: Exp -> Resolver Ter

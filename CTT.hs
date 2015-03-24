@@ -71,6 +71,9 @@ data Ter = App Ter Ter
            -- Kan Composition
          | Comp Ter Ter (System Ter)
          | Trans Ter Ter
+           -- Composition in the Universe
+         | CompElem Ter (System Ter) Ter (System Ter)
+         | ElimComp Ter (System Ter) Ter
            -- Glue
          | Glue Ter (System Ter)
          | GlueElem Ter (System Ter)
@@ -111,6 +114,10 @@ data Val = VU
          | VGlue Val (System Val)
          | VGlueElem Val (System Val)
 
+           -- Universe Composition Values
+         | VCompElem Val (System Val) Val (System Val)
+         | VElimComp Val (System Val) Val
+
            -- Neutral values:
          | VVar Ident Val
          | VFst Val
@@ -122,15 +129,17 @@ data Val = VU
 
 isNeutral :: Val -> Bool
 isNeutral v = case v of
-  VVar _ _        -> True
-  VFst v          -> isNeutral v
-  VSnd v          -> isNeutral v
-  VSplit _ v      -> isNeutral v
-  VApp v _        -> isNeutral v
-  VAppFormula v _ -> isNeutral v
-  VComp a u ts    -> isNeutralComp a u ts
-  VTrans a u      -> isNeutralTrans a u -- isNeutral a || isNeutralComp (a @@ 0) u Map.empty
-  _               -> False
+  VVar _ _          -> True
+  VFst v            -> isNeutral v
+  VSnd v            -> isNeutral v
+  VSplit _ v        -> isNeutral v
+  VApp v _          -> isNeutral v
+  VAppFormula v _   -> isNeutral v
+  VComp a u ts      -> isNeutralComp a u ts
+  VTrans a u        -> isNeutralTrans a u
+  VCompElem _ _ u _ -> isNeutral u
+  VElimComp _ _ u   -> isNeutral u
+  _                 -> False
 
 isNeutralSystem :: System Val -> Bool
 isNeutralSystem = any isNeutral . Map.elems
@@ -237,27 +246,32 @@ instance Show Ter where
 
 showTer :: Ter -> Doc
 showTer v = case v of
-  U                -> char 'U'
-  App e0 e1        -> showTer e0 <+> showTer1 e1
-  Pi e0            -> text "Pi" <+> showTer e0
-  Lam x t e        -> char '\\' <> text x <+> text "->" <+> showTer e
-  Fst e            -> showTer e <> text ".1"
-  Snd e            -> showTer e <> text ".2"
-  Sigma e0         -> text "Sigma" <+> showTer e0
-  Pair e0 e1       -> parens (showTer1 e0 <> comma <> showTer1 e1)
-  Where e d        -> showTer e <+> text "where" <+> showDecls d
-  Var x            -> text x
-  Con c es         -> text c <+> showTers es
-  Split l _ _      -> text "split" <+> showLoc l
-  Sum _ n _        -> text "sum" <+> text n
-  Undef _          -> text "undefined"
-  IdP e0 e1 e2     -> text "IdP" <+> showTers [e0,e1,e2]
-  Path i e         -> char '<' <> text (show i) <> char '>' <+> showTer e
-  AppFormula e phi -> showTer1 e <+> char '@' <+> showFormula phi
-  Comp e0 e1 es    -> text "comp" <+> showTers [e0,e1] <+> text (showSystem es)
-  Trans e0 e1      -> text "transport" <+> showTers [e0,e1]
-  Glue a ts        -> text "glue" <+> showTer a <+> text (showSystem ts)
-  GlueElem a ts    -> text "glueElem" <+> showTer a <+> text (showSystem ts)
+  U                  -> char 'U'
+  App e0 e1          -> showTer e0 <+> showTer1 e1
+  Pi e0              -> text "Pi" <+> showTer e0
+  Lam x t e          -> char '\\' <> text x <+> text "->" <+> showTer e
+  Fst e              -> showTer e <> text ".1"
+  Snd e              -> showTer e <> text ".2"
+  Sigma e0           -> text "Sigma" <+> showTer e0
+  Pair e0 e1         -> parens (showTer1 e0 <> comma <> showTer1 e1)
+  Where e d          -> showTer e <+> text "where" <+> showDecls d
+  Var x              -> text x
+  Con c es           -> text c <+> showTers es
+  Split l _ _        -> text "split" <+> showLoc l
+  Sum _ n _          -> text "sum" <+> text n
+  Undef _            -> text "undefined"
+  IdP e0 e1 e2       -> text "IdP" <+> showTers [e0,e1,e2]
+  Path i e           -> char '<' <> text (show i) <> char '>' <+> showTer e
+  AppFormula e phi   -> showTer1 e <+> char '@' <+> showFormula phi
+  Comp e0 e1 es      -> text "comp" <+> showTers [e0,e1]
+                        <+> text (showSystem es)
+  Trans e0 e1        -> text "transport" <+> showTers [e0,e1]
+  Glue a ts          -> text "glue" <+> showTer1 a <+> text (showSystem ts)
+  GlueElem a ts      -> text "glueElem" <+> showTer1 a <+> text (showSystem ts)
+  CompElem a es t ts -> text "compElem" <+> showTer1 a <+> text (showSystem es)
+                        <+> showTer1 t <+> text (showSystem ts)
+  ElimComp a es t    -> text "elimComp" <+> showTer1 a <+> text (showSystem es)
+                        <+> showTer1 t
 
 showTers :: [Ter] -> Doc
 showTers = hsep . map showTer1
@@ -296,8 +310,13 @@ showVal v = case v of
   VAppFormula v phi -> showVal1 v <+> char '@' <+> showFormula phi
   VComp v0 v1 vs    -> text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)
   VTrans v0 v1      -> text "trans" <+> showVals [v0,v1]
-  VGlue a ts        -> text "glue" <+> showVal a <+> text (showSystem ts)
-  VGlueElem a ts    -> text "glueElem" <+> showVal a <+> text (showSystem ts)
+  VGlue a ts        -> text "glue" <+> showVal1 a <+> text (showSystem ts)
+  VGlueElem a ts    -> text "glueElem" <+> showVal1 a <+> text (showSystem ts)
+  VCompElem a es t ts -> text "compElem" <+> showVal1 a <+> text (showSystem es)
+                         <+> showVal1 t <+> text (showSystem ts)
+  VElimComp a es t    -> text "elimComp" <+> showVal1 a <+> text (showSystem es)
+                         <+> showVal1 t
+
 showVal1 v = case v of
   VU        -> char 'U'
   VCon c [] -> text c

@@ -48,9 +48,6 @@ test1 (A : U) (a b : A) (p : Id A a b) : Id A b b = refl A (p @ 1)
 compEmpty (A : U) (a b : A) (p : Id A a b) : Id A a b =
   <i> comp A (p @ i) [ ]
 
-compId (A : U) (a b c : A) (p : Id A a b) (q : Id A b c) : Id A a c =
-  <i> comp A (p @ i) [ (i = 1) -> q ]
-
 kan (A : U) (a b c d : A) (p : Id A a b) (q : Id A a c)
                           (r : Id A b d) : Id A c d =
   <i> comp A (p @ i) [ (i = 0) -> q, (i = 1) -> r ]

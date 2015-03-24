@@ -1,6 +1,7 @@
 module bool where
 
 import prelude
+import nat
 
 data bool = true | false
 
@@ -53,3 +54,21 @@ F2EqBool : Id U F2 bool = inv U bool F2 boolEqF2
 
 negBool : bool -> bool = subst U (\(X : U) -> (X -> X)) F2 bool F2EqBool negF2
 
+F2EqBoolComp : Id U F2 bool =
+  compId U F2 bool bool F2EqBool negEq
+
+test2 : bool = transport F2EqBoolComp one
+
+negNegEq : Id U bool bool =
+  compId U bool bool bool negEq negEq
+
+
+test3 : bool = transport negNegEq true
+
+test4 : Id U bool bool = <i> negNegEq @ i
+
+kanBool : Id U bool bool =
+  kan U bool bool bool bool negEq negEq negEq
+
+-- > negNegEq 
+-- EVAL: <?0> glue (sum bool) [ (?0 = 0) -> ((sum bool),(((split bool_L7_C1),(((split bool_L7_C1),(((split bool_L11_C1),(split bool_L11_C1)))))))) ]

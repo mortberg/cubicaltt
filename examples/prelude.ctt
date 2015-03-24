@@ -33,6 +33,9 @@ defEqJ (A : U) (a : A) (C : (x : A) -> Id A a x -> U) (d : C a (refl A a)) :
 
 inv (A : U) (a b : A) (p : Id A a b) : Id A b a = <i> p @ -i
 
+compId (A : U) (a b c : A) (p : Id A a b) (q : Id A b c) : Id A a c =
+  <i> comp A (p @ i) [ (i = 1) -> q ]
+
 isoId (A B : U) (f : A -> B) (g : B -> A)
       (s : (y:B) -> Id B (f (g y)) y)
       (t : (x:A) -> Id A (g (f x)) x) : Id U A B =

@@ -38,6 +38,8 @@ Trans.      Exp3 ::= "transport" ;
 Comp.       Exp3 ::= "comp" ;
 Glue.       Exp3 ::= "glue" ;
 GlueElem.   Exp3 ::= "glueElem" ;
+CompElem.   Exp3 ::= "compElem" ;
+ElimComp.   Exp3 ::= "elimComp" ;
 System.     Exp3 ::= "[" [Side] "]" ;
 Pair.       Exp3 ::= "(" Exp "," [Exp] ")" ;
 coercions Exp 3 ;

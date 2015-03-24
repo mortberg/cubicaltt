@@ -40,3 +40,17 @@ isoId (A B : U) (f : A -> B) (g : B -> A)
       (s : (y:B) -> Id B (f (g y)) y)
       (t : (x:A) -> Id A (g (f x)) x) : Id U A B =
       <i> glue B [ (i = 0) -> (A,f,g,s,t) ]
+
+
+--         u
+--    a0 ----- a1
+--    |        |
+-- r0 |        | r1
+--    |        |
+--    b0 ----- b1
+--         v
+
+Square (A : U) (a0 a1 : A) (u : Id A a0 a1)
+               (b0 b1 : A) (v : Id A b0 b1)
+               (r0 : Id A a0 b0) (r1 : Id A a1 b1) : U
+  = IdP (<i> (IdP (<j> A) (u @ i) (v @ i))) r0 r1

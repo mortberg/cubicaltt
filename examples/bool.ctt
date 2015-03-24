@@ -70,5 +70,25 @@ test4 : Id U bool bool = <i> negNegEq @ i
 kanBool : Id U bool bool =
   kan U bool bool bool bool negEq negEq negEq
 
--- > negNegEq 
--- EVAL: <?0> glue (sum bool) [ (?0 = 0) -> ((sum bool),(((split bool_L7_C1),(((split bool_L7_C1),(((split bool_L11_C1),(split bool_L11_C1)))))))) ]
+-- connectSquare (A : U) (a0 a1 : A) (u : Id A a0 a1)
+--               (b0 b1 : A) (v : Id A b0 b1)
+--               (r0 : Id A a0 b0) (r1 : Id A a1 b1) : Square A a0 a1 u b0 b1 v r0 r1= 
+
+squareBoolF2 : Square U bool bool (refl U bool) bool F2
+                  boolEqF2 (refl U bool)  boolEqF2 =
+  <i j> boolEqF2 @ i /\ j
+
+test5 : IdP boolEqF2 true one = 
+  <i> transport (<j> boolEqF2 @ i /\ j) true
+
+test6 : Id bool true true =
+  <i> transport (<j> F2EqBool @ i \/ j) (test5 @ - i)
+
+test7 : Id U F2 F2 =
+  subst U (\(X:U) -> Id U X X) bool F2 boolEqF2 negNegEq
+
+test8 : Id U F2 F2 =
+  subst U (\(X:U) -> Id U X X) bool F2 boolEqF2 (refl U bool)
+
+test9 : Id U F2 F2 =
+  transport (<i> Id U (boolEqF2 @ i) (boolEqF2 @ i)) (refl U bool)

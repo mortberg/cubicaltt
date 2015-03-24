@@ -88,3 +88,19 @@ testSquare (A : U) (a : A) (p : Id A a a) : Square A a a p a a p p p =
       (i = 1) -> <k> p @ (j /\ k),
       (j = 0) -> <k> p @ (i \/ - k),
       (j = 1) -> <k> p @ (i /\ k)]
+
+
+test (A : U) (a b : A) (p : Id A a b) : Id A a a =
+  <i> p @ (i /\ -i)
+
+-- testRefl (A : U) (a b : A) (p : Id A a b) : Id (Id A a a) (test A a b p) (refl A a) =
+--   <i j> fill j A a [ (i=0) -> p  @ (i /\ -i) ]
+
+
+lemSimpl (A : U) (a b c : A) (p : Id A a b) (q q' : Id A b c)
+          (s : Id (Id A a c) (compId A a b c p q) (compId A a b c p q')) : Id (Id A b c) q q' =
+  <j> <k> comp A a [ (j = 0) -> <i> comp A (p @ i) [ (i = 1) -> <l> q @ k /\ l],
+                     (j = 1) -> <i> comp A (p @ i) [ (i=1) -> <l> q' @ k /\ l],
+                     (k = 0)  -> p,
+                     (k = 1)  -> s @ j ]
+

@@ -326,7 +326,6 @@ infer e = case e of
                          unless (conv k a0 (eval rhoAlpha t0))
                            (throwError ("incompatible system with " ++ show t0))
                      ) ts
-    
 
     -- check that the system is compatible
     k <- asks index
@@ -350,7 +349,7 @@ checkPath v t = do
     VIdP a a0 a1 -> do
       unless (conv k a v) (throwError "checkPath")
       return (a0,a1)
-    _ -> throwError "checkPath"    
+    _ -> throwError "checkPath"
 
 checks :: (Tele,Env) -> [Ter] -> Typing ()
 checks _              []     = return ()

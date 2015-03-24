@@ -244,6 +244,7 @@ transNegLine u v = transNeg i (u @@ i) v
   where i = fresh (u,v)
 
 trans :: Name -> Val -> Val -> Val
+trans i v0 v1 | i `notElem` support v0 = v1
 trans i v0 v1 = case (v0,v1) of
   (VIdP a u v,w) ->
     let j   = fresh (Atom i, v0, w)
@@ -262,7 +263,8 @@ trans i v0 v1 = case (v0,v1) of
   _ | isNeutral v0 || isNeutral v1 -> VTrans (VPath i v0) v1
   (VGlue a ts,_)    -> transGlue i a ts v1
   (VComp VU a es,_) -> transU i a es v1
-  _ | otherwise -> error "trans not implemented"
+  _ | otherwise -> error $ "trans not implemented for v0 = " ++ show v0
+                   ++ "\n and v1 = " ++ show v1
 
 transNeg :: Name -> Val -> Val -> Val
 transNeg i a u = trans i (a `sym` i) u
@@ -357,7 +359,7 @@ genComp i a u ts | Map.null ts = trans i a u
 genComp i a u ts = comp i ai1 (trans i a u) ts'
   where ai1 = a `face` (i ~> 1)
         j   = fresh (a,Atom i,ts,u)
-        comp' alpha u = VPath i (trans j ((a `face` alpha) `disj` (i,j)) u)
+        comp' alpha u = trans j ((a `face` alpha) `disj` (i,j)) u
         ts' = mapWithKey comp' ts
 genCompNeg i a u ts = genComp i (a `sym` i) u (ts `sym` i)
 

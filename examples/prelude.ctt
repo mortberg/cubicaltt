@@ -37,7 +37,3 @@ isoId (A B : U) (f : A -> B) (g : B -> A)
       (s : (y:B) -> Id B (f (g y)) y)
       (t : (x:A) -> Id A (g (f x)) x) : Id U A B =
       <i> glue B [ (i = 0) -> (A,(f,(g,(s,t)))) ]
-
-lemTest (A : U) : (B : U) (p : Id U A B) (a : A) -> IdP p a (transport p a) =
-  J U A (\(B : U) (p : Id U A B) -> (a : A) -> IdP p a (transport p a)) rem
-    where rem (a : A) : Id A a a = refl A a

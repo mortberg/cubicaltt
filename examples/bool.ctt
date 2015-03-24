@@ -41,6 +41,11 @@ boolEqF2 : Id U bool F2 =
   
 negF2 : F2 -> F2 = subst U (\(X : U) -> (X -> X)) bool F2 boolEqF2 neg
 
+
+lemTest (A : U) : (B : U) (p : Id U A B) (a : A) -> IdP p a (transport p a) =
+  J U A (\(B : U) (p : Id U A B) -> (a : A) -> IdP p a (transport p a)) (refl A)
+
+
 test : IdP boolEqF2 true one = <i> glueElem one [ (i = 0) -> true ]
 test1 : IdP boolEqF2 true one = lemTest bool F2 boolEqF2 true
 

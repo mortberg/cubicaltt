@@ -4,7 +4,8 @@ import Data.Either
 import Data.Function
 import Data.List
 import Data.Maybe
-import Data.Map (Map,(!))
+import Data.Map (Map,(!),mapWithKey,assocs,filterWithKey
+                ,elems,intersectionWith,keys,intersectionWithKey)
 import qualified Data.Map as Map
 import Data.Monoid hiding (Sum)
 import Control.Monad
@@ -195,14 +196,14 @@ check a t = case (a,t) of
 
 checkGlueElem :: Val -> System Val -> System Ter -> Typing ()
 checkGlueElem vu ts us = do
-  unless (Map.keys ts == Map.keys us)
+  unless (keys ts == keys us)
     (throwError ("Keys don't match in " ++ show ts ++ " and " ++ show us))
   rho <- asks env
   k   <- asks index
-  sequence_ $ Map.elems $ Map.intersectionWithKey
+  sequence_ $ elems $ intersectionWithKey
     (\alpha vt u -> check (hisoDom vt) u) ts us
   let vus = evalSystem rho us
-  sequence_ $ Map.elems $ Map.intersectionWithKey
+  sequence_ $ elems $ intersectionWithKey
     (\alpha vt vAlpha -> do
        unless (conv k (app (hisoFun vt) vAlpha) (vu `face` alpha))
           (throwError $ "Image of glueElem component " ++ show vAlpha ++
@@ -212,8 +213,8 @@ checkGlueElem vu ts us = do
 
 checkGlue :: Val -> System Ter -> Typing ()
 checkGlue va ts = do
-  sequence_ $ Map.elems $
-    Map.mapWithKey (\alpha tAlpha -> checkIso (va `face` alpha) tAlpha) ts
+  sequence_ $ elems $ mapWithKey
+    (\alpha tAlpha -> checkIso (va `face` alpha) tAlpha) ts
   k <- asks index
   rho <- asks env
   unless (isCompSystem k (evalSystem rho ts))
@@ -316,15 +317,15 @@ infer e = case e of
     check va t0
 
     -- check rho alpha |- t_alpha : a alpha
-    sequence $ Map.elems $
-      Map.mapWithKey (\alpha talpha ->
-                       local (faceEnv alpha) $ do
-                         rhoAlpha <- asks env
-                         (a0,_) <- checkPath (constPath (va `face` alpha)) talpha
-                         k <- asks index
-                         unless (conv k a0 (eval rhoAlpha t0))
-                           (throwError ("incompatible system with " ++ show t0))
-                     ) ts
+    sequence $ elems $
+      mapWithKey (\alpha talpha ->
+                   local (faceEnv alpha) $ do
+                     rhoAlpha <- asks env
+                     (a0,_) <- checkPath (constPath (va `face` alpha)) talpha
+                     k <- asks index
+                     unless (conv k a0 (eval rhoAlpha t0))
+                       (throwError ("incompatible system with " ++ show t0))
+                 ) ts
 
     -- check that the system is compatible
     k <- asks index

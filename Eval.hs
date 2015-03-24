@@ -3,7 +3,8 @@ module Eval where
 
 import Data.List
 import Data.Maybe (fromMaybe)
-import Data.Map (Map,(!))
+import Data.Map (Map,(!),mapWithKey,assocs,filterWithKey
+                ,elems,intersectionWith,keys)
 import qualified Data.Map as Map
 
 
@@ -20,7 +21,7 @@ look x (Sub rho _) = look x rho
 
 lookType :: String -> Env -> Val
 lookType x (Upd rho (y,VVar _ a)) | x == y    = a
-                                   | otherwise = lookType x rho
+                                  | otherwise = lookType x rho
 lookType x r@(Def rho r1) = case lookup x rho of
   Just (a,_) -> eval r a
   Nothing -> lookType x r1
@@ -28,7 +29,7 @@ lookType x (Sub rho _) = lookType x rho
 
 lookName :: Name -> Env -> Formula
 lookName i (Upd rho _) = lookName i rho
-lookName i (Def _ rho)  = lookName i rho
+lookName i (Def _ rho) = lookName i rho
 lookName i (Sub rho (j,phi)) | i == j    = phi
                              | otherwise = lookName i rho
 
@@ -79,7 +80,7 @@ instance Nominal Val where
               where k = fresh (v, Atom i, phi)
          VTrans u v -> transLine (acti u) (acti v)
          VSigma a f -> VSigma (acti a) (acti f)
-         VPair u v -> VPair (acti u) (acti v)
+         VPair u v  -> VPair (acti u) (acti v)
          VFst u     -> VFst (acti u)
          VSnd u     -> VSnd (acti u)
          VCon c vs  -> VCon c (acti vs)
@@ -157,9 +158,9 @@ evals env bts = [ (b,eval env t) | (b,t) <- bts ]
 evalSystem :: Env -> System Ter -> System Val
 evalSystem rho ts =
   let out = concat [ let betas = meetss [ invFormula (lookName i rho) d
-                                        | (i,d) <- Map.assocs alpha ]
+                                        | (i,d) <- assocs alpha ]
                      in [ (beta,eval (rho `face` beta) talpha) | beta <- betas ]
-                   | (alpha,talpha) <- Map.assocs ts ]
+                   | (alpha,talpha) <- assocs ts ]
   in mkSystem out
 
 -- TODO: Write using case-of
@@ -180,7 +181,7 @@ app kan@(VComp (VPi a f) li0 ts) ui1 =
     let j   = fresh (kan,ui1)
         tsj = Map.map (@@ j) ts
     in comp j (app f ui1) (app li0 ui1)
-              (Map.intersectionWith app tsj (border ui1 tsj))
+              (intersectionWith app tsj (border ui1 tsj))
 app r s | isNeutral r = VApp r s
 app _ _ = error "app"
 
@@ -273,33 +274,33 @@ transGlue i b hisos wi0 = glueElem vi1'' usi1
 
         hisosI1 = hisos `face` (i ~> 1)
         hisos'' =
-          Map.filterWithKey (\alpha _ -> alpha `Map.notMember` hisos) hisosI1
+          filterWithKey (\alpha _ -> alpha `Map.notMember` hisos) hisosI1
 
         -- set of elements in hisos independent of i
-        hisos' = Map.filterWithKey (\alpha _ -> i `Map.notMember` alpha) hisos
+        hisos' = filterWithKey (\alpha _ -> i `Map.notMember` alpha) hisos
 
-        us'    = Map.mapWithKey (\gamma isoG ->
+        us'    = mapWithKey (\gamma isoG ->
                   transFill i (hisoDom isoG) (wi0 `face` gamma))
                  hisos'
-        usi1'  = Map.mapWithKey (\gamma isoG ->
+        usi1'  = mapWithKey (\gamma isoG ->
                    trans i (hisoDom isoG) (wi0 `face` gamma))
                  hisos'
 
-        ls'    = Map.mapWithKey (\gamma isoG ->
+        ls'    = mapWithKey (\gamma isoG ->
                    pathComp i (b `face` gamma) (v `face` gamma)
                    ((hisoFun isoG) `app` (us' ! gamma)) Map.empty)
                  hisos'
         bi1   = b `face` (i ~> 1)
         vi1'  = compLine bi1 vi1 ls'
 
-        uls''   = Map.mapWithKey (\gamma isoG ->
+        uls''   = mapWithKey (\gamma isoG ->
                      gradLemma (bi1 `face` gamma) isoG (usi1' `face` gamma)
                                (vi1' `face` gamma))
                    hisos''
 
         vi1''   = compLine bi1 vi1' (Map.map snd uls'')
 
-        usi1    = Map.mapWithKey (\gamma _ ->
+        usi1    = mapWithKey (\gamma _ ->
                     if gamma `Map.member` usi1'
                        then usi1' ! gamma
                        else fst (uls'' ! gamma))
@@ -311,18 +312,18 @@ transGlue i b hisos wi0 = glueElem vi1'' usi1
 gradLemma :: Val -> Val -> System Val -> Val -> (Val, Val)
 gradLemma b hiso@(VPair a (VPair f (VPair g (VPair s t)))) us v = (u, VPath i theta'')
   where i:j:_   = freshs (a,hiso,us,v)
-        us'     = Map.mapWithKey (\alpha uAlpha ->
+        us'     = mapWithKey (\alpha uAlpha ->
                                    app (t `face` alpha) uAlpha @@ i) us
         theta   = fill i a (app g v) us'
         u       = comp i a (app g v) us'
         ws      = insertSystem (i ~> 1) (app t u @@ j) $
-                  Map.mapWithKey
+                  mapWithKey
                     (\alpha uAlpha ->
                       app (t `face` alpha) uAlpha @@ (Atom i :/\: Atom j)) us
         theta'  = compNeg j a theta ws
         xs      = insertSystem (i ~> 0) (app s v @@ j) $
                   insertSystem (i ~> 1) (app s (app f u) @@ j) $
-                  Map.mapWithKey
+                  mapWithKey
                     (\alpha uAlpha ->
                       app (s `face` alpha) (app (f `face` alpha) uAlpha) @@ j) us
         theta'' = comp j b (app f theta') xs
@@ -341,7 +342,7 @@ genComp i a u ts = comp i ai1 (trans i a u) ts'
   where ai1 = a `face` (i ~> 1)
         j   = fresh (a,Atom i,ts,u)
         comp' alpha u = VPath i (trans j ((a `face` alpha) `disj` (i,j)) u)
-        ts' = Map.mapWithKey comp' ts
+        ts' = mapWithKey comp' ts
 genCompNeg i a u ts = genComp i (a `sym` i) u (ts `sym` i)
 
 fill, fillNeg :: Name -> Val -> Val -> System Val -> Val
@@ -404,21 +405,21 @@ unGlue hisos w
 
 compGlue :: Name -> Val -> System Val -> Val -> System Val -> Val
 compGlue i b hisos wi0 ws = glueElem vi1' usi1'
-  where vs   = Map.mapWithKey
+  where vs   = mapWithKey
                  (\alpha wAlpha -> unGlue (hisos `face` alpha) wAlpha) ws
         vi0  = unGlue hisos wi0 -- in b
 
         v    = fill i b vi0 vs           -- in b
         vi1  = comp i b vi0 vs           -- in b
 
-        us'    = Map.mapWithKey (\gamma isoG ->
+        us'    = mapWithKey (\gamma isoG ->
                    fill i (hisoDom isoG) (wi0 `face` gamma) (ws `face` gamma))
                  hisos
-        usi1'  = Map.mapWithKey (\gamma isoG ->
+        usi1'  = mapWithKey (\gamma isoG ->
                    comp i (hisoDom isoG) (wi0 `face` gamma) (ws `face` gamma))
                  hisos
 
-        ls'    = Map.mapWithKey (\gamma isoG ->
+        ls'    = mapWithKey (\gamma isoG ->
                    pathComp i isoG (v `face` gamma)
                    (hisoFun isoG `app` (us' ! gamma)) (vs `face` gamma))
                  hisos
@@ -481,7 +482,7 @@ isIndep k i u = conv k u (u `face` (i ~> 0))
 
 isCompSystem :: (Nominal a, Convertible a) => Int -> System a -> Bool
 isCompSystem k ts = and [ conv k (getFace alpha beta) (getFace beta alpha)
-                        | (alpha,beta) <- allCompatible (Map.keys ts) ]
+                        | (alpha,beta) <- allCompatible (keys ts) ]
     where getFace a b = face (ts ! a) (b `minus` a)
 
 instance Convertible Val where
@@ -555,8 +556,8 @@ instance Convertible a => Convertible [a] where
                   and [conv k u u' | (u,u') <- zip us us']
 
 instance Convertible a => Convertible (System a) where
-  conv k ts ts' = Map.keys ts == Map.keys ts' &&
-                  and (Map.elems (Map.intersectionWith (conv k) ts ts'))
+  conv k ts ts' = keys ts == keys ts' &&
+                  and (elems (intersectionWith (conv k) ts ts'))
 
 instance Convertible Formula where
   conv _ phi psi = sort (invFormula phi 1) == sort (invFormula psi 1)

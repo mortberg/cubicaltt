@@ -6,6 +6,7 @@ import Data.Maybe (fromMaybe)
 import Data.Map (Map,(!))
 import qualified Data.Map as Map
 
+
 import Connections
 import CTT
 
@@ -112,6 +113,7 @@ instance Nominal Val where
          VSplit u v        -> VSplit (sw u) (sw v)
          VGlue a ts        -> VGlue (sw a) (sw ts)
          VGlueElem a ts    -> VGlueElem (sw a) (sw ts)
+
 -----------------------------------------------------------------------
 -- The evaluator
 
@@ -274,18 +276,18 @@ transGlue i b hisos wi0 = glueElem vi1'' usi1
           Map.filterWithKey (\alpha _ -> alpha `Map.notMember` hisos) hisosI1
 
         -- set of elements in hisos independent of i
-        hisos'  = Map.filterWithKey (\alpha _ -> i `Map.notMember` alpha) hisos
+        hisos' = Map.filterWithKey (\alpha _ -> i `Map.notMember` alpha) hisos
 
-        us'    = Map.mapWithKey (\gamma _ ->
-                  transFill i (b `face` gamma) (wi0 `face` gamma))
+        us'    = Map.mapWithKey (\gamma isoG ->
+                  transFill i (hisoDom isoG) (wi0 `face` gamma))
                  hisos'
-        usi1'  = Map.mapWithKey (\gamma _ ->
-                  trans i (b `face` gamma) (wi0 `face` gamma))
+        usi1'  = Map.mapWithKey (\gamma isoG ->
+                   trans i (hisoDom isoG) (wi0 `face` gamma))
                  hisos'
 
         ls'    = Map.mapWithKey (\gamma isoG ->
-                  pathComp i (hisoDom isoG) (v `face` gamma)
-                           ((hisoFun isoG) `app` (us' ! gamma)) Map.empty)
+                   pathComp i (b `face` gamma) (v `face` gamma)
+                   ((hisoFun isoG) `app` (us' ! gamma)) Map.empty)
                  hisos'
         bi1   = b `face` (i ~> 1)
         vi1'  = compLine bi1 vi1 ls'
@@ -307,7 +309,7 @@ transGlue i b hisos wi0 = glueElem vi1'' usi1
 -- outputs u s.t. border u = us and an L-path between v and sigma u
 -- an theta is a L path if L-border theta is constant
 gradLemma :: Val -> Val -> System Val -> Val -> (Val, Val)
-gradLemma a hiso@(VPair b (VPair f (VPair g (VPair s t)))) us v = (u, VPath i theta'')
+gradLemma b hiso@(VPair a (VPair f (VPair g (VPair s t)))) us v = (u, VPath i theta'')
   where i:j:_   = freshs (a,hiso,us,v)
         us'     = Map.mapWithKey (\alpha uAlpha ->
                                    app (t `face` alpha) uAlpha @@ i) us
@@ -409,16 +411,16 @@ compGlue i b hisos wi0 ws = glueElem vi1' usi1'
         v    = fill i b vi0 vs           -- in b
         vi1  = comp i b vi0 vs           -- in b
 
-        us'    = Map.mapWithKey (\gamma _ ->
-                   fill i (b `face` gamma) (wi0 `face` gamma) (ws `face` gamma))
+        us'    = Map.mapWithKey (\gamma isoG ->
+                   fill i (hisoDom isoG) (wi0 `face` gamma) (ws `face` gamma))
                  hisos
-        usi1'  = Map.mapWithKey (\gamma _ ->
-                   comp i (b `face` gamma) (wi0 `face` gamma) (ws `face` gamma))
+        usi1'  = Map.mapWithKey (\gamma isoG ->
+                   comp i (hisoDom isoG) (wi0 `face` gamma) (ws `face` gamma))
                  hisos
 
         ls'    = Map.mapWithKey (\gamma isoG ->
-                  pathComp i (hisoDom isoG) (v `face` gamma)
-                             (hisoFun isoG `app` (us' ! gamma)) (vs `face` gamma))
+                   pathComp i isoG (v `face` gamma)
+                   (hisoFun isoG `app` (us' ! gamma)) (vs `face` gamma))
                  hisos
 
         vi1'  = compLine b vi1 ls'
@@ -442,16 +444,16 @@ pathComp i a u u' us = VPath j $ genComp i a (u `face` (i ~> 0)) us'
 
 -------------------------------------------------------------------------------
 -- | Glue
--- 
--- An hiso for a type a is a five-tuple: (b,f,g,r,s)   where
---  b : U
---  f : b -> a
---  g : a -> b
---  s : forall (y : a), f (g y) = y
---  t : forall (x : b), g (f x) = x
+--
+-- An hiso for a type b is a five-tuple: (a,f,g,r,s)   where
+--  a : U
+--  f : a -> b
+--  g : b -> a
+--  s : forall (y : b), f (g y) = y
+--  t : forall (x : a), g (f x) = x
 
 hisoDom :: Val -> Val
-hisoDom (VPair b _) = b
+hisoDom (VPair a _) = a
 hisoDom x           = error $ "HisoDom: Not an hiso: " ++ show x
 
 hisoFun :: Val -> Val

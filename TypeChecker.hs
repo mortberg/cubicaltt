@@ -198,10 +198,9 @@ checkGlueElem vu ts us = do
   unless (Map.keys ts == Map.keys us)
     (throwError ("Keys don't match in " ++ show ts ++ " and " ++ show us))
   rho <- asks env
-  k <- asks index
+  k   <- asks index
   sequence_ $ Map.elems $ Map.intersectionWithKey
     (\alpha vt u -> check (hisoDom vt) u) ts us
-    
   let vus = evalSystem rho us
   sequence_ $ Map.elems $ Map.intersectionWithKey
     (\alpha vt vAlpha -> do
@@ -220,19 +219,19 @@ checkGlue va ts = do
   unless (isCompSystem k (evalSystem rho ts))
     (throwError ("Incompatible system " ++ show ts))
 
--- An hiso for a type a is a five-tuple: (b,f,g,r,s)   where
---  b : U
---  f : b -> a
---  g : a -> b
---  s : forall (y : a), f (g y) = y
---  t : forall (x : b), g (f x) = x
+-- An hiso for a type b is a five-tuple: (a,f,g,r,s)   where
+--  a : U
+--  f : a -> b
+--  g : b -> a
+--  s : forall (y : b), f (g y) = y
+--  t : forall (x : a), g (f x) = x
 checkIso :: Val -> Ter -> Typing ()
-checkIso va (Pair b (Pair f (Pair g (Pair s t)))) = do
-  check VU b
+checkIso vb (Pair a (Pair f (Pair g (Pair s t)))) = do
+  check VU a
   rho <- asks env
-  let vb = eval rho b
-  check (mkFun vb va) f
-  check (mkFun va vb) g
+  let va = eval rho a
+  check (mkFun va vb) f
+  check (mkFun vb va) g
   let vf = eval rho f
       vg = eval rho g
   check (mkSection va vb vf vg) s
@@ -243,11 +242,11 @@ mkFun va vb = VPi va (eval rho (Lam "_" (Var "a") (Var "b")))
   where rho = Upd (Upd Empty ("a",va)) ("b",vb)
 
 mkSection :: Val -> Val -> Val -> Val -> Val
-mkSection va _ vf vg =
-  VPi va (eval rho (Lam "y" a (IdP (Path (Name "_") a) (App f (App g y)) y)))
-  where [a,y,f,g] = map Var ["a","y","f","g"]
-        rho = Upd (Upd (Upd Empty ("a",va)) ("f",vf)) ("g",vg)
-  
+mkSection _ vb vf vg =
+  VPi vb (eval rho (Lam "y" b (IdP (Path (Name "_") b) (App f (App g y)) y)))
+  where [b,y,f,g] = map Var ["b","y","f","g"]
+        rho = Upd (Upd (Upd Empty ("b",vb)) ("f",vf)) ("g",vg)
+
 checkBranch :: (Tele,Env) -> Val -> Branch -> Typing ()
 checkBranch (xas,nu) f (c,(xs,e)) = do
   k   <- asks index

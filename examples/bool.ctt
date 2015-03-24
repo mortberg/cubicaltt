@@ -13,7 +13,7 @@ negK : (b : bool) -> Id bool (neg (neg b)) b = split
   false -> refl bool false
 
 negEq : Id U bool bool =
-  <i> glue bool [ (i = 0) -> (bool,(neg,(neg,(negK,negK)))) ]
+  <i> glue bool [ (i = 0) -> (bool,neg,neg,negK,negK) ]
 
 test : bool = transport negEq true
 
@@ -37,7 +37,7 @@ boolToF2K : (b : bool) -> Id bool (f2ToBool (boolToF2 b)) b = split
 
 boolEqF2 : Id U bool F2 =
  -- <i> glue F2 [ (i = 0) -> (bool,(boolToF2,(f2ToBool,(f2ToBoolK,boolToF2K))))]
-  isoId bool F2 boolToF2 f2ToBool f2ToBoolK boolToF2K
+ isoId bool F2 boolToF2 f2ToBool f2ToBoolK boolToF2K
   
 negF2 : F2 -> F2 = subst U (\(X : U) -> (X -> X)) bool F2 boolEqF2 neg
 

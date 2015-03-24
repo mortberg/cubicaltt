@@ -39,8 +39,9 @@ Comp.       Exp3 ::= "comp" ;
 Glue.       Exp3 ::= "glue" ;
 GlueElem.   Exp3 ::= "glueElem" ;
 System.     Exp3 ::= "[" [Side] "]" ;
-Pair.       Exp3 ::= "(" Exp "," Exp ")" ;
+Pair.       Exp3 ::= "(" Exp "," [Exp] ")" ;
 coercions Exp 3 ;
+separator nonempty Exp "," ;
 
 Dir0.       Dir ::= "0" ;
 Dir1.       Dir ::= "1" ;

@@ -204,7 +204,10 @@ resolveExp e = case e of
     lams tele (resolveExp t)
   Fst t         -> CTT.Fst <$> resolveExp t
   Snd t         -> CTT.Snd <$> resolveExp t
-  Pair t0 t1    -> CTT.Pair <$> resolveExp t0 <*> resolveExp t1
+  Pair t0 ts    -> do
+    e  <- resolveExp t0
+    es <- mapM resolveExp ts
+    return $ foldr1 CTT.Pair (e:es)
   Let decls e   -> do
     (rdecls,names) <- resolveDecls decls
     CTT.mkWheres rdecls <$> local (insertIdents names) (resolveExp e)

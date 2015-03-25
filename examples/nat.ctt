@@ -1,5 +1,7 @@
 module nat where
 
+import prelude
+
 data nat = zero | suc (n : nat)
 
 zero' : nat = zero

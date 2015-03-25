@@ -253,18 +253,19 @@ resolveFormula (Conj phi psi) = C.andFormula <$> resolveFormula phi
 resolveFormula (Disj phi psi) = C.orFormula <$> resolveFormula phi
                                 <*> resolveFormula psi
 
-resolveBranch :: Branch -> Resolver (CTT.Label,([CTT.Label],Ter))
+resolveBranch :: Branch -> Resolver CTT.Branch
 resolveBranch (Branch (AIdent (_,lbl)) args e) = do
     re      <- local (insertAIdents args) $ resolveWhere e
-    return (lbl, (map unAIdent args, re))
+    return $ CTT.OBranch lbl (map unAIdent args) re
 
 resolveTele :: [(Ident,Exp)] -> Resolver CTT.Tele
 resolveTele []        = return []
 resolveTele ((i,d):t) =
   ((i,) <$> resolveExp d) <:> local (insertVar i) (resolveTele t)
 
-resolveLabel :: Label -> Resolver (CTT.Label,CTT.Tele)
-resolveLabel (Label n vdecl) = (unAIdent n,) <$> resolveTele (flattenTele vdecl)
+resolveLabel :: Label -> Resolver CTT.Label -- (CTT.LIdent,CTT.Tele)
+resolveLabel (Label n vdecl) =
+  CTT.OLabel (unAIdent n) <$> resolveTele (flattenTele vdecl)
 
 declsLabels :: [Decl] -> [Ident]
 declsLabels decls = map unAIdent [ lbl | Label lbl _ <- sums ]

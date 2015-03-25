@@ -17,16 +17,20 @@ data Loc = Loc { locFile :: String
   deriving Eq
 
 type Ident  = String
-type Label  = String
-
--- Branch of the form: c x1 .. xn -> e
-type Branch = (Label,([Ident],Ter))
+type LIdent = String
 
 -- Telescope (x1 : A1) .. (xn : An)
 type Tele   = [(Ident,Ter)]
 
--- Labelled sum: c (x1 : A1) .. (xn : An)
-type LblSum = [(Ident,Tele)]
+data Label = OLabel LIdent Tele -- Object label
+           | PLabel LIdent Tele Ter Ter -- Path label
+  deriving (Eq,Show)
+
+-- OBranch of the form: c x1 .. xn -> e
+-- PBranch of the form: c x1 .. xn i -> e
+data Branch = OBranch LIdent [Ident] Ter
+            | PBranch LIdent [Ident] Name Ter
+  deriving (Eq,Show)
 
 -- Declarations: x : A = e
 type Decl   = (Ident,(Ter,Ter))
@@ -43,6 +47,31 @@ declTele decls = [ (x,t) | (x,(t,_)) <- decls ]
 declDefs :: [Decl] -> [(Ident,Ter)]
 declDefs decls = [ (x,d) | (x,(_,d)) <- decls ]
 
+labelTele :: Label -> (LIdent,Tele)
+labelTele (OLabel c ts) = (c,ts)
+labelTele (PLabel c ts _ _) = (c,ts)
+
+labelName :: Label -> LIdent
+labelName = fst . labelTele
+
+labelTeles :: [Label] -> [(LIdent,Tele)]
+labelTeles = map labelTele
+
+lookupLabel :: LIdent -> [Label] -> Maybe Tele
+lookupLabel x xs = lookup x (labelTeles xs)
+
+branchName :: Branch -> LIdent
+branchName (OBranch c _ _) = c
+branchName (PBranch c _ _ _) = c
+
+lookupBranch :: LIdent -> [Branch] -> Maybe Branch
+lookupBranch _ []      = Nothing
+lookupBranch x (b:brs) = case b of
+  OBranch c _ _   | x == c    -> Just b
+                  | otherwise -> lookupBranch x brs
+  PBranch c _ _ _ | x == c    -> Just b
+                  | otherwise -> lookupBranch x brs
+
 -- Terms
 data Ter = App Ter Ter
          | Pi Ter
@@ -56,11 +85,12 @@ data Ter = App Ter Ter
          | Fst Ter
          | Snd Ter
            -- constructor c Ms
-         | Con Label [Ter]
+         | Con LIdent [Ter]
+         | PCon LIdent [Ter] Formula Ter Ter -- c ts phi @ t0 ~ t1
            -- branches c1 xs1  -> M1,..., cn xsn -> Mn
          | Split Loc Ter [Branch]
            -- labelled sum c1 A1s,..., cn Ans (assumes terms are constructors)
-         | Sum Loc Ident LblSum
+         | Sum Loc Ident [Label]
            -- undefined
          | Undef Loc
 
@@ -102,7 +132,10 @@ data Val = VU
          | VPi Val Val
          | VSigma Val Val
          | VPair Val Val
-         | VCon Label [Val]
+         | VCon LIdent [Val]
+           -- The Formula is the direction of the equality in VPCon
+         | VPCon LIdent [Val] Formula Val Val
+
 
            -- Id values
          | VIdP Val Val Val
@@ -172,6 +205,10 @@ unCon :: Val -> [Val]
 unCon (VCon _ vs) = vs
 -- unCon (KanUElem _ u) = unCon u
 unCon v           = error $ "unCon: not a constructor: " ++ show v
+
+isCon :: Val -> Bool
+isCon VCon{} = True
+isCon _      = False
 
 --------------------------------------------------------------------------------
 -- | Environments
@@ -257,6 +294,8 @@ showTer v = case v of
   Where e d          -> showTer e <+> text "where" <+> showDecls d
   Var x              -> text x
   Con c es           -> text c <+> showTers es
+  PCon c es phi t0 t1 -> text c <+> showTers es <+> showFormula phi <+>
+                         char '@' <+> showTer t0 <+> char '~' <+> showTer t1
   Split l _ _        -> text "split" <+> showLoc l
   Sum _ n _          -> text "sum" <+> text n
   Undef _            -> text "undefined"
@@ -292,11 +331,13 @@ showDecls defs = hsep $ punctuate comma
 instance Show Val where
   show = render . showVal
 
-showVal, showVal1 :: Val -> Doc
+showVal :: Val -> Doc
 showVal v = case v of
   VU                -> char 'U'
   Ter t env         -> showTer t <+> showEnv env
   VCon c us         -> text c <+> showVals us
+  VPCon c us phi v0 v1 -> text c <+> showVals us <+> showFormula phi <+>
+                          char '@' <+> showVal v0 <+> char '~' <+> showVal v1
   VPi a b           -> text "Pi" <+> showVals [a,b]
   VPair u v         -> parens (showVal1 u <> comma <> showVal1 v)
   VSigma u v        -> text "Sigma" <+> showVals [u,v]
@@ -317,6 +358,7 @@ showVal v = case v of
   VElimComp a es t    -> text "elimComp" <+> showVal1 a <+> text (showSystem es)
                          <+> showVal1 t
 
+showVal1 :: Val -> Doc
 showVal1 v = case v of
   VU        -> char 'U'
   VCon c [] -> text c

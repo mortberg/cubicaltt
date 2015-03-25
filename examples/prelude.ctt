@@ -41,7 +41,6 @@ isoId (A B : U) (f : A -> B) (g : B -> A)
       (t : (x:A) -> Id A (g (f x)) x) : Id U A B =
       <i> glue B [ (i = 0) -> (A,f,g,s,t) ]
 
-
 --         u
 --    a0 ----- a1
 --    |        |

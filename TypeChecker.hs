@@ -86,7 +86,7 @@ runInfer lenv e = runTyping lenv (infer e)
 
 -- Extract the type of a label as a closure
 getLblType :: String -> Val -> Typing (Tele, Env)
-getLblType c (Ter (Sum _ _ cas) r) = case lookup c cas of
+getLblType c (Ter (Sum _ _ cas) r) = case lookupLabel c cas of
   Just as -> return (as,r)
   Nothing -> throwError ("getLblType: " ++ show c)
 getLblType c u = throwError ("expected a data type for the constructor "
@@ -134,19 +134,25 @@ check a t = case (a,t) of
   (_,Con c es) -> do
     (bs,nu) <- getLblType c a
     checks (bs,nu) es
+    -- TODO: Add PCon
   (VU,Pi f) -> checkFam f
   (VU,Sigma f) -> checkFam f
-  (VU,Sum _ _ bs) -> sequence_ [checkTele as | (_,as) <- bs]
+  (VU,Sum _ _ bs) -> forM_ bs $ \lbl -> case lbl of
+    OLabel _ tele -> checkTele tele
+    PLabel n tele t0 t1 -> do
+      checkTele tele
+      rho <- asks env
+      localM (addTele tele) $ do
+        check (Ter t rho) t0
+        check (Ter t rho) t1
   (VPi (Ter (Sum _ _ cas) nu) f,Split _ f' ces) -> do
     checkFam f'
     k <- asks index
     rho <- asks env
     unless (conv k f (eval rho f')) $ throwError "check: split annotations"
-    let cas' = sortBy (compare `on` fst) cas
-        ces' = sortBy (compare `on` fst) ces
-    if map fst cas' == map fst ces'
-       then sequence_ [ checkBranch (as,nu) f brc
-                      | (brc, (_,as)) <- zip ces' cas' ]
+    if map labelName cas == map branchName ces
+       then sequence_ [ checkBranch (lbl,nu) f brc (Ter t rho)
+                      | (brc, lbl) <- zip ces cas ]
        else throwError "case branches does not match the data type"
   (VPi a f,Lam x a' t)  -> do
     check VU a'
@@ -250,17 +256,32 @@ mkSection _ vb vf vg =
   where [b,y,f,g] = map Var ["b","y","f","g"]
         rho = Upd (Upd (Upd Empty ("b",vb)) ("f",vf)) ("g",vg)
 
-checkBranch :: (Tele,Env) -> Val -> Branch -> Typing ()
-checkBranch (xas,nu) f (c,(xs,e)) = do
-  k   <- asks index
-  env <- asks env
-  let us = mkVars k xas nu
-  local (addBranch (zip xs us) (xas,nu)) $ check (app f (VCon c us)) e
+checkBranch :: (Label,Env) -> Val -> Branch -> Val -> Typing ()
+checkBranch (OLabel _ tele,nu) f (OBranch c ns e) _ = do
+  k <- asks index
+  let us = map snd $ mkVars k tele nu
+  local (addBranch (zip ns us) (tele,nu)) $ check (app f (VCon c us)) e
+checkBranch (PLabel _ tele t0 t1,nu) f (PBranch c ns i e) g = do
+  k <- asks index
+  let us  = mkVars k tele nu
+      vus = map snd us
+      vt0 = eval (upds nu us) t0
+      vt1 = eval (upds nu us) t1
+  checkFresh i
+  local (addBranch (zip ns vus) (tele,nu)) $ do
+    local (addSub (i,Atom i))
+      (check (app f (VPCon c vus (Atom i) vt0 vt1)) e)
+    rho <- asks env
+    k' <- asks index
+    unless (conv k' (eval (Sub rho (i,Dir 0)) e) (app g vt0) &&
+            conv k' (eval (Sub rho (i,Dir 1)) e) (app g vt1)) $
+      throwError "Endpoints of branch don't match"
 
+mkVars :: Int -> Tele -> Env -> [(Ident,Val)]
 mkVars k [] _ = []
 mkVars k ((x,a):xas) nu =
   let w = mkVar k (eval nu a)
-  in w : mkVars (k+1) xas (Upd nu (x,w))
+  in (x,w) : mkVars (k+1) xas (Upd nu (x,w))
 
 checkFormula :: Formula -> Typing ()
 checkFormula phi = do
@@ -389,12 +410,18 @@ checkPathSystem t0 va ps = do
 --inferCompElem :: Ter -> System Ter
 
 
+checkFresh :: Name -> Typing ()
+checkFresh i = do
+  rho <- asks env
+  when (i `elem` support rho)
+    (throwError $ show i ++ " is already declared")
+
+
 -- Check that a term is a path and output the source and target
 checkPath :: Val -> Ter -> Typing (Val,Val)
 checkPath v (Path i a) = do
   rho <- asks env
-  when (i `elem` support rho)
-    (throwError $ show i ++ " is already declared")
+  checkFresh i
   local (addSub (i,Atom i)) $ check (v @@ i) a
   return (eval (Sub rho (i,Dir 0)) a,eval (Sub rho (i,Dir 1)) a)
 checkPath v t = do

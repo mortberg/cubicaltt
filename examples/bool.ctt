@@ -3,15 +3,15 @@ module bool where
 import prelude
 import nat
 
-data bool = true | false
+data bool = false | true
 
 neg : bool -> bool = split
-  true  -> false
   false -> true
+  true  -> false
 
 negK : (b : bool) -> Id bool (neg (neg b)) b = split
-  true -> refl bool true
   false -> refl bool false
+  true -> refl bool true
 
 negEq : Id U bool bool =
   <i> glue bool [ (i = 0) -> (bool,neg,neg,negK,negK) ]
@@ -92,3 +92,6 @@ test8 : Id U F2 F2 =
 
 test9 : Id U F2 F2 =
   transport (<i> Id U (boolEqF2 @ i) (boolEqF2 @ i)) (refl U bool)
+
+p : Id U F2 bool = <i> comp U bool [ (i = 0) -> boolEqF2 ]
+q : Id U F2 F2 = <i> p @ (i /\ - i)

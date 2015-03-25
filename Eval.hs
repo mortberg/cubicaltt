@@ -57,6 +57,7 @@ instance Nominal Val where
   support (VFst u)              = support u
   support (VSnd u)              = support u
   support (VCon _ vs)           = support vs
+  support (VPCon _ vs phi u v)  = support (vs,phi,u,v)
   support (VVar _ v)            = support v
   support (VApp u v)            = support (u,v)
   support (VAppFormula u phi)   = support (u,phi)
@@ -86,6 +87,8 @@ instance Nominal Val where
          VFst u     -> VFst (acti u)
          VSnd u     -> VSnd (acti u)
          VCon c vs  -> VCon c (acti vs)
+         VPCon c vs phi u0 u1 ->
+           pcon c (acti vs) (acti phi) (acti u0) (acti u1)
          VVar x v   -> VVar x (acti v)
          VAppFormula u psi -> acti u @@ acti psi
          VApp u v   -> app (acti u) (acti v)
@@ -112,6 +115,7 @@ instance Nominal Val where
          VFst u       -> VFst (sw u)
          VSnd u       -> VSnd (sw u)
          VCon c vs    -> VCon c (sw vs)
+         VPCon c vs phi u0 u1 -> VPCon c (sw vs) (sw phi) (sw u0) (sw u1)
          VVar x v            -> VVar x (sw v)
          VAppFormula u psi   -> VAppFormula (sw u) (sw psi)
          VApp u v            -> VApp (sw u) (sw v)
@@ -137,6 +141,8 @@ eval rho v = case v of
   Snd a               -> sndVal (eval rho a)
   Where t decls       -> eval (Def decls rho) t
   Con name ts         -> VCon name (map (eval rho) ts)
+  PCon name ts phi t0 t1 -> pcon name (map (eval rho) ts) (evalFormula rho phi)
+                                 (eval rho t0) (eval rho t1)
   Split{}             -> Ter v rho
   Sum{}               -> Ter v rho
   Undef l             -> error $ "eval: undefined at " ++ show l
@@ -175,11 +181,23 @@ evalSystem rho ts =
 -- TODO: Write using case-of
 app :: Val -> Val -> Val
 app (Ter (Lam x _ t) e) u                  = eval (Upd e (x,u)) t
-app (Ter (Split _ _ nvs) e) (VCon name us) = case lookup name nvs of
-  Just (xs,t) -> eval (upds e (zip xs us)) t
-  Nothing     -> error $ "app: Split with insufficient arguments; " ++
-                         " missing case for " ++ name
+app (Ter (Split _ _ nvs) e) (VCon c us) = case lookupBranch c nvs of
+  Just (OBranch _ xs t) -> eval (upds e (zip xs us)) t
+  _     -> error $ "app: Split with insufficient arguments; " ++
+                   " missing case for " ++ c
 app u@(Ter (Split _ _ _) _) v | isNeutral v = VSplit u v
+app (Ter (Split _ _ nvs) e) (VPCon c us phi _ _) = case lookupBranch c nvs of
+  Just (PBranch _ xs i t) -> eval (Sub (upds e (zip xs us)) (i,phi)) t
+  _ -> error ("app: Split with insufficient arguments; " ++
+              " missing case for " ++ c)
+app u@(Ter (Split _ f hbr) e) kan@(VComp v w ws) =
+  let j   = fresh (e,kan)
+      wsj = Map.map (@@ j) ws
+      ws' = mapWithKey (\alpha -> app (u `face` alpha)) wsj
+      w'  = app u w
+      ffill = app (eval e f) (fill j v w wsj)
+  in genComp j ffill w' ws'
+
 app kan@(VTrans (VPath i (VPi a f)) li0) ui1 =
     let j   = fresh (kan,ui1)
         (aj,fj) = (a,f) `swap` (i,j)
@@ -221,6 +239,8 @@ inferType v = case v of
     VIdP a _ _ -> a @@ phi
     ty         -> error $ "inferType: expected IdP type for " ++ show v
                   ++ ", got " ++ show ty
+  VComp a _ _ -> a
+  VTrans a _  -> a @@ One
   _ -> error $ "inferType: not neutral " ++ show v
 
 (@@) :: ToFormula a => Val -> a -> Val
@@ -231,6 +251,11 @@ v @@ phi | isNeutral v = case (inferType v,toFormula phi) of
   (VIdP  _ _ a1,Dir 1) -> a1
   _  -> VAppFormula v (toFormula phi)
 v @@ phi = error $ "(@@): " ++ show v ++ " should be neutral."
+
+pcon :: LIdent -> [Val] -> Formula -> Val -> Val -> Val
+pcon c us (Dir 0) u0 _ = u0
+pcon c us (Dir 1) _ u1 = u1
+pcon c us phi u0 u1    = VPCon c us phi u0 u1
 
 -----------------------------------------------------------
 -- Transport
@@ -257,10 +282,22 @@ trans i v0 v1 = case (v0,v1) of
         comp_u2 = trans i (app f fill_u1) u2
     in VPair ui1 comp_u2
   (VPi{},_) -> VTrans (VPath i v0) v1
-  (Ter (Sum _ _ nass) env,VCon n us) -> case lookup n nass of
-    Just as -> VCon n $ transps i as env us
-    Nothing -> error $ "comp: missing constructor in labelled sum " ++ n ++ " v0 = " ++ show v0
+  (Ter (Sum _ _ nass) env,VCon c us) -> case lookupLabel c nass of
+    Just as -> VCon c $ transps i as env us
+    Nothing -> error $ "trans: missing constructor " ++ c ++ " in " ++ show v0
+  (Ter (Sum _ _ nass) env,VPCon c ws0 phi e0 e1) -> case lookupLabel c nass of
+    -- v1 should be independent of i, so i # phi
+    Just as -> -- the endpoints should be correct because of restrictions on HITs
+               VPCon c (transps i as env ws0) phi (trans i v0 e0) (trans i v0 e1)
+    Nothing -> error $ "trans: missing path constructor " ++ c ++
+                       " in " ++ show v0
   _ | isNeutral v0 || isNeutral v1 -> VTrans (VPath i v0) v1
+  (Ter (Sum _ _ nass) env,VComp b w ws) -> comp k v01 (trans i v0 w) ws'
+    where v01 = v0 `face` (i ~> 1)  -- b is vi0 and independent of j
+          k   = fresh (v0,v1,Atom i)
+          transp alpha w = trans i (v0 `face` alpha) (w @@ k)
+          ws'          = mapWithKey transp ws
+
   (VGlue a ts,_)    -> transGlue i a ts v1
   (VComp VU a es,_) -> transU i a es v1
   _ | otherwise -> error $ "trans not implemented for v0 = " ++ show v0
@@ -404,12 +441,15 @@ comp i a u ts = let j = fresh (Atom i,a,u,ts) -- maybe only in vid??
   VGlue b hisos -> compGlue i b hisos u ts
   VComp VU a es -> compU i a es u ts
   Ter (Sum _ _ nass) env -> case u of
-    VCon n us -> case lookup n nass of
-      Just as -> VCon n $ comps i as env tsus
-        where tsus = transposeSystemAndList (Map.map unCon ts) us
+    VCon n us -> case lookupLabel n nass of
+      Just as ->
+        if all isCon (elems ts)
+           then let tsus = transposeSystemAndList (Map.map unCon ts) us
+                in VCon n $ comps i as env tsus
+           else VComp a u (Map.map (VPath i) ts)
       Nothing -> error $ "comp: missing constructor in labelled sum " ++ n
+    VPCon{} -> VComp a u (Map.map (VPath i) ts)
     _ -> error "comp ter sum"
-
 
 compNeg :: Name -> Val -> Val -> System Val -> Val
 compNeg i a u ts = comp i a u (ts `sym` i)

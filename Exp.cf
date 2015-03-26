@@ -31,6 +31,7 @@ App.        Exp2 ::= Exp2 Exp3 ;
 Var.        Exp3 ::= AIdent ;
 AppFormula. Exp3 ::= Exp3 "@" Formula ;
 U.          Exp3 ::= "U" ;
+PCon.       Exp3 ::= AIdent "{" Exp "}" ; -- c{T A B} x1 x2 @ phi
 Fst.        Exp3 ::= Exp3 ".1" ;
 Snd.        Exp3 ::= Exp3 ".2" ;
 IdP.        Exp3 ::= "IdP" ;
@@ -62,11 +63,13 @@ Dir.      Formula2 ::= Dir ;
 coercions Formula 2 ;
 
 -- Branches
-Branch.   Branch ::= AIdent [AIdent] "->" ExpWhere ;
+OBranch.   Branch ::= AIdent [AIdent] "->" ExpWhere ;
+PBranch.   Branch ::= AIdent [AIdent] "@" AIdent "->" ExpWhere ;
 separator Branch ";" ;
 
 -- Labelled sum alternatives
-Label.    Label   ::= AIdent [Tele] ;
+OLabel.   Label ::= AIdent [Tele] ;
+PLabel.   Label ::= AIdent [Tele] "@" Exp "~" Exp ;
 separator Label "|" ;
 
 -- Telescopes

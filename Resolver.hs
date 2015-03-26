@@ -66,7 +66,7 @@ flattenPTele (PTele exp typ : xs) = case appsToIdents exp of
 -------------------------------------------------------------------------------
 -- | Resolver and environment
 
-data SymKind = Variable | Constructor | Name
+data SymKind = Variable | Constructor | PConstructor | Name
   deriving (Eq,Show)
 
 -- local environment for constructors
@@ -138,6 +138,7 @@ resolveVar (AIdent (l,x))
     case lookup x vars of
       Just Variable    -> return $ CTT.Var x
       Just Constructor -> return $ CTT.Con x []
+      Just PConstructor -> undefined -- error!
       Just Name        ->
         throwError $ "Name " ++ x ++ " used as a variable at position " ++
                      show l ++ " in module " ++ modName
@@ -220,7 +221,13 @@ resolveExp e = case e of
     (rdecls,names) <- resolveDecls decls
     CTT.mkWheres rdecls <$> local (insertIdents names) (resolveExp e)
   Path is e     -> paths is (resolveExp e)
-  AppFormula e phi -> CTT.AppFormula <$> resolveExp e <*> resolveFormula phi
+  AppFormula e phi ->
+    let (x,xs) = unApps e []
+    in case x of
+      PCon n a -> CTT.PCon (unAIdent n) <$> resolveExp a
+                                        <*> mapM resolveExp xs
+                                        <*> resolveFormula phi
+      _ -> CTT.AppFormula <$> resolveExp e <*> resolveFormula phi
   _             -> do
     modName <- asks envModule
     throwError ("Could not resolve " ++ show e ++ " in module " ++ modName)
@@ -254,22 +261,25 @@ resolveFormula (Disj phi psi) = C.orFormula <$> resolveFormula phi
                                 <*> resolveFormula psi
 
 resolveBranch :: Branch -> Resolver CTT.Branch
-resolveBranch (Branch (AIdent (_,lbl)) args e) = do
-    re      <- local (insertAIdents args) $ resolveWhere e
-    return $ CTT.OBranch lbl (map unAIdent args) re
+resolveBranch (OBranch (AIdent (_,lbl)) args e) = do
+  re <- local (insertAIdents args) $ resolveWhere e
+  return $ CTT.OBranch lbl (map unAIdent args) re
+resolveBranch (PBranch (AIdent (_,lbl)) args i e) = do
+  re <- local (insertName i . insertAIdents args) $ resolveWhere e
+  return $ CTT.PBranch lbl (map unAIdent args) (C.Name $ unAIdent i) re
 
 resolveTele :: [(Ident,Exp)] -> Resolver CTT.Tele
 resolveTele []        = return []
 resolveTele ((i,d):t) =
   ((i,) <$> resolveExp d) <:> local (insertVar i) (resolveTele t)
 
-resolveLabel :: Label -> Resolver CTT.Label -- (CTT.LIdent,CTT.Tele)
-resolveLabel (Label n vdecl) =
+resolveLabel :: [(Ident,SymKind)] -> Label -> Resolver CTT.Label
+resolveLabel _ (OLabel n vdecl) =
   CTT.OLabel (unAIdent n) <$> resolveTele (flattenTele vdecl)
-
-declsLabels :: [Decl] -> [Ident]
-declsLabels decls = map unAIdent [ lbl | Label lbl _ <- sums ]
-  where sums = concat [ sum | DeclData _ _ sum <- decls ]
+resolveLabel cs (PLabel n vdecl t0 t1) =
+  CTT.PLabel (unAIdent n) <$> resolveTele (flattenTele vdecl)
+                          <*> local (insertIdents cs) (resolveExp t0)
+                          <*> local (insertIdents cs) (resolveExp t1)
 
 piToFam :: Exp -> Resolver Ter
 piToFam (Fun a b)    = lam ("_",a) $ resolveExp b
@@ -287,11 +297,12 @@ resolveDecl d = case d of
     return ((f,(a,d)),[(f,Variable)])
   DeclData (AIdent (l,f)) tele sums -> do
     let tele' = flattenTele tele
-    a  <- binds CTT.Pi tele' (return CTT.U)
-    d  <- lams tele' $ local (insertVar f) $
-            CTT.Sum <$> getLoc l <*> pure f <*> mapM resolveLabel sums
-    let cs = map unAIdent [ lbl | Label lbl _ <- sums ]
-    return ((f,(a,d)),(f,Variable):map (,Constructor) cs)
+    a <- binds CTT.Pi tele' (return CTT.U)
+    let cs  = [ (unAIdent lbl,Constructor) | OLabel lbl _ <- sums ]
+    d <- lams tele' $ local (insertVar f) $
+            CTT.Sum <$> getLoc l <*> pure f <*> mapM (resolveLabel cs) sums
+    let pcs = [ (unAIdent lbl,PConstructor) | PLabel lbl _ _ _ <- sums ]
+    return ((f,(a,d)),(f,Variable):cs ++ pcs)
   DeclSplit (AIdent (l,f)) tele t brs -> do
     let tele' = flattenTele tele
     loc  <- getLoc l
@@ -299,7 +310,7 @@ resolveDecl d = case d of
     let vars = map fst tele'
     fam  <- local (insertVars vars) $ piToFam t
     brs' <- local (insertVars (f:vars)) (mapM resolveBranch brs)
-    body <- lams tele' (return $ CTT.Split loc fam brs')
+    body <- lams tele' (return $ CTT.Split f loc fam brs')
     return ((f,(a,body)),[(f,Variable)])
 
 resolveDecls :: [Decl] -> Resolver ([[CTT.Decl]],[(Ident,SymKind)])

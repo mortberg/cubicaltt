@@ -60,6 +60,9 @@ labelTeles = map labelTele
 lookupLabel :: LIdent -> [Label] -> Maybe Tele
 lookupLabel x xs = lookup x (labelTeles xs)
 
+lookupPLabel :: LIdent -> [Label] -> Maybe (Tele,Ter,Ter)
+lookupPLabel x xs = listToMaybe [ (ts,t0,t1) | PLabel y ts t0 t1 <- xs, x == y ]
+
 branchName :: Branch -> LIdent
 branchName (OBranch c _ _) = c
 branchName (PBranch c _ _ _) = c
@@ -86,9 +89,9 @@ data Ter = App Ter Ter
          | Snd Ter
            -- constructor c Ms
          | Con LIdent [Ter]
-         | PCon LIdent [Ter] Formula Ter Ter -- c ts phi @ t0 ~ t1
+         | PCon LIdent Ter [Ter] Formula -- c A ts phi (A is the data type)
            -- branches c1 xs1  -> M1,..., cn xsn -> Mn
-         | Split Loc Ter [Branch]
+         | Split Ident Loc Ter [Branch]
            -- labelled sum c1 A1s,..., cn Ans (assumes terms are constructors)
          | Sum Loc Ident [Label]
            -- undefined
@@ -134,8 +137,7 @@ data Val = VU
          | VPair Val Val
          | VCon LIdent [Val]
            -- The Formula is the direction of the equality in VPCon
-         | VPCon LIdent [Val] Formula Val Val
-
+         | VPCon LIdent Val [Val] Formula
 
            -- Id values
          | VIdP Val Val Val
@@ -222,6 +224,9 @@ data Env = Empty
 upds :: Env -> [(Ident,Val)] -> Env
 upds = foldl Upd
 
+updsTele :: Env -> Tele -> [Val] -> Env
+updsTele rho tele vs = upds rho (zip (map fst tele) vs)
+
 mapEnv :: (Val -> Val) -> (Formula -> Formula) -> Env -> Env
 mapEnv f g e = case e of
   Empty         -> Empty
@@ -290,14 +295,14 @@ showTer v = case v of
   Fst e              -> showTer e <> text ".1"
   Snd e              -> showTer e <> text ".2"
   Sigma e0           -> text "Sigma" <+> showTer e0
-  Pair e0 e1         -> parens (showTer1 e0 <> comma <> showTer1 e1)
+  Pair e0 e1         -> parens (showTer e0 <> comma <> showTer e1)
   Where e d          -> showTer e <+> text "where" <+> showDecls d
   Var x              -> text x
   Con c es           -> text c <+> showTers es
-  PCon c es phi t0 t1 -> text c <+> showTers es <+> showFormula phi <+>
-                         char '@' <+> showTer t0 <+> char '~' <+> showTer t1
-  Split l _ _        -> text "split" <+> showLoc l
-  Sum _ n _          -> text "sum" <+> text n
+  PCon c a es phi    -> text c <+> char '{' <+> showTer a <+> char '}' <+>
+                         showTers es <+> showFormula phi
+  Split f _ _ _      -> text f
+  Sum _ n _          -> text n
   Undef _            -> text "undefined"
   IdP e0 e1 e2       -> text "IdP" <+> showTers [e0,e1,e2]
   Path i e           -> char '<' <> text (show i) <> char '>' <+> showTer e
@@ -336,10 +341,10 @@ showVal v = case v of
   VU                -> char 'U'
   Ter t env         -> showTer t <+> showEnv env
   VCon c us         -> text c <+> showVals us
-  VPCon c us phi v0 v1 -> text c <+> showVals us <+> showFormula phi <+>
-                          char '@' <+> showVal v0 <+> char '~' <+> showVal v1
+  VPCon c a us phi  -> text c <+> char '{' <+> showVal a <+> char '}' <+>
+                       showVals us <+> showFormula phi
   VPi a b           -> text "Pi" <+> showVals [a,b]
-  VPair u v         -> parens (showVal1 u <> comma <> showVal1 v)
+  VPair u v         -> parens (showVal u <> comma <> showVal v)
   VSigma u v        -> text "Sigma" <+> showVals [u,v]
   VApp u v          -> showVal u <+> showVal1 v
   VSplit u v        -> showVal u <+> showVal1 v
@@ -363,6 +368,7 @@ showVal1 v = case v of
   VU        -> char 'U'
   VCon c [] -> text c
   VVar{}    -> showVal v
+  Ter t@Sum{} _ -> showTer t
   _         -> parens (showVal v)
 
 showVals :: [Val] -> Doc

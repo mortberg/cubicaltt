@@ -134,7 +134,6 @@ check a t = case (a,t) of
   (_,Con c es) -> do
     (bs,nu) <- getLblType c a
     checks (bs,nu) es
-    -- TODO: Add PCon
   (VU,Pi f) -> checkFam f
   (VU,Sigma f) -> checkFam f
   (VU,Sum _ _ bs) -> forM_ bs $ \lbl -> case lbl of
@@ -145,13 +144,13 @@ check a t = case (a,t) of
       localM (addTele tele) $ do
         check (Ter t rho) t0
         check (Ter t rho) t1
-  (VPi (Ter (Sum _ _ cas) nu) f,Split _ f' ces) -> do
+  (VPi va@(Ter (Sum _ _ cas) nu) f,Split _ _ f' ces) -> do
     checkFam f'
     k <- asks index
     rho <- asks env
     unless (conv k f (eval rho f')) $ throwError "check: split annotations"
     if map labelName cas == map branchName ces
-       then sequence_ [ checkBranch (lbl,nu) f brc (Ter t rho)
+       then sequence_ [ checkBranch (lbl,nu) f brc (Ter t rho) va
                       | (brc, lbl) <- zip ces cas ]
        else throwError "case branches does not match the data type"
   (VPi a f,Lam x a' t)  -> do
@@ -256,12 +255,12 @@ mkSection _ vb vf vg =
   where [b,y,f,g] = map Var ["b","y","f","g"]
         rho = Upd (Upd (Upd Empty ("b",vb)) ("f",vf)) ("g",vg)
 
-checkBranch :: (Label,Env) -> Val -> Branch -> Val -> Typing ()
-checkBranch (OLabel _ tele,nu) f (OBranch c ns e) _ = do
+checkBranch :: (Label,Env) -> Val -> Branch -> Val -> Val -> Typing ()
+checkBranch (OLabel _ tele,nu) f (OBranch c ns e) _ _ = do
   k <- asks index
   let us = map snd $ mkVars k tele nu
   local (addBranch (zip ns us) (tele,nu)) $ check (app f (VCon c us)) e
-checkBranch (PLabel _ tele t0 t1,nu) f (PBranch c ns i e) g = do
+checkBranch (PLabel _ tele t0 t1,nu) f (PBranch c ns i e) g va = do
   k <- asks index
   let us  = mkVars k tele nu
       vus = map snd us
@@ -270,7 +269,7 @@ checkBranch (PLabel _ tele t0 t1,nu) f (PBranch c ns i e) g = do
   checkFresh i
   local (addBranch (zip ns vus) (tele,nu)) $ do
     local (addSub (i,Atom i))
-      (check (app f (VPCon c vus (Atom i) vt0 vt1)) e)
+      (check (app f (VPCon c va vus (Atom i))) e)
     rho <- asks env
     k' <- asks index
     unless (conv k' (eval (Sub rho (i,Dir 0)) e) (app g vt0) &&
@@ -367,6 +366,14 @@ infer e = case e of
     checkPathSystem a VU es
     let ves = evalSystem rho es
     check (compLine VU va ves) u
+    return va
+  PCon c a es phi -> do
+    check VU a
+    rho <- asks env
+    let va = eval rho a
+    (bs,nu) <- getLblType c va
+    checks (bs,nu) es
+    checkFormula phi
     return va
   _ -> throwError ("infer " ++ show e)
 

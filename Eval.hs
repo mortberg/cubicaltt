@@ -57,7 +57,7 @@ instance Nominal Val where
   support (VFst u)              = support u
   support (VSnd u)              = support u
   support (VCon _ vs)           = support vs
-  support (VPCon _ vs phi u v)  = support (vs,phi,u,v)
+  support (VPCon _ a vs phi)    = support (a,vs,phi)
   support (VVar _ v)            = support v
   support (VApp u v)            = support (u,v)
   support (VAppFormula u phi)   = support (u,phi)
@@ -87,8 +87,7 @@ instance Nominal Val where
          VFst u     -> VFst (acti u)
          VSnd u     -> VSnd (acti u)
          VCon c vs  -> VCon c (acti vs)
-         VPCon c vs phi u0 u1 ->
-           pcon c (acti vs) (acti phi) (acti u0) (acti u1)
+         VPCon c a vs phi -> pcon c (acti a) (acti vs) (acti phi)
          VVar x v   -> VVar x (acti v)
          VAppFormula u psi -> acti u @@ acti psi
          VApp u v   -> app (acti u) (acti v)
@@ -103,19 +102,19 @@ instance Nominal Val where
     let sw :: Nominal a => a -> a
         sw u = swap u ij
     in case u of
-         VU           -> VU
-         Ter t e      -> Ter t (sw e)
-         VPi a f      -> VPi (sw a) (sw f)
-         VComp a v ts -> VComp (sw a) (sw v) (sw ts)
-         VIdP a u v   -> VIdP (sw a) (sw u) (sw v)
-         VPath k v    -> VPath (swapName k ij) (sw v)
-         VTrans u v   -> VTrans (sw u) (sw v)
-         VSigma a f   -> VSigma (sw a) (sw f)
-         VPair u v    -> VPair (sw u) (sw v)
-         VFst u       -> VFst (sw u)
-         VSnd u       -> VSnd (sw u)
-         VCon c vs    -> VCon c (sw vs)
-         VPCon c vs phi u0 u1 -> VPCon c (sw vs) (sw phi) (sw u0) (sw u1)
+         VU                  -> VU
+         Ter t e             -> Ter t (sw e)
+         VPi a f             -> VPi (sw a) (sw f)
+         VComp a v ts        -> VComp (sw a) (sw v) (sw ts)
+         VIdP a u v          -> VIdP (sw a) (sw u) (sw v)
+         VPath k v           -> VPath (swapName k ij) (sw v)
+         VTrans u v          -> VTrans (sw u) (sw v)
+         VSigma a f          -> VSigma (sw a) (sw f)
+         VPair u v           -> VPair (sw u) (sw v)
+         VFst u              -> VFst (sw u)
+         VSnd u              -> VSnd (sw u)
+         VCon c vs           -> VCon c (sw vs)
+         VPCon c a vs phi    -> VPCon c (sw a) (sw vs) (sw phi)
          VVar x v            -> VVar x (sw v)
          VAppFormula u psi   -> VAppFormula (sw u) (sw psi)
          VApp u v            -> VApp (sw u) (sw v)
@@ -141,8 +140,8 @@ eval rho v = case v of
   Snd a               -> sndVal (eval rho a)
   Where t decls       -> eval (Def decls rho) t
   Con name ts         -> VCon name (map (eval rho) ts)
-  PCon name ts phi t0 t1 -> pcon name (map (eval rho) ts) (evalFormula rho phi)
-                                 (eval rho t0) (eval rho t1)
+  PCon name a ts phi  -> 
+    pcon name (eval rho a) (map (eval rho) ts) (evalFormula rho phi)
   Split{}             -> Ter v rho
   Sum{}               -> Ter v rho
   Undef l             -> error $ "eval: undefined at " ++ show l
@@ -181,16 +180,16 @@ evalSystem rho ts =
 -- TODO: Write using case-of
 app :: Val -> Val -> Val
 app (Ter (Lam x _ t) e) u                  = eval (Upd e (x,u)) t
-app (Ter (Split _ _ nvs) e) (VCon c us) = case lookupBranch c nvs of
+app (Ter (Split _ _ _ nvs) e) (VCon c us) = case lookupBranch c nvs of
   Just (OBranch _ xs t) -> eval (upds e (zip xs us)) t
   _     -> error $ "app: Split with insufficient arguments; " ++
                    " missing case for " ++ c
-app u@(Ter (Split _ _ _) _) v | isNeutral v = VSplit u v
-app (Ter (Split _ _ nvs) e) (VPCon c us phi _ _) = case lookupBranch c nvs of
+app u@(Ter Split{} _) v | isNeutral v = VSplit u v
+app (Ter (Split _ _ _ nvs) e) (VPCon c _ us phi) = case lookupBranch c nvs of
   Just (PBranch _ xs i t) -> eval (Sub (upds e (zip xs us)) (i,phi)) t
   _ -> error ("app: Split with insufficient arguments; " ++
               " missing case for " ++ c)
-app u@(Ter (Split _ f hbr) e) kan@(VComp v w ws) =
+app u@(Ter (Split _ _ f hbr) e) kan@(VComp v w ws) =
   let j   = fresh (e,kan)
       wsj = Map.map (@@ j) ws
       ws' = mapWithKey (\alpha -> app (u `face` alpha)) wsj
@@ -230,7 +229,7 @@ inferType v = case v of
     VSigma _ f -> app f (VFst t)
     ty         -> error $ "inferType: expected Sigma type for " ++ show v
                   ++ ", got " ++ show ty
-  VSplit (Ter (Split _ f _) rho) v1 -> app (eval rho f) v1
+  VSplit (Ter (Split _ _ f _) rho) v1 -> app (eval rho f) v1
   VApp t0 t1 -> case inferType t0 of
     VPi _ f -> app f t1
     ty      -> error $ "inferType: expected Pi type for " ++ show v
@@ -252,10 +251,13 @@ v @@ phi | isNeutral v = case (inferType v,toFormula phi) of
   _  -> VAppFormula v (toFormula phi)
 v @@ phi = error $ "(@@): " ++ show v ++ " should be neutral."
 
-pcon :: LIdent -> [Val] -> Formula -> Val -> Val -> Val
-pcon c us (Dir 0) u0 _ = u0
-pcon c us (Dir 1) _ u1 = u1
-pcon c us phi u0 u1    = VPCon c us phi u0 u1
+pcon :: LIdent -> Val -> [Val] -> Formula -> Val
+pcon c a@(Ter (Sum _ _ lbls) rho) us phi = case lookupPLabel c lbls of
+  Just (tele,t0,t1) | phi == Dir 0 -> eval (updsTele rho tele us) t0
+                    | phi == Dir 1 -> eval (updsTele rho tele us) t1
+                    | otherwise -> VPCon c a us phi
+  Nothing           -> error "pcon"
+-- pcon c a us phi     = VPCon c a us phi
 
 -----------------------------------------------------------
 -- Transport
@@ -285,10 +287,9 @@ trans i v0 v1 = case (v0,v1) of
   (Ter (Sum _ _ nass) env,VCon c us) -> case lookupLabel c nass of
     Just as -> VCon c $ transps i as env us
     Nothing -> error $ "trans: missing constructor " ++ c ++ " in " ++ show v0
-  (Ter (Sum _ _ nass) env,VPCon c ws0 phi e0 e1) -> case lookupLabel c nass of
+  (Ter (Sum _ _ nass) env,VPCon c _ ws0 phi) -> case lookupLabel c nass of
     -- v1 should be independent of i, so i # phi
-    Just as -> -- the endpoints should be correct because of restrictions on HITs
-               VPCon c (transps i as env ws0) phi (trans i v0 e0) (trans i v0 e1)
+    Just as -> VPCon c (v0 `face` (i ~> 1)) (transps i as env ws0) phi
     Nothing -> error $ "trans: missing path constructor " ++ c ++
                        " in " ++ show v0
   _ | isNeutral v0 || isNeutral v1 -> VTrans (VPath i v0) v1
@@ -674,7 +675,7 @@ instance Convertible Val where
       (u',Ter (Lam x a u) e) ->
         let v = mkVar k (eval e a)
         in conv (k+1) (app u' v) (eval (Upd e (x,v)) u)
-      (Ter (Split p _ _) e,Ter (Split p' _ _) e') -> (p == p') && conv k e e'
+      (Ter (Split _ p _ _) e,Ter (Split _ p' _ _) e') -> (p == p') && conv k e e'
       (Ter (Sum p _ _) e,Ter (Sum p' _ _) e')     -> (p == p') && conv k e e'
       (Ter (Undef p) e,Ter (Undef p') e')         -> (p == p') && conv k e e'
       (VPi u v,VPi u' v') ->

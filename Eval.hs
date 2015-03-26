@@ -320,46 +320,6 @@ transps i ((x,a):as) e (u:us) =
   in vi1 : vs
 transps _ _ _ _ = error "transps: different lengths of types and values"
 
-transGlue :: Name -> Val -> System Val -> Val -> Val
-transGlue i b hisos wi0 = glueElem vi1'' usi1
-  where vi0  = unGlue (hisos `face` (i ~> 0)) wi0 -- in b(i0)
-
-        v    = transFill i b vi0           -- in b
-        vi1  = trans i b vi0           -- in b(i1)
-
-        hisosI1 = hisos `face` (i ~> 1)
-        hisos'' =
-          filterWithKey (\alpha _ -> alpha `Map.notMember` hisos) hisosI1
-
-        -- set of elements in hisos independent of i
-        hisos' = filterWithKey (\alpha _ -> i `Map.notMember` alpha) hisos
-
-        us'    = mapWithKey (\gamma isoG ->
-                  transFill i (hisoDom isoG) (wi0 `face` gamma))
-                 hisos'
-        usi1'  = mapWithKey (\gamma isoG ->
-                   trans i (hisoDom isoG) (wi0 `face` gamma))
-                 hisos'
-
-        ls'    = mapWithKey (\gamma isoG ->
-                   pathComp i (b `face` gamma) (v `face` gamma)
-                   ((hisoFun isoG) `app` (us' ! gamma)) Map.empty)
-                 hisos'
-        bi1   = b `face` (i ~> 1)
-        vi1'  = compLine bi1 vi1 ls'
-
-        uls''   = mapWithKey (\gamma isoG ->
-                     gradLemma (bi1 `face` gamma) isoG (usi1' `face` gamma)
-                               (vi1' `face` gamma))
-                   hisos''
-
-        vi1''   = compLine bi1 vi1' (Map.map snd uls'')
-
-        usi1    = mapWithKey (\gamma _ ->
-                    if gamma `Map.member` usi1'
-                       then usi1' ! gamma
-                       else fst (uls'' ! gamma))
-                  hisosI1
 
 -- Grad Lemma, takes a iso an L-system ts a value v s.t. sigma us = border v
 -- outputs u s.t. border u = us and an L-path between v and sigma u
@@ -499,6 +459,47 @@ unGlue hisos w
 --       KanUElem _ v    -> app g v
        _ -> error $ "unGlue: " ++ show w ++ " should be neutral!"
 
+transGlue :: Name -> Val -> System Val -> Val -> Val
+transGlue i b hisos wi0 = glueElem vi1'' usi1
+  where vi0  = unGlue (hisos `face` (i ~> 0)) wi0 -- in b(i0)
+
+        v    = transFill i b vi0           -- in b
+        vi1  = trans i b vi0           -- in b(i1)
+
+        hisosI1 = hisos `face` (i ~> 1)
+        hisos'' =
+          filterWithKey (\alpha _ -> alpha `Map.notMember` hisos) hisosI1
+
+        -- set of elements in hisos independent of i
+        hisos' = filterWithKey (\alpha _ -> i `Map.notMember` alpha) hisos
+
+        us'    = mapWithKey (\gamma isoG ->
+                  transFill i (hisoDom isoG) (wi0 `face` gamma))
+                 hisos'
+        usi1'  = mapWithKey (\gamma isoG ->
+                   trans i (hisoDom isoG) (wi0 `face` gamma))
+                 hisos'
+
+        ls'    = mapWithKey (\gamma isoG ->
+                   pathComp i (b `face` gamma) (v `face` gamma)
+                   ((hisoFun isoG) `app` (us' ! gamma)) Map.empty)
+                 hisos'
+        bi1   = b `face` (i ~> 1)
+        vi1'  = compLine bi1 vi1 ls'
+
+        uls''   = mapWithKey (\gamma isoG ->
+                     gradLemma (bi1 `face` gamma) isoG (usi1' `face` gamma)
+                               (vi1' `face` gamma))
+                   hisos''
+
+        vi1''   = compLine bi1 vi1' (Map.map snd uls'')
+
+        usi1    = mapWithKey (\gamma _ ->
+                    if gamma `Map.member` usi1'
+                       then usi1' ! gamma
+                       else fst (uls'' ! gamma))
+                  hisosI1
+
 compGlue :: Name -> Val -> System Val -> Val -> System Val -> Val
 compGlue i b hisos wi0 ws = glueElem vi1' usi1'
   where vs   = mapWithKey
@@ -516,7 +517,7 @@ compGlue i b hisos wi0 ws = glueElem vi1' usi1'
                  hisos
 
         ls'    = mapWithKey (\gamma isoG ->
-                   pathComp i isoG (v `face` gamma)
+                   pathComp i (hisoDom isoG) (v `face` gamma)
                    (hisoFun isoG `app` (us' ! gamma)) (vs `face` gamma))
                  hisos
 

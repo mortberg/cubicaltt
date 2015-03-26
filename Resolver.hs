@@ -281,11 +281,12 @@ resolveLabel cs (PLabel n vdecl t0 t1) =
                           <*> local (insertIdents cs) (resolveExp t0)
                           <*> local (insertIdents cs) (resolveExp t1)
 
-piToFam :: Exp -> Resolver Ter
-piToFam (Fun a b)    = lam ("_",a) $ resolveExp b
-piToFam (Pi ptele b) = do
+piToFam :: ((Int,Int),String) -> Exp -> Resolver Ter
+piToFam _ (Fun a b)    = lam ("_",a) $ resolveExp b
+piToFam _ (Pi ptele b) = do
   (x,a):tele <- flattenPTele ptele
   lam (x,a) (binds CTT.Pi tele (resolveExp b))
+piToFam (l,n) _ = throwError $ "Pi type expected in " ++ n ++ " at " ++ show l
 
 -- Resolve Data or Def or Split declarations
 resolveDecl :: Decl -> Resolver (CTT.Decl,[(Ident,SymKind)])
@@ -308,7 +309,7 @@ resolveDecl d = case d of
     loc  <- getLoc l
     a    <- binds CTT.Pi tele' (resolveExp t)
     let vars = map fst tele'
-    fam  <- local (insertVars vars) $ piToFam t
+    fam  <- local (insertVars vars) $ piToFam (l,f) t
     brs' <- local (insertVars (f:vars)) (mapM resolveBranch brs)
     body <- lams tele' (return $ CTT.Split f loc fam brs')
     return ((f,(a,body)),[(f,Variable)])

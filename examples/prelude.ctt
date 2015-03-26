@@ -60,3 +60,10 @@ Square (A : U) (a0 a1 : A) (u : Id A a0 a1)
                (b0 b1 : A) (v : Id A b0 b1)
                (r0 : Id A a0 b0) (r1 : Id A a1 b1) : U
   = IdP (<i> (IdP (<j> A) (u @ i) (v @ i))) r0 r1
+
+constSquare (A : U) (a : A) (p : Id A a a) : Square A a a p a a p p p =
+  <i j> comp A a
+     [(i = 0) -> <k> p @ (j \/ - k),
+      (i = 1) -> <k> p @ (j /\ k),
+      (j = 0) -> <k> p @ (i \/ - k),
+      (j = 1) -> <k> p @ (i /\ k)]

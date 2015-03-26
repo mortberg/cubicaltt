@@ -21,9 +21,25 @@ winding (p : loopS1) : Z = transport rem zeroZ
   where
     rem : Id U Z Z = <i> helix (p @ i)
 
+-- All of these should be equal to "posZ (suc zero)":
 loop2 : loopS1 = compId S1 base base base loop' loop'
 loop2' : loopS1 = compId' S1 base base base loop' loop'
 loop2'' : loopS1 = compId'' S1 base base loop' base loop'
 
+mLoop : (x : S1) -> Id S1 x x = split
+  base -> loop'
+  loop @ i -> (constSquare S1 base loop') @ i
 
-test : Id U Z Z = compId U Z Z Z sucIdZ sucIdZ 
+  -- <i> let rem : S1 -> S1 = split
+  --           base -> loop' @ i
+  --           loop @ j -> ((constSquare S1 base loop') @ j) @ i
+  --     in rem x
+
+mult (x : S1) : S1 -> S1 = split
+  base -> x
+  loop @ i -> (mLoop x) @ i
+
+square (x : S1) : S1 = mult x x
+
+doubleLoop (l : loopS1) : loopS1 = <i> square (l @ i)
+tripleLoop (l : loopS1) : loopS1 = <i> mult (l @ i) (square (l @ i))

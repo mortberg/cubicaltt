@@ -394,7 +394,8 @@ comp i a u ts = let j = fresh (Atom i,a,u,ts) -- maybe only in vid??
            else VComp a u (Map.map (VPath i) ts)
       Nothing -> error $ "comp: missing constructor in labelled sum " ++ n
     VPCon{} -> VComp a u (Map.map (VPath i) ts)
-    _ -> error "comp ter sum"
+    VComp{} -> VComp a u (Map.map (VPath i) ts) 
+    _ -> error $ "comp ter sum" ++ show u
 
 compNeg :: Name -> Val -> Val -> System Val -> Val
 compNeg i a u ts = comp i a u (ts `sym` i)

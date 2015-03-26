@@ -1,0 +1,26 @@
+module circle where
+
+import bool
+import integer
+
+data S1 = base | loop @ base ~ base
+
+moebius : S1 -> U = split
+  base -> bool
+  loop @ i -> negEq @ i
+
+loop' : Id S1 base base = <i> loop{S1} @ i
+
+helix : S1 -> U = split
+  base -> Z
+  loop @ i -> sucIdZ @ i
+
+loopS1 : U = Id S1 base base 
+
+winding (p : loopS1) : Z = transport rem zeroZ
+  where
+    rem : Id U Z Z = <i> helix (p @ i)
+
+loop2 : loopS1 = compId S1 base base base loop' loop'
+loop2' : loopS1 = compId' S1 base base base loop' loop'
+loop2'' : loopS1 = compId'' S1 base base loop' base loop'

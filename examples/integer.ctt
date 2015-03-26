@@ -1,0 +1,39 @@
+module integer where
+
+import nat
+
+data Z = zeroZ | posZ (n : nat) | negZ (n : nat)
+
+caseNat (A : U) (a : A) (f : nat -> A) : nat -> A = split
+  zero -> a
+  suc n -> f n
+
+sucZ : Z -> Z = split
+  zeroZ -> posZ zero
+  posZ n -> posZ (suc n)
+  negZ n -> caseNat Z zeroZ (\(x : nat) -> negZ x) n
+
+predZ : Z -> Z = split
+  zeroZ -> negZ zero
+  posZ n -> caseNat Z zeroZ (\(x : nat) -> posZ x) n
+  negZ n -> negZ (suc n)
+
+sucpredZ : (n : Z) -> Id Z (sucZ (predZ n)) n = split
+  zeroZ  -> refl Z zeroZ
+  posZ n -> lem n
+   where
+    lem : (n : nat) -> Id Z (sucZ (predZ (posZ n))) (posZ n) = split
+      zero  -> refl Z (posZ zero)
+      suc n -> refl Z (posZ (suc n))
+  negZ n -> refl Z (negZ n)
+
+predsucZ : (n : Z) -> Id Z (predZ (sucZ n)) n = split
+  zeroZ -> refl Z zeroZ
+  posZ n -> refl Z (posZ n)
+  negZ n -> lem n
+   where
+    lem : (n : nat) -> Id Z (predZ (sucZ (negZ n))) (negZ n) = split
+      zero  -> refl Z (negZ zero)
+      suc n -> refl Z (negZ (suc n))
+
+sucIdZ : Id U Z Z = isoId Z Z sucZ predZ sucpredZ predsucZ

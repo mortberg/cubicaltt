@@ -320,31 +320,17 @@ transps i ((x,a):as) e (u:us) =
   in vi1 : vs
 transps _ _ _ _ = error "transps: different lengths of types and values"
 
+-- Given u of type a "squeeze i a u" connects in the direction i
+-- trans i a u(i=0) to u(i=1)
+squeeze :: Name -> Val -> Val -> Val
+squeeze i a u = trans j (a `disj` (i,j)) u
+  where j = fresh (Atom i,a,u)
 
--- Grad Lemma, takes a iso an L-system ts a value v s.t. sigma us = border v
--- outputs u s.t. border u = us and an L-path between v and sigma u
--- an theta is a L path if L-border theta is constant
-gradLemma :: Val -> Val -> System Val -> Val -> (Val, Val)
-gradLemma b hiso@(VPair a (VPair f (VPair g (VPair s t)))) us v = (u, VPath i theta'')
-  where i:j:_   = freshs (a,hiso,us,v)
-        us'     = mapWithKey (\alpha uAlpha ->
-                                   app (t `face` alpha) uAlpha @@ i) us
-        theta   = fill i a (app g v) us'
-        u       = comp i a (app g v) us'
-        ws      = insertSystem (i ~> 1) (app t u @@ j) $
-                  mapWithKey
-                    (\alpha uAlpha ->
-                      app (t `face` alpha) uAlpha @@ (Atom i :/\: Atom j)) us
-        theta'  = compNeg j a theta ws
-        xs      = insertSystem (i ~> 0) (app s v @@ j) $
-                  insertSystem (i ~> 1) (app s (app f u) @@ j) $
-                  mapWithKey
-                    (\alpha uAlpha ->
-                      app (s `face` alpha) (app (f `face` alpha) uAlpha) @@ j) us
-        theta'' = comp j b (app f theta') xs
+squeezeNeg :: Name -> Val -> Val -> Val
+squeezeNeg i a u = transNeg j (a `conj` (i,j)) u
+  where j = fresh (Atom i,a,u)
 
-
------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Composition
 
 compLine :: Val -> Val -> System Val -> Val
@@ -355,9 +341,7 @@ genComp, genCompNeg :: Name -> Val -> Val -> System Val -> Val
 genComp i a u ts | Map.null ts = trans i a u
 genComp i a u ts = comp i ai1 (trans i a u) ts'
   where ai1 = a `face` (i ~> 1)
-        j   = fresh (a,Atom i,ts,u)
-        comp' alpha u = trans j ((a `face` alpha) `disj` (i,j)) u
-        ts' = mapWithKey comp' ts
+        ts' = mapWithKey (\alpha -> squeeze i (a `face` alpha)) ts
 genCompNeg i a u ts = genComp i (a `sym` i) u (ts `sym` i)
 
 fill, fillNeg :: Name -> Val -> Val -> System Val -> Val
@@ -463,7 +447,6 @@ transGlue :: Name -> Val -> System Val -> Val -> Val
 transGlue i b hisos wi0 = glueElem vi1'' usi1
   where vi0  = unGlue (hisos `face` (i ~> 0)) wi0 -- in b(i0)
 
-        v    = transFill i b vi0           -- in b
         vi1  = trans i b vi0           -- in b(i1)
 
         hisosI1 = hisos `face` (i ~> 1)
@@ -481,11 +464,11 @@ transGlue i b hisos wi0 = glueElem vi1'' usi1
                  hisos'
 
         ls'    = mapWithKey (\gamma isoG ->
-                   pathComp i (b `face` gamma) (v `face` gamma)
-                   ((hisoFun isoG) `app` (us' ! gamma)) Map.empty)
+                   VPath i $ squeeze i (b `face` gamma)
+                           ((hisoFun isoG) `app` (us' ! gamma)))
                  hisos'
-        bi1   = b `face` (i ~> 1)
-        vi1'  = compLine bi1 vi1 ls'
+        bi1    = b `face` (i ~> 1)
+        vi1'   = compLine bi1 vi1 ls'
 
         uls''   = mapWithKey (\gamma isoG ->
                      gradLemma (bi1 `face` gamma) isoG (usi1' `face` gamma)
@@ -517,7 +500,7 @@ compGlue i b hisos wi0 ws = glueElem vi1' usi1'
                  hisos
 
         ls'    = mapWithKey (\gamma isoG ->
-                   pathComp i (hisoDom isoG) (v `face` gamma)
+                   pathComp i (b `face` gamma) (v `face` gamma)
                    (hisoFun isoG `app` (us' ! gamma)) (vs `face` gamma))
                  hisos
 
@@ -526,10 +509,32 @@ compGlue i b hisos wi0 ws = glueElem vi1' usi1'
 -- assumes u and u' : A are solutions of us + (i0 -> u(i0))
 -- The output is an L-path in A(i1) between u(i1) and u'(i1)
 pathComp :: Name -> Val -> Val -> Val -> System Val -> Val
-pathComp i a u u' us = VPath j $ genComp i a (u `face` (i ~> 0)) us'
+pathComp i a u u' us = VPath j $ comp i a (u `face` (i ~> 0)) us'
   where j   = fresh (Atom i, a, us, u, u')
         us' = insertsSystem [(j ~> 0, u), (j ~> 1, u')] us
 
+
+-- Grad Lemma, takes a iso an L-system ts a value v s.t. sigma us = border v
+-- outputs u s.t. border u = us and an L-path between v and sigma u
+-- an theta is a L path if L-border theta is constant
+gradLemma :: Val -> Val -> System Val -> Val -> (Val, Val)
+gradLemma b hiso@(VPair a (VPair f (VPair g (VPair s t)))) us v = (u, VPath i theta'')
+  where i:j:_   = freshs (a,hiso,us,v)
+        us'     = mapWithKey (\alpha uAlpha ->
+                                   app (t `face` alpha) uAlpha @@ i) us
+        theta   = fill i a (app g v) us'
+        u       = comp i a (app g v) us'
+        ws      = insertSystem (i ~> 1) (app t u @@ j) $
+                  mapWithKey
+                    (\alpha uAlpha ->
+                      app (t `face` alpha) uAlpha @@ (Atom i :/\: Atom j)) us
+        theta'  = compNeg j a theta ws
+        xs      = insertSystem (i ~> 0) (app s v @@ j) $
+                  insertSystem (i ~> 1) (app s (app f u) @@ j) $
+                  mapWithKey
+                    (\alpha uAlpha ->
+                      app (s `face` alpha) (app (f `face` alpha) uAlpha) @@ j) us
+        theta'' = comp j b (app f theta') xs
 
 
 -------------------------------------------------------------------------------
@@ -545,18 +550,16 @@ elimComp a es u | Map.null es         = u
                 | eps `Map.member` es = transNegLine (es ! eps) u
                 | otherwise           = VElimComp a es u
 
---compU i (Kan j VU ejs b) ws wi0 =
 compU :: Name -> Val -> System Val -> Val -> System Val -> Val
 compU i a es w0 ws =
-    let unkan alpha = elimComp (a `face` alpha) (es `face` alpha)
-
-        vs = mapWithKey unkan ws
+    let vs = mapWithKey
+               (\alpha -> elimComp (a `face` alpha) (es `face` alpha)) ws
         v0 = elimComp a es w0 -- in a
         v1 = comp i a v0 vs -- in a
 
         us1' = mapWithKey (\gamma eGamma ->
-                            comp i (eGamma @@ Zero) (w0 `face` gamma)
-                            (ws `face` gamma)) es
+                            comp i (eGamma @@ One) (w0 `face` gamma)
+                                   (ws `face` gamma)) es
         ls' = mapWithKey (\gamma _ -> pathUniv i (es `proj` gamma)
                                       (ws `face` gamma) (w0 `face` gamma))
                  es
@@ -564,55 +567,14 @@ compU i a es w0 ws =
         v1' = compLine a v1 ls'
     in compElem a es v1' us1'
 
-
-transU :: Name -> Val -> System Val -> Val -> Val
-transU i a es wi0 =
-  let unkan alpha = elimComp (a `face` alpha) (es `face` alpha)
-
-      vi0   = unkan (i ~> 0) wi0 -- in a(i0)
-      vi1   = trans i a vi0      -- in a(i1)
-
-      ai1  = a `face` (i ~> 1)
-      esi1 = es `face` (i ~> 1)
-
-      --  {(gamma, sigma gamma (i1)) | gamma elem es}
-      es'' = filterWithKey (\alpha _ -> alpha `Map.notMember` es) esi1
-
-      -- set of elements in es independent of i
-      es'  = filterWithKey (\alpha _ -> i `Map.notMember` alpha) es
-
-      usi1' = mapWithKey (\gamma eGamma ->
-                trans i (eGamma @@ Zero) (wi0 `face` gamma)) es'
-
-      ls' = mapWithKey (\gamma _ ->
-              pathUniv i (es `proj` gamma) Map.empty (wi0 `face` gamma))
-            es'
-
-      vi1' = compLine ai1 vi1 ls'
-
-      uls'' = mapWithKey (\gamma _ -> -- TODO: proj or "!" ?
-                -- eqLemma (es `proj` (gamma `meet` (i ~> 1)))
-                eqLemma (es ! (gamma `meet` (i ~> 1)))
-                  (usi1' `face` gamma) (vi1' `face` gamma)) es''
-
-      vi1'' = compLine ai1 vi1' (Map.map snd uls'')
-
-      usi1  = mapWithKey (\gamma _ ->
-                if gamma `Map.member` usi1' then usi1' ! gamma
-                else fst (uls'' ! gamma)) esi1
-  in compElem ai1 esi1 vi1'' usi1
-
-
-
 -- Computes a homotopy between the image of the composition, and the
--- composition of the image.  Given e (an equality in U), an L-system
+-- composition of the image. Given e (an equality in U), an L-system
 -- us (in e0) and ui0 (in e0 (i0)) The output is an L(i1)-path in
 -- e1(i1) between vi1 and sigma (i1) ui1 where
 --   sigma = appEq
 --   ui1 = comp i (e 0) us ui0
 --   vi1 = comp i (e 1) (sigma us) (sigma(i0) ui0)
 -- Moreover, if e is constant, so is the output.
--- TODO: adapt?
 pathUniv :: Name -> Val -> System Val -> Val -> Val
 pathUniv i e us ui0 = VPath k xi1
   where j:k:_ = freshs (Atom i,e,us,ui0)
@@ -626,6 +588,48 @@ pathUniv i e us ui0 = VPath k xi1
         wi1'  = transFill j (ej `face` (i ~> 1)) ui1
         xi1   = genComp j (ej `face` (i ~> 1)) ui1
                   (mkSystem [(k ~> 1, wi1'), (k ~> 0, wi1)])
+
+transU :: Name -> Val -> System Val -> Val -> Val
+transU i a es wi0 =
+  let vi0 = elimComp (a `face` (i ~> 0)) (es `face` (i ~> 0)) wi0 -- in a(i0)
+      vi1 = trans i a vi0      -- in a(i1)
+
+      ai1  = a `face` (i ~> 1)
+      esi1 = es `face` (i ~> 1)
+
+      -- gamma in es'' iff i not in the domain of gamma and (i1)gamma in es
+      es'' = filterWithKey (\alpha _ -> alpha `Map.notMember` es) esi1
+
+      -- set of faces alpha of es such i is not the domain of alpha
+      es'  = filterWithKey (\alpha _ -> i `Map.notMember` alpha) es
+
+      usi1' = mapWithKey (\gamma eGamma ->
+                trans i (eGamma @@ One) (wi0 `face` gamma)) es'
+
+      ls' = mapWithKey (\gamma _ ->
+              pathUnivTrans i (es `proj` gamma) (wi0 `face` gamma))
+            es'
+
+      vi1' = compLine ai1 vi1 ls'
+
+      uls'' = mapWithKey (\gamma _ -> -- Should be !, not proj ?
+                eqLemma (es ! (gamma `meet` (i ~> 1)))
+                        (usi1' `face` gamma) (vi1' `face` gamma)) es''
+
+      vi1'' = compLine ai1 vi1' (Map.map snd uls'')
+
+      usi1  = mapWithKey (\gamma _ ->
+                if gamma `Map.member` usi1' then usi1' ! gamma
+                else fst (uls'' ! gamma)) esi1
+  in compElem ai1 esi1 vi1'' usi1
+
+pathUnivTrans :: Name -> Val -> Val -> Val
+pathUnivTrans i e ui0 = VPath j xi1
+  where j    = fresh (Atom i,e,ui0)
+        ej   = e @@ j
+        wi0  = transFill j (ej `face` (i ~> 0)) ui0
+        wi1  = trans i ej wi0
+        xi1  = squeezeNeg j (ej `face` (i ~> 1)) wi1
 
 -- Any equality defines an equivalence.
 eqLemma :: Val -> System Val -> Val -> (Val, Val)

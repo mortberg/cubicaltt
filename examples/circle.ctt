@@ -24,3 +24,6 @@ winding (p : loopS1) : Z = transport rem zeroZ
 loop2 : loopS1 = compId S1 base base base loop' loop'
 loop2' : loopS1 = compId' S1 base base base loop' loop'
 loop2'' : loopS1 = compId'' S1 base base loop' base loop'
+
+
+test : Id U Z Z = compId U Z Z Z sucIdZ sucIdZ 

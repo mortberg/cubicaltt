@@ -609,6 +609,7 @@ transU i a es wi0 =
 
       ls' = mapWithKey (\gamma _ ->
               pathUnivTrans i (es `proj` gamma) (wi0 `face` gamma))
+--                         pathUniv i (es `proj` gamma) Map.empty (wi0 `face` gamma))
             es'
 
       vi1' = compLine ai1 vi1 ls'
@@ -638,13 +639,13 @@ eqLemma e ts a = (t,VPath j theta'')
   where i:j:_   = freshs (e,ts,a)
         ei      = e @@ i
         vs      = mapWithKey (\alpha uAlpha ->
-                    transFill i (ei `face` alpha) uAlpha) ts
-        theta   = genFillNeg i ei a vs
-        t       = genCompNeg i ei a vs
-        theta'  = transFill i ei t
+                    transFillNeg i (ei `face` alpha) uAlpha) ts
+        theta   = genFill i ei a vs
+        t       = genComp i ei a vs
+        theta'  = transFillNeg i ei t
         ws      = insertSystem (j ~> 1) theta' $
                   insertSystem (j ~> 0) theta $ vs
-        theta'' = genComp i ei t ws
+        theta'' = genCompNeg i ei t ws
 
 
 -------------------------------------------------------------------------------

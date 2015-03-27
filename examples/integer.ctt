@@ -37,3 +37,6 @@ predsucZ : (n : Z) -> Id Z (predZ (sucZ n)) n = split
       suc n -> refl Z (negZ (suc n))
 
 sucIdZ : Id U Z Z = isoId Z Z sucZ predZ sucpredZ predsucZ
+
+sucIdZ2 : Id U Z Z = compId U Z Z Z sucIdZ sucIdZ
+test : Z = predZ (transport sucIdZ2 zeroZ)

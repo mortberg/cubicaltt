@@ -185,6 +185,8 @@ app (Ter (Split _ _ _ nvs) e) (VCon c us) = case lookupBranch c nvs of
   _     -> error $ "app: Split with insufficient arguments; " ++
                    " missing case for " ++ c
 app u@(Ter Split{} _) v | isNeutral v = VSplit u v
+app u@(Ter Split{} _) (VCompElem _ _ v _) = app u v
+app u@(Ter Split{} _) (VElimComp _ _ v)   = app u v
 app (Ter (Split _ _ _ nvs) e) (VPCon c _ us phi) = case lookupBranch c nvs of
   Just (PBranch _ xs i t) -> eval (Sub (upds e (zip xs us)) (i,phi)) t
   _ -> error ("app: Split with insufficient arguments; " ++
@@ -244,11 +246,12 @@ inferType v = case v of
 
 (@@) :: ToFormula a => Val -> a -> Val
 (VPath i u) @@ phi = u `act` (i,toFormula phi)
--- (KanUElem _ u) @@ phi = u @@ phi
 v @@ phi | isNeutral v = case (inferType v,toFormula phi) of
   (VIdP  _ a0 _,Dir 0) -> a0
   (VIdP  _ _ a1,Dir 1) -> a1
   _  -> VAppFormula v (toFormula phi)
+(VCompElem _ _ u _) @@ phi = u @@ phi
+(VElimComp _ _ u) @@ phi   = u @@ phi
 v @@ phi = error $ "(@@): " ++ show v ++ " should be neutral."
 
 pcon :: LIdent -> Val -> [Val] -> Formula -> Val

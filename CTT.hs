@@ -177,7 +177,11 @@ isNeutral v = case v of
   _                 -> False
 
 isNeutralSystem :: System Val -> Bool
-isNeutralSystem = any isNeutral . Map.elems
+isNeutralSystem = any isNeutralPath . Map.elems
+
+isNeutralPath :: Val -> Bool
+isNeutralPath (VPath _ v) = isNeutral v
+isNeutralPath _ = True
 
 isNeutralTrans :: Val -> Val -> Bool
 isNeutralTrans (VPath i a) u = foo i a u
@@ -205,7 +209,6 @@ mkVar k = VVar ('X' : show k)
 
 unCon :: Val -> [Val]
 unCon (VCon _ vs) = vs
--- unCon (KanUElem _ u) = unCon u
 unCon v           = error $ "unCon: not a constructor: " ++ show v
 
 isCon :: Val -> Bool

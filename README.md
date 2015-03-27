@@ -15,7 +15,9 @@ primitives (like in cubical), for instance function extensionality is
 provable in the system by:
 
 `funExt (A : U) (B : A -> U) (f g : (x : A) -> B x)`
+
 `       (p : (x : A) -> Id (B x) (f x) (g x)) :`
+
 `       Id ((y : A) -> B y) f g = <i> \(a : A) -> (p a) @ i`
 
 

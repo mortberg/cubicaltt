@@ -753,4 +753,4 @@ instance Convertible a => Convertible (System a) where
                   and (elems (intersectionWith (conv k) ts ts'))
 
 instance Convertible Formula where
-  conv _ phi psi = sort (invFormula phi 1) == sort (invFormula psi 1)
+  conv _ phi psi = dnf phi == dnf psi

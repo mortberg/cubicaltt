@@ -194,6 +194,16 @@ orFormula (Dir Zero) phi = phi
 orFormula phi (Dir Zero) = phi
 orFormula phi psi        = phi :\/: psi
 
+dnf :: Formula -> Set (Set (Name,Dir))
+dnf (Dir One) = Set.singleton Set.empty
+dnf (Dir Zero) = Set.empty
+dnf (Atom n) = Set.singleton (Set.singleton (n,1))
+dnf (NegAtom n) = Set.singleton (Set.singleton (n,0))
+dnf (phi :\/: psi) = dnf phi `Set.union` dnf psi
+dnf (phi :/\: psi) = Set.fromList [ a `Set.union` b
+                                  | a <- Set.toList (dnf phi)
+                                  , b <- Set.toList (dnf psi) ]
+
 -- evalFormula :: Formula -> Face -> Formula
 -- evalFormula phi alpha =
 --   Map.foldWithKey (\i d psi -> act psi (i,Dir d)) phi alpha

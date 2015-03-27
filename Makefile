@@ -1,5 +1,5 @@
-#GHC=ghc
-GHC=cabal exec ghc -- 
+GHC=ghc
+#GHC=cabal exec ghc -- 
 OPT=2
 
 all:

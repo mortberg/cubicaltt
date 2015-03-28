@@ -1,15 +1,9 @@
 {-# LANGUAGE TupleSections #-}
 module TypeChecker where
 
-import Data.Either
-import Data.Function
-import Data.List
-import Data.Maybe
-import Data.Map (Map,(!),mapWithKey,assocs,filterWithKey
-                ,elems,intersectionWith,keys,intersectionWithKey
-                ,intersection)
+import Data.Map (Map,(!),mapWithKey,assocs,filterWithKey,elems,keys
+                ,intersection,intersectionWith,intersectionWithKey)
 import qualified Data.Map as Map
-import Data.Monoid hiding (Sum)
 import Control.Monad
 import Control.Monad.Trans
 import Control.Monad.Trans.Error hiding (throwError)
@@ -397,25 +391,6 @@ checkPathSystem t0 va ps = do
   unless (isCompSystem k (evalSystem rho ps))
       (throwError ("Incompatible system " ++ show ps))
   Map.fromList <$> sequence [ (alpha,) <$> t | (alpha,t) <- alist ]
-
--- checkGlueElem vu ts us = do
---   unless (keys ts == keys us)
---     (throwError ("Keys don't match in " ++ show ts ++ " and " ++ show us))
---   rho <- asks env
---   k   <- asks index
---   sequence_ $ elems $ intersectionWithKey
---     (\alpha vt u -> check (hisoDom vt) u) ts us
---   let vus = evalSystem rho us
---   sequence_ $ elems $ intersectionWithKey
---     (\alpha vt vAlpha -> do
---        unless (conv k (app (hisoFun vt) vAlpha) (vu `face` alpha))
---           (throwError $ "Image of glueElem component " ++ show vAlpha ++
---                         " doesn't match " ++ show vu)) ts vus
---   unless (isCompSystem k vus)
---     (throwError $ "Incompatible system " ++ show vus)
-
---inferCompElem :: Ter -> System Ter
-
 
 checkFresh :: Name -> Typing ()
 checkFresh i = do

@@ -21,7 +21,7 @@ substRefl (A : U) (P : A -> U) (a : A) (e : P a) :
 singl (A : U) (a : A) : U = (x : A) * Id A a x
 
 contrSingl (A : U) (a b : A) (p : Id A a b) :
-  Id (singl A a) (a,refl A a) (b,p) = <i> (p @ i,<j> p @ i /\ j)
+  Id (singl A a) (a,refl A a) (b,p) = <i> (p @ i,<j> p @ i/\j)
 
 J (A : U) (a : A) (C : (x : A) -> Id A a x -> U)
   (d : C a (refl A a)) (x : A) (p : Id A a x) : C x p =

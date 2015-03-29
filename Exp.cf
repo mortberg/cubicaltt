@@ -56,7 +56,7 @@ Side.   Side ::= [Face] "->" Exp ;
 separator Side "," ;
 
 Disj.     Formula  ::= Formula "\\/" Formula1 ;
-Conj.     Formula1 ::= Formula1 "/\\ " Formula2 ; -- Why do we need a space?
+Conj.     Formula1 ::= Formula1 CIdent Formula2 ;
 Neg.      Formula2 ::= "-" Formula2 ;
 Atom.     Formula2 ::= AIdent ;
 Dir.      Formula2 ::= Dir ;
@@ -81,5 +81,7 @@ terminator Tele "" ;
 PTele.    PTele ::= "(" Exp ":" Exp ")" ;
 terminator nonempty PTele "" ;
 
-position token AIdent ((letter|'_')(letter|digit|'\''|'_')*) ;
+position token AIdent (letter|'_')(letter|digit|'\''|'_')* ;
 separator AIdent "" ;
+
+token CIdent '/''\\' ;

@@ -258,7 +258,7 @@ resolveFormula :: Formula -> Resolver C.Formula
 resolveFormula (Dir d)        = C.Dir <$> resolveDir d
 resolveFormula (Atom i)       = C.Atom <$> resolveName i
 resolveFormula (Neg phi)      = C.negFormula <$> resolveFormula phi
-resolveFormula (Conj phi psi) = C.andFormula <$> resolveFormula phi
+resolveFormula (Conj phi _ psi) = C.andFormula <$> resolveFormula phi
                                 <*> resolveFormula psi
 resolveFormula (Disj phi psi) = C.orFormula <$> resolveFormula phi
                                 <*> resolveFormula psi

@@ -138,7 +138,10 @@ resolveVar (AIdent (l,x))
     case lookup x vars of
       Just Variable    -> return $ CTT.Var x
       Just Constructor -> return $ CTT.Con x []
-      Just PConstructor -> undefined -- error!
+      Just PConstructor -> throwError $ "The path constructor " ++ x ++ " is used as a"
+                                     ++ " variable at " ++ show l ++ " in " ++ modName
+                                     ++ " (path constructors should have their type in"
+                                     ++ " curly braces as first argument)"
       Just Name        ->
         throwError $ "Name " ++ x ++ " used as a variable at position " ++
                      show l ++ " in module " ++ modName

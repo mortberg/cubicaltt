@@ -68,3 +68,26 @@ constSquare (A : U) (a : A) (p : Id A a a) : Square A a a p a a p p p =
       (i = 1) -> <k> p @ (j /\ k),
       (j = 0) -> <k> p @ (i \/ - k),
       (j = 1) -> <k> p @ (i /\ k)]
+
+prop (A : U) : U = (a b : A) -> Id A a b
+set (A : U) : U = (a b : A) -> prop (Id A a b)
+
+propSet (A : U) (h : prop A) (a b : A) (p q : Id A a b) : Id (Id A a b) p q =
+ <j i> comp A a [ (i=0) -> h a a
+                , (i=1) -> h a b
+                , (j=0) -> h a (p @ i)
+                , (j=1) -> h a (q @ i)]
+
+propIsProp (A : U) (f g : prop A) : Id (prop A) f g =
+ <i> \(a b :A) -> (propSet A f a b (f a b) (g a b)) @ i
+
+setIsProp (A : U) (f g : set A) : Id (set A) f g =
+ <i> \(a b :A) -> (propIsProp (Id A a b) (f a b) (g a b)) @ i
+
+IdS (A : U) (P : A -> U) (a0 a1 : A) (p : Id A a0 a1) (u0 : P a0) (u1 : P a1) : U =
+  IdP (<i> P (p @ i)) u0 u1
+
+lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a0 a1 : A)
+         (p : Id A a0 a1) (b0 : P a0) (b1 : P a1) : IdS A P a0 a1 p b0 b1 =
+  <i> (pP (p @ i) (transport (<j> P (p @ i /\ j)) b0)
+          (transport (<j> P (p @ i \/ -j)) b1)) @ i

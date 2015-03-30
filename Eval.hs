@@ -140,7 +140,7 @@ eval rho v = case v of
   Snd a               -> sndVal (eval rho a)
   Where t decls       -> eval (Def decls rho) t
   Con name ts         -> VCon name (map (eval rho) ts)
-  PCon name a ts phi  -> 
+  PCon name a ts phi  ->
     pcon name (eval rho a) (map (eval rho) ts) (evalFormula rho phi)
   Split{}             -> Ter v rho
   Sum{}               -> Ter v rho
@@ -295,15 +295,14 @@ trans i v0 v1 = case (v0,v1) of
     Just as -> VPCon c (v0 `face` (i ~> 1)) (transps i as env ws0) phi
     Nothing -> error $ "trans: missing path constructor " ++ c ++
                        " in " ++ show v0
+  (VGlue a ts,_)    -> transGlue i a ts v1
+  (VComp VU a es,_) -> transU i a es v1
   _ | isNeutral v0 || isNeutral v1 -> VTrans (VPath i v0) v1
   (Ter (Sum _ _ nass) env,VComp b w ws) -> comp k v01 (trans i v0 w) ws'
     where v01 = v0 `face` (i ~> 1)  -- b is vi0 and independent of j
           k   = fresh (v0,v1,Atom i)
           transp alpha w = trans i (v0 `face` alpha) (w @@ k)
           ws'          = mapWithKey transp ws
-
-  (VGlue a ts,_)    -> transGlue i a ts v1
-  (VComp VU a es,_) -> transU i a es v1
   _ | otherwise -> error $ "trans not implemented for v0 = " ++ show v0
                    ++ "\n and v1 = " ++ show v1
 
@@ -716,15 +715,15 @@ simplify :: Int -> Name -> Val -> Val
 simplify k j v = case v of
   VTrans p u | isIndep k j (p @@ j) -> simplify k j u
   VComp a u ts ->
-    let (ts',indep) = Map.partition (\t -> isIndep k j (t @@ j)) ts
+    let (indep,ts') = Map.partition (\t -> isIndep k j (t @@ j)) ts
     in if Map.null ts' then simplify k j u else VComp a u ts'
   VCompElem a es u us ->
-    let (es',indep) = Map.partition (\e -> isIndep k j (e @@ j)) es
+    let (indep,es') = Map.partition (\e -> isIndep k j (e @@ j)) es
         us'         = intersection us es'
     in if Map.null es' then simplify k j u else VCompElem a es' u us'
   VElimComp a es u ->
-    let (es',indep) = Map.partition (\e -> isIndep k j (e @@ j)) es
-        u' = simplify k j u
+    let (indep,es') = Map.partition (\e -> isIndep k j (e @@ j)) es
+        u'          = simplify k j u
     in if Map.null es' then u' else case u' of
       VCompElem _ _ w _ -> simplify k j w
       _ -> VElimComp a es' u'

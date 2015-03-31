@@ -119,10 +119,12 @@ mkFun :: Val -> Val -> Val
 mkFun va vb = VPi va (eval rho (Lam "_" (Var "a") (Var "b")))
   where rho = Upd (Upd Empty ("a",va)) ("b",vb)
 
+idP = undefined
+
 -- Construct "(x : b) -> IdP (<_> b) (f (g x)) x"
 mkSection :: Val -> Val -> Val -> Val
 mkSection vb vf vg =
-  VPi vb (eval rho (Lam "x" b (IdP (Path (Name "_") b) (App f (App g x)) x)))
+  VPi vb (eval rho (Lam "x" b (idP (Path (Name "_") b) (App f (App g x)) x)))
   where [b,x,f,g] = map Var ["b","x","f","g"]
         rho = Upd (Upd (Upd Empty ("b",vb)) ("f",vf)) ("g",vg)
 
@@ -177,15 +179,28 @@ check a t = case (a,t) of
     checkDecls d
     local (addDecls d) $ check a e
   (_,Undef _) -> return ()
-  (VU,IdP a e0 e1) -> do
-    (a0,a1) <- checkPath (constPath VU) a
-    check a0 e0
-    check a1 e1
-  (VIdP p a0 a1,Path _ e) -> do
-    (u0,u1) <- checkPath p t
-    k <- asks index
-    unless (conv k a0 u0 && conv k a1 u1) $
-      throwError $ "path endpoints don't match " ++ show e
+
+  (VTPath i a,Path j t) -> do
+    let k = fresh (Atom i,Atom j,a)
+    local (addSub (j,Atom k)) $ check (a `swap` (i,k)) t
+  (VRes a as,u) -> do
+    check a u
+    rho <- asks env
+    -- let vu = eval rho u
+    checkSystemWith as (\alpha aalpha -> do
+      let ualpha = (eval (rho `face` alpha) u) `face` alpha
+      unlessM (ualpha === aalpha) $
+        throwError "res")
+
+  -- (VU,IdP a e0 e1) -> do
+  --   (a0,a1) <- checkPath (constPath VU) a
+  --   check a0 e0
+  --   check a1 e1
+  -- (VIdP p a0 a1,Path _ e) -> do
+  --   (u0,u1) <- checkPath p t
+  --   k <- asks index
+  --   unless (conv k a0 u0 && conv k a1 u1) $
+  --     throwError $ "path endpoints don't match " ++ show e
   (VU,Glue a ts) -> do
     check VU a
     rho <- asks env
@@ -317,13 +332,13 @@ checkPath v (Path i a) = do
   checkFresh i
   local (addSub (i,Atom i)) $ check (v @@ i) a
   return (eval (Sub rho (i,Dir 0)) a,eval (Sub rho (i,Dir 1)) a)
-checkPath v t = do
-  vt <- infer t
-  case vt of
-    VIdP a a0 a1 -> do
-      unlessM (a === v) $ throwError "checkPath"
-      return (a0,a1)
-    _ -> throwError $ show vt ++ " is not a path"
+-- checkPath v t = do
+--   vt <- infer t
+--   case vt of
+--     VIdP a a0 a1 -> do
+--       unlessM (a === v) $ throwError "checkPath"
+--       return (a0,a1)
+--     _ -> throwError $ show vt ++ " is not a path"
 
 -- Return system such that:
 --   rhoalpha |- p_alpha : Id (va alpha) (t0 rhoalpha) ualpha
@@ -374,22 +389,31 @@ infer e = case e of
   Where t d -> do
     checkDecls d
     local (addDecls d) $ infer t
+  -- AppFormula e phi -> do
+  --   checkFormula phi
+  --   t <- infer e
+  --   case t of
+  --     VIdP a _ _ -> return $ a @@ phi
+  --     _ -> throwError (show e ++ " is not a path")
+
   AppFormula e phi -> do
     checkFormula phi
     t <- infer e
     case t of
-      VIdP a _ _ -> return $ a @@ phi
+      VTPath i a -> return $ a `act` (i,phi)
       _ -> throwError (show e ++ " is not a path")
+
   Trans p t -> do
     (a0,a1) <- checkPath (constPath VU) p
     check a0 t
     return a1
-  Comp a t0 ps -> do
-    check VU a
-    va <- evalTyping a
-    check va t0
-    checkPathSystem t0 va ps
-    return va
+
+  -- Comp a t0 ps -> do
+  --   check VU a
+  --   va <- evalTyping a
+  --   check va t0
+  --   checkPathSystem t0 va ps
+  --   return va
   CompElem a es u us -> do
     check VU a
     rho <- asks env

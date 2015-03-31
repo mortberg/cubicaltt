@@ -46,29 +46,30 @@ instance Nominal Env where
   swap e ij  = mapEnv (`swap` ij) (`swap` ij) e
 
 instance Nominal Val where
-  support VU                    = []
-  support (Ter _ e)             = support e
-  support (VPi v1 v2)           = support [v1,v2]
-  support (VComp a u ts)        = support (a,u,ts)
-  -- support (VIdP a v0 v1)        = support [a,v0,v1]
-  support (VPath i v)           = i `delete` support v
-  support (VTPath i v)          = i `delete` support v
-  support (VRes u us)           = support (u,us)
-  support (VTrans u v)          = support (u,v)
-  support (VSigma u v)          = support (u,v)
-  support (VPair u v)           = support (u,v)
-  support (VFst u)              = support u
-  support (VSnd u)              = support u
-  support (VCon _ vs)           = support vs
-  support (VPCon _ a vs phi)    = support (a,vs,phi)
-  support (VVar _ v)            = support v
-  support (VApp u v)            = support (u,v)
-  support (VAppFormula u phi)   = support (u,phi)
-  support (VSplit u v)          = support (u,v)
-  support (VGlue a ts)          = support (a,ts)
-  support (VGlueElem a ts)      = support (a,ts)
-  support (VCompElem a es u us) = support (a,es,u,us)
-  support (VElimComp a es u)    = support (a,es,u)
+  support v = case v of
+    VU                  -> []
+    Ter _ e             -> support e
+    VPi v1 v2           -> support [v1,v2]
+    VComp a u ts        -> support (a,u,ts)
+    -- VIdP a v0 v1     -> support [a,v0,v1]
+    VPath i v           -> i `delete` support v
+    VTPath i v          -> i `delete` support v
+    VRes u us           -> support (u,us)
+    VTrans u v          -> support (u,v)
+    VSigma u v          -> support (u,v)
+    VPair u v           -> support (u,v)
+    VFst u              -> support u
+    VSnd u              -> support u
+    VCon _ vs           -> support vs
+    VPCon _ a vs phi    -> support (a,vs,phi)
+    VVar _ v            -> support v
+    VApp u v            -> support (u,v)
+    VAppFormula u phi   -> support (u,phi)
+    VSplit u v          -> support (u,v)
+    VGlue a ts          -> support (a,ts)
+    VGlueElem a ts      -> support (a,ts)
+    VCompElem a es u us -> support (a,es,u,us)
+    VElimComp a es u    -> support (a,es,u)
 
   act u (i, phi) =
     let acti :: Nominal a => a -> a
@@ -193,7 +194,7 @@ evalSystem rho ts =
 
 -- TODO: Write using case-of
 app :: Val -> Val -> Val
-app (Ter (Lam x _ t) e) u                  = eval (Upd e (x,u)) t
+app (Ter (Lam x _ t) e) u                 = eval (Upd e (x,u)) t
 app (Ter (Split _ _ _ nvs) e) (VCon c us) = case lookupBranch c nvs of
   Just (OBranch _ xs t) -> eval (upds e (zip xs us)) t
   _     -> error $ "app: Split with insufficient arguments; " ++
@@ -557,7 +558,6 @@ pathComp :: Name -> Val -> Val -> Val -> System Val -> Val
 pathComp i a u u' us = VPath j $ comp i a (u `face` (i ~> 0)) us'
   where j   = fresh (Atom i, a, us, u, u')
         us' = insertsSystem [(j ~> 0, u), (j ~> 1, u')] us
-
 
 -- Grad Lemma, takes a iso an L-system ts a value v s.t. sigma us = border v
 -- outputs u s.t. border u = us and an L-path between v and sigma u

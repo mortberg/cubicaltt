@@ -171,12 +171,12 @@ resolveApps :: Exp -> [Exp] -> Resolver Ter
 resolveApps Trans (x:y:xs) = do
   let c = CTT.Trans <$> resolveExp x <*> resolveExp y
   CTT.mkApps <$> c <*> mapM resolveExp xs
-resolveApps IdP (x:y:z:xs) = do
-  let c = CTT.IdP <$> resolveExp x <*> resolveExp y <*> resolveExp z
-  CTT.mkApps <$> c <*> mapM resolveExp xs
-resolveApps Comp (u:v:ts:xs) = do
-  let c = CTT.Comp <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
-  CTT.mkApps <$> c <*> mapM resolveExp xs
+-- resolveApps IdP (x:y:z:xs) = do
+--   let c = CTT.IdP <$> resolveExp x <*> resolveExp y <*> resolveExp z
+--   CTT.mkApps <$> c <*> mapM resolveExp xs
+-- resolveApps Comp (u:v:ts:xs) = do
+--   let c = CTT.Comp <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
+--   CTT.mkApps <$> c <*> mapM resolveExp xs
 resolveApps Glue (u:ts:xs) = do
   rs <- resolveSystem ts
   let isIso (CTT.Pair _ (CTT.Pair _ (CTT.Pair _ (CTT.Pair _ _)))) = True

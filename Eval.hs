@@ -12,7 +12,7 @@ import CTT
 
 look :: String -> Env -> Val
 look x (Upd rho (y,u)) | x == y    = u
-                        | otherwise = look x rho
+                       | otherwise = look x rho
 look x r@(Def rho r1) = case lookup x rho of
   Just (_,t) -> eval r t
   Nothing    -> look x r1
@@ -23,7 +23,7 @@ lookType x (Upd rho (y,VVar _ a)) | x == y    = a
                                   | otherwise = lookType x rho
 lookType x r@(Def rho r1) = case lookup x rho of
   Just (a,_) -> eval r a
-  Nothing -> lookType x r1
+  Nothing    -> lookType x r1
 lookType x (Sub rho _) = lookType x rho
 
 lookName :: Name -> Env -> Formula

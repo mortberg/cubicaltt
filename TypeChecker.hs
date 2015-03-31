@@ -82,6 +82,9 @@ addDecls d (TEnv k rho v) = TEnv k (Def d rho) v
 addTele :: Tele -> TEnv -> Typing TEnv
 addTele xas lenv = foldM (flip addType) lenv xas
 
+faceEnv :: Face -> TEnv -> TEnv
+faceEnv alpha tenv = tenv{env=env tenv `face` alpha}
+
 -------------------------------------------------------------------------------
 -- | Various useful functions
 
@@ -231,8 +234,8 @@ checkCompSystem vus = do
 
 -- Check the values at corresponding faces with a function, assumes
 -- systems have the same faces
-checkSystemsWith ::
-  System a -> System b -> (Face -> a -> b -> Typing c) -> Typing ()
+checkSystemsWith :: System a -> System b -> (Face -> a -> b -> Typing c) ->
+                    Typing ()
 checkSystemsWith us vs f = sequence_ $ elems $ intersectionWithKey f us vs
 
 -- Check the faces of a system
@@ -332,11 +335,13 @@ checkPathSystem :: Ter -> Val -> System Ter -> Typing (System Val)
 checkPathSystem t0 va ps = do
   rho <- asks env
   checkCompSystem (evalSystem rho ps)
-  T.sequence $ mapWithKey (\alpha pAlpha -> do
-    (a0,a1) <- checkPath (constPath (va `face` alpha)) pAlpha
-    unlessM (a0 === eval (rho `face` alpha) t0) $
-      throwError $ "Incompatible system with " ++ show t0
-    return a1) ps
+  T.sequence $ mapWithKey (\alpha pAlpha ->
+    local (faceEnv alpha) $ do
+      rhoAlpha <- asks env
+      (a0,a1)  <- checkPath (constPath (va `face` alpha)) pAlpha
+      unlessM (a0 === eval rhoAlpha t0) $
+        throwError $ "Incompatible system with " ++ show t0
+      return a1) ps
 
 checks :: (Tele,Env) -> [Ter] -> Typing ()
 checks _              []     = return ()

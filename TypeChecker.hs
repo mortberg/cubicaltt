@@ -127,7 +127,7 @@ mkSection vb vf vg =
         rho = Upd (Upd (Upd Empty ("b",vb)) ("f",vf)) ("g",vg)
 
 -- Test if two values are convertible
-(===) :: Val -> Val -> Typing Bool
+(===) :: Convertible a => a -> a -> Typing Bool
 u === v = conv <$> asks index <*> pure u <*> pure v
 
 -- eval in the typing monad

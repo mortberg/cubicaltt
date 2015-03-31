@@ -97,16 +97,21 @@ data Ter = App Ter Ter
            -- undefined
          | Undef Loc
 
-           -- Id type
-         | IdP Ter Ter Ter
-         | Path Name Ter
+           -- Path types
+--         | IdP Ter Ter Ter
+         | Path Name Ter -- <i> t
+         | TPath Name Ter -- [i] a
          | AppFormula Ter Formula
+         | Res Ter (System Ter) -- a | as (restriction of a type)
+
            -- Kan Composition
-         | Comp Ter Ter (System Ter)
+--         | Comp Ter Ter (System Ter)
          | Trans Ter Ter
+
            -- Composition in the Universe
          | CompElem Ter (System Ter) Ter (System Ter)
          | ElimComp Ter (System Ter) Ter
+
            -- Glue
          | Glue Ter (System Ter)
          | GlueElem Ter (System Ter)
@@ -139,10 +144,12 @@ data Val = VU
            -- The Formula is the direction of the equality in VPCon
          | VPCon LIdent Val [Val] Formula
 
-           -- Id values
-         | VIdP Val Val Val
+           -- Path values
+--         | VIdP Val Val Val
          | VPath Name Val
-         | VComp Val Val (System Val)
+         | VTPath Name Val
+         | VRes Val (System Val)
+         | VComp Val Val (System Val) -- TODO: remove?
          | VTrans Val Val
 
            -- Glue values
@@ -307,11 +314,13 @@ showTer v = case v of
   Split f _ _ _      -> text f
   Sum _ n _          -> text n
   Undef _            -> text "undefined"
-  IdP e0 e1 e2       -> text "IdP" <+> showTers [e0,e1,e2]
+--  IdP e0 e1 e2       -> text "IdP" <+> showTers [e0,e1,e2]
   Path i e           -> char '<' <> text (show i) <> char '>' <+> showTer e
+  TPath i e          -> char '[' <> text (show i) <> char ']' <+> showTer e
   AppFormula e phi   -> showTer1 e <+> char '@' <+> showFormula phi
-  Comp e0 e1 es      -> text "comp" <+> showTers [e0,e1]
-                        <+> text (showSystem es)
+  Res a as           -> showTer1 a <+> char '|' <+> text (showSystem as)
+  -- Comp e0 e1 es      -> text "comp" <+> showTers [e0,e1]
+  --                       <+> text (showSystem es)
   Trans e0 e1        -> text "transport" <+> showTers [e0,e1]
   Glue a ts          -> text "glue" <+> showTer1 a <+> text (showSystem ts)
   GlueElem a ts      -> text "glueElem" <+> showTer1 a <+> text (showSystem ts)
@@ -354,9 +363,11 @@ showVal v = case v of
   VVar x t          -> text x
   VFst u            -> showVal u <> text ".1"
   VSnd u            -> showVal u <> text ".2"
-  VIdP v0 v1 v2     -> text "IdP" <+> showVals [v0,v1,v2]
+--  VIdP v0 v1 v2     -> text "IdP" <+> showVals [v0,v1,v2]
   VPath i v         -> char '<' <> text (show i) <> char '>' <+> showVal v
+  VTPath i v        -> char '[' <> text (show i) <> char ']' <+> showVal v
   VAppFormula v phi -> showVal1 v <+> char '@' <+> showFormula phi
+  VRes u us         -> showVal1 u <+> char '|' <+> text (showSystem us)
   VComp v0 v1 vs    -> text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)
   VTrans v0 v1      -> text "trans" <+> showVals [v0,v1]
   VGlue a ts        -> text "glue" <+> showVal1 a <+> text (showSystem ts)

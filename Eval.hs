@@ -4,7 +4,8 @@ module Eval where
 import Data.List
 import Data.Maybe (fromMaybe)
 import Data.Map (Map,(!),mapWithKey,assocs,filterWithKey
-                ,elems,intersectionWith,intersection,keys)
+                ,elems,intersectionWith,intersection,keys
+                ,member)
 import qualified Data.Map as Map
 
 import Connections
@@ -49,8 +50,10 @@ instance Nominal Val where
   support (Ter _ e)             = support e
   support (VPi v1 v2)           = support [v1,v2]
   support (VComp a u ts)        = support (a,u,ts)
-  support (VIdP a v0 v1)        = support [a,v0,v1]
+  -- support (VIdP a v0 v1)        = support [a,v0,v1]
   support (VPath i v)           = i `delete` support v
+  support (VTPath i v)          = i `delete` support v
+  support (VRes u us)           = support (u,us)
   support (VTrans u v)          = support (u,v)
   support (VSigma u v)          = support (u,v)
   support (VPair u v)           = support (u,v)
@@ -76,11 +79,16 @@ instance Nominal Val where
          Ter t e -> Ter t (acti e)
          VPi a f -> VPi (acti a) (acti f)
          VComp a v ts -> compLine (acti a) (acti v) (acti ts)
-         VIdP a u v -> VIdP (acti a) (acti u) (acti v)
+--         VIdP a u v -> VIdP (acti a) (acti u) (acti v)
          VPath j v | j == i -> u
                    | j `notElem` sphi -> VPath j (acti v)
                    | otherwise -> VPath k (acti (v `swap` (j,k)))
               where k = fresh (v, Atom i, phi)
+         VTPath j v | j == i -> u
+                    | j `notElem` sphi -> VTPath j (acti v)
+                    | otherwise -> VTPath k (acti (v `swap` (j,k)))
+              where k = fresh (v, Atom i, phi)
+         VRes a us  -> res (acti a) (acti us)
          VTrans u v -> transLine (acti u) (acti v)
          VSigma a f -> VSigma (acti a) (acti f)
          VPair u v  -> VPair (acti u) (acti v)
@@ -106,8 +114,10 @@ instance Nominal Val where
          Ter t e             -> Ter t (sw e)
          VPi a f             -> VPi (sw a) (sw f)
          VComp a v ts        -> VComp (sw a) (sw v) (sw ts)
-         VIdP a u v          -> VIdP (sw a) (sw u) (sw v)
+--         VIdP a u v          -> VIdP (sw a) (sw u) (sw v)
          VPath k v           -> VPath (swapName k ij) (sw v)
+         VTPath k v          -> VTPath (swapName k ij) (sw v)
+         VRes a us           -> VRes (sw a) (sw us)
          VTrans u v          -> VTrans (sw u) (sw v)
          VSigma a f          -> VSigma (sw a) (sw f)
          VPair u v           -> VPair (sw u) (sw v)
@@ -145,13 +155,17 @@ eval rho v = case v of
   Split{}             -> Ter v rho
   Sum{}               -> Ter v rho
   Undef l             -> error $ "eval: undefined at " ++ show l
-  IdP a e0 e1         -> VIdP (eval rho a) (eval rho e0) (eval rho e1)
+--  IdP a e0 e1         -> VIdP (eval rho a) (eval rho e0) (eval rho e1)
   Path i t            ->
     let j = fresh rho
     in VPath j (eval (Sub rho (i,Atom j)) t)
+  TPath i t            ->
+    let j = fresh rho
+    in VTPath j (eval (Sub rho (i,Atom j)) t)
+  Res a us         -> res (eval rho a) (evalSystem rho us)
   Trans u v        -> transLine (eval rho u) (eval rho v)
   AppFormula e phi -> (eval rho e) @@ (evalFormula rho phi)
-  Comp a t0 ts     -> compLine (eval rho a) (eval rho t0) (evalSystem rho ts)
+--  Comp a t0 ts     -> compLine (eval rho a) (eval rho t0) (evalSystem rho ts)
   Glue a ts        -> glue (eval rho a) (evalSystem rho ts)
   GlueElem a ts    -> glueElem (eval rho a) (evalSystem rho ts)
   CompElem a es u us -> compElem (eval rho a) (evalSystem rho es) (eval rho u)
@@ -221,37 +235,43 @@ sndVal u | isNeutral u = VSnd u
 
 -- infer the type of a neutral value
 inferType :: Val -> Val
-inferType v = case v of
-  VVar _ t -> t
-  VFst t -> case inferType t of
-    VSigma a _ -> a
-    ty         -> error $ "inferType: expected Sigma type for " ++ show v
-                  ++ ", got " ++ show ty
-  VSnd t -> case inferType t of
-    VSigma _ f -> app f (VFst t)
-    ty         -> error $ "inferType: expected Sigma type for " ++ show v
-                  ++ ", got " ++ show ty
-  VSplit (Ter (Split _ _ f _) rho) v1 -> app (eval rho f) v1
-  VApp t0 t1 -> case inferType t0 of
-    VPi _ f -> app f t1
-    ty      -> error $ "inferType: expected Pi type for " ++ show v
-               ++ ", got " ++ show ty
-  VAppFormula t phi -> case inferType t of
-    VIdP a _ _ -> a @@ phi
-    ty         -> error $ "inferType: expected IdP type for " ++ show v
-                  ++ ", got " ++ show ty
-  VComp a _ _ -> a
-  VTrans a _  -> a @@ One
-  _ -> error $ "inferType: not neutral " ++ show v
+inferType v = undefined
+--  case v of
+  -- VVar _ t -> t
+  -- VFst t -> case inferType t of
+  --   VSigma a _ -> a
+  --   ty         -> error $ "inferType: expected Sigma type for " ++ show v
+  --                 ++ ", got " ++ show ty
+  -- VSnd t -> case inferType t of
+  --   VSigma _ f -> app f (VFst t)
+  --   ty         -> error $ "inferType: expected Sigma type for " ++ show v
+  --                 ++ ", got " ++ show ty
+  -- VSplit (Ter (Split _ _ f _) rho) v1 -> app (eval rho f) v1
+  -- VApp t0 t1 -> case inferType t0 of
+  --   VPi _ f -> app f t1
+  --   ty      -> error $ "inferType: expected Pi type for " ++ show v
+  --              ++ ", got " ++ show ty
+  -- VAppFormula t phi -> case inferType t of
+  --   VIdP a _ _ -> a @@ phi
+  --   ty         -> error $ "inferType: expected IdP type for " ++ show v
+  --                 ++ ", got " ++ show ty
+  -- VComp a _ _ -> a
+  -- VTrans a _  -> a @@ One
+  -- _ -> error $ "inferType: not neutral " ++ show v
 
 (@@) :: ToFormula a => Val -> a -> Val
 (VPath i u) @@ phi = u `act` (i,toFormula phi)
-v @@ phi | isNeutral v = case (inferType v,toFormula phi) of
-  (VIdP  _ a0 _,Dir 0) -> a0
-  (VIdP  _ _ a1,Dir 1) -> a1
-  _  -> VAppFormula v (toFormula phi)
 (VCompElem _ _ u _) @@ phi = u @@ phi
 (VElimComp _ _ u) @@ phi   = u @@ phi
+v @@ phi | isNeutral v = case inferType v of
+  VTPath i a -> case a `act` (i,toFormula phi) of
+    VRes _ us | eps `member` us -> us ! eps
+    _ -> VAppFormula v (toFormula phi)
+  t -> error $ "(@@): this is not possible, not a path type " ++ show t
+-- v @@ phi | isNeutral v = case (inferType v,toFormula phi) of
+--   (VIdP  _ a0 _,Dir 0) -> a0
+--   (VIdP  _ _ a1,Dir 1) -> a1
+--   _  -> VAppFormula v (toFormula phi)
 v @@ phi = error $ "(@@): " ++ show v ++ " should be neutral."
 
 pcon :: LIdent -> Val -> [Val] -> Formula -> Val
@@ -261,6 +281,16 @@ pcon c a@(Ter (Sum _ _ lbls) rho) us phi = case lookupPLabel c lbls of
                     | otherwise -> VPCon c a us phi
   Nothing           -> error "pcon"
 -- pcon c a us phi     = VPCon c a us phi
+
+-----------------------------------------------------------
+-- Restriction types (or subtypes)
+
+-- Singleton type: a | [() -> u], only inhabited by u!
+
+res :: Val -> System Val -> Val
+res (VRes a us) vs = res a (us `unionSystem` vs)
+res a us | Map.null us = a
+         | otherwise   = VRes a us
 
 -----------------------------------------------------------
 -- Transport
@@ -276,10 +306,16 @@ transNegLine u v = transNeg i (u @@ i) v
 trans :: Name -> Val -> Val -> Val
 trans i v0 v1 | i `notElem` support v0 = v1
 trans i v0 v1 = case (v0,v1) of
-  (VIdP a u v,w) ->
+  (VRes a us,w) ->
     let j   = fresh (Atom i, v0, w)
-        ts' = mkSystem [(j ~> 0,u),(j ~> 1,v)]
-    in VPath j $ genComp i (a @@ j) (w @@ j) ts'
+    in genComp j (a `swap` (i,j)) w (us `swap` (i,j))
+  -- (VIdP a u v,w) ->
+  --   let j   = fresh (Atom i, v0, w)
+  --       ts' = mkSystem [(j ~> 0,u),(j ~> 1,v)]
+  --   in VPath j $ genComp i (a @@ j) (w @@ j) ts'
+  (VTPath j a,u) ->
+    let k = fresh (Atom i,v0,v1)
+    in VPath k $ trans i (a `swap` (j,k)) (u @@ k)
   (VSigma a f,u) ->
     let (u1,u2) = (fstVal u,sndVal u)
         fill_u1 = transFill i a u1
@@ -372,9 +408,14 @@ comp i a u ts | eps `Map.member` ts    = (ts ! eps) `face` (i ~> 1)
 comp i a u ts | i `notElem` support ts = u
 comp i a u ts | not (Map.null indep)   = comp i a u ts'
   where (ts',indep) = Map.partition (\t -> i `elem` support t) ts
-comp i a u ts = let j = fresh (Atom i,a,u,ts) -- maybe only in vid??
-                in case a of
-  VIdP p _ _ -> VPath j $ comp i (p @@ j) (u @@ j) (Map.map (@@ j) ts)
+comp i a u ts = case a of
+  -- VIdP p _ _ ->
+    -- let j = fresh (Atom i,a,u,ts)
+    -- in VPath j $ comp i (p @@ j) (u @@ j) (Map.map (@@ j) ts)
+  VRes a us -> comp i a u (us `unionSystem` ts) -- TODO: Needed?
+  VTPath j a ->
+    let k = fresh (Atom i,Atom j,a,u,ts)
+    in VPath k $ comp i (a `swap` (j,k)) (u @@ k) (Map.map (@@ k) ts)
   VSigma a f -> VPair ui1 comp_u2
     where (t1s, t2s) = (Map.map fstVal ts, Map.map sndVal ts)
           (u1,  u2)  = (fstVal u, sndVal u)
@@ -396,7 +437,7 @@ comp i a u ts = let j = fresh (Atom i,a,u,ts) -- maybe only in vid??
            else VComp a u (Map.map (VPath i) ts)
       Nothing -> error $ "comp: missing constructor in labelled sum " ++ n
     VPCon{} -> VComp a u (Map.map (VPath i) ts)
-    VComp{} -> VComp a u (Map.map (VPath i) ts) 
+    VComp{} -> VComp a u (Map.map (VPath i) ts)
     _ -> error $ "comp ter sum" ++ show u
 
 compNeg :: Name -> Val -> Val -> System Val -> Val
@@ -697,7 +738,7 @@ instance Convertible Val where
       (VApp u v,VApp u' v')     -> conv k u u' && conv k v v'
       (VSplit u v,VSplit u' v') -> conv k u u' && conv k v v'
       (VVar x _, VVar x' _)     -> x == x'
-      (VIdP a b c,VIdP a' b' c') -> conv k a a' && conv k b b' && conv k c c'
+      -- (VIdP a b c,VIdP a' b' c') -> conv k a a' && conv k b b' && conv k c c'
       (VPath i a,VPath i' a')    -> conv k (a `swap` (i,j)) (a' `swap` (i',j))
       (VPath i a,p')             -> conv k (a `swap` (i,j)) (p' @@ j)
       (p,VPath i' a')            -> conv k (p @@ j) (a' `swap` (i',j))

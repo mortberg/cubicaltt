@@ -277,7 +277,7 @@ trans :: Name -> Val -> Val -> Val
 trans i v0 v1 | i `notElem` support v0 = v1
 trans i v0 v1 = case (v0,v1) of
   (VIdP a u v,w) ->
-    let j   = fresh (Atom i, v0, w)
+    let j   = fresh (Atom i,v0,w)
         ts' = mkSystem [(j ~> 0,u),(j ~> 1,v)]
     in VPath j $ genComp i (a @@ j) (w @@ j) ts'
   (VSigma a f,u) ->
@@ -302,7 +302,7 @@ trans i v0 v1 = case (v0,v1) of
     where v01 = v0 `face` (i ~> 1)  -- b is vi0 and independent of j
           k   = fresh (v0,v1,Atom i)
           transp alpha w = trans i (v0 `face` alpha) (w @@ k)
-          ws'          = mapWithKey transp ws
+          ws'            = mapWithKey transp ws
   _ | otherwise -> error $ "trans not implemented for v0 = " ++ show v0
                    ++ "\n and v1 = " ++ show v1
 
@@ -372,9 +372,9 @@ comp i a u ts | eps `Map.member` ts    = (ts ! eps) `face` (i ~> 1)
 comp i a u ts | i `notElem` support ts = u
 comp i a u ts | not (Map.null indep)   = comp i a u ts'
   where (ts',indep) = Map.partition (\t -> i `elem` support t) ts
-comp i a u ts = let j = fresh (Atom i,a,u,ts) -- maybe only in vid??
-                in case a of
-  VIdP p _ _ -> VPath j $ comp i (p @@ j) (u @@ j) (Map.map (@@ j) ts)
+comp i a u ts = case a of
+  VIdP p _ _ -> let j = fresh (Atom i,a,u,ts)
+                in VPath j $ comp i (p @@ j) (u @@ j) (Map.map (@@ j) ts)
   VSigma a f -> VPair ui1 comp_u2
     where (t1s, t2s) = (Map.map fstVal ts, Map.map sndVal ts)
           (u1,  u2)  = (fstVal u, sndVal u)
@@ -396,7 +396,7 @@ comp i a u ts = let j = fresh (Atom i,a,u,ts) -- maybe only in vid??
            else VComp a u (Map.map (VPath i) ts)
       Nothing -> error $ "comp: missing constructor in labelled sum " ++ n
     VPCon{} -> VComp a u (Map.map (VPath i) ts)
-    VComp{} -> VComp a u (Map.map (VPath i) ts) 
+    VComp{} -> VComp a u (Map.map (VPath i) ts)
     _ -> error $ "comp ter sum" ++ show u
 
 compNeg :: Name -> Val -> Val -> System Val -> Val
@@ -628,12 +628,13 @@ transU i a es wi0 =
                 else fst (uls'' ! gamma)) esi1
   in compElem ai1 esi1 vi1'' usi1
 
+
 pathUnivTrans :: Name -> Val -> Val -> Val
 pathUnivTrans i e ui0 = VPath j xi1
   where j    = fresh (Atom i,e,ui0)
-        ej   = e @@ j
-        wi0  = transFill j (ej `face` (i ~> 0)) ui0
-        wi1  = trans i ej wi0
+	ej   = e @@ j
+        wi0  = transFillNeg j (ej `face` (i ~> 0)) ui0
+	wi1  = trans i ej wi0
         xi1  = squeezeNeg j (ej `face` (i ~> 1)) wi1
 
 -- Any equality defines an equivalence.

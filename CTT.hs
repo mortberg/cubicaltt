@@ -368,11 +368,11 @@ showVal v = case v of
 
 showVal1 :: Val -> Doc
 showVal1 v = case v of
-  VU        -> char 'U'
-  VCon c [] -> text c
-  VVar{}    -> showVal v
-  Ter t@Sum{} _ -> showTer t
-  _         -> parens (showVal v)
+  VU              -> char 'U'
+  VCon c []       -> text c
+  VVar{}          -> showVal v
+  Ter t@Sum{} rho -> showTer t <+> showEnv rho
+  _               -> parens (showVal v)
 
 showVals :: [Val] -> Doc
 showVals = hsep . map showVal1

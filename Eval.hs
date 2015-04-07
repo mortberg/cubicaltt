@@ -582,15 +582,15 @@ compU i a es w0 ws =
 pathUniv :: Name -> Val -> System Val -> Val -> Val
 pathUniv i e us ui0 = VPath k xi1
   where j:k:_ = freshs (Atom i,e,us,ui0)
-        ej    = e @@ j
-        ui1   = genComp i (e @@ Zero) ui0 us
-        ws    = mapWithKey (\alpha uAlpha ->
-                  transFill j (ej `face` alpha) uAlpha)
-                us
-        wi0   = transFill j (ej `face` (i ~> 0)) ui0
-        wi1   = genComp i ej wi0 ws
-        wi1'  = transFill j (ej `face` (i ~> 1)) ui1
-        xi1   = genComp j (ej `face` (i ~> 1)) ui1
+	ej    = e @@ j
+        ui1   = comp i (e @@ One) ui0 us
+	ws    = mapWithKey (\alpha uAlpha ->
+                  transFillNeg j (ej `face` alpha) uAlpha)
+	        us
+	wi0   = transFillNeg j (ej `face` (i ~> 0)) ui0
+        wi1   = comp i ej wi0 ws
+        wi1'  = transFillNeg j (ej `face` (i ~> 1)) ui1
+        xi1   = genCompNeg j (ej `face` (i ~> 1)) ui1
                   (mkSystem [(k ~> 1, wi1'), (k ~> 0, wi1)])
 
 transU :: Name -> Val -> System Val -> Val -> Val

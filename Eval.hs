@@ -145,7 +145,6 @@ eval rho v = case v of
     pcon name (eval rho a) (map (eval rho) ts) (evalFormula rho phi)
   Split{}             -> Ter v rho
   Sum{}               -> Ter v rho
-  Undef l             -> error $ "eval: undefined at " ++ show l
   IdP a e0 e1         -> VIdP (eval rho a) (eval rho e0) (eval rho e1)
   Path i t            ->
     let j = fresh rho
@@ -192,13 +191,14 @@ app (Ter (Split _ _ _ nvs) e) (VPCon c _ us phi) = case lookupBranch c nvs of
   Just (PBranch _ xs i t) -> eval (Sub (upds e (zip xs us)) (i,phi)) t
   _ -> error ("app: Split with insufficient arguments; " ++
               " missing case for " ++ c)
-app u@(Ter (Split _ _ f hbr) e) kan@(VComp v w ws) =
+app u@(Ter (Split _ _ ty hbr) e) kan@(VComp v w ws) =
   let j   = fresh (e,kan)
       wsj = Map.map (@@ j) ws
       ws' = mapWithKey (\alpha -> app (u `face` alpha)) wsj
       w'  = app u w
-      ffill = app (eval e f) (fill j v w wsj)
-  in genComp j ffill w' ws'
+  in case eval e ty of
+    VPi _ f -> genComp j (app f (fill j v w wsj)) w' ws'
+    _       -> error ("app: Split annotation not a Pi type " ++ show u)
 
 app kan@(VTrans (VPath i (VPi a f)) li0) ui1 =
     let j   = fresh (kan,ui1)
@@ -232,7 +232,10 @@ inferType v = case v of
     VSigma _ f -> app f (VFst t)
     ty         -> error $ "inferType: expected Sigma type for " ++ show v
                   ++ ", got " ++ show ty
-  VSplit (Ter (Split _ _ f _) rho) v1 -> app (eval rho f) v1
+  VSplit s@(Ter (Split _ _ t _) rho) v1 -> case eval rho t of
+    VPi _ f -> app f v1
+    ty      -> error $ "inferType: Pi type expected for split annotation in "
+               ++ show v ++ ", got " ++ show ty
   VApp t0 t1 -> case inferType t0 of
     VPi _ f -> app f t1
     ty      -> error $ "inferType: expected Pi type for " ++ show v

@@ -156,10 +156,10 @@ check a t = case (a,t) of
       localM (addTele tele) $ do
         check (Ter t rho) t0
         check (Ter t rho) t1
-  (VPi va@(Ter (Sum _ _ cas) nu) f,Split _ _ f' ces) -> do
-    checkFam f'
+  (VPi va@(Ter (Sum _ _ cas) nu) f,Split _ _ ty ces) -> do
+    check VU ty
     rho <- asks env
-    unlessM (f === eval rho f') $ throwError "check: split annotations"
+    unlessM (a === eval rho ty) $ throwError "check: split annotations"
     if map labelName cas == map branchName ces
        then sequence_ [ checkBranch (lbl,nu) f brc (Ter t rho) va
                       | (brc, lbl) <- zip ces cas ]
@@ -205,7 +205,7 @@ check a t = case (a,t) of
 -- Check a list of declarations
 checkDecls :: [Decl] -> Typing ()
 checkDecls d = do
-  let (idents, tele, ters) = (declIdents d, declTele d, declTers d)
+  let (idents,tele,ters) = (declIdents d,declTele d,declTers d)
   trace ("Checking: " ++ unwords idents)
   checkTele tele
   rho <- asks env

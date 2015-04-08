@@ -42,7 +42,15 @@ compId' (A : U) (a b c : A) (p : Id A a b) (q : Id A b c) : Id A a c =
 compId'' (A : U) (a b : A) (p : Id A a b) : (c : A) -> (q : Id A b c) -> Id A a c =
   J A a ( \ (b : A) (p : Id A a b) -> (c : A) -> (q : Id A b c) -> Id A a c) rem b p
     where rem (c : A) (p : Id A a c) : Id A a c = p
-  
+
+compUp (A : U) (a a' b b' : A)
+       (p : Id A a a') (q : Id A b b') (r : Id A a b) : Id A a' b' =
+  <i> comp A (r @ i) [(i = 0) -> p, (i = 1) -> q]
+
+compDown (A : U) (a a' b b' : A)
+         (p : Id A a a') (q: Id A b b') : Id A a' b' -> Id A a b =
+ compUp A a' a b' b (inv A a a' p) (inv A b b' q)
+
 isoId (A B : U) (f : A -> B) (g : B -> A)
       (s : (y:B) -> Id B (f (g y)) y)
       (t : (x:A) -> Id A (g (f x)) x) : Id U A B =

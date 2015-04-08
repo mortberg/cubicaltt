@@ -1,8 +1,6 @@
 module retract where
 
 import prelude
-import hedberg
-
 
 section (A B : U) (f : A -> B) (g : B -> A) :U = (b : B) -> Id B (f (g b)) b
 

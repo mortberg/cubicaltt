@@ -20,6 +20,11 @@ add' : nat -> nat -> nat = split
   zero -> \(x : nat) -> x
   suc n -> \(x : nat) -> suc (add' n x)
 
+sucInj (n m : nat) (p : Id nat (suc n) (suc m)) : Id nat n m =
+ <i> pred (p @ i)
+
+-- TODO: Clean the rest of this file!
+
 id (A : U) (a : A) : A = a
 
 data list (A : U) = nil | cons (a : A) (as : list A)
@@ -79,4 +84,3 @@ lemSimpl (A : U) (a b c : A) (p : Id A a b) (q q' : Id A b c)
                      (j = 1) -> <i> comp A (p @ i) [ (i=1) -> <l> q' @ k /\ l],
                      (k = 0)  -> p,
                      (k = 1)  -> s @ j ]
-

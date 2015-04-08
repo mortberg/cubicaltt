@@ -10,13 +10,6 @@ decEqCong (A B : U) (f : A -> B) (g : B -> A) : dec A -> dec B = split
   inl a -> inl (f a)
   inr h -> inr (\ (b:B) -> h (g b))
 
-pred : nat -> nat = split
-  zero  -> zero
-  suc n -> n
-
-sucInj (n m : nat) (p:Id nat (suc n) (suc m)) : Id nat n m = 
- <i> pred (p @ i)
-
 caseNat (A:U) (a0 aS : A) : nat -> A = split
  zero -> a0
  suc n -> aS
@@ -38,11 +31,7 @@ natDec : (n m:nat) -> dec (Id nat n m) = split
    (\ (m:nat) -> decEqCong (Id nat n m) (Id nat (suc n) (suc m)) (\ (p:Id nat n m) -> <i> suc (p @ i))
                  (sucInj n m) (natDec n m))
 
-prop (A:U) : U = (a b:A) -> Id A a b
-
-set (A:U) : U = (a b:A) -> prop (Id A a b)
-
-exConst (A : U) :U = (f:A -> A) * const A f
+exConst (A : U) : U = (f:A -> A) * const A f
 
 decConst (A : U) : dec A -> exConst A = split
   inl a -> (\ (x:A)  -> a, \ (x y:A) -> refl A a)
@@ -53,14 +42,6 @@ hedbergLemma (A: U) (f : (a b : A) -> Id A a b -> Id A a b) (a :A) :
             Id (Id A a b) (compId A a a b (f a a (refl A a)) p) (f a b p) = 
   J A a (\ (b:A) (p:Id A a b) -> Id (Id A a b) (compId A a a b (f a a (refl A a)) p) (f a b p)) 
     (refl (Id A a a) (f a a (refl A a)))
-
-compUp (A : U) (a a' b b' : A) 
-       (p : Id A a a') (q: Id A b b') (r:Id A a b) : Id A a' b' =
- <i> comp A (r@i) [(i=0) -> p, (i=1) -> q]
-
-compDown (A : U) (a a' b b' : A) 
-         (p : Id A a a') (q: Id A b b') : Id A a' b' -> Id A a b =
- compUp A a' a b' b (inv A a a' p) (inv A b b' q)
 
 hedberg (A : U) (h:discrete A) (a b :A) (p q:Id A a b) : Id (Id A a b) p q = 
    lemSimpl A a a b r p q rem5

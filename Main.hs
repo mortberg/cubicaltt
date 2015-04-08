@@ -2,6 +2,7 @@ module Main where
 
 import Control.Monad.Trans.Reader
 import Control.Monad.Error
+import Control.Exception (try)
 import Data.List
 import System.Directory
 import System.FilePath
@@ -126,7 +127,10 @@ loop flags f names tenv@(TC.TEnv _ rho _) = do
                            loop flags f names tenv
             Right _  -> do
               let e = E.eval rho body
-              outputStrLn ("EVAL: " ++ show e)
+              -- Let's not crash if the evaluation raises an error:
+              liftIO $ catch (putStrLn ("EVAL: " ++ show e))
+                             (\e -> putStrLn ("Exception: " ++
+                                              show (e :: SomeException)))
               loop flags f names tenv
 
 -- (not ok,loaded,already loaded defs) -> to load ->

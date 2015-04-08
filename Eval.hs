@@ -129,6 +129,7 @@ instance Nominal Val where
 
 eval :: Env -> Ter -> Val
 eval rho v = case v of
+  Undef{}             -> Ter v rho
   U                   -> VU
   App r s             -> app (eval rho r) (eval rho s)
   Var i               -> look i rho

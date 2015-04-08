@@ -1,0 +1,64 @@
+module discor where
+
+import prelude
+
+data or (A B:U) = inl (a:A) | inr (b:B)
+
+data Unit = tt
+
+data N0 = 
+
+efq (A:U) : N0 -> A = split{}
+
+neg (A:U) : U = A -> N0
+
+dec (A:U) : U = or A (neg A)
+
+discrete (A:U) : U = (a b:A) -> dec (Id A a b)
+
+inlNotinr (A B:U) (a:A) (b:B) (h: Id (or A B) (inl a) (inr b)) : N0 = 
+ subst (or A B) T (inl a) (inr b) h tt
+ where
+  T : or A B -> U = split
+       inl _ -> Unit
+       inr _ -> N0
+
+inrNotinl (A B:U) (a:A) (b:B) (h : Id (or A B) (inr b) (inl a)) : N0 = 
+ subst (or A B) T (inr b) (inl a) h tt
+ where
+  T : or A B -> U = split
+       inl _ -> N0
+       inr _ -> Unit
+
+injective (A B:U) (f:A->B) : U = (a0 a1:A) -> Id B (f a0) (f a1) -> Id A a0 a1
+
+injInl (A B :U) (x0 x1:A) (h : Id (or A B) (inl x0) (inl x1)) : Id A x0 x1 = 
+ subst (or A B) T (inl x0) (inl x1) h (refl A x0)
+ where
+   T : or A B -> U = split
+         inl x -> Id A x0 x
+         inr _ -> N0
+
+injInr (A B :U) (x0 x1:B) (h: Id (or A B) (inr x0) (inr x1)) : Id B x0 x1 = 
+ subst (or A B) T (inr x0) (inr x1) h (refl B x0)
+ where
+   T : or A B -> U = split
+         inl _ -> N0
+         inr x -> Id B x0 x
+
+orDisc (A B : U) (dA: discrete A) (dB: discrete B) : (z z1 : or A B) -> dec (Id (or A B) z z1) = split
+  inl a -> rem1
+    where rem1 : (z1:or A B) -> dec (Id (or A B) (inl a) z1) = split
+            inl a1 -> rem (dA a a1)
+               where rem : dec (Id A a a1) -> dec (Id (or A B) (inl a) (inl a1)) = split
+                            inl p -> inl (<i> inl (p @ i))
+                            inr h -> inr (\ (p:Id (or A B) (inl a) (inl a1)) -> h (injInl A B a a1 p))
+            inr b -> inr (inlNotinr A B a b)
+  inr b -> rem1
+   where rem1 : (z1:or A B) -> dec (Id (or A B) (inr b) z1) = split
+            inl a -> inr (inrNotinl A B a b)
+            inr b1 -> rem (dB b b1)
+               where rem : dec (Id B b b1) -> dec (Id (or A B) (inr b) (inr b1)) = split
+                            inl p -> inl (<i> inr (p @ i))
+                            inr h -> inr (\ (p:Id (or A B) (inr b) (inr b1)) -> h (injInr A B b b1 p))
+

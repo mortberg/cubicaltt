@@ -1,0 +1,88 @@
+module hedberg where
+
+import bool
+import discor
+import int
+
+const (A : U) (f : A -> A) : U = (x y : A) -> Id A (f x) (f y)
+
+decEqCong (A B : U) (f : A -> B) (g : B -> A) : dec A -> dec B = split
+  inl a -> inl (f a)
+  inr h -> inr (\ (b:B) -> h (g b))
+
+pred : nat -> nat = split
+  zero  -> zero
+  suc n -> n
+
+sucInj (n m : nat) (p:Id nat (suc n) (suc m)) : Id nat n m = 
+ <i> pred (p @ i)
+
+caseNat (A:U) (a0 aS : A) : nat -> A = split
+ zero -> a0
+ suc n -> aS
+
+caseDNat (P:nat -> U) (a0 :P zero) (aS : (n:nat) -> P (suc n)) 
+            : (n:nat) -> P n = split
+ zero -> a0
+ suc n -> aS n
+
+znots (n : nat) : neg (Id nat zero (suc n)) =
+ \ (h:Id nat zero (suc n)) -> subst nat (caseNat U nat N0) zero (suc n) h zero
+
+snotz (n : nat) : neg (Id nat (suc n) zero) =
+ \ (h:Id nat (suc n) zero) -> znots n (inv nat (suc n) zero h)
+
+natDec : (n m:nat) -> dec (Id nat n m) = split
+ zero -> caseDNat (\ (m:nat) -> dec (Id nat zero m)) (inl (refl nat zero)) (\ (m:nat) -> inr (znots m))
+ suc n -> caseDNat (\ (m:nat) -> dec (Id nat (suc n) m)) (inr (snotz n))
+   (\ (m:nat) -> decEqCong (Id nat n m) (Id nat (suc n) (suc m)) (\ (p:Id nat n m) -> <i> suc (p @ i))
+                 (sucInj n m) (natDec n m))
+
+prop (A:U) : U = (a b:A) -> Id A a b
+
+set (A:U) : U = (a b:A) -> prop (Id A a b)
+
+exConst (A : U) :U = (f:A -> A) * const A f
+
+decConst (A : U) : dec A -> exConst A = split
+  inl a -> (\ (x:A)  -> a, \ (x y:A) -> refl A a)
+  inr h -> (\ (x:A) -> x, \ (x y:A) -> efq (Id A x y) (h x))
+
+hedbergLemma (A: U) (f : (a b : A) -> Id A a b -> Id A a b) (a :A) : 
+  (b : A) (p : Id A a b) ->
+            Id (Id A a b) (compId A a a b (f a a (refl A a)) p) (f a b p) = 
+  J A a (\ (b:A) (p:Id A a b) -> Id (Id A a b) (compId A a a b (f a a (refl A a)) p) (f a b p)) 
+    (refl (Id A a a) (f a a (refl A a)))
+
+compUp (A : U) (a a' b b' : A) 
+       (p : Id A a a') (q: Id A b b') (r:Id A a b) : Id A a' b' =
+ <i> comp A (r@i) [(i=0) -> p, (i=1) -> q]
+
+compDown (A : U) (a a' b b' : A) 
+         (p : Id A a a') (q: Id A b b') : Id A a' b' -> Id A a b =
+ compUp A a' a b' b (inv A a a' p) (inv A b b' q)
+
+hedberg (A : U) (h:discrete A) (a b :A) (p q:Id A a b) : Id (Id A a b) p q = 
+   lemSimpl A a a b r p q rem5
+  where
+    rem1 (x y : A) : exConst (Id A x y) = decConst (Id A x y) (h x y)
+
+    f (x y : A) : Id A x y -> Id A x y = (rem1 x y).1
+
+    fIsConst (x y : A) : const (Id A x y) (f x y) = (rem1 x y).2
+
+    r : Id A a a = f a a (refl A a)
+
+    rem2 : Id (Id A a b) (compId A a a b r p) (f a b p) = hedbergLemma A f a b p
+
+    rem3 : Id (Id A a b) (compId A a a b r q) (f a b q) = hedbergLemma A f a b q
+
+    rem4 : Id (Id A a b) (f a b p) (f a b q) = fIsConst a b p q
+
+    rem5 : Id (Id A a b) (compId A a a b r p) (compId A a a b r q) = 
+     compDown (Id A a b) (compId A a a b r p) (f a b p) (compId A a a b r q)
+                (f a b q) rem2 rem3 rem4
+
+natSet : set nat = hedberg nat natDec
+
+ZSet : set Z = hedberg Z (orDisc nat nat natDec natDec)

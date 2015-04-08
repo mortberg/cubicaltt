@@ -1,0 +1,42 @@
+module int where
+
+import nat
+import discor
+
+Z : U = or nat nat
+
+zeroZ : Z =  inr zero
+
+sucZ : Z -> Z = split
+  inl u -> auxsucZ u
+    where
+    auxsucZ : nat -> Z = split
+      zero  -> inr zero
+      suc n -> inl n
+  inr v -> inr (suc v)
+
+predZ : Z -> Z = split
+  inl u -> inl (suc u)
+  inr v -> auxpredZ v
+    where
+    auxpredZ : nat -> Z = split
+      zero  -> inl zero
+      suc n -> inr n
+
+sucpredZ : (x : Z) -> Id Z (sucZ (predZ x)) x = split
+  inl u -> refl Z (inl u)
+  inr v -> lem v
+   where
+    lem : (u : nat) -> Id Z (sucZ (predZ (inr u))) (inr u) = split
+      zero  -> refl Z (inr zero)
+      suc n -> refl Z (inr (suc n))
+
+predsucZ : (x : Z) -> Id Z (predZ (sucZ x)) x = split
+  inl u -> lem u
+   where
+    lem : (u : nat) -> Id Z (predZ (sucZ (inl u))) (inl u) = split
+      zero  -> refl Z (inl zero)
+      suc n -> refl Z (inl (suc n))
+  inr v -> refl Z (inr v)
+
+sucIdZ : Id U Z Z = isoId Z Z sucZ predZ sucpredZ predsucZ

@@ -1,0 +1,114 @@
+module susp where
+
+-- import helix
+import circle
+
+data susp (A:U) = north | south | merid (a:A) @ north ~ south
+
+-- n-spheres
+sphere : nat -> U = split
+  zero  -> bool
+  suc n -> susp (sphere n)
+
+-- The circle (S1) is equal to the 1-sphere (aka the suspension of Bool).
+-- (Similar to HoTT Book, Lemma 6.5.1)
+one : nat = suc zero
+
+sone : U = sphere one
+
+s1ToCircle : sone -> S1 = split
+  north   -> base
+  south   -> base
+  merid b @ i -> (path b) @ i
+    where path : bool ->Id S1 base base = split
+            false -> loop'
+            true  -> refl S1 base
+
+m0 : Id sone north south = <i> (merid{sone} false) @ i
+
+m1 : Id sone north south = <i> (merid{sone} true) @ i
+
+invm1 : Id sone south north = inv sone north south m1
+
+circleToS1 : S1 -> sone = split
+  base -> north
+  loop @ i -> (compId sone north south north m0 invm1) @ i
+
+merid1 (b:bool) : Id sone north south = <i>(merid{sone} b)@ i
+
+oc (x:S1) : S1 = s1ToCircle (circleToS1 x)
+
+ocid : (x : S1) -> Id S1 (oc x) x = split
+    base -> refl S1 base
+    loop @ i -> <j> oc (loop' @ i)
+
+co (x: sone) : sone = circleToS1 (s1ToCircle x)
+
+lemSquare (A:U) (a b : A) (m0 m1 : Id A a b) : 
+  Square A a a (compId A a b a m0 (inv A a b m1)) a b m0 (refl A a) m1 = 
+ <j i> comp A (m0 @ j) [(j=1) -> <k> m1 @ (i \/ -k)
+                       ,(i=0) -> <k> comp A (m0 @ j) [(j=1) -> <l> m1 @ (-k \/ -l)]]
+
+coid : (x : sone) -> Id sone (co x) x = split
+ north -> refl sone north
+ south -> m1
+ merid b @ i  -> (ind b) @ i
+  where
+    F (x:sone) : U = Id sone (co x) x
+
+    ind : (b:bool) -> IdS sone F north south (merid1 b) (refl sone north) m1 = split
+      false -> lemSquare sone north south m0 m1
+      true -> <j k> m1 @ (j /\ k)
+
+s1EqCircle : Id U sone S1 = isoId sone S1 s1ToCircle circleToS1 ocid coid
+
+s1EqS1 : Id U S1 S1 = compId U S1 sone S1 (inv U sone S1 s1EqCircle) s1EqCircle 
+
+-- pointed sets
+
+ptU : U = (X : U) * X
+
+lemPt1 (A :U) : (B:U) (p:Id U A B) (a:A) -> Id ptU (A,a) (B,transport p a)
+ = J U A (\ (B:U) (p:Id U A B) -> (a:A) -> Id ptU (A,a) (B,transport p a))
+   (\ (a:A) -> refl ptU (A,a))
+
+s1PtCircle1 : Id ptU (sone,north) (S1,base) = lemPt1 sone S1 s1EqCircle north
+
+lemPt (A :U) (B:U) (p:Id U A B) (a:A) : Id ptU (A,a) (B,transport p a) =
+ <i> (p @ i,transport (<j>p @ (i/\j)) a)
+
+Omega (X:ptU) : ptU = (Id X.1 X.2 X.2,refl X.1 X.2)
+
+s1PtCircle : Id ptU (sone,north) (S1,base) = lemPt sone S1 s1EqCircle north
+
+s1PtS1 : Id ptU (S1,base) (S1,base) = lemPt S1 S1 s1EqS1 base
+
+windingS : Id sone north north -> Z = rem1
+ where
+  G (X:ptU) : U = (Omega X).1 -> Z
+  rem : G (S1,base) = winding
+  rem1 : G (sone,north) = subst ptU G (S1,base) (sone,north) (<i> s1PtCircle @ -i) rem
+
+windingT : loopS1 -> Z = rem1
+ where
+  G (X: ptU): U = (Omega X).1 -> Z
+  rem : G (S1,base) = winding
+  rem1 : G (S1,base) = subst ptU G (S1,base) (S1,base) s1PtS1 rem
+
+s1ToCId (p: Id sone north north) : Id S1 base base
+ = <i> transport s1EqCircle (p @ i) 
+
+s1ToCIdInv (p : Id S1 base base) : Id sone north north
+ = <i> (transport (<j> s1EqCircle @(-j)) (p @ i))
+
+loop1S :  Id sone north north = s1ToCIdInv loop'
+
+loop2S : Id sone north north = compId sone north north north loop1S loop1S
+
+test0S : Z = windingS (refl sone north)
+
+test2S : Z = windingS loop2S
+
+winding' (l : Id sone north north) : Z = winding (s1ToCId l)
+
+testS : Id sone north north = <i> comp sone (m0 @ i) [ (i=1) -> <k> m1 @ (-k)]

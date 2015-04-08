@@ -297,7 +297,7 @@ resolveDecl d = case d of
   DeclDef (AIdent (_,f)) tele t body -> do
     let tele' = flattenTele tele
     a <- binds CTT.Pi tele' (resolveExp t)
-    d <- lams tele' (resolveWhere body)
+    d <- lams tele' (local (insertVar f) $ resolveWhere body)
     return ((f,(a,d)),[(f,Variable)])
   DeclData (AIdent (l,f)) tele sums -> do
     let tele' = flattenTele tele

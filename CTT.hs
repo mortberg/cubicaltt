@@ -160,6 +160,7 @@ data Val = VU
          | VSplit Val Val
          | VApp Val Val
          | VAppFormula Val Formula
+         | VLam Ident Val Val
   deriving Eq
 
 isNeutral :: Val -> Bool
@@ -350,6 +351,7 @@ showVal v = case v of
   VPair u v         -> parens (showVal u <> comma <> showVal v)
   VSigma u v        -> text "Sigma" <+> showVals [u,v]
   VApp u v          -> showVal u <+> showVal1 v
+  VLam x t e        -> char '\\' <> text x <+> text "->" <+> showVal e
   VSplit u v        -> showVal u <+> showVal1 v
   VVar x t          -> text x
   VFst u            -> showVal u <> text ".1"

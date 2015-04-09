@@ -114,7 +114,12 @@ loop flags f names tenv@(TC.TEnv _ rho _) = do
     Just (':':'c':'d':' ':str) -> do lift (setCurrentDirectory str)
                                      loop flags f names tenv
     Just ":h"  -> outputStrLn help >> loop flags f names tenv
-    Just str   -> case pExp (lexer str) of
+    Just str'  ->
+      let (msg,str,mod) = case str' of
+            (':':'n':' ':str) ->
+              ("NORMEVAL: ",str,E.normal 0)
+            str -> ("EVAL: ",str,id)
+      in case pExp (lexer str) of
       Bad err -> outputStrLn ("Parse error: " ++ err) >> loop flags f names tenv
       Ok  exp ->
         case runResolver $ local (insertIdents names) $ resolveExp exp of
@@ -126,9 +131,9 @@ loop flags f names tenv@(TC.TEnv _ rho _) = do
             Left err -> do outputStrLn ("Could not type-check: " ++ err)
                            loop flags f names tenv
             Right _  -> do
-              let e = E.eval rho body
+              let e = mod $ E.eval rho body
               -- Let's not crash if the evaluation raises an error:
-              liftIO $ catch (putStrLn ("EVAL: " ++ show e))
+              liftIO $ catch (putStrLn (msg ++ show e))
                              (\e -> putStrLn ("Exception: " ++
                                               show (e :: SomeException)))
               loop flags f names tenv

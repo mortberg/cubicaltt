@@ -51,6 +51,25 @@ compDown (A : U) (a a' b b' : A)
          (p : Id A a a') (q: Id A b b') : Id A a' b' -> Id A a b =
  compUp A a' a b' b (inv A a a' p) (inv A b b' q)
 
+idfun (A : U) (a : A) : A = a
+
+test0 (A : U) (a b : A) (p : Id A a b) : Id A a a = refl A (p @ 0)
+test1 (A : U) (a b : A) (p : Id A a b) : Id A b b = refl A (p @ 1)
+
+compEmpty (A : U) (a b : A) (p : Id A a b) : Id A a b =
+  <i> comp A (p @ i) [ ]
+
+kan (A : U) (a b c d : A) (p : Id A a b) (q : Id A a c)
+                          (r : Id A b d) : Id A c d =
+  <i> comp A (p @ i) [ (i = 0) -> q, (i = 1) -> r ]
+
+lemSimpl (A : U) (a b c : A) (p : Id A a b) (q q' : Id A b c)
+          (s : Id (Id A a c) (compId A a b c p q) (compId A a b c p q')) : Id (Id A b c) q q' =
+  <j> <k> comp A a [ (j = 0) -> <i> comp A (p @ i) [ (i = 1) -> <l> q @ k /\ l],
+                     (j = 1) -> <i> comp A (p @ i) [ (i=1) -> <l> q' @ k /\ l],
+                     (k = 0)  -> p,
+                     (k = 1)  -> s @ j ]
+
 isoId (A B : U) (f : A -> B) (g : B -> A)
       (s : (y:B) -> Id B (f (g y)) y)
       (t : (x:A) -> Id A (g (f x)) x) : Id U A B =

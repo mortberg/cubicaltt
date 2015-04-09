@@ -1,7 +1,6 @@
 module bool where
 
 import prelude
-import nat
 
 data bool = false | true
 
@@ -18,37 +17,34 @@ negEq : Id U bool bool =
 
 test : bool = transport negEq true
 
-data F2 = zero | one
+data F2 = zeroF2 | oneF2
 
 f2ToBool : F2 -> bool = split
-  zero -> false
-  one -> true
+  zeroF2 -> false
+  oneF2 -> true
 
 boolToF2 : bool -> F2 = split
-  false -> zero
-  true -> one
+  false -> zeroF2
+  true -> oneF2
 
 f2ToBoolK : (x : F2) -> Id F2 (boolToF2 (f2ToBool x)) x = split
-  zero -> refl F2 zero
-  one -> refl F2 one
+  zeroF2 -> refl F2 zeroF2
+  oneF2 -> refl F2 oneF2
 
 boolToF2K : (b : bool) -> Id bool (f2ToBool (boolToF2 b)) b = split
   false -> refl bool false
   true -> refl bool true
 
 boolEqF2 : Id U bool F2 =
- -- <i> glue F2 [ (i = 0) -> (bool,(boolToF2,(f2ToBool,(f2ToBoolK,boolToF2K))))]
  isoId bool F2 boolToF2 f2ToBool f2ToBoolK boolToF2K
   
 negF2 : F2 -> F2 = subst U (\(X : U) -> (X -> X)) bool F2 boolEqF2 neg
 
-
 lemTest (A : U) : (B : U) (p : Id U A B) (a : A) -> IdP p a (transport p a) =
   J U A (\(B : U) (p : Id U A B) -> (a : A) -> IdP p a (transport p a)) (refl A)
 
-
-test : IdP boolEqF2 true one = <i> glueElem one [ (i = 0) -> true ]
-test1 : IdP boolEqF2 true one = lemTest bool F2 boolEqF2 true
+test : IdP boolEqF2 true oneF2 = <i> glueElem oneF2 [ (i = 0) -> true ]
+test1 : IdP boolEqF2 true oneF2 = lemTest bool F2 boolEqF2 true
 
 F2EqBool : Id U F2 bool = inv U bool F2 boolEqF2
 
@@ -57,28 +53,22 @@ negBool : bool -> bool = subst U (\(X : U) -> (X -> X)) F2 bool F2EqBool negF2
 F2EqBoolComp : Id U F2 bool =
   compId U F2 bool bool F2EqBool negEq
 
-test2 : bool = transport F2EqBoolComp one
+test2 : bool = transport F2EqBoolComp oneF2
 
 negNegEq : Id U bool bool =
   compId U bool bool bool negEq negEq
 
-
 test3 : bool = transport negNegEq true
-
 test4 : Id U bool bool = <i> negNegEq @ i
 
 kanBool : Id U bool bool =
   kan U bool bool bool bool negEq negEq negEq
 
--- connectSquare (A : U) (a0 a1 : A) (u : Id A a0 a1)
---               (b0 b1 : A) (v : Id A b0 b1)
---               (r0 : Id A a0 b0) (r1 : Id A a1 b1) : Square A a0 a1 u b0 b1 v r0 r1= 
-
 squareBoolF2 : Square U bool bool (refl U bool) bool F2
                   boolEqF2 (refl U bool)  boolEqF2 =
   <i j> boolEqF2 @ i /\ j
 
-test5 : IdP boolEqF2 true one = 
+test5 : IdP boolEqF2 true oneF2 = 
   <i> transport (<j> boolEqF2 @ i /\ j) true
 
 test6 : Id bool true true =

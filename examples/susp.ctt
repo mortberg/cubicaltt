@@ -1,6 +1,5 @@
 module susp where
 
--- import helix
 import circle
 
 data susp (A:U) = north | south | merid (a:A) @ north ~ south
@@ -12,8 +11,6 @@ sphere : nat -> U = split
 
 -- The circle (S1) is equal to the 1-sphere (aka the suspension of Bool).
 -- (Similar to HoTT Book, Lemma 6.5.1)
-one : nat = suc zero
-
 sone : U = sphere one
 
 s1ToCircle : sone -> S1 = split

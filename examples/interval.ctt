@@ -1,0 +1,13 @@
+module interval where
+
+import prelude
+
+data I = zero | one | seg @ zero ~ one
+
+fext (A B : U) (f g : A -> B) (p : (x : A) -> Id B (f x) (g x)) :
+     Id (A -> B) f g = mapOnPath I (A -> B) (\(i : I) (x : A) -> htpy x i)
+                          zero one (<i> seg{I} @ i)
+  where htpy (x : A) : I -> B = split
+          zero    -> f x
+          one     -> g x
+          seg @ i -> (p x) @ i

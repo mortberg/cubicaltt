@@ -1,0 +1,170 @@
+module stream where
+
+import prelude
+
+-- Let us pretend that Stream is a coinductive type.
+
+data Stream (A : U) = cons (x : A) (xs : Stream A)
+
+-- Projections.
+
+head (A : U) : Stream A -> A = split
+  cons x xs -> x
+
+tail (A : U) : Stream A -> Stream A = split
+  cons x xs -> xs
+
+-- Propositional eta-equality for streams.
+
+eta
+  (A : U) :
+  (xs : Stream A) ->
+  Id (Stream A) (cons (head A xs) (tail A xs)) xs =
+  split
+    cons x xs -> <i> cons x xs
+
+-- Bisimilarity.
+
+data Bisimilar (A : U) (xs ys : Stream A) =
+  consB (h : Id A (head A xs) (head A ys))
+        (t : Bisimilar A (tail A xs) (tail A ys))
+
+-- Bisimilarity implies equality.
+
+bisimilarityToId2
+  (rec : (A : U) (xs : Stream A) (ys : Stream A) -> Bisimilar A xs ys -> Id (Stream A) xs ys)
+  (A : U) (x : A) (xs : Stream A) (y : A) (ys : Stream A) :
+  Bisimilar A (cons x xs) (cons y ys) ->
+  Id (Stream A) (cons x xs) (cons y ys) =
+  split
+    consB h t -> <i> cons (h @ i) ((rec A xs ys t) @ i)
+
+bisimilarityToId1
+  (rec : (A : U) (xs : Stream A) (ys : Stream A) -> Bisimilar A xs ys -> Id (Stream A) xs ys)
+  (A : U) (x : A) (xs : Stream A) :
+  (ys : Stream A) -> Bisimilar A (cons x xs) ys ->
+  Id (Stream A) (cons x xs) ys =
+  split
+    cons y ys -> bisimilarityToId2 rec A x xs y ys
+
+bisimilarityToId
+  (A : U) :
+  (xs : Stream A) (ys : Stream A) ->
+  Bisimilar A xs ys -> Id (Stream A) xs ys =
+  split
+    cons x xs -> bisimilarityToId1 bisimilarityToId A x xs
+
+-- Equality implies bisimilarity.
+
+idToBisimilarity1
+  (rec : (A : U) (xs ys : Stream A) (eq : Id (Stream A) xs ys) ->
+         Bisimilar A xs ys)
+  (A : U) (x : A) (xs : Stream A) :
+  (ys : Stream A) (eq : Id (Stream A) (cons x xs) ys) ->
+  Bisimilar A (cons x xs) ys =
+  split
+    cons y ys ->
+      \(eq : Id (Stream A) (cons x xs) (cons y ys)) ->
+         consB (<i> head A (eq @ i))
+               (rec A xs ys (<i> tail A (eq @ i)))
+
+idToBisimilarity
+  (A : U) :
+  (xs ys : Stream A) (eq : Id (Stream A) xs ys) ->
+  Bisimilar A xs ys =
+  split
+    cons x xs -> idToBisimilarity1 idToBisimilarity A x xs
+
+-- Round-tripping lemmas.
+
+bisimilarityToBisimilarity2
+  (rec : (A : U) (xs ys : Stream A) (b : Bisimilar A xs ys) ->
+         Id (Bisimilar A xs ys)
+            (idToBisimilarity A xs ys (bisimilarityToId A xs ys b))
+            b)
+  (A : U) (x : A) (xs : Stream A) (y : A) (ys : Stream A) :
+  (b : Bisimilar A (cons x xs) (cons y ys)) ->
+  Id (Bisimilar A (cons x xs) (cons y ys))
+     (idToBisimilarity A (cons x xs) (cons y ys)
+        (bisimilarityToId A (cons x xs) (cons y ys) b))
+     b =
+  split
+    consB h t -> <i> consB h ((rec A xs ys t) @ i)
+
+bisimilarityToBisimilarity1
+  (rec : (A : U) (xs ys : Stream A) (b : Bisimilar A xs ys) ->
+         Id (Bisimilar A xs ys)
+            (idToBisimilarity A xs ys (bisimilarityToId A xs ys b))
+            b)
+  (A : U) (x : A) (xs : Stream A) :
+  (ys : Stream A) (b : Bisimilar A (cons x xs) ys) ->
+  Id (Bisimilar A (cons x xs) ys)
+     (idToBisimilarity A (cons x xs) ys
+        (bisimilarityToId A (cons x xs) ys b))
+     b =
+  split
+    cons y ys -> bisimilarityToBisimilarity2 rec A x xs y ys
+
+bisimilarityToBisimilarity
+  (A : U) :
+  (xs ys : Stream A) (b : Bisimilar A xs ys) ->
+  Id (Bisimilar A xs ys)
+     (idToBisimilarity A xs ys (bisimilarityToId A xs ys b))
+     b =
+  split
+    cons x xs -> bisimilarityToBisimilarity1
+                   bisimilarityToBisimilarity
+                   A x xs
+
+-- TODO: Figure out if idToId is productive.
+
+idToId2
+  (rec : (A : U) (xs ys : Stream A) (eq : Id (Stream A) xs ys) ->
+         Id (Id (Stream A) xs ys)
+            (bisimilarityToId A xs ys (idToBisimilarity A xs ys eq))
+            eq)
+  (A : U) (x : A) (xs : Stream A) (y : A) (ys : Stream A)
+  (eq : Id (Stream A) (cons x xs) (cons y ys)) :
+  Id (Id (Stream A) (cons x xs) (cons y ys))
+     (bisimilarityToId A (cons x xs) (cons y ys)
+        (idToBisimilarity A (cons x xs) (cons y ys) eq))
+     eq =
+  <i j> comp (Stream A)
+             (cons (head A (eq @ j))
+                   (((rec A xs ys (<k> tail A (eq @ k))) @ i) @ j))
+             [ (i = 1) -> <k> (eta A (eq @ j)) @ k ]
+
+idToId1
+  (rec : (A : U) (xs ys : Stream A) (eq : Id (Stream A) xs ys) ->
+         Id (Id (Stream A) xs ys)
+            (bisimilarityToId A xs ys (idToBisimilarity A xs ys eq))
+            eq)
+  (A : U) (x : A) (xs : Stream A) :
+  (ys : Stream A) (eq : Id (Stream A) (cons x xs) ys) ->
+  Id (Id (Stream A) (cons x xs) ys)
+     (bisimilarityToId A (cons x xs) ys
+        (idToBisimilarity A (cons x xs) ys eq))
+     eq =
+  split
+    cons y ys -> idToId2 rec A x xs y ys
+
+idToId
+  (A : U) :
+  (xs ys : Stream A) (eq : Id (Stream A) xs ys) ->
+  Id (Id (Stream A) xs ys)
+     (bisimilarityToId A xs ys (idToBisimilarity A xs ys eq))
+     eq =
+  split
+    cons x xs -> idToId1 idToId A x xs
+
+-- Bisimilarity is equal to equality.
+
+bisimilarityIsId
+  (A : U) (xs ys : Stream A) :
+  Id U (Bisimilar A xs ys) (Id (Stream A) xs ys) =
+  isoId (Bisimilar A xs ys)
+        (Id (Stream A) xs ys)
+        (bisimilarityToId A xs ys)
+        (idToBisimilarity A xs ys)
+        (idToId A xs ys)
+        (bisimilarityToBisimilarity A xs ys)

@@ -3,7 +3,7 @@ entrypoints Module, Exp ;
 comment "--" ;
 comment "{-" "-}" ;
 
-layout "where", "let", "mutual", "split" ;
+layout "where", "let", "split" ;
 layout stop "in" ;
 -- Do not use layout toplevel as it makes pExp fail!
 
@@ -28,26 +28,27 @@ Fun.        Exp1 ::= Exp2 "->" Exp1 ;
 Pi.         Exp1 ::= [PTele] "->" Exp1 ;
 Sigma.      Exp1 ::= [PTele] "*" Exp1 ;
 App.        Exp2 ::= Exp2 Exp3 ;
-Var.        Exp3 ::= AIdent ;
-AppFormula. Exp3 ::= Exp3 "@" Formula ;
-U.          Exp3 ::= "U" ;
-PCon.       Exp3 ::= AIdent "{" Exp "}" ; -- c{T A B} x1 x2 @ phi
-Fst.        Exp3 ::= Exp3 ".1" ;
-Snd.        Exp3 ::= Exp3 ".2" ;
-IdP.        Exp3 ::= "IdP" ;
-Trans.      Exp3 ::= "transport" ;
-Comp.       Exp3 ::= "comp" ;
-Glue.       Exp3 ::= "glue" ;
-GlueElem.   Exp3 ::= "glueElem" ;
-CompElem.   Exp3 ::= "compElem" ;
-ElimComp.   Exp3 ::= "elimComp" ;
-System.     Exp3 ::= "[" [Side] "]" ;
-Pair.       Exp3 ::= "(" Exp "," [Exp] ")" ;
-coercions Exp 3 ;
+IdP.        Exp3 ::= "IdP" Exp4 Exp4 Exp4 ;
+Trans.      Exp3 ::= "transport" Exp4 Exp4 ;
+Comp.       Exp3 ::= "comp" Exp4 Exp4 System ;
+Glue.       Exp3 ::= "glue" Exp4 System ;
+GlueElem.   Exp3 ::= "glueElem" Exp4 System ;
+CompElem.   Exp3 ::= "compElem" Exp4 System Exp4 System ;
+ElimComp.   Exp3 ::= "elimComp" Exp4 System Exp4 ;
+Fst.        Exp4 ::= Exp4 ".1" ;
+Snd.        Exp4 ::= Exp4 ".2" ;
+AppFormula. Exp5 ::= Exp5 "@" Formula ;
+Pair.       Exp5 ::= "(" Exp "," [Exp] ")" ;
+Var.        Exp5 ::= AIdent ;
+PCon.       Exp5 ::= AIdent "{" Exp "}" ; -- c{T A B} x1 x2 @ phi
+U.          Exp5 ::= "U" ;
+coercions Exp 5 ;
 separator nonempty Exp "," ;
 
 Dir0.       Dir ::= "0" ;
 Dir1.       Dir ::= "1" ;
+
+System.     System ::= "[" [Side] "]" ;
 
 Face.     Face ::= "(" AIdent "=" Dir ")" ;
 separator Face "" ;

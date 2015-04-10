@@ -30,11 +30,6 @@ mLoop : (x : S1) -> Id S1 x x = split
   base -> loop'
   loop @ i -> (constSquare S1 base loop') @ i
 
-  -- <i> let rem : S1 -> S1 = split
-  --           base -> loop' @ i
-  --           loop @ j -> ((constSquare S1 base loop') @ j) @ i
-  --     in rem x
-
 mult (x : S1) : S1 -> S1 = split
   base -> x
   loop @ i -> (mLoop x) @ i

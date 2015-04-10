@@ -168,34 +168,6 @@ binds :: (Ter -> Ter) -> [(Ident,Exp)] -> Resolver Ter -> Resolver Ter
 binds f = flip $ foldr $ bind f
 
 resolveApps :: Exp -> [Exp] -> Resolver Ter
-resolveApps Trans (x:y:xs) = do
-  let c = CTT.Trans <$> resolveExp x <*> resolveExp y
-  CTT.mkApps <$> c <*> mapM resolveExp xs
-resolveApps IdP (x:y:z:xs) = do
-  let c = CTT.IdP <$> resolveExp x <*> resolveExp y <*> resolveExp z
-  CTT.mkApps <$> c <*> mapM resolveExp xs
-resolveApps Comp (u:v:ts:xs) = do
-  let c = CTT.Comp <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
-  CTT.mkApps <$> c <*> mapM resolveExp xs
-resolveApps Glue (u:ts:xs) = do
-  rs <- resolveSystem ts
-  let isIso (CTT.Pair _ (CTT.Pair _ (CTT.Pair _ (CTT.Pair _ _)))) = True
-      isIso _ = False
-  unless (all isIso $ Map.elems rs)
-    (throwError $ "Not a system of isomorphisms: " ++ show rs)
-  let c = CTT.Glue <$> resolveExp u <*> pure rs
-  CTT.mkApps <$> c <*> mapM resolveExp xs
-resolveApps GlueElem (u:ts:xs) = do
-  let c = CTT.GlueElem <$> resolveExp u <*> resolveSystem ts
-  CTT.mkApps <$> c <*> mapM resolveExp xs
-resolveApps CompElem (a:es:t:ts:xs) = do
-  let c = CTT.CompElem <$> resolveExp a <*> resolveSystem es
-          <*> resolveExp t <*> resolveSystem ts
-  CTT.mkApps <$> c <*> mapM resolveExp xs
-resolveApps ElimComp (a:es:t:xs) = do
-  let c = CTT.ElimComp <$> resolveExp a <*> resolveSystem es
-          <*> resolveExp t
-  CTT.mkApps <$> c <*> mapM resolveExp xs
 resolveApps x xs = CTT.mkApps <$> resolveExp x <*> mapM resolveExp xs
 
 resolveExp :: Exp -> Resolver Ter
@@ -227,23 +199,36 @@ resolveExp e = case e of
   AppFormula e phi ->
     let (x,xs) = unApps e []
     in case x of
-      PCon n a -> CTT.PCon (unAIdent n) <$> resolveExp a
-                                        <*> mapM resolveExp xs
-                                        <*> resolveFormula phi
+      PCon n a ->
+        CTT.PCon (unAIdent n) <$> resolveExp a <*> mapM resolveExp xs
+                              <*> resolveFormula phi
       _ -> CTT.AppFormula <$> resolveExp e <*> resolveFormula phi
-  _             -> do
+  Trans x y   -> CTT.Trans <$> resolveExp x <*> resolveExp y
+  IdP x y z   -> CTT.IdP <$> resolveExp x <*> resolveExp y <*> resolveExp z
+  Comp u v ts -> CTT.Comp <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
+  Glue u ts   -> do
+    rs <- resolveSystem ts
+    let isIso (CTT.Pair _ (CTT.Pair _ (CTT.Pair _ (CTT.Pair _ _)))) = True
+        isIso _ = False
+    unless (all isIso $ Map.elems rs)
+      (throwError $ "Not a system of isomorphisms: " ++ show rs)
+    CTT.Glue <$> resolveExp u <*> pure rs
+  GlueElem u ts      -> CTT.GlueElem <$> resolveExp u <*> resolveSystem ts
+  CompElem a es t ts -> CTT.CompElem <$> resolveExp a <*> resolveSystem es
+                                     <*> resolveExp t <*> resolveSystem ts
+  ElimComp a es t    -> CTT.ElimComp <$> resolveExp a <*> resolveSystem es <*> resolveExp t
+  _ -> do
     modName <- asks envModule
     throwError ("Could not resolve " ++ show e ++ " in module " ++ modName)
 
 resolveWhere :: ExpWhere -> Resolver Ter
 resolveWhere = resolveExp . unWhere
 
-resolveSystem :: Exp -> Resolver (C.System Ter)
+resolveSystem :: System -> Resolver (C.System Ter)
 resolveSystem (System ts) =
   -- Note: the symbols in alpha are in scope in u, but they mean 0 or 1
   Map.fromList <$> sequence [ (,) <$> resolveFace alpha <*> resolveExp u
                             | Side alpha u <- ts ]
-resolveSystem e = throwError $ show e ++ " is not a system"
 
 resolveFace :: [Face] -> Resolver C.Face
 resolveFace alpha =

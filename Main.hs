@@ -9,6 +9,7 @@ import System.FilePath
 import System.Environment
 import System.Console.GetOpt
 import System.Console.Haskeline
+import System.Console.Haskeline.History
 
 import Exp.Lex
 import Exp.Par
@@ -72,15 +73,15 @@ main = do
        [f] -> do
          putStrLn welcome
          putStrLn $ "Loading " ++ show f
-         initLoop flags f
+         initLoop flags f emptyHistory
        _   -> putStrLn $ "Input error: zero or one file expected\n\n" ++
                          usageInfo usage options
     (_,_,errs) -> putStrLn $ "Input error: " ++ concat errs ++ "\n" ++
                              usageInfo usage options
 
 -- Initialize the main loop
-initLoop :: [Flag] -> FilePath -> IO ()
-initLoop flags f = do
+initLoop :: [Flag] -> FilePath -> History -> IO ()
+initLoop flags f hist = do
   -- Parse and type check files
   (_,_,mods) <- imports True ([],[],[]) f
   -- Translate to TT
@@ -88,7 +89,7 @@ initLoop flags f = do
   case res of
     Left err    -> do
       putStrLn $ "Resolver failed: " ++ err
-      runInputT (settings []) (loop flags f [] TC.verboseEnv)
+      runInputT (settings []) (putHistory hist >> loop flags f [] TC.verboseEnv)
     Right (adefs,names) -> do
       -- putStrLn $ "adefs = " ++ show adefs
       (merr,tenv) <- TC.runDeclss TC.verboseEnv adefs
@@ -97,7 +98,7 @@ initLoop flags f = do
         Nothing  -> return ()
       putStrLn "File loaded."
       -- Compute names for auto completion
-      runInputT (settings [n | (n,_) <- names]) (loop flags f names tenv)
+      runInputT (settings [n | (n,_) <- names]) (putHistory hist >> loop flags f names tenv)
 
 -- The main loop
 loop :: [Flag] -> FilePath -> [(CTT.Ident,SymKind)] -> TC.TEnv -> Interpreter ()
@@ -106,11 +107,11 @@ loop flags f names tenv@(TC.TEnv _ rho _) = do
   case input of
     Nothing    -> outputStrLn help >> loop flags f names tenv
     Just ":q"  -> return ()
-    Just ":r"  -> lift $ initLoop flags f
+    Just ":r"  -> getHistory >>= lift . initLoop flags f
     Just (':':'l':' ':str)
       | ' ' `elem` str -> do outputStrLn "Only one file allowed after :l"
                              loop flags f names tenv
-      | otherwise      -> lift $ initLoop flags str
+      | otherwise      -> getHistory >>= lift . initLoop flags str
     Just (':':'c':'d':' ':str) -> do lift (setCurrentDirectory str)
                                      loop flags f names tenv
     Just ":h"  -> outputStrLn help >> loop flags f names tenv

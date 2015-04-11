@@ -81,7 +81,7 @@ instance Nominal Val where
          VPath j v | j == i -> u
                    | j `notElem` sphi -> VPath j (acti v)
                    | otherwise -> VPath k (acti (v `swap` (j,k)))
-              where k = fresh (v, Atom i, phi)
+              where k = fresh (v,Atom i,phi)
          VTrans u v -> transLine (acti u) (acti v)
          VSigma a f -> VSigma (acti a) (acti f)
          VPair u v  -> VPair (acti u) (acti v)
@@ -215,13 +215,17 @@ app kan@(VComp (VPi a f) li0 ts) ui1 =
     in comp j (app f ui1) (app li0 ui1)
               (intersectionWith app tsj (border ui1 tsj))
 app r s | isNeutral r = VApp r s
+app (VCompElem _ _ v _) s = app v s
+app (VElimComp _ _ v) s = app v s
 app r s = error $ "app \n" ++ show r ++ "\n" ++ show s
 
 fstVal, sndVal :: Val -> Val
-fstVal (VPair a b)    = a
+fstVal (VPair a b)     = a
 fstVal u | isNeutral u = VFst u
-sndVal (VPair a b)    = b
+fstVal u               = error $ "fstVal: " ++ show u ++ " is not neutral."
+sndVal (VPair a b)     = b
 sndVal u | isNeutral u = VSnd u
+sndVal u               = error $ "sndVal: " ++ show u ++ " is not neutral."
 
 -- infer the type of a neutral value
 inferType :: Val -> Val
@@ -302,14 +306,15 @@ trans i v0 v1 = case (v0,v1) of
     Just as -> VPCon c (v0 `face` (i ~> 1)) (transps i as env ws0) phi
     Nothing -> error $ "trans: missing path constructor " ++ c ++
                        " in " ++ show v0
+  _ | isNeutral w -> w
+    where w = VTrans (VPath i v0) v1
   (VGlue a ts,_)    -> transGlue i a ts v1
   (VComp VU a es,_) -> transU i a es v1
-  _ | isNeutral v0 || isNeutral v1 -> VTrans (VPath i v0) v1
   (Ter (Sum _ _ nass) env,VComp b w ws) -> comp k v01 (trans i v0 w) ws'
     where v01 = v0 `face` (i ~> 1)  -- b is vi0 and independent of j
           k   = fresh (v0,v1,Atom i)
           transp alpha w = trans i (v0 `face` alpha) (w @@ k)
-          ws'            = mapWithKey transp ws
+          ws'          = mapWithKey transp ws
   _ | otherwise -> error $ "trans not implemented for v0 = " ++ show v0
                    ++ "\n and v1 = " ++ show v1
 
@@ -390,10 +395,10 @@ comp i a u ts = case a of
           comp_u2    = genComp i (app f fill_u1) u2 t2s
   VPi{} -> VComp a u (Map.map (VPath i) ts)
   VU -> VComp VU u (Map.map (VPath i) ts)
-  _ | isNeutral a || isNeutralSystem ts || isNeutral u ->
-    VComp a u (Map.map (VPath i) ts)
-  VGlue b hisos -> compGlue i b hisos u ts
+  _ | isNeutral w -> w
+    where w = VComp a u (Map.map (VPath i) ts)
   VComp VU a es -> compU i a es u ts
+  VGlue b hisos -> compGlue i b hisos u ts
   Ter (Sum _ _ nass) env -> case u of
     VCon n us -> case lookupLabel n nass of
       Just as ->
@@ -451,7 +456,8 @@ unGlue hisos w
     | eps `Map.member` hisos = app (hisoFun (hisos ! eps)) w
     | otherwise              = case w of
        VGlueElem v us   -> v
---       KanUElem _ v    -> app g v
+       VElimComp _ _ v -> unGlue hisos v
+       VCompElem a es v vs -> unGlue hisos v
        _ -> error $ "unGlue: " ++ show w ++ " should be neutral!"
 
 transGlue :: Name -> Val -> System Val -> Val -> Val
@@ -521,7 +527,7 @@ compGlue i b hisos wi0 ws = glueElem vi1' usi1'
 -- The output is an L-path in A(i1) between u(i1) and u'(i1)
 pathComp :: Name -> Val -> Val -> Val -> System Val -> Val
 pathComp i a u u' us = VPath j $ comp i a (u `face` (i ~> 0)) us'
-  where j   = fresh (Atom i, a, us, u, u')
+  where j   = fresh (Atom i,a,us,u,u')
         us' = insertsSystem [(j ~> 0, u), (j ~> 1, u')] us
 
 
@@ -571,9 +577,10 @@ compU i a es w0 ws =
         us1' = mapWithKey (\gamma eGamma ->
                             comp i (eGamma @@ One) (w0 `face` gamma)
                                    (ws `face` gamma)) es
-        ls' = mapWithKey (\gamma _ -> pathUniv i (es `proj` gamma)
-                                      (ws `face` gamma) (w0 `face` gamma))
-                 es
+        ls' = mapWithKey
+                (\gamma eGamma -> pathUniv i eGamma
+                                  (ws `face` gamma) (w0 `face` gamma))
+                es
 
         v1' = compLine a v1 ls'
     in compElem a es v1' us1'
@@ -770,7 +777,6 @@ instance Convertible Formula where
 class Normal a where
   normal :: Int -> a -> a
 
-
 -- Does neither normalize formulas nor environments.
 instance Normal Val where
   normal _ VU = VU
@@ -791,7 +797,7 @@ instance Normal Val where
   normal k (VGlueElem u us) = glueElem (normal k u) (normal k us)
   normal k (VCompElem a es u us) = compElem (normal k a) (normal k es) (normal k u) (normal k us)
   normal k (VElimComp a es u) = elimComp (normal k a) (normal k es) (normal k u)
-  normal k (VVar x t) = VVar x (normal k t)
+  normal k (VVar x t) = VVar x t -- (normal k t)
   normal k (VFst t) = fstVal (normal k t)
   normal k (VSnd t) = sndVal (normal k t)
   normal k (VSplit u t) = VSplit (normal k u) (normal k t)

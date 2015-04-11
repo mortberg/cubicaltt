@@ -192,6 +192,8 @@ isNeutralTrans (VPath i a) u = foo i a u
         foo i (VGlue _ as) u    =
           let shasBeta = (shape as) `face` (i ~> 0)
           in shasBeta /= Map.empty && eps `Map.notMember` shasBeta && isNeutral u
+        foo _ _ _ = False
+--        foo i a w = error $ "oops!! :\n" ++ show a ++ "\n" ++ show w
 isNeutralTrans u _ = isNeutral u
 
 isNeutralComp :: Val -> Val -> System Val -> Bool

@@ -1,0 +1,202 @@
+module helix where
+
+import circle
+import hedberg
+import retract
+
+loop1 : loopS1 = loop'
+triv : loopS1 = <i>base
+
+compS1 : loopS1 -> loopS1 -> loopS1 = compId S1 base base base
+
+encode (x:S1) (p:Id S1 base x) : helix x = subst S1 helix base x p zeroZ
+
+itLoop : nat -> loopS1 = split
+ zero -> triv
+ suc n -> compS1 (itLoop n) loop1
+
+invLoop : loopS1 = inv S1 base base loop1
+
+itLoopNeg : nat -> loopS1 = split 
+ zero -> invLoop
+ suc n -> compS1 (itLoopNeg n) invLoop
+
+loopIt : Z -> loopS1 = split
+ inl n -> itLoopNeg n
+ inr n -> itLoop n
+
+lemItNat (n:nat) : Id loopS1 (itLoop (suc n)) (transport (<i>Id S1 base (loop{S1} @ i)) (itLoop n)) = 
+ refl loopS1 (itLoop (suc n))
+
+lemCompInv (A:U) (a b c:A) (p:Id A a b) (q:Id A b c) : Id (Id A a b) (compId A a c b (compId A a b c p q) (inv A b c q)) p =
+ <j i> comp A (comp A (p @ i) [(i=1) -> <k> q @ (-j /\ k)]) [(i=1) -> <k> q @ (-j /\ - k)]
+
+lemInv (A:U) (a b:A) (p:Id A a b) : Id (Id A b b) (compId A b a b (inv A a b p) p)  (refl A b) =
+  <j i> comp A (p @ (-i \/ j)) [(i=1) -> <k> p @ (j \/ k)]
+
+lemItNeg : (n:nat) -> Id loopS1  (transport (<i>Id S1 base (loop{S1} @ i)) (loopIt (inl n))) (loopIt (sucZ (inl n))) = split
+ zero ->  lemInv S1 base base loop1
+ suc n -> lemCompInv S1 base base base (itLoopNeg n) invLoop
+
+oneTurn (l: loopS1) : loopS1 = transport (<i>Id S1 base (loop{S1} @ i)) l
+
+lemItPos : (n:nat) -> Id loopS1 (oneTurn (loopIt (predZ (inr n)))) (loopIt (inr n)) = split
+ zero -> lemInv S1 base base loop1
+ suc n -> refl loopS1 (loopIt (inr (suc n)))
+
+lemItNeg (n:nat) : Id loopS1  (oneTurn (loopIt (predZ (inl n)))) (loopIt (inl n)) = 
+ lemCompInv S1 base base base (loopIt (inl n)) invLoop
+
+lemIt : (n:Z) -> Id loopS1 (oneTurn (loopIt (predZ n)))  (loopIt n) = split
+ inl n -> lemItNeg n
+ inr n -> lemItPos n
+
+funDepTr (A0 A1:U) (p:Id U A0 A1) (u0:A0) (u1:A1) :
+             Id U (IdP p u0 u1) (Id A1 (transport p u0) u1) =
+ <i> IdP (<l>p @ (i\/l)) (transport (<l>p @ (i/\l)) u0) u1
+
+decode : (x:S1) -> helix x -> Id S1 base x = split
+ base -> loopIt
+ loop @ i -> rem @ i
+   where T : U = Z -> loopS1
+         p : Id U T T = <j> helix (loop{S1}@j) -> Id S1 base (loop{S1}@j)
+         rem1 : Id (Z -> loopS1) (transport p loopIt) loopIt =
+          funExt Z (\ (n:Z) -> loopS1) (transport (<j> helix (loop{S1}@j) -> Id S1 base (loop{S1}@j)) loopIt) loopIt lemIt
+         rem : IdP p loopIt loopIt = transport (<j> (funDepTr T T p loopIt loopIt)@-j) rem1
+
+lemPropF (A:U)(P:A->U)(pP:(x:A) -> prop (P x))(a0 a1:A)(p:Id A a0 a1)(b0:P a0)(b1:P a1): IdS A P a0 a1 p b0 b1 =
+ <i> (pP (p @ i) (transport (<j>P (p@i /\ j)) b0) (transport (<j>P (p@i \/ -j)) b1)) @ i
+
+lemPropFib (P:S1 -> U) (pP:(x:S1) -> prop (P x)) (bP: P base) : (x:S1) -> P x = split
+ base -> bP
+ loop @ i -> (lemPropF S1 P pP base base loop1 bP bP) @ i
+
+-- other proof?
+
+propIsProp (A:U) (f g:prop A) : Id (prop A) f g =
+ <i> \ (a b :A) -> (propSet A f a b (f a b) (g a b)) @ i
+
+setIsProp (A:U) (f g:set A) : Id (set A) f g =
+ <i> \ (a b :A) -> (propIsProp (Id A a b) (f a b) (g a b)) @ i
+
+helixSet : (x:S1) -> set (helix x) = lemPropFib (\ (x:S1) -> set (helix x)) rem ZSet
+ where rem (x:S1) : prop (set (helix x)) = setIsProp (helix x)
+
+retHelix (x:S1) (p : Id S1 base x) : Id (Id S1 base x) (decode x (encode x p)) p = 
+ transport (<i>Id (Id S1 base p@i) (decode p@i (encode p@i (<j>p@(i/\j)))) (<j>p@(i/\j))) (refl loopS1 triv)
+
+setLoop : set loopS1 = retractSet loopS1 Z (encode base) (decode base) (retHelix base) ZSet
+
+-- S1 is a groupoid
+
+groupoid (A:U) : U = (x y:A) -> set (Id A x y)
+
+propPi (A : U) (B : A -> U) (h:(x : A) -> prop (B x)) (f0 f1:(x : A) -> B x) : Id ((x:A)-> B x) f0 f1 
+  = <i> \ (x:A) -> (h x (f0 x) (f1 x)) @ i
+
+isGroupoidS1 : groupoid S1 = lem
+ where
+  lem2 : (y : S1) -> set (Id S1 base y)
+    = lemPropFib (\ (y:S1) -> set (Id S1 base y)) (\ (y:S1) -> setIsProp (Id S1 base y)) setLoop
+
+  lem : (x y : S1) -> set (Id S1 x y)
+   = lemPropFib (\ (x:S1) -> (y : S1) -> set (Id S1 x y)) pP lem2
+     where 
+       pP (x:S1) : prop ((y:S1) -> set (Id S1 x y)) =
+        propPi S1 (\ (y:S1) -> set (Id S1 x y)) (\ (y:S1) -> setIsProp (Id S1 x y))
+
+substInv (A : U) (P : A -> U) (a x : A) (p : Id A a x) : P x -> P a =
+ subst A P x a (<i>p @ -i)
+
+lemSetTorus (E : S1 -> S1 -> U) (sE : set (E base base))
+            (f : (y:S1) -> E base y) (g : (x:S1) -> E x base)
+            (efg : Id (E base base) (f base) (g base)) : (x y:S1) -> E x y = split
+ base -> f
+ loop @ i -> lem2 @ i
+   where
+    F (x:S1) : U = (y:S1) -> E x y
+
+    G (y x:S1) : U = E x y
+
+    lem1 : (y:S1) -> IdS S1 (G y) base base loop1 (f y) (f y) = lemPropFib P pP bP
+     where
+      P (y:S1) : U = IdS S1 (G y) base base loop1 (f y) (f y)
+
+      sbE : (y : S1) -> set (E base y)
+         = lemPropFib (\ (y:S1) -> set (E base y)) (\ (y:S1) -> setIsProp (E base y)) sE
+
+      pP (y:S1) : prop (P y) = rem3
+        where
+          rem1 : Id U (P y) (Id (E base y) (subst S1 (G y) base base loop1 (f y)) (f y))
+            = funDepTr (G y base) (G y base) (<j>G y loop{S1}@j) (f y) (f y)
+
+          rem2 : prop (Id (E base y) (subst S1 (G y) base base loop1 (f y)) (f y))
+            = sbE y (subst S1 (G y) base base loop1 (f y)) (f y)
+
+          rem3 : prop (P y)
+           = substInv U prop (P y) (Id (E base y) (subst S1 (G y) base base loop1 (f y)) (f y)) rem1 rem2
+          
+      lem2 : IdS S1 (G base) base base loop1 (g base) (g base)
+        = <j> g (loop1 @ j)
+
+      bP : P base
+        = substInv (E base base) (\ (u:E base base) -> IdS S1 (G base) base base loop1 u u) (f base) (g base) efg lem2
+
+    lem2 : IdS S1 F base base loop1 f f =  <j> \ (y:S1) -> (lem1 y) @ j
+
+-- commutativity of mult, at last
+
+idL : (x : S1) -> Id S1 (mult base x) x = split
+       base -> refl S1 base
+       loop @ i -> <j> loop1 @ i
+
+multCom : (x y : S1) -> Id S1 (mult x y) (mult y x) =
+ lemSetTorus E sE idL g efg
+  where
+    E (x y: S1) : U = Id S1 (mult x y) (mult y x)
+    sE : set (E base base) = isGroupoidS1 base base
+    g (x : S1) : E x base = inv S1 (mult base x) (mult x base) (idL x)
+    efg : Id (E base base) (idL base) (g base) = refl (E base base) (idL base)
+
+-- associativity
+
+multAssoc (x :S1) : (y z : S1) -> Id S1 (mult x (mult y z)) (mult (mult x y) z) = 
+ lemSetTorus E sE f g efg
+ where
+   E (y z : S1) : U = Id S1 (mult x (mult y z)) (mult (mult x y) z)
+   sE : set (E base base) = isGroupoidS1 x x
+   f (z : S1) : E base z = rem
+     where 
+        rem1 : Id S1 (mult base z) z = multCom base z
+
+        rem : Id S1 (mult x (mult base z)) (mult x z) = <i> mult x (rem1 @ i)
+   g (y : S1) : E y base = refl S1 (mult x y)
+   efg : Id (E base base) (f base) (g base) = refl (E base base) (f base)
+
+-- inverse law
+
+lemPropRel (P:S1 -> S1 -> U) (pP:(x y:S1) -> prop (P x y)) (bP:P base base) : (x y:S1) -> P x y = 
+ lemPropFib (\ (x:S1) -> (y:S1) -> P x y)
+            (\ (x:S1) -> propPi S1 (P x) (pP x))
+            (lemPropFib (P base) (pP base) bP)                   
+
+invLaw : (x y : S1) ->
+          Id (Id S1 (mult x y) (mult x y)) (refl S1 (mult x y))
+             (compId S1 (mult x y) (mult y x) (mult x y) (multCom x y) (multCom y x)) = lemPropRel P pP bP 
+ where
+  P (x y : S1) : U
+    = Id (Id S1 (mult x y) (mult x y)) (refl S1 (mult x y))
+         (compId S1 (mult x y) (mult y x) (mult x y) (multCom x y) (multCom y x))
+
+  pP (x y : S1) : prop (P x y) =
+   isGroupoidS1 (mult x y) (mult x y) (refl S1 (mult x y))
+                (compId S1 (mult x y) (mult y x) (mult x y) (multCom x y) (multCom y x))
+
+  bP : P base base = refl (Id S1 base base) (refl S1 base)
+
+
+-- homotopy
+
+aLoop : loopS1 = <i>loop{S1}@(i/\-i)
+
+test : Id loopS1 triv aLoop = <j i>loop{S1}@(j/\i/\-i)

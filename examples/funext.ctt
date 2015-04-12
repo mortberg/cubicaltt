@@ -1,0 +1,97 @@
+module funext where
+
+import prelude
+
+homotopies (A B :U) : U =
+ (fg : (_:A->B) * (A->B)) * (x:A) -> Id B (fg.1 x) (fg.2 x)
+
+Paths (A:U) : U = (x y:A) * Id A x y
+
+lemPaths (A:U) : Id U (Paths A) A = isoId (Paths A) A f g  rems remt
+ where
+  f (z: Paths A) :  A = z.1
+  g (x:A) : Paths A   = (x,(x,refl A x))
+  rems (y:A) : Id A (f (g y)) y = refl A y
+  rem1t (x y:A) (p:Id A x y) : Id (Paths A) (x,(x,refl A x)) (x,(y,p)) =
+     <i> (x,(p@ i, <j>p@ (i/\j)))
+  remt (z:Paths A) : Id (Paths A) (g (f z)) z = rem1t z.1 z.2.1 z.2.2
+
+lem1 (A B :U) : Id U (A -> Paths B) (homotopies A B) = isoId T0 T1 f g t s
+ where T0 : U = A -> Paths B
+       T1 : U = homotopies A B
+       f (h:T0) : T1 = ((\ (x:A) -> (h x).1,\ (x:A) -> (h x).2.1),\ (x:A) -> (h x).2.2)
+       g (h : T1) : T0 = \ (x:A) ->  (h.1.1 x,(h.1.2 x,h.2 x))
+       s (h:T0) : Id T0 (g (f h)) h = refl T0 h
+       t (h : T1) : Id T1 (f (g h)) h = refl T1 h
+
+lem2 (A B : U)  : Id U (A->B) (homotopies A B) =
+  compId U (A->B) (A-> Paths B) (homotopies A B) rem (lem1 A B)
+ where 
+   rem1 : Id U B (Paths B) = inv U (Paths B) B (lemPaths B)
+   rem : Id U (A->B) (A-> Paths B) = <i> A -> rem1 @ i
+
+thm (A B:U) : Id U (Paths (A->B)) (homotopies A B) =
+ compId U (Paths (A->B)) (A->B) (homotopies A B) (lemPaths (A->B)) (lem2 A B)
+
+test (A B:U) (f:A->B) : Id (A->B) (transport (thm A B) (f,(f,refl (A->B) f))).1.2 f = 
+ refl (A->B) f
+
+funDepTr (A0 A1 :U) (p:Id U A0 A1) (u0:A0) (u1:A1) :
+             Id U (IdP p u0 u1) (Id A1 (transport p u0) u1) =
+ <i> IdP (<l> p @ (i\/l)) (transport (<l> p @ (i/\l)) u0) u1
+
+lem3 (A B:U) (f:A->B) (h:homotopies A B) : Id U (IdP (thm A B) (f,(f,refl (A->B) f)) h)
+                       (Id (homotopies A B) (transport (thm A B) (f,(f,refl (A->B) f))) h)
+              = funDepTr A0 A1 p u0 u1
+         where A0 : U = Paths (A -> B)
+               A1 : U = homotopies A B
+               p : Id U A0 A1 = thm A B
+               u0 : A0 = (f,(f,refl (A->B) f)) 
+               u1 : A1 = h
+
+lem4 (A B:U) (f g : A -> B) (p:Id (A->B) f g) (h:homotopies A B) (h1: IdP (thm A B) (f,(g,p)) h)
+     : Id (A->B) f h.1.1 =
+ rem h (transport (<i>IdP (thm A B) (f,(p@-i,<j>p@(-i/\j))) h) h1)
+  where 
+    rem1 (h:homotopies A B) (h1: IdP (thm A B) (f,(f,refl (A->B) f)) h) :
+              Id (homotopies A B) (transport (thm A B) (f,(f,refl (A->B) f))) h = transport (lem3 A B f h) h1
+    rem (h:homotopies A B) (h1: IdP (thm A B) (f,(f,refl (A->B) f)) h) :
+            Id (A->B) f h.1.1 = <i> ((rem1 h h1) @ i).1.1
+
+lem5 (A B:U) (f g: A -> B) (p:Id (A->B) f g) (h:homotopies A B) (h1: IdP (thm A B) (f,(g,p)) h)
+     : Id (A->B) g h.1.2 =
+ rem h (transport (<i>IdP (thm A B) (p@i,(g,<j>p@(i\/j))) h) h1)
+  where 
+    rem1 (h:homotopies A B) (h1: IdP (thm A B) (g,(g,refl (A->B) g)) h) :
+              Id (homotopies A B) (transport (thm A B) (g,(g,refl (A->B) g))) h = transport (lem3 A B g h) h1
+
+    rem (h:homotopies A B) (h1: IdP (thm A B) (g,(g,refl (A->B) g)) h) :
+            Id (A->B) g h.1.2 = <i> ((rem1 h h1) @ i).1.2
+
+funDepTrInv (A0 A1 :U) (p:Id U A0 A1) (u1:A1) :
+             IdP p (transport (<i>p@-i) u1) u1 = <i> transport (<l> p @ (i\/-l)) u1
+
+homToP (A B:U) (h: homotopies A B) : Paths (A->B) = transport (<i>(thm A B)@-i) h
+
+lem6 (A B:U) : (h:homotopies A B) -> IdP (thm A B) (homToP A B h) h = 
+ funDepTrInv (Paths (A->B)) (homotopies A B) (thm A B)
+
+lem7 (A B:U) (h:homotopies A B) : Id (A->B) (homToP A B h).1 h.1.1 =
+ lem4 A B p.1 p.2.1 p.2.2 h (lem6 A B h) 
+  where p : Paths (A->B) = homToP A B h
+
+lem8 (A B:U) (h:homotopies A B) : Id (A->B) (homToP A B h).2.1 h.1.2 =
+ lem5 A B p.1 p.2.1 p.2.2 h (lem6 A B h) 
+  where p : Paths (A->B) = homToP A B h
+
+funext (A B:U) (f g :A -> B) (pe : (x:A) -> Id B (f x) (g x)) :   Id (A->B) f g =
+   <i> \ (x:A) -> ((transport rem4 rem3) @ i) x
+  where
+    h : homotopies A B = ((f,g),pe)
+    p : Paths (A->B)   = homToP A B h
+    rem1 : Id (A->B) p.1 f   = lem7 A B h
+    rem2 : Id (A->B) p.2.1 g = lem8 A B h
+    rem3 : Id (A->B) p.1 p.2.1 = p.2.2
+    rem4 : Id U (Id (A->B) p.1 p.2.1) (Id (A->B) f g) = <i>Id (A->B) (rem1@i) (rem2@i)
+
+

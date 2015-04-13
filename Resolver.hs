@@ -264,10 +264,12 @@ resolveTele ((i,d):t) =
 resolveLabel :: [(Ident,SymKind)] -> Label -> Resolver CTT.Label
 resolveLabel _ (OLabel n vdecl) =
   CTT.OLabel (unAIdent n) <$> resolveTele (flattenTele vdecl)
-resolveLabel cs (PLabel n vdecl t0 t1) =
-  CTT.PLabel (unAIdent n) <$> resolveTele (flattenTele vdecl)
-                          <*> local (insertIdents cs) (resolveExp t0)
-                          <*> local (insertIdents cs) (resolveExp t1)
+resolveLabel cs (PLabel n vdecl t0 t1) = do
+  let tele' = flattenTele vdecl
+      ts = map fst tele'
+  CTT.PLabel (unAIdent n) <$> resolveTele tele'
+                          <*> local (insertIdents cs . insertVars ts) (resolveExp t0)
+                          <*> local (insertIdents cs . insertVars ts) (resolveExp t1)
 
 -- Resolve Data or Def or Split declarations
 resolveDecl :: Decl -> Resolver (CTT.Decl,[(Ident,SymKind)])

@@ -1,4 +1,4 @@
-module funext where
+module uafunext1 where
 
 import prelude
 

@@ -98,6 +98,7 @@ constSquare (A : U) (a : A) (p : Id A a a) : Square A a a p a a p p p =
 
 prop (A : U) : U = (a b : A) -> Id A a b
 set (A : U) : U = (a b : A) -> prop (Id A a b)
+groupoid (A : U) : U = (a b : A) -> set (Id A a b)
 
 propSet (A : U) (h : prop A) (a b : A) (p q : Id A a b) : Id (Id A a b) p q =
  <j i> comp A a [ (i=0) -> h a a
@@ -110,6 +111,10 @@ propIsProp (A : U) (f g : prop A) : Id (prop A) f g =
 
 setIsProp (A : U) (f g : set A) : Id (set A) f g =
  <i> \(a b :A) -> (propIsProp (Id A a b) (f a b) (g a b)) @ i
+
+propPi (A : U) (B : A -> U) (h : (x : A) -> prop (B x))
+       (f0 f1 : (x : A) -> B x) : Id ((x : A) -> B x) f0 f1 
+  = <i> \ (x:A) -> (h x (f0 x) (f1 x)) @ i
 
 IdS (A : U) (P : A -> U) (a0 a1 : A) (p : Id A a0 a1) (u0 : P a0) (u1 : P a1) : U =
   IdP (<i> P (p @ i)) u0 u1

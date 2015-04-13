@@ -21,9 +21,9 @@ funExt (A : U) (B : A -> U) (f g : (x : A) -> B x)
        Id ((y : A) -> B y) f g = <i> \(a : A) -> (p a) @ i
 ```
 
-This proof can be compared with the one in "examples/funext.ctt" which
-proves that univalence implies function extensionality (the normal
-form of these proofs are almost the same).
+This proof can be compared with the one in "examples/uafunext1.ctt"
+which proves that univalence implies function extensionality (the
+normal form of these proofs are almost the same).
 
 For more examples, see "examples/demo.ctt".
 

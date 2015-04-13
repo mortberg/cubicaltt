@@ -73,12 +73,6 @@ lemPropFib (P:S1 -> U) (pP:(x:S1) -> prop (P x)) (bP: P base) : (x:S1) -> P x = 
 
 -- other proof?
 
-propIsProp (A:U) (f g:prop A) : Id (prop A) f g =
- <i> \ (a b :A) -> (propSet A f a b (f a b) (g a b)) @ i
-
-setIsProp (A:U) (f g:set A) : Id (set A) f g =
- <i> \ (a b :A) -> (propIsProp (Id A a b) (f a b) (g a b)) @ i
-
 helixSet : (x:S1) -> set (helix x) = lemPropFib (\ (x:S1) -> set (helix x)) rem ZSet
  where rem (x:S1) : prop (set (helix x)) = setIsProp (helix x)
 
@@ -88,11 +82,6 @@ retHelix (x:S1) (p : Id S1 base x) : Id (Id S1 base x) (decode x (encode x p)) p
 setLoop : set loopS1 = retractSet loopS1 Z (encode base) (decode base) (retHelix base) ZSet
 
 -- S1 is a groupoid
-
-groupoid (A:U) : U = (x y:A) -> set (Id A x y)
-
-propPi (A : U) (B : A -> U) (h:(x : A) -> prop (B x)) (f0 f1:(x : A) -> B x) : Id ((x:A)-> B x) f0 f1 
-  = <i> \ (x:A) -> (h x (f0 x) (f1 x)) @ i
 
 isGroupoidS1 : groupoid S1 = lem
  where

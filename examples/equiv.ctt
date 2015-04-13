@@ -2,8 +2,6 @@ module equiv where
 
 import prelude
 
-contr (A:U) : U = (_:A) * prop A
-
 isContr (A : U) : U = and (prop A) A
 
 fiber (A B:U) (f:A->B) (b:B) : U = (x:A) * Id B b (f x)

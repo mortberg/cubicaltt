@@ -1,0 +1,1 @@
+(echo "digraph {"; grep import *ctt | sed 's/\(.*\).ctt:import \([a-zA-Z]*\)/\2 -> \1/'; echo "}") | dot -Tpng > graph.png

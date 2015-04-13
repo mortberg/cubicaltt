@@ -4,6 +4,7 @@ import prelude
 
 data I = zero | one | seg @ zero ~ one
 
+-- Proof of funext from the interval
 fext (A B : U) (f g : A -> B) (p : (x : A) -> Id B (f x) (g x)) :
      Id (A -> B) f g = <j> (\(x : A) -> htpy x (seg{I} @ j))
   where htpy (x : A) : I -> B = split

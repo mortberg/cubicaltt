@@ -1,6 +1,6 @@
 module nat where
 
-import prelude
+import hedberg
 
 data nat = zero | suc (n : nat)
 
@@ -31,3 +31,26 @@ test : Id (nat -> nat) idnat (idfun nat) = funExt nat (\(_ : nat) -> nat) idnat 
   rem : (n : nat) -> Id nat (idnat n) n = split
     zero -> refl nat zero
     suc n -> mapOnPath nat nat (\(x : nat) -> suc x) (idnat n) n (rem n)
+
+caseNat (A : U) (a0 aS : A) : nat -> A = split
+ zero -> a0
+ suc n -> aS
+
+caseDNat (P:nat -> U) (a0 :P zero) (aS : (n:nat) -> P (suc n))
+            : (n:nat) -> P n = split
+ zero -> a0
+ suc n -> aS n
+
+znots (n : nat) : neg (Id nat zero (suc n)) =
+ \ (h:Id nat zero (suc n)) -> subst nat (caseNat U nat N0) zero (suc n) h zero
+
+snotz (n : nat) : neg (Id nat (suc n) zero) =
+ \ (h:Id nat (suc n) zero) -> znots n (inv nat (suc n) zero h)
+
+natDec : (n m:nat) -> dec (Id nat n m) = split
+ zero -> caseDNat (\ (m:nat) -> dec (Id nat zero m)) (inl (refl nat zero)) (\ (m:nat) -> inr (znots m))
+ suc n -> caseDNat (\ (m:nat) -> dec (Id nat (suc n) m)) (inr (snotz n))
+   (\ (m:nat) -> decEqCong (Id nat n m) (Id nat (suc n) (suc m)) (\ (p:Id nat n m) -> <i> suc (p @ i))
+                 (sucInj n m) (natDec n m))
+
+natSet : set nat = hedberg nat natDec

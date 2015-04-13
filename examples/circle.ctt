@@ -1,34 +1,39 @@
 module circle where
 
 import bool
-import integer
+import int
 
-data S1 = base | loop @ base ~ base
+data S1 = base
+        | loop @ base ~ base
+
+loopS1 : U = Id S1 base base
+
+loop1 : Id S1 base base = <i> loop{S1} @ i
+
+invLoop : loopS1 = inv S1 base base loop1
 
 moebius : S1 -> U = split
   base -> bool
-  loop @ i -> negEq @ i
-
-loop' : Id S1 base base = <i> loop{S1} @ i
+  loop @ i -> negBoolEq @ i
 
 helix : S1 -> U = split
   base -> Z
   loop @ i -> sucIdZ @ i
 
-loopS1 : U = Id S1 base base 
-
 winding (p : loopS1) : Z = transport rem zeroZ
   where
     rem : Id U Z Z = <i> helix (p @ i)
 
+compS1 : loopS1 -> loopS1 -> loopS1 = compId S1 base base base
+
 -- All of these should be equal to "posZ (suc zero)":
-loop2 : loopS1 = compId S1 base base base loop' loop'
-loop2' : loopS1 = compId' S1 base base base loop' loop'
-loop2'' : loopS1 = compId'' S1 base base loop' base loop'
+loop2 : loopS1 = compS1 loop1 loop1
+loop2' : loopS1 = compId' S1 base base base loop1 loop1
+loop2'' : loopS1 = compId'' S1 base base loop1 base loop1
 
 mLoop : (x : S1) -> Id S1 x x = split
-  base -> loop'
-  loop @ i -> (constSquare S1 base loop') @ i
+  base -> loop1
+  loop @ i -> (constSquare S1 base loop1) @ i
 
 mult (x : S1) : S1 -> S1 = split
   base -> x

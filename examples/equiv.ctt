@@ -2,8 +2,6 @@ module equiv where
 
 import prelude
 
-and (A B:U) :U = (_:A) * B
-
 contr (A:U) : U = (_:A) * prop A
 
 isContr (A : U) : U = and (prop A) A

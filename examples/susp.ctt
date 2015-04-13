@@ -2,7 +2,9 @@ module susp where
 
 import circle
 
-data susp (A:U) = north | south | merid (a:A) @ north ~ south
+data susp (A : U) = north
+                  | south
+                  | merid (a:A) @ north ~ south
 
 -- n-spheres
 sphere : nat -> U = split
@@ -18,7 +20,7 @@ s1ToCircle : sone -> S1 = split
   south   -> base
   merid b @ i -> (path b) @ i
     where path : bool ->Id S1 base base = split
-            false -> loop'
+            false -> loop1
             true  -> refl S1 base
 
 m0 : Id sone north south = <i> (merid{sone} false) @ i
@@ -37,7 +39,7 @@ oc (x:S1) : S1 = s1ToCircle (circleToS1 x)
 
 ocid : (x : S1) -> Id S1 (oc x) x = split
     base -> refl S1 base
-    loop @ i -> <j> oc (loop' @ i)
+    loop @ i -> <j> oc (loop1 @ i)
 
 co (x: sone) : sone = circleToS1 (s1ToCircle x)
 
@@ -98,7 +100,7 @@ s1ToCId (p: Id sone north north) : Id S1 base base
 s1ToCIdInv (p : Id S1 base base) : Id sone north north
  = <i> (transport (<j> s1EqCircle @(-j)) (p @ i))
 
-loop1S :  Id sone north north = s1ToCIdInv loop'
+loop1S :  Id sone north north = s1ToCIdInv loop1
 
 loop2S : Id sone north north = compId sone north north north loop1S loop1S
 

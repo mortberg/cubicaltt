@@ -4,18 +4,18 @@ import prelude
 
 data bool = false | true
 
-neg : bool -> bool = split
+negBool : bool -> bool = split
   false -> true
   true  -> false
 
-negK : (b : bool) -> Id bool (neg (neg b)) b = split
+negBoolK : (b : bool) -> Id bool (negBool (negBool b)) b = split
   false -> refl bool false
   true -> refl bool true
 
-negEq : Id U bool bool =
-  <i> glue bool [ (i = 0) -> (bool,neg,neg,negK,negK) ]
+negBoolEq : Id U bool bool =
+  <i> glue bool [ (i = 0) -> (bool,negBool,negBool,negBoolK,negBoolK) ]
 
-test : bool = transport negEq true
+test : bool = transport negBoolEq true
 
 data F2 = zeroF2 | oneF2
 
@@ -38,7 +38,7 @@ boolToF2K : (b : bool) -> Id bool (f2ToBool (boolToF2 b)) b = split
 boolEqF2 : Id U bool F2 =
  isoId bool F2 boolToF2 f2ToBool f2ToBoolK boolToF2K
   
-negF2 : F2 -> F2 = subst U (\(X : U) -> (X -> X)) bool F2 boolEqF2 neg
+negF2 : F2 -> F2 = subst U (\(X : U) -> (X -> X)) bool F2 boolEqF2 negBool
 
 lemTest (A : U) : (B : U) (p : Id U A B) (a : A) -> IdP p a (transport p a) =
   J U A (\(B : U) (p : Id U A B) -> (a : A) -> IdP p a (transport p a)) (refl A)
@@ -48,21 +48,21 @@ test1 : IdP boolEqF2 true oneF2 = lemTest bool F2 boolEqF2 true
 
 F2EqBool : Id U F2 bool = inv U bool F2 boolEqF2
 
-negBool : bool -> bool = subst U (\(X : U) -> (X -> X)) F2 bool F2EqBool negF2
+negBool' : bool -> bool = subst U (\(X : U) -> (X -> X)) F2 bool F2EqBool negF2
 
 F2EqBoolComp : Id U F2 bool =
-  compId U F2 bool bool F2EqBool negEq
+  compId U F2 bool bool F2EqBool negBoolEq
 
 test2 : bool = transport F2EqBoolComp oneF2
 
 negNegEq : Id U bool bool =
-  compId U bool bool bool negEq negEq
+  compId U bool bool bool negBoolEq negBoolEq
 
 test3 : bool = transport negNegEq true
 test4 : Id U bool bool = <i> negNegEq @ i
 
 kanBool : Id U bool bool =
-  kan U bool bool bool bool negEq negEq negEq
+  kan U bool bool bool bool negBoolEq negBoolEq negBoolEq
 
 squareBoolF2 : Square U bool bool (refl U bool) bool F2
                   boolEqF2 (refl U bool)  boolEqF2 =

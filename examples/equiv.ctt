@@ -1,0 +1,51 @@
+module equiv where
+
+import prelude
+
+and (A B:U) :U = (_:A) * B
+
+contr (A:U) : U = (_:A) * prop A
+
+isContr (A : U) : U = and (prop A) A
+
+fiber (A B:U) (f:A->B) (b:B) : U = (x:A) * Id B b (f x)
+
+lemIdFib (A:U) (a:A) : prop (fiber A A (\ (x:A) -> x) a) = rem
+ where F : U = fiber A A (\ (x:A) -> x) a
+       rem (u v:F) : Id F u v = <i>(rem1 @ i,rem2 @ i)
+         where x : A = u.1
+               p : Id A a x = u.2
+               y : A = v.1
+               q : Id A a y = v.2
+               rem1 : Id A x y = <i>comp A a [(i=0) -> p,(i=1) -> q]
+               rem2 : IdP (<i>Id A a (rem1@i)) p q = <i j>comp A a [(i=0) -> <l>p@(j/\l),(i=1) -> <l>q@(j/\l)]
+
+lemPropAnd (A B :U) (pA: prop A) (pB: A -> prop B) : prop (and A B) = 
+ \ (u v:and A B) -> <i>((pA u.1 v.1)@i, (pB u.1 u.2 v.2)@i)
+
+isContrProp (A:U) : prop (isContr A) = 
+ lemPropAnd (prop A) A (propIsProp A) (\ (h:prop A) -> h)
+
+isEquiv (A B:U) (f:A->B) : U = (y:B) -> isContr (fiber A B f y)
+
+idIsEquiv (A:U) : isEquiv A A (idfun A) = \ (a:A) -> (lemIdFib A a,(a,refl A a))
+
+propIsEquiv (A B : U) (f : A -> B) : prop (isEquiv A B f)
+ = propPi B (\ (y:B) -> isContr (fiber A B f y)) (\ (y:B) -> isContrProp (fiber A B f y))
+
+isEquivEq (A B : U) (f : A -> B) (is:isEquiv A B f) : Id U A B = 
+ isoId A B f g (\ (y:B) -> <i>(s y)@-i) t
+ where
+   rem1 (y:B) : prop (fiber A B f y) =  (is y).1
+   rem2 (y:B) : fiber A B f y        =  (is y).2
+   g (y:B) : A = (rem2 y).1
+   s (y:B) : Id B y (f (g y)) = (rem2 y).2
+   rem3 (x:A) : Id B (f x) (f (g (f x))) = s (f x)
+   rem4 (x:A) : Id (fiber A B f (f x)) (g (f x),rem3 x) (x,refl B (f x)) = 
+     rem1 (f x) (g (f x),rem3 x) (x,refl B (f x))
+   t (x:A) : Id A (g (f x)) x = <i> ((rem4 x)@i).1
+    
+Equiv (A B : U) : U = (f : A -> B) * isEquiv A B f
+
+lemIdEquiv (A B:U) (f g : Equiv A B) (h:Id (A->B) f.1 g.1) : Id (Equiv A B) f g
+ = <i>(h@i,(lemPropF (A->B) (isEquiv A B) (propIsEquiv A B) f.1 g.1 h f.2 g.2)@i)

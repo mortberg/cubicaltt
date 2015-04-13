@@ -172,6 +172,7 @@ imports v st@(notok,loaded,mods) f
 help :: String
 help = "\nAvailable commands:\n" ++
        "  <statement>     infer type and evaluate statement\n" ++
+       "  :n <statement>  normalize statement\n" ++
        "  :q              quit\n" ++
        "  :l <filename>   loads filename (and resets environment before)\n" ++
        "  :cd <path>      change directory to path\n" ++

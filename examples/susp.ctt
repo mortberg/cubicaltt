@@ -67,12 +67,6 @@ s1EqS1 : Id U S1 S1 = compId U S1 sone S1 (inv U sone S1 s1EqCircle) s1EqCircle
 
 ptU : U = (X : U) * X
 
-lemPt1 (A :U) : (B:U) (p:Id U A B) (a:A) -> Id ptU (A,a) (B,transport p a)
- = J U A (\ (B:U) (p:Id U A B) -> (a:A) -> Id ptU (A,a) (B,transport p a))
-   (\ (a:A) -> refl ptU (A,a))
-
-s1PtCircle1 : Id ptU (sone,north) (S1,base) = lemPt1 sone S1 s1EqCircle north
-
 lemPt (A :U) (B:U) (p:Id U A B) (a:A) : Id ptU (A,a) (B,transport p a) =
  <i> (p @ i,transport (<j>p @ (i/\j)) a)
 
@@ -88,12 +82,6 @@ windingS : Id sone north north -> Z = rem1
   rem : G (S1,base) = winding
   rem1 : G (sone,north) = subst ptU G (S1,base) (sone,north) (<i> s1PtCircle @ -i) rem
 
-windingT : loopS1 -> Z = rem1
- where
-  G (X: ptU): U = (Omega X).1 -> Z
-  rem : G (S1,base) = winding
-  rem1 : G (S1,base) = subst ptU G (S1,base) (S1,base) s1PtS1 rem
-
 s1ToCId (p: Id sone north north) : Id S1 base base
  = <i> transport s1EqCircle (p @ i) 
 
@@ -108,6 +96,3 @@ test0S : Z = windingS (refl sone north)
 
 test2S : Z = windingS loop2S
 
-winding' (l : Id sone north north) : Z = winding (s1ToCId l)
-
-testS : Id sone north north = <i> comp sone (m0 @ i) [ (i=1) -> <k> m1 @ (-k)]

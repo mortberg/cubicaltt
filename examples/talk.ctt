@@ -1,0 +1,153 @@
+module talk where
+
+-- Cubical type theory!
+-----------------------
+-- (j.w.w. Cyril Cohen, Thierry Coquand, Anders M\"ortberg)
+-- Try it:
+-- https://github.com/mortberg/cubicaltt
+
+-- Ordinary type theory (without Id-types):
+
+identity (A : U) (a : A) : A = a
+
+data bool = false | true
+
+neg : bool -> bool = split
+  false -> true
+  true  -> false
+
+
+data nat = zero
+         | suc (n : nat)
+
+one : nat = suc zero
+two : nat = suc one
+
+data list (A : U) = nil
+                  | cons (a : A) (as : list A)
+
+
+-- IdP is a built-in notion.
+-- "<i>" abstracts the name/color/dimension i.
+Id (A : U) (a b : A) : U = IdP (<i> A) a b
+
+
+refl (A : U) (a : A) : Id A a a = <i> a
+-- \(i : Interval) -> ... for <i> ..
+
+
+inv (A : U) (a b : A) (p : Id A a b) : Id A b a = <i> p @ -i
+
+test0 (A : U) (a b : A) (p : Id A a b) : Id A a a = refl A (p @ 0)
+test1 (A : U) (a b : A) (p : Id A a b) : Id A b b = refl A (p @ 1)
+
+mapOnPath (A B : U) (f : A -> B) (a b : A)
+          (p : Id A a b) : Id B (f a) (f b) =
+  <i> f (p @ i)
+
+funExt (A : U) (B : A -> U) (f g : (x : A) -> B x)
+       (p : (x : A) -> Id (B x) (f x) (g x)) :
+       Id ((y : A) -> B y) f g =
+  <i> \(a : A) -> (p a) @ i
+
+singl (A : U) (a : A) : U = (x : A) * Id A a x
+
+contrSingl (A : U) (a b : A) (p : Id A a b) :
+           Id (singl A a) (a,refl A a) (b,p) =
+  <i> (p @ i, <j> p @ (i /\ j))
+
+reflRefl (A : U) (a : A) : Id (Id A a a) (refl A a) (refl A a) =
+  refl (Id A a a) (refl A a)
+--    <i j> a
+
+
+test2 (A : U) (a b : A) (p : Id A a b) : Id A a a =
+  <i> p @ (i /\ -i)
+test3 (A : U) (a b : A) (p : Id A a b) : Id A b b =
+  <i> p @ (i \/ -i)
+
+
+
+-- Transport.
+
+-- transport is another built-in.
+-- It takes a path p in U and an element
+-- in p @ 0; produces an element in p @ 1
+subst (A : U) (P : A -> U) (a b : A)
+  (p : Id A a b) (e : P a) : P b =
+  transport (mapOnPath A U P a b p) e
+
+substEq (A : U) (P : A -> U) (a : A) (e : P a) :
+        Id (P a) (subst A P a a (refl A a) e) e =
+  refl (P a) e
+
+J (A : U) (a : A) (C : (x : A) -> Id A a x -> U)
+  (d : C a (refl A a)) (x : A) (p : Id A a x) : C x p =
+  subst (singl A a) T (a,refl A a) (x,p) (contrSingl A a x p) d
+    where T (bp : singl A a) : U = C (bp.1) (bp.2)
+
+-- Examples:
+
+ptU : U = (X : U) * X
+
+lemPt (A B : U) (p : Id U A B) (a : A) : Id ptU (A,a) (B,transport p a) =
+ <i> (p @ i,transport (<j> p @ (i/\j)) a)
+
+S : U = (A : U) (a : A) * (A -> A)
+
+lemS (A B : U) (p : Id U A B) (a : A) (f : A -> A) :
+  Id S (A,a,f) (B, transport p a, transport (<i> p @ i -> p @ i) f) =
+  <i> ( p @ i
+      , transport (<j> p @ (i/\j)) a
+      , transport (<j> p @ (i /\ j) -> p @ (i /\ j)) f)
+
+-- Composition.
+-- Any type is a weak omega-groupoid.
+-- Given a cube, we form a new cube by replacing some faces along equalities.
+
+transitive (A : U) (a b c : A) (p : Id A a b) (q : Id A b c) : Id A a c =
+  <i> comp A (p @ i) [ (i = 1) -> q ]
+
+--- comp A (p @ (i /\ j)) [ (i=1)(j=1) -> q]
+
+kan (A : U) (a b c d : A) (p : Id A a b) (q : Id A a c)
+                          (r : Id A b d) : Id A c d =
+  <i> comp A (p @ i) [ (i = 0) -> <j> q @ j, (i = 1) -> r ]
+
+regKan (A : U) (a b : A) (p : Id A a b) :
+       Id (Id A a b) p (kan A a b a b p (refl A a) (refl A b)) =
+  refl (Id A a b) p
+
+-- Example: any proposition is a set.
+
+prop (A : U) : U = (a b : A) -> Id A a b
+set (A : U) : U = (a b : A) -> prop (Id A a b)
+
+propSet (A : U) (h : prop A) (a b : A) (p q : Id A a b)
+  : Id (Id A a b) p q =
+ <j i> comp A a [ (i=0) -> h a a
+                , (i=1) -> h a b
+                , (j=0) -> h a (p @ i)
+                , (j=1) -> h a (q @ i)]
+
+
+-- Glueing.
+
+-- A way to produce non-trivial equalities.
+  
+isoId (A B : U) (f : A -> B) (g : B -> A)
+      (s : (y:B) -> Id B (f (g y)) y)
+      (t : (x:A) -> Id A (g (f x)) x) : Id U A B =
+      <i> glue B [ (i = 0) -> (A,f,g,s,t) ]
+
+negK : (b : bool) -> Id bool (neg (neg b)) b = split
+  false -> refl bool false
+  true  -> refl bool true
+
+negEq : Id U bool bool =
+  <i> (glue bool [ (i = 0) -> (bool,neg,neg,negK,negK) ])
+
+testFalse : bool = transport negEq true
+
+-- Continue with: integer, circle, suspension
+

@@ -1,4 +1,4 @@
-module talk where
+module demo where
 
 -- Cubical type theory!
 -----------------------
@@ -27,13 +27,11 @@ data list (A : U) = nil
                   | cons (a : A) (as : list A)
 
 
--- IdP is a built-in notion.
+-- "IdP P a b" is a built-in notion where P : Id U A B, a : A and b : B
 -- "<i>" abstracts the name/color/dimension i.
 Id (A : U) (a b : A) : U = IdP (<i> A) a b
 
-
 refl (A : U) (a : A) : Id A a a = <i> a
--- \(i : Interval) -> ... for <i> ..
 
 
 inv (A : U) (a b : A) (p : Id A a b) : Id A b a = <i> p @ -i

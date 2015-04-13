@@ -38,3 +38,8 @@ square (x : S1) : S1 = mult x x
 
 doubleLoop (l : loopS1) : loopS1 = <i> square (l @ i)
 tripleLoop (l : loopS1) : loopS1 = <i> mult (l @ i) (square (l @ i))
+
+triv : loopS1 = <i> base
+
+-- A nice example
+hmtpy : Id loopS1 triv (<i> loop{S1} @ (i /\ -i)) = <j i> loop{S1} @ j /\ i /\ -i

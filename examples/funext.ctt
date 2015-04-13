@@ -2,6 +2,9 @@ module funext where
 
 import prelude
 
+-- Proof that univalence implies funtion extensionality based on:
+--   http://homotopytypetheory.org/2014/02/17/another-proof-that-univalence-implies-function-extensionality/
+
 homotopies (A B :U) : U =
  (fg : (_:A->B) * (A->B)) * (x:A) -> Id B (fg.1 x) (fg.2 x)
 

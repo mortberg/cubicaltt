@@ -8,7 +8,8 @@ theory with:
 * Path abstraction and application
 * Composition and transport
 * Isomorphisms can be transformed into equalities
-* Some higher inductive types
+* Some higher inductive types (see "examples/circle.ctt" and
+  "examples/susp.ctt")
 
 Because of this it is not necessary to have a special file of
 primitives (like in cubical), for instance function extensionality is
@@ -19,6 +20,14 @@ funExt (A : U) (B : A -> U) (f g : (x : A) -> B x)
        (p : (x : A) -> Id (B x) (f x) (g x)) :
        Id ((y : A) -> B y) f g = <i> \(a : A) -> (p a) @ i
 ```
+
+This proof can be compared with the one in "examples/funext.ctt" which
+proves that univalence implies function extensionality (the normal
+form of these proofs are almost the same).
+
+
+For more examples, see "examples/demo.ctt".
+
 
 Install
 -------
@@ -52,6 +61,14 @@ References and notes
  * HoTT book and webpage:
    [http://homotopytypetheory.org/](http://homotopytypetheory.org/)
 
+ * [A Cubical Type
+   Theory](http://www.cse.chalmers.se/~coquand/rules5.pdf) -
+   Presenting typing rules of the system
+
+ * [A Cubical Approach to Synthetic Homotopy
+    Theory][http://dlicata.web.wesleyan.edu/pubs/lb15cubicalsynth/lb15cubicalsynth.pdf),
+    Dan Licata, Guillaume Brunerie.
+
  * Type Theory in Color, J.P. Bernardy, G. Moulin
 
  * A simple type-theoretic language: Mini-TT, Th. Coquand,
@@ -60,11 +77,6 @@ References and notes
  * [A cubical set model of type
    theory](http://www.cse.chalmers.se/~coquand/model1.pdf), M. Bezem,
    Th. Coquand and S. Huber.
-
- * [A remark on contractible family of
-   type](http://www.cse.chalmers.se/~coquand/contr.pdf), Th. Coquand.
-
-   This note explains how to derive univalence.
 
  * [An equivalent presentation of the Bezem-Coquand-Huber category of
    cubical sets](http://arxiv.org/abs/1401.7807), A. Pitts.
@@ -77,10 +89,6 @@ References and notes
  * [Note on Kripke
    model](http://www.cse.chalmers.se/~coquand/countermodel.pdf), M. Bezem
    and Th. Coquand.
-
- * [Some connections between cubical sets and
-   parametricity](http://www.cse.chalmers.se/~coquand/param.pdf),
-   Th. Coquand.
 
 
 Authors

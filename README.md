@@ -55,9 +55,9 @@ directory will be taken as the search path for the imports.
 References and notes
 --------------------
 
- * [A Cubical Type
-   Theory](http://www.cse.chalmers.se/~coquand/rules5.pdf) -
-   The typing rules of the system
+ * [Cubical Type
+   Theory](http://www.cse.chalmers.se/~coquand/rules5.pdf) - The
+   typing rules of the system
 
  * Voevodsky's page on [univalent
    foundations](http://www.math.ias.edu/~vladimir/Site3/Univalent_Foundations.html)
@@ -66,7 +66,7 @@ References and notes
    [http://homotopytypetheory.org/](http://homotopytypetheory.org/)
 
  * [A Cubical Approach to Synthetic Homotopy
-   Theory][http://dlicata.web.wesleyan.edu/pubs/lb15cubicalsynth/lb15cubicalsynth.pdf),
+   Theory](http://dlicata.web.wesleyan.edu/pubs/lb15cubicalsynth/lb15cubicalsynth.pdf),
    Dan Licata, Guillaume Brunerie.
 
  * [Type Theory in

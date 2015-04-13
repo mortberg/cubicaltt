@@ -60,7 +60,7 @@ References and notes
    typing rules of the system
 
  * [Lecture Notes on Cubical
-   sets](http://www.cse.chalmers.se/~coquand/course1.pdf)
+   sets](http://www.cse.chalmers.se/~coquand/course3.pdf)
 
  * Voevodsky's page on [univalent
    foundations](http://www.math.ias.edu/~vladimir/Site3/Univalent_Foundations.html)

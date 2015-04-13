@@ -1,7 +1,6 @@
 module helix where
 
 import circle
-import hedberg
 import retract
 
 encode (x:S1) (p:Id S1 base x) : helix x = subst S1 helix base x p zeroZ

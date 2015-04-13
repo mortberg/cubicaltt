@@ -1,6 +1,15 @@
 module stream where
 
-import prelude
+-- Things from the prelude:
+Id (A : U) (a0 a1 : A) : U = IdP (<i> A) a0 a1
+
+refl (A : U) (a : A) : Id A a a = <i> a
+
+isoId (A B : U) (f : A -> B) (g : B -> A)
+      (s : (y:B) -> Id B (f (g y)) y)
+      (t : (x:A) -> Id A (g (f x)) x) : Id U A B =
+      <i> glue B [ (i = 0) -> (A,f,g,s,t) ]
+
 
 -- Let us pretend that Stream is a coinductive type.
 

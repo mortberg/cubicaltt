@@ -12,7 +12,7 @@ theory with:
   "examples/susp.ctt")
 
 Because of this it is not necessary to have a special file of
-primitives (like in [cubical](https://github.com/simhu/cubical), for
+primitives (like in [cubical](https://github.com/simhu/cubical)), for
 instance function extensionality is provable in the system by:
 
 ```
@@ -58,6 +58,9 @@ References and notes
  * [Cubical Type
    Theory](http://www.cse.chalmers.se/~coquand/rules5.pdf) - The
    typing rules of the system
+
+ * [Lecture Notes on Cubical
+   sets](http://www.cse.chalmers.se/~coquand/course1.pdf)
 
  * Voevodsky's page on [univalent
    foundations](http://www.math.ias.edu/~vladimir/Site3/Univalent_Foundations.html)

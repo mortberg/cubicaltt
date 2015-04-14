@@ -1,23 +1,23 @@
 module ex1 where
 
-import prelude
+import circle
 
 constant (A B:U) (f:A->B) : U = (x y:A) -> Id B (f x) (f y)
 
-data S (X:U) = inc (x:X) | path (x y:X) @ (inc x) ~ (inc y)
+data S (X:U) = inc (x:X) | freePath (x y:X) @ (inc x) ~ (inc y)
 
 phi (X A:U) (fc : (f:X->A) * constant X A f) : S X -> A = split
   inc x -> fc.1 x
-  path x y @ i -> (fc.2 x y) @ i
+  freePath x y @ i -> (fc.2 x y) @ i
 
 psi (X A:U) (f:S X -> A) : (f:X->A) * constant X A f = 
- (\ (x:X) -> f (inc x), \ (x y:X) -> <i>(f (path{S X} x y)@i))
+ (\ (x:X) -> f (inc x), \ (x y:X) -> <i>(f (freePath{S X} x y)@i))
 
 lem (X A:U) (f : S X -> A) : Id (S X -> A) (phi X A (psi X A f)) f = 
  <i> \ (x:S X) -> (rem x) @ i
  where rem : (u : S X) -> Id A (phi X A (psi X A f) u) (f u) = split
          inc x -> refl A (f (inc x))
-         path x y @ i -> <j>f (path{S X} x y)@ i
+         freePath x y @ i -> <j>f (freePath{S X} x y)@ i
 
 thm (X A:U) : Id U ((f:X->A) * constant X A f) (S X -> A) = isoId T0 T1 f g t s
  where T0 : U = (f:X->A) * constant X A f
@@ -26,4 +26,29 @@ thm (X A:U) : Id U ((f:X->A) * constant X A f) (S X -> A) = isoId T0 T1 f g t s
        g : T1 -> T0 = psi X A
        s (x:T0) : Id T0 (g (f x)) x = refl T0 x
        t : (y:T1) -> Id T1 (f (g y)) y = lem X A
+
+-- a special case
+
+aLoop (A:U) : U = (a:A) * Id A a a
+
+phi (A:U) (al : aLoop A) : S1 -> A = split
+  base -> al.1
+  loop @ i -> (al.2)@ i
+
+psi (A:U) (f:S1 -> A) : aLoop A = (f base,<i>f (loop1@i))
+
+rem (A:U) (f : S1 -> A) : (u : S1) -> Id A (phi A (psi A f) u) (f u) = split
+         base -> refl A (f base)
+         loop @ i -> <j>f (loop1@i)
+
+lem (A:U) (f : S1 -> A) : Id (S1 -> A) (phi A (psi A f)) f = 
+ <i> \ (x:S1) -> (rem A f x) @ i
+
+thm (A:U) : Id U (aLoop A) (S1 -> A) = isoId T0 T1 f g t s
+ where T0 : U = aLoop A
+       T1 : U = S1 -> A
+       f : T0 -> T1 = phi A
+       g : T1 -> T0 = psi A
+       s (x:T0) : Id T0 (g (f x)) x    = refl T0 x
+       t : (y:T1) -> Id T1 (f (g y)) y = lem A
 

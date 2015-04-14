@@ -27,7 +27,7 @@ thm (X A:U) : Id U ((f:X->A) * constant X A f) (S X -> A) = isoId T0 T1 f g t s
        s (x:T0) : Id T0 (g (f x)) x = refl T0 x
        t : (y:T1) -> Id T1 (f (g y)) y = lem X A
 
--- a special case
+-- a special case, Lemmas 6.2.5-6.2.9 in the book
 
 aLoop (A:U) : U = (a:A) * Id A a a
 

@@ -46,8 +46,7 @@ decode : (x:S1) -> helix x -> Id S1 base x = split
  loop @ i -> rem @ i
    where T : U = Z -> loopS1
          p : Id U T T = <j> helix (loop{S1}@j) -> Id S1 base (loop{S1}@j)
-         rem1 : Id (Z -> loopS1) (transport p loopIt) loopIt =
-          funExt Z (\ (n:Z) -> loopS1) (transport (<j> helix (loop{S1}@j) -> Id S1 base (loop{S1}@j)) loopIt) loopIt lemIt
+         rem1 : Id (Z -> loopS1) (transport p loopIt) loopIt = <j> \ (n:Z) -> (lemIt n)@j
          rem : IdP p loopIt loopIt = transport (<j> (funDepTr T T p loopIt loopIt)@-j) rem1
 
 lemPropF (A:U)(P:A->U)(pP:(x:A) -> prop (P x))(a0 a1:A)(p:Id A a0 a1)(b0:P a0)(b1:P a1): IdS A P a0 a1 p b0 b1 =
@@ -164,4 +163,5 @@ invLaw : (x y : S1) ->
    isGroupoidS1 (mult x y) (mult x y) (refl S1 (mult x y))
                 (compId S1 (mult x y) (mult y x) (mult x y) (multCom x y) (multCom y x))
 
-  bP : P base base = refl (Id S1 base base) (refl S1 base)
+  bP : P base base = refl (Id S1 base base) (refl S1 base)      
+

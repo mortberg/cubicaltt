@@ -297,16 +297,17 @@ showTer v = case v of
   U                  -> char 'U'
   App e0 e1          -> showTer e0 <+> showTer1 e1
   Pi e0              -> text "Pi" <+> showTer e0
-  Lam x t e          -> char '\\' <> text x <+> text "->" <+> showTer e
-  Fst e              -> showTer e <> text ".1"
-  Snd e              -> showTer e <> text ".2"
-  Sigma e0           -> text "Sigma" <+> showTer e0
+  Lam x t e          -> char '\\' <> parens (text x <+> colon <+> showTer t) <+>
+                          text "->" <+> showTer e
+  Fst e              -> showTer1 e <> text ".1"
+  Snd e              -> showTer1 e <> text ".2"
+  Sigma e0           -> text "Sigma" <+> showTer1 e0
   Pair e0 e1         -> parens (showTer e0 <> comma <> showTer e1)
   Where e d          -> showTer e <+> text "where" <+> showDecls d
   Var x              -> text x
   Con c es           -> text c <+> showTers es
   PCon c a es phi    -> text c <+> char '{' <+> showTer a <+> char '}' <+>
-                         showTers es <+> showFormula phi
+                          showTers es <+> showFormula phi
   Split f _ _ _      -> text f
   Sum _ n _          -> text n
   Undef _            -> text "undefined"
@@ -353,11 +354,12 @@ showVal v = case v of
   VPair u v         -> parens (showVal u <> comma <> showVal v)
   VSigma u v        -> text "Sigma" <+> showVals [u,v]
   VApp u v          -> showVal u <+> showVal1 v
-  VLam x t e        -> char '\\' <> text x <+> text "->" <+> showVal e
+  VLam x t e        -> char '\\' <> parens (text x <+> colon <+> showVal t) <+>
+                         text "->" <+> showVal e
   VSplit u v        -> showVal u <+> showVal1 v
   VVar x t          -> text x
-  VFst u            -> showVal u <> text ".1"
-  VSnd u            -> showVal u <> text ".2"
+  VFst u            -> showVal1 u <> text ".1"
+  VSnd u            -> showVal1 u <> text ".2"
   VIdP v0 v1 v2     -> text "IdP" <+> showVals [v0,v1,v2]
   VPath i v         -> char '<' <> text (show i) <> char '>' <+> showVal v
   VAppFormula v phi -> showVal1 v <+> char '@' <+> showFormula phi

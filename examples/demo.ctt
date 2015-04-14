@@ -27,12 +27,33 @@ data list (A : U) = nil
                   | cons (a : A) (as : list A)
 
 
--- "IdP P a b" is a built-in notion where P : Id U A B, a : A and b : B
--- "<i>" abstracts the name/color/dimension i.
+{-
+
+An element in ID A0 A1 is a line in the universe connecting A0 and A1:
+
+ |- A0  Type     |- A1  Type
+-----------------------------
+     |- ID A0 A1   Type
+
+
+   |- P : ID A0 A1      |- a0 : A0     |- a1 : A1
+--------------------------------------------------------
+             |- IdP P a0 a1   Type
+
+
+Note: As we have U : U the type ID is not needed in the
+      implementation.
+
+-}
+
+-- The usual identity can be seen a special case of IdP:
 Id (A : U) (a b : A) : U = IdP (<i> A) a b
 
-refl (A : U) (a : A) : Id A a a = <i> a
+-- Here "<i> A" is a constant path in the universe:
+constPath (A : U) : Id U A A = <i> A
 
+-- "<i>" abstracts the name/color/dimension i.
+refl (A : U) (a : A) : Id A a a = <i> a
 
 inv (A : U) (a b : A) (p : Id A a b) : Id A b a = <i> p @ -i
 

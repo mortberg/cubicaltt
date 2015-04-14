@@ -59,6 +59,7 @@ instance Nominal Val where
   support (VCon _ vs)           = support vs
   support (VPCon _ a vs phi)    = support (a,vs,phi)
   support (VVar _ v)            = support v
+  support (VUndef _ v)          = support v
   support (VApp u v)            = support (u,v)
   support (VLam _ u v)          = support (u,v)
   support (VAppFormula u phi)   = support (u,phi)
@@ -90,6 +91,7 @@ instance Nominal Val where
          VCon c vs  -> VCon c (acti vs)
          VPCon c a vs phi -> pcon c (acti a) (acti vs) (acti phi)
          VVar x v   -> VVar x (acti v)
+         VUndef x v -> VUndef x (acti v)
          VAppFormula u psi -> acti u @@ acti psi
          VApp u v   -> app (acti u) (acti v)
          VLam x t u -> VLam x (acti t) (acti u)
@@ -118,6 +120,7 @@ instance Nominal Val where
          VCon c vs           -> VCon c (sw vs)
          VPCon c a vs phi    -> VPCon c (sw a) (sw vs) (sw phi)
          VVar x v            -> VVar x (sw v)
+         VUndef x v          -> VUndef x (sw v)
          VAppFormula u psi   -> VAppFormula (sw u) (sw psi)
          VApp u v            -> VApp (sw u) (sw v)
          VLam x u v          -> VLam x (sw u) (sw v)
@@ -132,10 +135,10 @@ instance Nominal Val where
 
 eval :: Env -> Ter -> Val
 eval rho v = case v of
-  Undef{}             -> Ter v rho
   U                   -> VU
   App r s             -> app (eval rho r) (eval rho s)
   Var i               -> look i rho
+  Undef l t           -> VUndef l (eval rho t)
   Pi t@(Lam _ a _)    -> VPi (eval rho a) (eval rho t)
   Lam{}               -> Ter v rho
   Sigma t@(Lam _ a _) -> VSigma (eval rho a) (eval rho t)
@@ -231,6 +234,7 @@ sndVal u               = error $ "sndVal: " ++ show u ++ " is not neutral."
 inferType :: Val -> Val
 inferType v = case v of
   VVar _ t -> t
+  VUndef _ t -> t
   VFst t -> case inferType t of
     VSigma a _ -> a
     ty         -> error $ "inferType: expected Sigma type for " ++ show v
@@ -695,8 +699,8 @@ instance Convertible Val where
         let v = mkVar k (eval e a)
         in conv (k+1) (app u' v) (eval (Upd e (x,v)) u)
       (Ter (Split _ p _ _) e,Ter (Split _ p' _ _) e') -> (p == p') && conv k e e'
-      (Ter (Sum p _ _) e,Ter (Sum p' _ _) e')     -> (p == p') && conv k e e'
-      (Ter (Undef p) e,Ter (Undef p') e')         -> (p == p') && conv k e e'
+      (Ter (Sum p _ _) e,Ter (Sum p' _ _) e')         -> (p == p') && conv k e e'
+      (VUndef p _,VUndef p' _) -> p == p'
       (VPi u v,VPi u' v') ->
         let w = mkVar k u
         in conv k u u' && conv (k+1) (app v w) (app v' w)

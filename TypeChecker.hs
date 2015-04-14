@@ -179,7 +179,6 @@ check a t = case (a,t) of
   (_,Where e d) -> do
     checkDecls d
     local (addDecls d) $ check a e
-  (_,Undef _) -> return ()
   (VU,IdP a e0 e1) -> do
     (a0,a1) <- checkPath (constPath VU) a
     check a0 e0
@@ -354,8 +353,9 @@ checks _              _      = throwError "checks"
 -- infer the type of e
 infer :: Ter -> Typing Val
 infer e = case e of
-  U     -> return VU  -- U : U
-  Var n -> lookType n <$> asks env
+  U         -> return VU  -- U : U
+  Var n     -> lookType n <$> asks env
+  Undef _ t -> evalTyping t
   App t u -> do
     c <- infer t
     case c of

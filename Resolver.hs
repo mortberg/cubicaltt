@@ -87,8 +87,8 @@ updateModule mod e = e{envModule = mod}
 
 insertIdent :: (Ident,SymKind) -> Env -> Env
 insertIdent (n,var) e
-  | n == "_" || n == "undefined" = e
-  | otherwise                    = e{variables = (n,var) : variables e}
+  | n == "_"  = e
+  | otherwise = e{variables = (n,var) : variables e}
 
 insertIdents :: [(Ident,SymKind)] -> Env -> Env
 insertIdents = flip $ foldr insertIdent
@@ -111,12 +111,6 @@ insertAIdents  = flip $ foldr insertAIdent
 getLoc :: (Int,Int) -> Resolver CTT.Loc
 getLoc l = CTT.Loc <$> asks envModule <*> pure l
 
--- noLoc :: AIdent
--- noLoc = AIdent ((0,0),"_")
-
--- resolveAIdent :: AIdent -> Resolver (Ident,CTT.Loc)
--- resolveAIdent (AIdent (l,x)) = (x,) <$> getLoc l
-
 unAIdent :: AIdent -> Ident
 unAIdent (AIdent (_,x)) = x
 
@@ -130,23 +124,21 @@ resolveName (AIdent (l,x)) = do
                       show l ++ " in module " ++ modName
 
 resolveVar :: AIdent -> Resolver Ter
-resolveVar (AIdent (l,x))
-  | (x == "_") || (x == "undefined") = CTT.Undef <$> getLoc l
-  | otherwise = do
-    modName <- asks envModule
-    vars    <- asks variables
-    case lookup x vars of
-      Just Variable    -> return $ CTT.Var x
-      Just Constructor -> return $ CTT.Con x []
-      Just PConstructor -> throwError $ "The path constructor " ++ x ++ " is used as a"
-                                     ++ " variable at " ++ show l ++ " in " ++ modName
-                                     ++ " (path constructors should have their type in"
-                                     ++ " curly braces as first argument)"
-      Just Name        ->
-        throwError $ "Name " ++ x ++ " used as a variable at position " ++
-                     show l ++ " in module " ++ modName
-      _ -> throwError $ "Cannot resolve variable " ++ x ++ " at position " ++
-                        show l ++ " in module " ++ modName
+resolveVar (AIdent (l,x)) = do
+  modName <- asks envModule
+  vars    <- asks variables
+  case lookup x vars of
+    Just Variable    -> return $ CTT.Var x
+    Just Constructor -> return $ CTT.Con x []
+    Just PConstructor -> throwError $ "The path constructor " ++ x ++ " is used as a"
+                                   ++ " variable at " ++ show l ++ " in " ++ modName
+                                   ++ " (path constructors should have their type in"
+                                   ++ " curly braces as first argument)"
+    Just Name        ->
+     throwError $ "Name " ++ x ++ " used as a variable at position " ++
+                   show l ++ " in module " ++ modName
+    _ -> throwError $ "Cannot resolve variable " ++ x ++ " at position " ++
+                      show l ++ " in module " ++ modName
 
 lam :: (Ident,Exp) -> Resolver Ter -> Resolver Ter
 lam (a,t) e = CTT.Lam a <$> resolveExp t <*> local (insertVar a) e
@@ -240,13 +232,13 @@ resolveDir Dir0 = return 0
 resolveDir Dir1 = return 1
 
 resolveFormula :: Formula -> Resolver C.Formula
-resolveFormula (Dir d)        = C.Dir <$> resolveDir d
-resolveFormula (Atom i)       = C.Atom <$> resolveName i
-resolveFormula (Neg phi)      = C.negFormula <$> resolveFormula phi
-resolveFormula (Conj phi _ psi) = C.andFormula <$> resolveFormula phi
-                                <*> resolveFormula psi
-resolveFormula (Disj phi psi) = C.orFormula <$> resolveFormula phi
-                                <*> resolveFormula psi
+resolveFormula (Dir d)          = C.Dir <$> resolveDir d
+resolveFormula (Atom i)         = C.Atom <$> resolveName i
+resolveFormula (Neg phi)        = C.negFormula <$> resolveFormula phi
+resolveFormula (Conj phi _ psi) =
+    C.andFormula <$> resolveFormula phi <*> resolveFormula psi
+resolveFormula (Disj phi psi)   =
+    C.orFormula <$> resolveFormula phi <*> resolveFormula psi
 
 resolveBranch :: Branch -> Resolver CTT.Branch
 resolveBranch (OBranch (AIdent (_,lbl)) args e) = do
@@ -296,13 +288,18 @@ resolveDecl d = case d of
     brs' <- local (insertVars (f:vars)) (mapM resolveBranch brs)
     body <- lams tele' (return $ CTT.Split f loc ty brs')
     return ((f,(a,body)),[(f,Variable)])
+  DeclUndef (AIdent (l,f)) tele t -> do
+    let tele' = flattenTele tele
+    a <- binds CTT.Pi tele' (resolveExp t)
+    d <- CTT.Undef <$> getLoc l <*> pure a
+    return ((f,(a,d)),[(f,Variable)])
 
 resolveDecls :: [Decl] -> Resolver ([[CTT.Decl]],[(Ident,SymKind)])
 resolveDecls []     = return ([],[])
 resolveDecls (d:ds) = do
-    (rtd,names)  <- resolveDecl d
-    (rds,names') <- local (insertIdents names) $ resolveDecls ds
-    return ([rtd] : rds, names' ++ names)
+  (rtd,names)  <- resolveDecl d
+  (rds,names') <- local (insertIdents names) $ resolveDecls ds
+  return ([rtd] : rds, names' ++ names)
 
 resolveModule :: Module -> Resolver ([[CTT.Decl]],[(Ident,SymKind)])
 resolveModule (Module (AIdent (_,n)) _ decls) =

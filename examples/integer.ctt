@@ -59,8 +59,7 @@ fromZK : (a : int) -> Id int (fromZ (toZ a)) a = split
     where rem : (n : nat) -> Id int (fromZ (toZ (neg n))) (neg n) = split
       zero -> zeroP'
       suc n -> refl int (neg (suc n))
-  zeroP @ i -> temp
-    where temp : Id int (pos zero) (zeroP{int} @ i) = undefined
+  zeroP @ i -> sq @ i
 
 isoIntZ : Id U Z int = isoId Z int fromZ toZ fromZK toZK
 

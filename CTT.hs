@@ -95,7 +95,7 @@ data Ter = App Ter Ter
            -- labelled sum c1 A1s,..., cn Ans (assumes terms are constructors)
          | Sum Loc Ident [Label]
            -- undefined
-         | Undef Loc
+         | Undef Loc Ter -- Location and type
 
            -- Id type
          | IdP Ter Ter Ter
@@ -155,6 +155,7 @@ data Val = VU
 
            -- Neutral values:
          | VVar Ident Val
+         | VUndef Loc Val
          | VFst Val
          | VSnd Val
          | VSplit Val Val
@@ -165,7 +166,7 @@ data Val = VU
 
 isNeutral :: Val -> Bool
 isNeutral v = case v of
-  Ter (Undef _) _   -> True
+  VUndef _ _        -> True
   VVar _ _          -> True
   VFst v            -> isNeutral v
   VSnd v            -> isNeutral v
@@ -311,7 +312,7 @@ showTer v = case v of
                           showTers es <+> showFormula phi
   Split f _ _ _      -> text f
   Sum _ n _          -> text n
-  Undef _            -> text "undefined"
+  Undef _ _          -> text "undefined"
   IdP e0 e1 e2       -> text "IdP" <+> showTers [e0,e1,e2]
   Path i e           -> char '<' <> text (show i) <> char '>' <+> showTer e
   AppFormula e phi   -> showTer1 e <+> char '@' <+> showFormula phi
@@ -359,6 +360,7 @@ showVal v = case v of
                          text "->" <+> showVal e
   VSplit u v        -> showVal u <+> showVal1 v
   VVar x t          -> text x
+  VUndef _ _        -> text "undefined"
   VFst u            -> showVal1 u <> text ".1"
   VSnd u            -> showVal1 u <> text ".2"
   VIdP v0 v1 v2     -> text "IdP" <+> showVals [v0,v1,v2]

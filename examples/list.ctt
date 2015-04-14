@@ -1,9 +1,11 @@
 module list where
 
+import prelude
+
 data list (A : U) = nil | cons (a : A) (as : list A)
 
 append (A : U) : list A -> list A -> list A = split
-  nil -> id (list A)
+  nil -> idfun (list A)
   cons x xs -> \(ys : list A) -> cons x (append A xs ys)
 
 reverse (A : U) : list A -> list A = split

@@ -1,42 +1,67 @@
 module integer where
 
-import nat
+import int
 
-data Z = zeroZ | posZ (n : nat) | negZ (n : nat)
+data int = pos (n : nat)
+         | neg (n : nat)
+         | zeroP @ pos zero ~ neg zero
 
-caseNat (A : U) (a : A) (f : nat -> A) : nat -> A = split
-  zero -> a
-  suc n -> f n
+zeroP' : Id int (pos zero) (neg zero) = <i> zeroP {int} @ i
 
-sucZ : Z -> Z = split
-  zeroZ -> posZ zero
-  posZ n -> posZ (suc n)
-  negZ n -> caseNat Z zeroZ (\(x : nat) -> negZ x) n
+sucInt : int -> int = split
+  pos n -> pos (suc n)
+  neg n -> sucNat n
+    where sucNat : nat -> int = split
+            zero -> pos one
+            suc n -> neg n
+  zeroP @ i -> pos one
 
-predZ : Z -> Z = split
-  zeroZ -> negZ zero
-  posZ n -> caseNat Z zeroZ (\(x : nat) -> posZ x) n
-  negZ n -> negZ (suc n)
+predInt : int -> int = split
+  pos n -> predNat n
+    where predNat : nat -> int = split
+	    zero -> neg one
+	    suc n -> pos n
+  neg n -> neg (suc n)
+  zeroP @ i -> neg one
 
-sucpredZ : (n : Z) -> Id Z (sucZ (predZ n)) n = split
-  zeroZ  -> refl Z zeroZ
-  posZ n -> lem n
-   where
-    lem : (n : nat) -> Id Z (sucZ (predZ (posZ n))) (posZ n) = split
-      zero  -> refl Z (posZ zero)
-      suc n -> refl Z (posZ (suc n))
-  negZ n -> refl Z (negZ n)
+toZ : int -> Z = split
+  pos n -> inr n
+  neg n -> fun n
+    where fun : nat -> Z = split
+      zero -> zeroZ
+      suc n -> inl n
+  zeroP @ i -> zeroZ
 
-predsucZ : (n : Z) -> Id Z (predZ (sucZ n)) n = split
-  zeroZ -> refl Z zeroZ
-  posZ n -> refl Z (posZ n)
-  negZ n -> lem n
-   where
-    lem : (n : nat) -> Id Z (predZ (sucZ (negZ n))) (negZ n) = split
-      zero  -> refl Z (negZ zero)
-      suc n -> refl Z (negZ (suc n))
+fromZ : Z -> int = split
+  inl n -> neg (suc n)
+  inr n -> pos n
 
-sucIdZ : Id U Z Z = isoId Z Z sucZ predZ sucpredZ predsucZ
+toZK : (a : Z) -> Id Z (toZ (fromZ a)) a = split
+  inl n -> refl Z (inl n)
+  inr n -> refl Z (inr n)
 
-sucIdZ2 : Id U Z Z = compId U Z Z Z sucIdZ sucIdZ
-test : Z = predZ (transport sucIdZ2 zeroZ)
+-- fromZ (toZ (neg zero)) = fromZ (fun zero)
+--                        = fromZ zeroZ
+--			  = fromZ (inr zero)
+--			  = pos zero
+
+-- fromZ (toZ (neg (suc n)) = fromZ (fun (suc n))
+-- 	      	   	    = fromZ (inl n)
+--			    = neg (suc n)
+
+sq : Square int (pos zero) (pos zero) (refl int (pos zero))
+                (pos zero) (neg zero) zeroP'
+		(refl int (pos zero)) zeroP' = undefined
+		
+fromZK : (a : int) -> Id int (fromZ (toZ a)) a = split
+  pos n -> refl int (pos n)
+  neg n -> rem n
+    where rem : (n : nat) -> Id int (fromZ (toZ (neg n))) (neg n) = split
+      zero -> zeroP'
+      suc n -> refl int (neg (suc n))
+  zeroP @ i -> temp
+    where temp : Id int (pos zero) (zeroP{int} @ i) = undefined
+
+isoIntZ : Id U Z int = isoId Z int fromZ toZ fromZK toZK
+
+intSet : set int = subst U set Z int isoIntZ ZSet

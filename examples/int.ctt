@@ -3,9 +3,10 @@ module int where
 import nat
 import discor
 
+-- inl = neg, inr = pos
 Z : U = or nat nat
 
-zeroZ : Z =  inr zero
+zeroZ : Z = inr zero
 
 sucZ : Z -> Z = split
   inl u -> auxsucZ u

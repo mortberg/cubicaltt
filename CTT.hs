@@ -167,6 +167,7 @@ data Val = VU
 
 isNeutral :: Val -> Bool
 isNeutral v = case v of
+  Ter Undef{} _     -> True
   VVar _ _          -> True
   VFst v            -> isNeutral v
   VSnd v            -> isNeutral v

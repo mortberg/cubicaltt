@@ -143,6 +143,7 @@ evalTyping t = eval <$> asks env <*> pure t
 -- Check that t has type a
 check :: Val -> Ter -> Typing ()
 check a t = case (a,t) of
+  (_,Undef{}) -> return ()
   (_,Con c es) -> do
     (bs,nu) <- getLblType c a
     checks (bs,nu) es
@@ -359,7 +360,7 @@ infer :: Ter -> Typing Val
 infer e = case e of
   U         -> return VU  -- U : U
   Var n     -> lookType n <$> asks env
-  Undef _ t -> evalTyping t
+--  Undef _ t -> evalTyping t
   App t u -> do
     c <- infer t
     case c of

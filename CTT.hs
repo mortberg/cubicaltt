@@ -157,7 +157,6 @@ data Val = VU
 
            -- Neutral values:
          | VVar Ident Val
-         | VUndef Loc Val
          | VFst Val
          | VSnd Val
          | VSplit Val Val
@@ -168,7 +167,6 @@ data Val = VU
 
 isNeutral :: Val -> Bool
 isNeutral v = case v of
-  VUndef _ _        -> True
   VVar _ _          -> True
   VFst v            -> isNeutral v
   VSnd v            -> isNeutral v
@@ -365,7 +363,6 @@ showVal v = case v of
                          text "->" <+> showVal e
   VSplit u v        -> showVal u <+> showVal1 v
   VVar x t          -> text x
-  VUndef _ _        -> text "undefined"
   VFst u            -> showVal1 u <> text ".1"
   VSnd u            -> showVal1 u <> text ".2"
   VIdP v0 v1 v2     -> text "IdP" <+> showVals [v0,v1,v2]
@@ -385,7 +382,6 @@ showVal1 v = case v of
   VU              -> char 'U'
   VCon c []       -> text c
   VVar{}          -> showVal v
-  VUndef{}        -> showVal v
   Ter t@Sum{} rho -> showTer t <+> showEnv rho
   _               -> parens (showVal v)
 

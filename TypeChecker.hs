@@ -92,7 +92,7 @@ faceEnv alpha tenv = tenv{env=env tenv `face` alpha}
 getLblType :: LIdent -> Val -> Typing (Tele, Env)
 getLblType c (Ter (Sum _ _ cas) r) = case lookupLabel c cas of
   Just as -> return (as,r)
-  Nothing -> throwError ("getLblType: " ++ show c)
+  Nothing -> throwError ("getLblType: " ++ show c ++ " in " ++ show cas)
 getLblType c u = throwError ("expected a data type for the constructor "
                              ++ c ++ " but got " ++ show u)
 
@@ -212,8 +212,9 @@ checkDecls d = do
   let (idents,tele,ters) = (declIdents d,declTele d,declTers d)
   trace ("Checking: " ++ unwords idents)
   checkTele tele
-  rho <- asks env
-  localM (addTele tele) $ checks (tele,rho) ters
+  local (addDecls d) $ do
+    rho <- asks env
+    checks (tele,rho) ters
 
 -- Check a telescope
 checkTele :: Tele -> Typing ()

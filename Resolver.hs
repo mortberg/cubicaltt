@@ -165,6 +165,7 @@ resolveApps x xs = CTT.mkApps <$> resolveExp x <*> mapM resolveExp xs
 resolveExp :: Exp -> Resolver Ter
 resolveExp e = case e of
   U             -> return CTT.U
+  Hole          -> return CTT.Hole
   Var x         -> resolveVar x
   App t s       -> resolveApps x xs
     where (x,xs) = unApps t [s]

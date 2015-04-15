@@ -187,7 +187,8 @@ check a t = case (a,t) of
     (u0,u1) <- checkPath p t
     k <- asks index
     unless (conv k a0 u0 && conv k a1 u1) $
-      throwError $ "path endpoints don't match " ++ show e
+      throwError $ "path endpoints don't match for " ++ show e ++ ", got " ++
+                   show (u0,u1) ++ ", but expected " ++ show (a0,a1)
   (VU,Glue a ts) -> do
     check VU a
     rho <- asks env
@@ -196,6 +197,9 @@ check a t = case (a,t) of
     check va u
     vu <- evalTyping u
     checkGlueElem vu ts us
+  (_,Hole) -> do
+    trace $ "Hole expects: " ++ show a
+    return ()
   _ -> do
     v <- infer t
     unlessM (v === a) $

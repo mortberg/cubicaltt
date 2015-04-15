@@ -94,8 +94,10 @@ data Ter = App Ter Ter
          | Split Ident Loc Ter [Branch]
            -- labelled sum c1 A1s,..., cn Ans (assumes terms are constructors)
          | Sum Loc Ident [Label]
-           -- undefined
+
+           -- undefined and holes
          | Undef Loc Ter -- Location and type
+         | Hole
 
            -- Id type
          | IdP Ter Ter Ter
@@ -313,6 +315,7 @@ showTer v = case v of
   Split f _ _ _      -> text f
   Sum _ n _          -> text n
   Undef _ _          -> text "undefined"
+  Hole               -> text "?"
   IdP e0 e1 e2       -> text "IdP" <+> showTers [e0,e1,e2]
   Path i e           -> char '<' <> text (show i) <> char '>' <+> showTer e
   AppFormula e phi   -> showTer1 e <+> char '@' <+> showFormula phi
@@ -333,7 +336,9 @@ showTer1 :: Ter -> Doc
 showTer1 t = case t of
   U        -> char 'U'
   Con c [] -> text c
-  Var x    -> text x
+  Var{}    -> showTer t
+  Undef{}  -> showTer t
+  Hole     -> showTer t
   Split{}  -> showTer t
   Sum{}    -> showTer t
   _        -> parens (showTer t)
@@ -380,6 +385,7 @@ showVal1 v = case v of
   VU              -> char 'U'
   VCon c []       -> text c
   VVar{}          -> showVal v
+  VUndef{}        -> showVal v
   Ter t@Sum{} rho -> showTer t <+> showEnv rho
   _               -> parens (showVal v)
 

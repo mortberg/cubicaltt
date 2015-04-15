@@ -43,6 +43,7 @@ Pair.       Exp5 ::= "(" Exp "," [Exp] ")" ;
 Var.        Exp5 ::= AIdent ;
 PCon.       Exp5 ::= AIdent "{" Exp "}" ; -- c{T A B} x1 x2 @ phi
 U.          Exp5 ::= "U" ;
+Hole.       Exp5 ::= "?" ;
 coercions Exp 5 ;
 separator nonempty Exp "," ;
 

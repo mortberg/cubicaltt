@@ -2,31 +2,6 @@ module ex1 where
 
 import circle
 
-constant (A B:U) (f:A->B) : U = (x y:A) -> Id B (f x) (f y)
-
-data S (X:U) = inc (x:X) | freePath (x y:X) @ (inc x) ~ (inc y)
-
-phi (X A:U) (fc : (f:X->A) * constant X A f) : S X -> A = split
-  inc x -> fc.1 x
-  freePath x y @ i -> (fc.2 x y) @ i
-
-psi (X A:U) (f:S X -> A) : (f:X->A) * constant X A f = 
- (\ (x:X) -> f (inc x), \ (x y:X) -> <i>(f (freePath{S X} x y)@i))
-
-lem (X A:U) (f : S X -> A) : Id (S X -> A) (phi X A (psi X A f)) f = 
- <i> \ (x:S X) -> (rem x) @ i
- where rem : (u : S X) -> Id A (phi X A (psi X A f) u) (f u) = split
-         inc x -> refl A (f (inc x))
-         freePath x y @ i -> <j>f (freePath{S X} x y)@ i
-
-thm (X A:U) : Id U ((f:X->A) * constant X A f) (S X -> A) = isoId T0 T1 f g t s
- where T0 : U = (f:X->A) * constant X A f
-       T1 : U = S X -> A
-       f : T0 -> T1 = phi X A
-       g : T1 -> T0 = psi X A
-       s (x:T0) : Id T0 (g (f x)) x = refl T0 x
-       t : (y:T1) -> Id T1 (f (g y)) y = lem X A
-
 -- a special case, Lemmas 6.2.5-6.2.9 in the book
 
 aLoop (A:U) : U = (a:A) * Id A a a

@@ -84,7 +84,7 @@ terminator Tele "" ;
 PTele.    PTele ::= "(" Exp ":" Exp ")" ;
 terminator nonempty PTele "" ;
 
-position token AIdent (letter|'_')(letter|digit|'\'')* ;
+position token AIdent (letter|'_')(letter|digit|'\''|'_')* ;
 separator AIdent "" ;
 
 token CIdent '/''\\' ;

@@ -136,7 +136,6 @@ eval rho v = case v of
   App r s             -> app (eval rho r) (eval rho s)
   Var i               -> look i rho
   Pi t@(Lam _ a _)    -> VPi (eval rho a) (eval rho t)
-  Lam{}               -> Ter v rho
   Sigma t@(Lam _ a _) -> VSigma (eval rho a) (eval rho t)
   Pair a b            -> VPair (eval rho a) (eval rho b)
   Fst a               -> fstVal (eval rho a)
@@ -145,8 +144,11 @@ eval rho v = case v of
   Con name ts         -> VCon name (map (eval rho) ts)
   PCon name a ts phi  ->
     pcon name (eval rho a) (map (eval rho) ts) (evalFormula rho phi)
+  Lam{}               -> Ter v rho
   Split{}             -> Ter v rho
   Sum{}               -> Ter v rho
+  Undef{}             -> Ter v rho
+  Hole{}              -> Ter v rho
   IdP a e0 e1         -> VIdP (eval rho a) (eval rho e0) (eval rho e1)
   Path i t            ->
     let j = fresh rho

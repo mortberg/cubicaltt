@@ -260,6 +260,7 @@ inferType v = case v of
 
 (@@) :: ToFormula a => Val -> a -> Val
 (VPath i u) @@ phi = u `act` (i,toFormula phi)
+v@(Ter Hole{} _) @@ phi = VAppFormula v (toFormula phi)
 v @@ phi | isNeutral v = case (inferType v,toFormula phi) of
   (VIdP  _ a0 _,Dir 0) -> a0
   (VIdP  _ _ a1,Dir 1) -> a1
@@ -700,6 +701,9 @@ instance Convertible Val where
       (Ter (Split _ p _ _) e,Ter (Split _ p' _ _) e') -> (p == p') && conv k e e'
       (Ter (Sum p _ _) e,Ter (Sum p' _ _) e')         -> (p == p') && conv k e e'
       (Ter (Undef p _) e,Ter (Undef p' _) e') -> p == p' && conv k e e'
+--      (Ter Hole{} e,Ter Hole{} e') -> conv k e e'
+      (Ter Hole{} e,_) -> True
+      (_,Ter Hole{} e') -> True
       (VPi u v,VPi u' v') ->
         let w = mkVar k u
         in conv k u u' && conv (k+1) (app v w) (app v' w)

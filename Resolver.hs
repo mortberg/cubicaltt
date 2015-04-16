@@ -165,7 +165,6 @@ resolveApps x xs = CTT.mkApps <$> resolveExp x <*> mapM resolveExp xs
 resolveExp :: Exp -> Resolver Ter
 resolveExp e = case e of
   U             -> return CTT.U
-  Hole          -> return CTT.Hole
   Var x         -> resolveVar x
   App t s       -> resolveApps x xs
     where (x,xs) = unApps t [s]
@@ -189,6 +188,7 @@ resolveExp e = case e of
     (rdecls,names) <- resolveDecls decls
     CTT.mkWheres rdecls <$> local (insertIdents names) (resolveExp e)
   Path is e     -> paths is (resolveExp e)
+  Hole (HoleIdent (l,_)) -> CTT.Hole <$> getLoc l
   AppFormula e phi ->
     let (x,xs) = unApps e []
     in case x of

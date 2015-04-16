@@ -144,6 +144,11 @@ evalTyping t = eval <$> asks env <*> pure t
 check :: Val -> Ter -> Typing ()
 check a t = case (a,t) of
   (_,Undef{}) -> return ()
+  (_,Hole l)  -> do
+      rho <- asks env
+      let e = unlines (reverse (contextOfEnv rho))
+      trace $ "\nHole at " ++ show l ++ ":\n\n" ++
+              e ++ replicate 80 '-' ++ "\n" ++ show a ++ "\n"
   (_,Con c es) -> do
     (bs,nu) <- getLblType c a
     checks (bs,nu) es
@@ -198,9 +203,6 @@ check a t = case (a,t) of
     check va u
     vu <- evalTyping u
     checkGlueElem vu ts us
-  (_,Hole) -> do
-    trace $ "Hole expects: " ++ show a
-    return ()
   _ -> do
     v <- infer t
     unlessM (v === a) $
@@ -361,7 +363,6 @@ infer :: Ter -> Typing Val
 infer e = case e of
   U         -> return VU  -- U : U
   Var n     -> lookType n <$> asks env
---  Undef _ t -> evalTyping t
   App t u -> do
     c <- infer t
     case c of

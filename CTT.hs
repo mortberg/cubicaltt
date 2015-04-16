@@ -97,7 +97,7 @@ data Ter = App Ter Ter
 
            -- undefined and holes
          | Undef Loc Ter -- Location and type
-         | Hole
+         | Hole Loc
 
            -- Id type
          | IdP Ter Ter Ter
@@ -168,6 +168,7 @@ data Val = VU
 isNeutral :: Val -> Bool
 isNeutral v = case v of
   Ter Undef{} _     -> True
+  Ter Hole{} _      -> True
   VVar _ _          -> True
   VFst v            -> isNeutral v
   VSnd v            -> isNeutral v
@@ -265,6 +266,14 @@ domainEnv rho = case rho of
   Def ts e    -> domainEnv e
   Sub e (i,_) -> i : domainEnv e
 
+-- Extract the context from the environment, used when printing holes
+contextOfEnv :: Env -> [String]
+contextOfEnv rho = case rho of
+  Empty         -> []
+  Upd e (x,v)   -> (x ++ " : " ++ show v) : contextOfEnv e
+  Def ts e      -> contextOfEnv e
+  Sub e (i,phi) -> (show i ++ " = " ++ show phi) : contextOfEnv e
+
 --------------------------------------------------------------------------------
 -- | Pretty printing
 
@@ -284,7 +293,7 @@ instance Show Loc where
   show = render . showLoc
 
 showLoc :: Loc -> Doc
-showLoc (Loc name (i,j)) = hcat [text name,text "_L",int i,text "_C",int j]
+showLoc (Loc name (i,j)) = text (show (i,j) ++ " in " ++ name)
 
 showFormula :: Formula -> Doc
 showFormula phi = case phi of
@@ -313,8 +322,8 @@ showTer v = case v of
                           showTers es <+> showFormula phi
   Split f _ _ _      -> text f
   Sum _ n _          -> text n
-  Undef _ _          -> text "undefined"
-  Hole               -> text "?"
+  Undef{}            -> text "undefined"
+  Hole{}             -> text "?"
   IdP e0 e1 e2       -> text "IdP" <+> showTers [e0,e1,e2]
   Path i e           -> char '<' <> text (show i) <> char '>' <+> showTer e
   AppFormula e phi   -> showTer1 e <+> char '@' <+> showFormula phi
@@ -337,7 +346,7 @@ showTer1 t = case t of
   Con c [] -> text c
   Var{}    -> showTer t
   Undef{}  -> showTer t
-  Hole     -> showTer t
+  Hole{}   -> showTer t
   Split{}  -> showTer t
   Sum{}    -> showTer t
   _        -> parens (showTer t)

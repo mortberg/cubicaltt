@@ -43,7 +43,7 @@ Pair.       Exp5 ::= "(" Exp "," [Exp] ")" ;
 Var.        Exp5 ::= AIdent ;
 PCon.       Exp5 ::= AIdent "{" Exp "}" ; -- c{T A B} x1 x2 @ phi
 U.          Exp5 ::= "U" ;
-Hole.       Exp5 ::= "?" ;
+Hole.       Exp5 ::= HoleIdent ;
 coercions Exp 5 ;
 separator nonempty Exp "," ;
 
@@ -84,7 +84,9 @@ terminator Tele "" ;
 PTele.    PTele ::= "(" Exp ":" Exp ")" ;
 terminator nonempty PTele "" ;
 
-position token AIdent (letter|'_')(letter|digit|'\''|'_')* ;
+position token AIdent (letter|'_')(letter|digit|'\'')* ;
 separator AIdent "" ;
 
 token CIdent '/''\\' ;
+
+position token HoleIdent '?' ;

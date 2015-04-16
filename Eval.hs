@@ -151,7 +151,7 @@ eval rho v = case v of
   Hole{}              -> Ter v rho
   IdP a e0 e1         -> VIdP (eval rho a) (eval rho e0) (eval rho e1)
   Path i t            ->
-    let j = fresh rho
+    let j = freshNice i rho
     in VPath j (eval (Sub rho (i,Atom j)) t)
   Trans u v        -> transLine (eval rho u) (eval rho v)
   AppFormula e phi -> (eval rho e) @@ (evalFormula rho phi)

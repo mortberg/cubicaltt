@@ -65,7 +65,7 @@ runInfer lenv e = runTyping lenv (infer e)
 
 addTypeVal :: (Ident,Val) -> TEnv -> TEnv
 addTypeVal (x,a) (TEnv k ind rho v) =
-  TEnv (k+1) ind (Upd rho (x,mkVar k a)) v
+  TEnv (k+1) ind (Upd rho (x,mkVar k x a)) v
 
 addSub :: (Name,Formula) -> TEnv -> TEnv
 addSub iphi (TEnv k ind rho v) = TEnv k ind (Sub rho iphi) v
@@ -115,7 +115,7 @@ constPath = VPath (Name "_")
 mkVars :: Int -> Tele -> Env -> [(Ident,Val)]
 mkVars k [] _ = []
 mkVars k ((x,a):xas) nu =
-  let w = mkVar k (eval nu a)
+  let w = mkVar k x (eval nu a)
   in (x,w) : mkVars (k+1) xas (Upd nu (x,w))
 
 -- Construct a fuction "(_ : va) -> vb"
@@ -177,7 +177,7 @@ check a t = case (a,t) of
     rho <- asks env
     unlessM (a === eval rho a') $
       throwError "check: lam types don't match"
-    let var = mkVar k a
+    let var = mkVar k x a
     local (addTypeVal (x,a)) $ check (app f var) t
   (VSigma a f, Pair t1 t2) -> do
     check a t1

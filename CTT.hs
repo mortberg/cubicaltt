@@ -197,7 +197,6 @@ isNeutralTrans (VPath i a) u = foo i a u
           let shasBeta = (shape as) `face` (i ~> 0)
           in shasBeta /= Map.empty && eps `Map.notMember` shasBeta && isNeutral u
         foo _ _ _ = False
---        foo i a w = error $ "oops!! :\n" ++ show a ++ "\n" ++ show w
 isNeutralTrans u _ = isNeutral u
 
 isNeutralComp :: Val -> Val -> System Val -> Bool
@@ -211,8 +210,9 @@ isNeutralComp (VGlue _ as) u ts | isNeutral u = True
   in isNeutralSystem (Map.filterWithKey testFace ts)
 isNeutralComp _ _ _ = False
 
-mkVar :: Int -> Val -> Val
-mkVar k = VVar ("X" ++ show k)
+
+mkVar :: Int -> String -> Val -> Val
+mkVar k x = VVar (x ++ show k)
 
 unCon :: Val -> [Val]
 unCon (VCon _ vs) = vs
@@ -270,7 +270,8 @@ domainEnv rho = case rho of
 contextOfEnv :: Env -> [String]
 contextOfEnv rho = case rho of
   Empty         -> []
-  Upd e (x,v)   -> (x ++ " : " ++ show v) : contextOfEnv e
+  Upd e (x, VVar n t)  -> (n ++ " : " ++ show t) : contextOfEnv e
+  Upd e (x, v)  -> (x ++ " = " ++ show v) : contextOfEnv e
   Def ts e      -> contextOfEnv e
   Sub e (i,phi) -> (show i ++ " = " ++ show phi) : contextOfEnv e
 
@@ -284,10 +285,11 @@ showEnv, showEnv1 :: Env -> Doc
 showEnv e = case e of
   Empty           -> PP.empty
   Def _ env       -> showEnv env
-  Upd env (x,u)   -> parens (showEnv1 env <> showVal u)
-  Sub env (i,phi) -> parens (showEnv1 env <> text (show phi))
-showEnv1 (Upd env (x,u)) = showEnv1 env <> showVal u <> text ", "
-showEnv1 e               = showEnv e
+  Upd env (_,u)   -> parens (showEnv1 env <> showVal u)
+  Sub env (_,phi) -> parens (showEnv1 env <> text (show phi))
+showEnv1 (Upd env (_,u))   = showEnv1 env <> showVal u <> text ", "
+showEnv1 (Sub env (_,phi)) = showEnv1 env <> text (show phi) <> text ", "
+showEnv1 e                 = showEnv e
 
 instance Show Loc where
   show = render . showLoc

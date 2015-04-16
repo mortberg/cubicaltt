@@ -23,13 +23,14 @@ type Typing a = ReaderT TEnv (ErrorT String IO) a
 -- Environment for type checker
 data TEnv =
   TEnv { index   :: Int   -- for de Bruijn levels
+       , indent  :: Int
        , env     :: Env
        , verbose :: Bool  -- Should it be verbose and print what it typechecks?
        } deriving (Eq,Show)
 
 verboseEnv, silentEnv :: TEnv
-verboseEnv = TEnv 0 Empty True
-silentEnv  = TEnv 0 Empty False
+verboseEnv = TEnv 0 0 Empty True
+silentEnv  = TEnv 0 0 Empty False
 
 -- Trace function that depends on the verbosity flag
 trace :: String -> Typing ()
@@ -63,21 +64,21 @@ runInfer lenv e = runTyping lenv (infer e)
 -- | Modifiers for the environment
 
 addTypeVal :: (Ident,Val) -> TEnv -> TEnv
-addTypeVal (x,a) (TEnv k rho v) =
-  TEnv (k+1) (Upd rho (x,mkVar k a)) v
+addTypeVal (x,a) (TEnv k ind rho v) =
+  TEnv (k+1) ind (Upd rho (x,mkVar k (show a) a)) v
 
 addSub :: (Name,Formula) -> TEnv -> TEnv
-addSub iphi (TEnv k rho v) = TEnv k (Sub rho iphi) v
+addSub iphi (TEnv k ind rho v) = TEnv k ind (Sub rho iphi) v
 
 addType :: (Ident,Ter) -> TEnv -> Typing TEnv
-addType (x,a) tenv@(TEnv _ rho _) = return $ addTypeVal (x,eval rho a) tenv
+addType (x,a) tenv@(TEnv _ _ rho _) = return $ addTypeVal (x,eval rho a) tenv
 
 addBranch :: [(Ident,Val)] -> (Tele,Env) -> TEnv -> TEnv
-addBranch nvs (tele,env) (TEnv k rho v) =
-  TEnv (k + length nvs) (upds rho nvs) v
+addBranch nvs (tele,env) (TEnv k ind rho v) =
+  TEnv (k + length nvs) ind (upds rho nvs) v
 
 addDecls :: [Decl] -> TEnv -> TEnv
-addDecls d (TEnv k rho v) = TEnv k (Def d rho) v
+addDecls d (TEnv k ind rho v) = TEnv k ind (Def d rho) v
 
 addTele :: Tele -> TEnv -> Typing TEnv
 addTele xas lenv = foldM (flip addType) lenv xas
@@ -114,7 +115,7 @@ constPath = VPath (Name "_")
 mkVars :: Int -> Tele -> Env -> [(Ident,Val)]
 mkVars k [] _ = []
 mkVars k ((x,a):xas) nu =
-  let w = mkVar k (eval nu a)
+  let w = mkVar k (show a) (eval nu a)
   in (x,w) : mkVars (k+1) xas (Upd nu (x,w))
 
 -- Construct a fuction "(_ : va) -> vb"
@@ -176,14 +177,14 @@ check a t = case (a,t) of
     rho <- asks env
     unlessM (a === eval rho a') $
       throwError "check: lam types don't match"
-    let var = mkVar k a
+    let var = mkVar k (show a) a
     local (addTypeVal (x,a)) $ check (app f var) t
   (VSigma a f, Pair t1 t2) -> do
     check a t1
     v <- evalTyping t1
     check (app f v) t2
   (_,Where e d) -> do
-    checkDecls d
+    local (\tenv@TEnv{indent=i} -> tenv{indent=i + 2}) $ checkDecls d
     local (addDecls d) $ check a e
   (VU,IdP a e0 e1) -> do
     (a0,a1) <- checkPath (constPath VU) a
@@ -212,7 +213,8 @@ check a t = case (a,t) of
 checkDecls :: [Decl] -> Typing ()
 checkDecls d = do
   let (idents,tele,ters) = (declIdents d,declTele d,declTers d)
-  trace ("Checking: " ++ unwords idents)
+  ind <- asks indent
+  trace (replicate ind ' ' ++ "Checking: " ++ unwords idents)
   checkTele tele
   local (addDecls d) $ do
     rho <- asks env

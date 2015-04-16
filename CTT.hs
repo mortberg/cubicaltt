@@ -211,8 +211,9 @@ isNeutralComp (VGlue _ as) u ts | isNeutral u = True
   in isNeutralSystem (Map.filterWithKey testFace ts)
 isNeutralComp _ _ _ = False
 
-mkVar :: Int -> Val -> Val
-mkVar k = VVar ('X' : show k)
+-- TODO: Use the String!
+mkVar :: Int -> String -> Val -> Val
+mkVar k x = VVar ("X_" ++ show k)
 
 unCon :: Val -> [Val]
 unCon (VCon _ vs) = vs
@@ -372,7 +373,8 @@ showVal v = case v of
   VLam x t e        -> char '\\' <> parens (text x <+> colon <+> showVal t) <+>
                          text "->" <+> showVal e
   VSplit u v        -> showVal u <+> showVal1 v
-  VVar x t          -> text x
+  VVar x t | head x == '_' -> text x -- Special case, otherwise it is X_0
+           | otherwise     -> text x -- text (takeWhile (/= '_') x)
   VFst u            -> showVal1 u <> text ".1"
   VSnd u            -> showVal1 u <> text ".2"
   VIdP v0 v1 v2     -> text "IdP" <+> showVals [v0,v1,v2]

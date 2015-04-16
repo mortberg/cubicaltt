@@ -690,13 +690,13 @@ instance Convertible Val where
     let j = fresh (u,v)
     in case (simplify k j u, simplify k j v) of
       (Ter (Lam x a u) e,Ter (Lam x' a' u') e') ->
-        let v = mkVar k (eval e a)
+        let v = mkVar k x (eval e a)
         in conv (k+1) (eval (Upd e (x,v)) u) (eval (Upd e' (x',v)) u')
       (Ter (Lam x a u) e,u') ->
-        let v = mkVar k (eval e a)
+        let v = mkVar k x (eval e a)
         in conv (k+1) (eval (Upd e (x,v)) u) (app u' v)
       (u',Ter (Lam x a u) e) ->
-        let v = mkVar k (eval e a)
+        let v = mkVar k x (eval e a)
         in conv (k+1) (app u' v) (eval (Upd e (x,v)) u)
       (Ter (Split _ p _ _) e,Ter (Split _ p' _ _) e') -> (p == p') && conv k e e'
       (Ter (Sum p _ _) e,Ter (Sum p' _ _) e')         -> (p == p') && conv k e e'
@@ -705,10 +705,10 @@ instance Convertible Val where
       (Ter Hole{} e,_) -> True
       (_,Ter Hole{} e') -> True
       (VPi u v,VPi u' v') ->
-        let w = mkVar k u
+        let w = mkVar k "X" u  -- TODO: What string to put here?
         in conv k u u' && conv (k+1) (app v w) (app v' w)
       (VSigma u v,VSigma u' v') ->
-        let w = mkVar k u
+        let w = mkVar k "X" u  -- TODO: What string to put here?
         in conv k u u' && conv (k+1) (app v w) (app v' w)
       (VCon c us,VCon c' us')   -> (c == c') && conv k us us'
       (VPair u v,VPair u' v') -> conv k u u' && conv k v v'
@@ -789,7 +789,7 @@ instance Normal Val where
   normal _ VU = VU
   normal k (Ter (Lam x t u) e) = VLam name w $ normal (k+1) (eval (Upd e (x,v)) u)
     where w = eval e t
-          v@(VVar name _) = mkVar k w
+          v@(VVar name _) = mkVar k x w
   normal k (VPi u v) = VPi (normal k u) (normal k v)
   normal k (VSigma u v) = VSigma (normal k u) (normal k v)
   normal k (VPair u v) = VPair (normal k u) (normal k v)

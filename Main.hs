@@ -91,18 +91,16 @@ initLoop flags f hist = do
       putStrLn $ "Resolver failed: " ++ err
       runInputT (settings []) (putHistory hist >> loop flags f [] TC.verboseEnv)
     Right (adefs,names) -> do
-      -- putStrLn $ "adefs = " ++ show adefs
       (merr,tenv) <- TC.runDeclss TC.verboseEnv adefs
       case merr of
         Just err -> putStrLn $ "Type checking failed: " ++ err
-        Nothing  -> return ()
-      putStrLn "File loaded."
+        Nothing  -> putStrLn "File loaded."
       -- Compute names for auto completion
       runInputT (settings [n | (n,_) <- names]) (putHistory hist >> loop flags f names tenv)
 
 -- The main loop
 loop :: [Flag] -> FilePath -> [(CTT.Ident,SymKind)] -> TC.TEnv -> Interpreter ()
-loop flags f names tenv@(TC.TEnv _ rho _) = do
+loop flags f names tenv = do
   input <- getInputLine prompt
   case input of
     Nothing    -> outputStrLn help >> loop flags f names tenv
@@ -132,7 +130,7 @@ loop flags f names tenv@(TC.TEnv _ rho _) = do
             Left err -> do outputStrLn ("Could not type-check: " ++ err)
                            loop flags f names tenv
             Right _  -> do
-              let e = mod $ E.eval rho body
+              let e = mod $ E.eval (TC.env tenv) body
               -- Let's not crash if the evaluation raises an error:
               liftIO $ catch (putStrLn (msg ++ show e))
                              (\e -> putStrLn ("Exception: " ++

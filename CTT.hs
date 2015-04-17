@@ -363,7 +363,7 @@ instance Show Val where
 showVal :: Val -> Doc
 showVal v = case v of
   VU                -> char 'U'
-  Ter t env         -> showTer t <+> showEnv env
+  Ter t env         -> showTer1 t <+> showEnv env
   VCon c us         -> text c <+> showVals us
   VPCon c a us phi  -> text c <+> char '{' <+> showVal a <+> char '}' <+>
                        showVals us <+> showFormula phi

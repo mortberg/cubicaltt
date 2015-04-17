@@ -36,71 +36,73 @@ lookName i (Sub rho (j,phi)) | i == j    = phi
 -- Nominal instances
 
 instance Nominal Env where
-  support Empty             = []
-  support (Upd rho (_,u))   = support u `union` support rho
-  support (Sub rho (_,phi)) = support phi `union` support rho
-  support (Def _ rho)       = support rho
+  support e = case e of
+    Empty           -> []
+    Upd rho (_,u)   -> support u `union` support rho
+    Sub rho (_,phi) -> support phi `union` support rho
+    Def _ rho       -> support rho
 
   act e iphi = mapEnv (`act` iphi) (`act` iphi) e
   swap e ij  = mapEnv (`swap` ij) (`swap` ij) e
 
 instance Nominal Val where
-  support VU                    = []
-  support (Ter _ e)             = support e
-  support (VPi v1 v2)           = support [v1,v2]
-  support (VComp a u ts)        = support (a,u,ts)
-  support (VIdP a v0 v1)        = support [a,v0,v1]
-  support (VPath i v)           = i `delete` support v
-  support (VTrans u v)          = support (u,v)
-  support (VSigma u v)          = support (u,v)
-  support (VPair u v)           = support (u,v)
-  support (VFst u)              = support u
-  support (VSnd u)              = support u
-  support (VCon _ vs)           = support vs
-  support (VPCon _ a vs phi)    = support (a,vs,phi)
-  support (VVar _ v)            = support v
-  support (VApp u v)            = support (u,v)
-  support (VLam _ u v)          = support (u,v)
-  support (VAppFormula u phi)   = support (u,phi)
-  support (VSplit u v)          = support (u,v)
-  support (VGlue a ts)          = support (a,ts)
-  support (VGlueElem a ts)      = support (a,ts)
-  support (VCompElem a es u us) = support (a,es,u,us)
-  support (VElimComp a es u)    = support (a,es,u)
+  support v = case v of
+    VU                  -> []
+    Ter _ e             -> support e
+    VPi u v             -> support [u,v]
+    VComp a u ts        -> support (a,u,ts)
+    VIdP a v0 v1        -> support [a,v0,v1]
+    VPath i v           -> i `delete` support v
+    VTrans u v          -> support (u,v)
+    VSigma u v          -> support (u,v)
+    VPair u v           -> support (u,v)
+    VFst u              -> support u
+    VSnd u              -> support u
+    VCon _ vs           -> support vs
+    VPCon _ a vs phi    -> support (a,vs,phi)
+    VVar _ v            -> support v
+    VApp u v            -> support (u,v)
+    VLam _ u v          -> support (u,v)
+    VAppFormula u phi   -> support (u,phi)
+    VSplit u v          -> support (u,v)
+    VGlue a ts          -> support (a,ts)
+    VGlueElem a ts      -> support (a,ts)
+    VCompElem a es u us -> support (a,es,u,us)
+    VElimComp a es u    -> support (a,es,u)
 
   act u (i, phi) =
     let acti :: Nominal a => a -> a
         acti u = act u (i, phi)
         sphi = support phi
     in case u of
-         VU      -> VU
-         Ter t e -> Ter t (acti e)
-         VPi a f -> VPi (acti a) (acti f)
+         VU           -> VU
+         Ter t e      -> Ter t (acti e)
+         VPi a f      -> VPi (acti a) (acti f)
          VComp a v ts -> compLine (acti a) (acti v) (acti ts)
-         VIdP a u v -> VIdP (acti a) (acti u) (acti v)
+         VIdP a u v   -> VIdP (acti a) (acti u) (acti v)
          VPath j v | j == i -> u
                    | j `notElem` sphi -> VPath j (acti v)
                    | otherwise -> VPath k (acti (v `swap` (j,k)))
               where k = fresh (v,Atom i,phi)
-         VTrans u v -> transLine (acti u) (acti v)
-         VSigma a f -> VSigma (acti a) (acti f)
-         VPair u v  -> VPair (acti u) (acti v)
-         VFst u     -> fstVal (acti u)
-         VSnd u     -> sndVal (acti u)
-         VCon c vs  -> VCon c (acti vs)
-         VPCon c a vs phi -> pcon c (acti a) (acti vs) (acti phi)
-         VVar x v   -> VVar x (acti v)
-         VAppFormula u psi -> acti u @@ acti psi
-         VApp u v   -> app (acti u) (acti v)
-         VLam x t u -> VLam x (acti t) (acti u)
-         VSplit u v -> app (acti u) (acti v)
-         VGlue a ts -> glue (acti a) (acti ts)
-         VGlueElem a ts -> glueElem (acti a) (acti ts)
+         VTrans u v          -> transLine (acti u) (acti v)
+         VSigma a f          -> VSigma (acti a) (acti f)
+         VPair u v           -> VPair (acti u) (acti v)
+         VFst u              -> fstVal (acti u)
+         VSnd u              -> sndVal (acti u)
+         VCon c vs           -> VCon c (acti vs)
+         VPCon c a vs phi    -> pcon c (acti a) (acti vs) (acti phi)
+         VVar x v            -> VVar x (acti v)
+         VAppFormula u psi   -> acti u @@ acti psi
+         VApp u v            -> app (acti u) (acti v)
+         VLam x t u          -> VLam x (acti t) (acti u)
+         VSplit u v          -> app (acti u) (acti v)
+         VGlue a ts          -> glue (acti a) (acti ts)
+         VGlueElem a ts      -> glueElem (acti a) (acti ts)
          VCompElem a es u us -> compElem (acti a) (acti es) (acti u) (acti us)
-         VElimComp a es u -> elimComp (acti a) (acti es) (acti u)
+         VElimComp a es u    -> elimComp (acti a) (acti es) (acti u)
 
   -- This increases efficiency as it won't trigger computation.
-  swap u ij@ (i,j) =
+  swap u ij@(i,j) =
     let sw :: Nominal a => a -> a
         sw u = swap u ij
     in case u of
@@ -153,15 +155,15 @@ eval rho v = case v of
   Path i t            ->
     let j = freshNice i rho
     in VPath j (eval (Sub rho (i,Atom j)) t)
-  Trans u v        -> transLine (eval rho u) (eval rho v)
-  AppFormula e phi -> (eval rho e) @@ (evalFormula rho phi)
-  Comp a t0 ts     -> compLine (eval rho a) (eval rho t0) (evalSystem rho ts)
-  Glue a ts        -> glue (eval rho a) (evalSystem rho ts)
-  GlueElem a ts    -> glueElem (eval rho a) (evalSystem rho ts)
-  CompElem a es u us -> compElem (eval rho a) (evalSystem rho es) (eval rho u)
-                         (evalSystem rho us)
-  ElimComp a es u    -> elimComp (eval rho a) (evalSystem rho es) (eval rho u)
-  _ -> error $ "Cannot evaluate " ++ show v
+  Trans u v           -> transLine (eval rho u) (eval rho v)
+  AppFormula e phi    -> (eval rho e) @@ (evalFormula rho phi)
+  Comp a t0 ts        -> compLine (eval rho a) (eval rho t0) (evalSystem rho ts)
+  Glue a ts           -> glue (eval rho a) (evalSystem rho ts)
+  GlueElem a ts       -> glueElem (eval rho a) (evalSystem rho ts)
+  CompElem a es u us  -> compElem (eval rho a) (evalSystem rho es) (eval rho u)
+                                  (evalSystem rho us)
+  ElimComp a es u     -> elimComp (eval rho a) (evalSystem rho es) (eval rho u)
+  _                   -> error $ "Cannot evaluate " ++ show v
 
 evalFormula :: Env -> Formula -> Formula
 evalFormula rho phi = case phi of
@@ -182,44 +184,40 @@ evalSystem rho ts =
                    | (alpha,talpha) <- assocs ts ]
   in mkSystem out
 
--- TODO: Write using case-of
 app :: Val -> Val -> Val
-app (Ter (Lam x _ t) e) u                 = eval (Upd e (x,u)) t
-app (Ter (Split _ _ _ nvs) e) (VCon c us) = case lookupBranch c nvs of
-  Just (OBranch _ xs t) -> eval (upds e (zip xs us)) t
-  _     -> error $ "app: Split with insufficient arguments; " ++
-                   " missing case for " ++ c
-app u@(Ter Split{} _) v | isNeutral v = VSplit u v
-app u@(Ter Split{} _) (VCompElem _ _ v _) = app u v
-app u@(Ter Split{} _) (VElimComp _ _ v)   = app u v
-app (Ter (Split _ _ _ nvs) e) (VPCon c _ us phi) = case lookupBranch c nvs of
-  Just (PBranch _ xs i t) -> eval (Sub (upds e (zip xs us)) (i,phi)) t
-  _ -> error ("app: Split with insufficient arguments; " ++
-              " missing case for " ++ c)
-app u@(Ter (Split _ _ ty hbr) e) kan@(VComp v w ws) =
-  let j   = fresh (e,kan)
-      wsj = Map.map (@@ j) ws
-      ws' = mapWithKey (\alpha -> app (u `face` alpha)) wsj
-      w'  = app u w
-  in case eval e ty of
-    VPi _ f -> genComp j (app f (fill j v w wsj)) w' ws'
-    _       -> error ("app: Split annotation not a Pi type " ++ show u)
-
-app kan@(VTrans (VPath i (VPi a f)) li0) ui1 =
-    let j   = fresh (kan,ui1)
+app u v = case (u,v) of
+  (Ter (Lam x _ t) e,_)               -> eval (Upd e (x,v)) t
+  (Ter (Split _ _ _ nvs) e,VCon c vs) -> case lookupBranch c nvs of
+    Just (OBranch _ xs t) -> eval (upds e (zip xs vs)) t
+    _     -> error $ "app: missing case in split for " ++ c
+  (Ter (Split _ _ _ nvs) e,VPCon c _ us phi) -> case lookupBranch c nvs of
+    Just (PBranch _ xs i t) -> eval (Sub (upds e (zip xs us)) (i,phi)) t
+    _ -> error $ "app: missing case in split for " ++ c
+  (Ter Split{} _,_) | isNeutral v         -> VSplit u v
+  (Ter Split{} _,VCompElem _ _ w _)       -> app u w
+  (Ter Split{} _,VElimComp _ _ w)         -> app u w
+  (Ter (Split _ _ ty hbr) e,VComp a w ws) -> case eval e ty of
+    VPi _ f -> let j   = fresh (e,v)
+                   wsj = Map.map (@@ j) ws
+                   w'  = app u w
+                   ws' = mapWithKey (\alpha -> app (u `face` alpha)) wsj
+               in genComp j (app f (fill j a w wsj)) w' ws'
+    _ -> error $ "app: Split annotation not a Pi type " ++ show u
+  (VTrans (VPath i (VPi a f)) li0,vi1) ->
+    let j       = fresh (u,vi1)
         (aj,fj) = (a,f) `swap` (i,j)
-        u   = transFillNeg j aj ui1
-        ui0 = transNeg j aj ui1
-    in trans j (app fj u) (app li0 ui0)
-app kan@(VComp (VPi a f) li0 ts) ui1 =
-    let j   = fresh (kan,ui1)
+        v       = transFillNeg j aj vi1
+        vi0     = transNeg j aj vi1
+    in trans j (app fj v) (app li0 vi0)
+  (VComp (VPi a f) li0 ts,vi1) ->
+    let j   = fresh (u,vi1)
         tsj = Map.map (@@ j) ts
-    in comp j (app f ui1) (app li0 ui1)
-              (intersectionWith app tsj (border ui1 tsj))
-app r s | isNeutral r = VApp r s
-app (VCompElem _ _ v _) s = app v s
-app (VElimComp _ _ v) s = app v s
-app r s = error $ "app \n" ++ show r ++ "\n" ++ show s
+    in comp j (app f vi1) (app li0 vi1)
+              (intersectionWith app tsj (border vi1 tsj))
+  _ | isNeutral u       -> VApp u v
+  (VCompElem _ _ u _,_) -> app u v
+  (VElimComp _ _ u,_)   -> app u v
+  _                     -> error $ "app \n  " ++ show u ++ "\n  " ++ show v
 
 fstVal, sndVal :: Val -> Val
 fstVal (VPair a b)     = a

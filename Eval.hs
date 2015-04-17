@@ -184,7 +184,7 @@ evalSystem rho ts =
 
 -- TODO: Write using case-of
 app :: Val -> Val -> Val
-app (Ter (Lam x _ t) e) u                  = eval (Upd e (x,u)) t
+app (Ter (Lam x _ t) e) u                 = eval (Upd e (x,u)) t
 app (Ter (Split _ _ _ nvs) e) (VCon c us) = case lookupBranch c nvs of
   Just (OBranch _ xs t) -> eval (upds e (zip xs us)) t
   _     -> error $ "app: Split with insufficient arguments; " ++
@@ -779,38 +779,39 @@ instance Convertible a => Convertible (System a) where
 instance Convertible Formula where
   conv _ phi psi = dnf phi == dnf psi
 
-
+-------------------------------------------------------------------------------
+-- | Normalization
 
 class Normal a where
   normal :: Int -> a -> a
 
 -- Does neither normalize formulas nor environments.
 instance Normal Val where
-  normal _ VU = VU
-  normal k (Ter (Lam x t u) e) = VLam name w $ normal (k+1) (eval (Upd e (x,v)) u)
-    where w = eval e t
-          v@(VVar name _) = mkVar k x w
-  normal k (VPi u v) = VPi (normal k u) (normal k v)
-  normal k (VSigma u v) = VSigma (normal k u) (normal k v)
-  normal k (VPair u v) = VPair (normal k u) (normal k v)
-  normal k (VCon n us) = VCon n (normal k us)
-  normal k (VPCon n u us phi) = VPCon n (normal k u) (normal k us) phi
-  normal k (VIdP a u0 u1) = VIdP a' u0' u1'
-    where (a',u0',u1') = normal k (a,u0,u1)
-  normal k (VPath i u) = VPath i (normal k u)
-  normal k (VComp u v vs) = compLine (normal k u) (normal k v) (normal k vs)
-  normal k (VTrans u v) = transLine (normal k u) (normal k v)
-  normal k (VGlue u hisos) = glue (normal k u) (normal k hisos)
-  normal k (VGlueElem u us) = glueElem (normal k u) (normal k us)
-  normal k (VCompElem a es u us) = compElem (normal k a) (normal k es) (normal k u) (normal k us)
-  normal k (VElimComp a es u) = elimComp (normal k a) (normal k es) (normal k u)
-  normal k (VVar x t) = VVar x t -- (normal k t)
-  normal k (VFst t) = fstVal (normal k t)
-  normal k (VSnd t) = sndVal (normal k t)
-  normal k (VSplit u t) = VSplit (normal k u) (normal k t)
-  normal k (VApp u v) = app (normal k u) (normal k v)
-  normal k (VAppFormula u phi) = VAppFormula (normal k u) phi
-  normal k u = u
+  normal k v = case v of
+    VU                  -> VU
+    Ter (Lam x t u) e   -> let w = eval e t
+                               v@(VVar name _) = mkVar k x w
+                           in VLam name (normal k w) $ normal (k+1) (eval (Upd e (x,v)) u)
+    VPi u v             -> VPi (normal k u) (normal k v)
+    VSigma u v          -> VSigma (normal k u) (normal k v)
+    VPair u v           -> VPair (normal k u) (normal k v)
+    VCon n us           -> VCon n (normal k us)
+    VPCon n u us phi    -> VPCon n (normal k u) (normal k us) phi
+    VIdP a u0 u1        -> VIdP (normal k a) (normal k u0) (normal k u1)
+    VPath i u           -> VPath i (normal k u)
+    VComp u v vs        -> compLine (normal k u) (normal k v) (normal k vs)
+    VTrans u v          -> transLine (normal k u) (normal k v)
+    VGlue u hisos       -> glue (normal k u) (normal k hisos)
+    VGlueElem u us      -> glueElem (normal k u) (normal k us)
+    VCompElem a es u us -> compElem (normal k a) (normal k es) (normal k u) (normal k us)
+    VElimComp a es u    -> elimComp (normal k a) (normal k es) (normal k u)
+    VVar x t            -> VVar x t -- (normal k t)
+    VFst t              -> fstVal (normal k t)
+    VSnd t              -> sndVal (normal k t)
+    VSplit u t          -> VSplit (normal k u) (normal k t)
+    VApp u v            -> app (normal k u) (normal k v)
+    VAppFormula u phi   -> VAppFormula (normal k u) phi
+    _                   -> v
 
 instance Normal a => Normal (Map k a) where
   normal k us = Map.map (normal k) us

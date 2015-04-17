@@ -367,6 +367,7 @@ showVal v = case v of
   VCon c us         -> text c <+> showVals us
   VPCon c a us phi  -> text c <+> char '{' <+> showVal a <+> char '}' <+>
                        showVals us <+> showFormula phi
+  VPi a (VLam x t b) | "_" `isPrefixOf` x -> showVal1 a <+> text "->" <+> showVal1 b
   VPi a b           -> text "Pi" <+> showVals [a,b]
   VPair u v         -> parens (showVal u <> comma <> showVal v)
   VSigma u v        -> text "Sigma" <+> showVals [u,v]

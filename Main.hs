@@ -1,7 +1,7 @@
 module Main where
 
-import Control.Monad.Trans.Reader
-import Control.Monad.Error
+import Control.Monad.Reader
+import Control.Monad.Except
 import Control.Exception (try)
 import Data.List
 import System.Directory

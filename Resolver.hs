@@ -1,26 +1,22 @@
-{-# LANGUAGE TupleSections, ParallelListComp #-}
+{-# LANGUAGE TupleSections #-}
 
 -- | Convert the concrete syntax into the syntax of cubical TT.
 module Resolver where
 
-import Exp.Abs
-import qualified CTT
-import qualified Connections as C
-
 import Control.Applicative
-import Control.Monad.Trans
-import Control.Monad.Trans.Reader
-import Control.Monad.Trans.Error hiding (throwError)
-import Control.Monad.Error (throwError)
 import Control.Monad
-import Data.Functor.Identity
+import Control.Monad.Reader
+import Control.Monad.Except
+import Control.Monad.Identity
 import Data.List (nub)
 import Data.Map (Map,(!))
 import qualified Data.Map as Map
-import Prelude hiding (pi)
 
-type Ter = CTT.Ter
-type Ident = CTT.Ident
+import Exp.Abs
+import CTT (Ter,Ident,Loc(..),mkApps,mkWheres)
+import qualified CTT
+import Connections (negFormula,andFormula,orFormula)
+import qualified Connections as C
 
 -- | Useful auxiliary functions
 
@@ -74,13 +70,13 @@ data Env = Env { envModule :: String,
                  variables :: [(Ident,SymKind)] }
   deriving (Eq,Show)
 
-type Resolver a = ReaderT Env (ErrorT String Identity) a
+type Resolver a = ReaderT Env (ExceptT String Identity) a
 
 emptyEnv :: Env
 emptyEnv = Env "" []
 
 runResolver :: Resolver a -> Either String a
-runResolver x = runIdentity $ runErrorT $ runReaderT x emptyEnv
+runResolver x = runIdentity $ runExceptT $ runReaderT x emptyEnv
 
 updateModule :: String -> Env -> Env
 updateModule mod e = e{envModule = mod}
@@ -108,8 +104,8 @@ insertAIdent (AIdent (_,x)) = insertIdent (x,Variable)
 insertAIdents :: [AIdent] -> Env -> Env
 insertAIdents  = flip $ foldr insertAIdent
 
-getLoc :: (Int,Int) -> Resolver CTT.Loc
-getLoc l = CTT.Loc <$> asks envModule <*> pure l
+getLoc :: (Int,Int) -> Resolver Loc
+getLoc l = Loc <$> asks envModule <*> pure l
 
 unAIdent :: AIdent -> Ident
 unAIdent (AIdent (_,x)) = x
@@ -160,7 +156,7 @@ binds :: (Ter -> Ter) -> [(Ident,Exp)] -> Resolver Ter -> Resolver Ter
 binds f = flip $ foldr $ bind f
 
 resolveApps :: Exp -> [Exp] -> Resolver Ter
-resolveApps x xs = CTT.mkApps <$> resolveExp x <*> mapM resolveExp xs
+resolveApps x xs = mkApps <$> resolveExp x <*> mapM resolveExp xs
 
 resolveExp :: Exp -> Resolver Ter
 resolveExp e = case e of
@@ -186,7 +182,7 @@ resolveExp e = case e of
     return $ foldr1 CTT.Pair (e:es)
   Let decls e   -> do
     (rdecls,names) <- resolveDecls decls
-    CTT.mkWheres rdecls <$> local (insertIdents names) (resolveExp e)
+    mkWheres rdecls <$> local (insertIdents names) (resolveExp e)
   Path is e     -> paths is (resolveExp e)
   Hole (HoleIdent (l,_)) -> CTT.Hole <$> getLoc l
   AppFormula e phi ->
@@ -235,11 +231,11 @@ resolveDir Dir1 = return 1
 resolveFormula :: Formula -> Resolver C.Formula
 resolveFormula (Dir d)          = C.Dir <$> resolveDir d
 resolveFormula (Atom i)         = C.Atom <$> resolveName i
-resolveFormula (Neg phi)        = C.negFormula <$> resolveFormula phi
+resolveFormula (Neg phi)        = negFormula <$> resolveFormula phi
 resolveFormula (Conj phi _ psi) =
-    C.andFormula <$> resolveFormula phi <*> resolveFormula psi
+    andFormula <$> resolveFormula phi <*> resolveFormula psi
 resolveFormula (Disj phi psi)   =
-    C.orFormula <$> resolveFormula phi <*> resolveFormula psi
+    orFormula <$> resolveFormula phi <*> resolveFormula psi
 
 resolveBranch :: Branch -> Resolver CTT.Branch
 resolveBranch (OBranch (AIdent (_,lbl)) args e) = do
@@ -247,7 +243,7 @@ resolveBranch (OBranch (AIdent (_,lbl)) args e) = do
   return $ CTT.OBranch lbl (map unAIdent args) re
 resolveBranch (PBranch (AIdent (_,lbl)) args i e) = do
   re <- local (insertName i . insertAIdents args) $ resolveWhere e
-  return $ CTT.PBranch lbl (map unAIdent args) (C.Name $ unAIdent i) re
+  return $ CTT.PBranch lbl (map unAIdent args) (C.Name (unAIdent i)) re
 
 resolveTele :: [(Ident,Exp)] -> Resolver CTT.Tele
 resolveTele []        = return []

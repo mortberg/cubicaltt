@@ -1,24 +1,22 @@
 {-# LANGUAGE TupleSections #-}
 module TypeChecker where
 
+import Control.Applicative
+import Control.Monad
+import Control.Monad.Except
+import Control.Monad.Reader
 import Data.Map (Map,(!),mapWithKey,assocs,filterWithKey,elems,keys
                 ,intersection,intersectionWith,intersectionWithKey
                 ,toList,fromList)
 import qualified Data.Map as Map
 import qualified Data.Traversable as T
-import Control.Monad
-import Control.Monad.Trans
-import Control.Monad.Trans.Error hiding (throwError)
-import Control.Monad.Trans.Reader
-import Control.Monad.Error (throwError)
-import Control.Applicative
 
 import Connections
 import CTT
 import Eval
 
 -- Type checking monad
-type Typing a = ReaderT TEnv (ErrorT String IO) a
+type Typing a = ReaderT TEnv (ExceptT String IO) a
 
 -- Environment for type checker
 data TEnv =
@@ -42,7 +40,7 @@ trace s = do
 -- | Functions for running computations in the type checker monad
 
 runTyping :: TEnv -> Typing a -> IO (Either String a)
-runTyping env t = runErrorT $ runReaderT t env
+runTyping env t = runExceptT $ runReaderT t env
 
 runDecls :: TEnv -> [Decl] -> IO (Either String TEnv)
 runDecls tenv d = runTyping tenv $ do

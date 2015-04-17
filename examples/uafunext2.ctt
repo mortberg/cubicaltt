@@ -3,51 +3,51 @@ module uafunext2 where
 import retract
 import equiv
 
-lem1 (A:U) (P:A-> U) (cA:(x:A) -> contr (P x)) : Id U ((x:A)*P x) A = isoId T A f g t s
+lem1 (A:U) (P:A-> U) (cA:(x:A) -> isContr (P x)) : Id U ((x:A)*P x) A = isoId T A f g t s
  where
    T : U = (x:A) * P x
    f (z:T) : A = z.1
-   g (x:A) : T = (x,(cA x).1)
-   s (z:T) : Id T (g (f z)) z = <i>(z.1,((cA z.1).2 (cA z.1).1 z.2)@ i)
+   g (x:A) : T = (x,(cA x).2)
+   s (z:T) : Id T (g (f z)) z = <i>(z.1,((cA z.1).1 (cA z.1).2 z.2)@ i)
    t (x:A) : Id A (f (g x)) x = refl A x
 
-lem2 (A:U) (P:A-> U) (cA:(x:A) -> contr (P x)) : Id U (A -> (x:A)*P x) (A->A) = 
+lem2 (A:U) (P:A-> U) (cA:(x:A) -> isContr (P x)) : Id U (A -> (x:A)*P x) (A->A) =
  <i> A -> (lem1 A P cA)@ i
 
-alpha (A:U) (P:A-> U) (cA:(x:A) -> contr (P x)) (u:A -> (x:A)*P x) : A -> A =
+alpha (A:U) (P:A-> U) (cA:(x:A) -> isContr (P x)) (u:A -> (x:A)*P x) : A -> A =
  transport (lem2 A P cA) u
 
-test (A:U) (P:A-> U) (cA:(x:A) -> contr (P x)) (u : A -> (x:A)*P x) (x:A) :
+test (A:U) (P:A-> U) (cA:(x:A) -> isContr (P x)) (u : A -> (x:A)*P x) (x:A) :
  Id A (alpha A P cA u x) (u x).1 = refl A (u x).1
-
 
 lemTransFib (A:U) : (B:U) (E:Id U A B) (b:B) -> prop (fiber A B (\ (x:A) -> transport E x) b) =
  J U A (\ (B:U) (E:Id U A B) -> (b:B) -> prop (fiber A B (\ (x:A) -> transport E x) b)) (lemIdFib A)
-        
-fibId (A:U) (P:A-> U) (cA:(x:A) -> contr (P x)) : U = fiber (A -> (x:A)*P x) (A -> A) (alpha A P cA) (idfun A)
 
-corr1 (A:U) (P:A-> U) (cA:(x:A) -> contr (P x)) : prop (fibId A P cA) = 
+fibId (A:U) (P:A-> U) (cA:(x:A) -> isContr (P x)) : U = fiber (A -> (x:A)*P x) (A -> A) (alpha A P cA) (idfun A)
+
+corr1 (A:U) (P:A-> U) (cA:(x:A) -> isContr (P x)) : prop (fibId A P cA) =
  lemTransFib (A -> (x:A)*P x) (A -> A) (lem2 A P cA) (idfun A)
 
-phi (A:U) (P:A-> U) (cA:(x:A) -> contr (P x)) (f:(x:A) -> P x) : fibId A P cA =
+phi (A:U) (P:A-> U) (cA:(x:A) -> isContr (P x)) (f:(x:A) -> P x) : fibId A P cA =
  (\ (x:A) -> (x,f x),refl (A->A) (idfun A))
- 
-psi (A:U) (P:A-> U) (cA:(x:A) -> contr (P x)) (up : fibId A P cA) (x:A) : P x = 
+
+psi (A:U) (P:A-> U) (cA:(x:A) -> isContr (P x)) (up : fibId A P cA) (x:A) : P x =
  subst (A -> A) (\ (g:A->A) -> P (g x)) (alpha A P cA u) (idfun A) (<i>p@-i) (u x).2
  where u : A -> (y:A) * P y = up.1
        p : Id (A -> A) (idfun A) (alpha A P cA u) = up.2
 
-retPhiPsi (A:U) (P:A-> U) (cA:(x:A) -> contr (P x)) (f : (x:A) -> P x) :
+retPhiPsi (A:U) (P:A-> U) (cA:(x:A) -> isContr (P x)) (f : (x:A) -> P x) :
  Id ((x:A) -> P x) (psi A P cA (phi A P cA f)) f = refl ((x:A) -> P x) f
 
-thm (A:U) (P:A-> U) (cA:(x:A) -> contr (P x)) : prop ((x:A) -> P x) =
+thm (A:U) (P:A-> U) (cA:(x:A) -> isContr (P x)) : prop ((x:A) -> P x) =
  retractProp ((x:A) -> P x) (fibId A P cA) (phi A P cA) (psi A P cA) (retPhiPsi A P cA) (corr1 A P cA)
 
 sumF  (A B:U) (f:A -> B) : U = (g:A->B) * (x:A) -> Id B (f x) (g x)
 prodF (A B:U) (f:A -> B) : U = (x:A) -> (y:B) * Id B (f x) y
 
-lemProdF (A B:U) (f:A -> B) : prop (prodF A B f) = 
- thm A (\ (x:A) -> (y:B) * Id B (f x) y) (\ (x:A) -> ((f x,refl B (f x)),lemIdFib B (f x)))
+lemProdF (A B:U) (f:A -> B) : prop (prodF A B f) = thm A P cA
+ where P (x:A) : U =  (y:B) * Id B (f x) y
+       cA (x:A) : isContr (P x) = (lemIdFib B (f x),(f x,refl B (f x)))
 
 sumToProd (A B:U) (f:A -> B) (gp : sumF A B f) : prodF A B f = \ (x:A) -> (gp.1 x,gp.2 x)
 prodToSum (A B:U) (f:A -> B) (h : prodF A B f) : sumF A B f = (\ (x:A) -> (h x).1,\ (x:A) -> (h x).2)
@@ -60,6 +60,3 @@ corr2 (A B:U) (f:A->B) : prop (sumF A B f) =
 
 funext (A B:U) (f g:A -> B) (h:(x:A) -> Id B (f x) (g x)) : Id (A->B) f g = <i> \ (x:A) -> (rem@i).1 x
  where rem : Id (sumF A B f) (f,\ (x:A) -> refl B (f x)) (g,h) = corr2 A B f (f,\ (x:A) -> refl B (f x)) (g,h)
-
-
-

@@ -600,12 +600,12 @@ compU i a es w0 ws =
 pathUniv :: Name -> Val -> System Val -> Val -> Val
 pathUniv i e us ui0 = VPath k xi1
   where j:k:_ = freshs (Atom i,e,us,ui0)
-	ej    = e @@ j
+        ej    = e @@ j
         ui1   = comp i (e @@ One) ui0 us
-	ws    = mapWithKey (\alpha uAlpha ->
+        ws    = mapWithKey (\alpha uAlpha ->
                   transFillNeg j (ej `face` alpha) uAlpha)
-	        us
-	wi0   = transFillNeg j (ej `face` (i ~> 0)) ui0
+                us
+        wi0   = transFillNeg j (ej `face` (i ~> 0)) ui0
         wi1   = comp i ej wi0 ws
         wi1'  = transFillNeg j (ej `face` (i ~> 1)) ui1
         xi1   = genCompNeg j (ej `face` (i ~> 1)) ui1
@@ -650,9 +650,9 @@ transU i a es wi0 =
 pathUnivTrans :: Name -> Val -> Val -> Val
 pathUnivTrans i e ui0 = VPath j xi1
   where j    = fresh (Atom i,e,ui0)
-	ej   = e @@ j
+        ej   = e @@ j
         wi0  = transFillNeg j (ej `face` (i ~> 0)) ui0
-	wi1  = trans i ej wi0
+        wi1  = trans i ej wi0
         xi1  = squeezeNeg j (ej `face` (i ~> 1)) wi1
 
 -- Any equality defines an equivalence.

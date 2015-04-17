@@ -146,8 +146,9 @@ check a t = case (a,t) of
   (_,Hole l)  -> do
       rho <- asks env
       let e = unlines (reverse (contextOfEnv rho))
+      k <- asks index
       trace $ "\nHole at " ++ show l ++ ":\n\n" ++
-              e ++ replicate 80 '-' ++ "\n" ++ show a ++ "\n"
+              e ++ replicate 80 '-' ++ "\n" ++ show (normal k a)  ++ "\n"
   (_,Con c es) -> do
     (bs,nu) <- getLblType c a
     checks (bs,nu) es

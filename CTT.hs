@@ -194,7 +194,7 @@ isNeutralTrans (VPath i a) u = foo i a u
         foo i a u | isNeutral a = True
         foo i (Ter Sum{} _) u   = isNeutral u
         foo i (VGlue _ as) u    =
-          let shasBeta = (shape as) `face` (i ~> 0)
+          let shasBeta = shape as `face` (i ~> 0)
           in shasBeta /= Map.empty && eps `Map.notMember` shasBeta && isNeutral u
         foo _ _ _ = False
 isNeutralTrans u _ = isNeutral u
@@ -279,17 +279,22 @@ contextOfEnv rho = case rho of
 -- | Pretty printing
 
 instance Show Env where
-  show = render . showEnv
+  show = render . showEnv True
 
-showEnv, showEnv1 :: Env -> Doc
-showEnv e = case e of
-  Empty           -> PP.empty
-  Def _ env       -> showEnv env
-  Upd env (_,u)   -> parens (showEnv1 env <> showVal u)
-  Sub env (_,phi) -> parens (showEnv1 env <> text (show phi))
-showEnv1 (Upd env (_,u))   = showEnv1 env <> showVal u <> text ", "
-showEnv1 (Sub env (_,phi)) = showEnv1 env <> text (show phi) <> text ", "
-showEnv1 e                 = showEnv e
+showEnv :: Bool -> Env -> Doc
+showEnv b e =
+  let -- This decides if we should print "x = " or not
+      names x = if b then text x <+> equals else PP.empty
+
+      showEnv1 e = case e of
+        Upd env (x,u)   -> showEnv1 env <> names x <+> showVal u <> comma
+        Sub env (i,phi) -> showEnv1 env <> names (show i) <+> text (show phi) <> comma
+        _               -> showEnv b e
+  in case e of
+    Empty           -> PP.empty
+    Def _ env       -> showEnv b env
+    Upd env (x,u)   -> parens (showEnv1 env <+> names x <+> showVal u)
+    Sub env (i,phi) -> parens (showEnv1 env <+> names (show i) <+> text (show phi))
 
 instance Show Loc where
   show = render . showLoc
@@ -363,7 +368,9 @@ instance Show Val where
 showVal :: Val -> Doc
 showVal v = case v of
   VU                -> char 'U'
-  Ter t env         -> showTer1 t <+> showEnv env
+  Ter t@Sum{} rho   -> showTer t <+> showEnv False rho
+  Ter t@Split{} rho -> showTer t <+> showEnv False rho
+  Ter t env         -> showTer1 t <+> showEnv True env
   VCon c us         -> text c <+> showVals us
   VPCon c a us phi  -> text c <+> char '{' <+> showVal a <+> char '}' <+>
                        showVals us <+> showFormula phi
@@ -393,11 +400,12 @@ showVal v = case v of
 
 showVal1 :: Val -> Doc
 showVal1 v = case v of
-  VU              -> char 'U'
-  VCon c []       -> text c
-  VVar{}          -> showVal v
-  Ter t@Sum{} rho -> showTer t <+> showEnv rho
-  _               -> parens (showVal v)
+  VU                -> showVal v
+  VCon c []         -> showVal v
+  VVar{}            -> showVal v
+  Ter t@Sum{} rho   -> showTer t <+> showEnv False rho
+  Ter t@Split{} rho -> showTer t <+> showEnv False rho
+  _                 -> parens (showVal v)
 
 showVals :: [Val] -> Doc
 showVals = hsep . map showVal1

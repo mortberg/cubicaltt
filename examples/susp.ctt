@@ -15,13 +15,14 @@ sphere : nat -> U = split
 -- (Similar to HoTT Book, Lemma 6.5.1)
 sone : U = sphere one
 
+path : bool -> Id S1 base base = split
+  false -> loop1
+  true  -> refl S1 base
+
 s1ToCircle : sone -> S1 = split
   north   -> base
   south   -> base
   merid b @ i -> (path b) @ i
-    where path : bool ->Id S1 base base = split
-            false -> loop1
-            true  -> refl S1 base
 
 m0 : Id sone north south = <i> (merid{sone} false) @ i
 

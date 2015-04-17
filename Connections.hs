@@ -101,7 +101,7 @@ meets :: [Face] -> [Face] -> [Face]
 meets xs ys = nub [ meet x y | x <- xs, y <- ys, compatible x y ]
 
 meetss :: [[Face]] -> [Face]
-meetss xss = foldr meets [eps] xss
+meetss = foldr meets [eps]
 
 leq :: Face -> Face -> Bool
 alpha `leq` beta = meetMaybe alpha beta == Just alpha
@@ -137,7 +137,7 @@ data Formula = Dir Dir
 instance Show Formula where
   show (Dir Zero)  = "0"
   show (Dir One)   = "1"
-  show (NegAtom a) = "-" ++ show a
+  show (NegAtom a) = '-' : show a
   show (Atom a)    = show a
   show (a :\/: b)  = show1 a ++ " \\/ " ++ show1 b
     where show1 v@(a :/\: b) = "(" ++ show v ++ ")"
@@ -148,13 +148,13 @@ instance Show Formula where
 
 arbFormula :: [Name] -> Int -> Gen Formula
 arbFormula names s =
-      frequency [ (1, Dir <$> arbitrary)
-                , (1, Atom <$> elements names)
-                , (1, NegAtom <$> elements names)
-                , (s, do op <- elements [andFormula,orFormula]
-                         op <$> arbFormula names s' <*> arbFormula names s')
-                ]
-      where s' = s `div` 3
+  frequency [ (1, Dir <$> arbitrary)
+            , (1, Atom <$> elements names)
+            , (1, NegAtom <$> elements names)
+            , (s, do op <- elements [andFormula,orFormula]
+                     op <$> arbFormula names s' <*> arbFormula names s')
+            ]
+  where s' = s `div` 3
 
 instance Arbitrary Formula where
   arbitrary = do
@@ -195,10 +195,10 @@ orFormula phi (Dir Zero) = phi
 orFormula phi psi        = phi :\/: psi
 
 dnf :: Formula -> Set (Set (Name,Dir))
-dnf (Dir One) = Set.singleton Set.empty
-dnf (Dir Zero) = Set.empty
-dnf (Atom n) = Set.singleton (Set.singleton (n,1))
-dnf (NegAtom n) = Set.singleton (Set.singleton (n,0))
+dnf (Dir One)      = Set.singleton Set.empty
+dnf (Dir Zero)     = Set.empty
+dnf (Atom n)       = Set.singleton (Set.singleton (n,1))
+dnf (NegAtom n)    = Set.singleton (Set.singleton (n,0))
 dnf (phi :\/: psi) = dnf phi `Set.union` dnf psi
 dnf (phi :/\: psi) = Set.fromList [ a `Set.union` b
                                   | a <- Set.toList (dnf phi)
@@ -320,7 +320,7 @@ instance Nominal a => Nominal [a]  where
 
 instance Nominal a => Nominal (Maybe a)  where
   support    = maybe [] support
-  act v f    = fmap (\u -> act u f) v
+  act v f    = fmap (`act` f) v
   swap a n   = fmap (`swap` n) a
 
 instance Nominal Formula where
@@ -412,7 +412,7 @@ border :: Nominal a => a -> System b -> System a
 border v = Map.mapWithKey (const . face v)
 
 shape :: System a -> System ()
-shape ts = border () ts
+shape = border ()
 
 instance (Nominal a, Arbitrary a) => Arbitrary (System a) where
   arbitrary = do

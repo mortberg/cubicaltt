@@ -442,10 +442,9 @@ infer e = case e of
   PCon c a es phis -> do
     check VU a
     va <- evalTyping a
---    (bs,nu) <- getLblType c va
---    checks (bs,nu) es
---    mapM_ checkFormula phis
-    trace $ "va = " ++ show va
+    (bs,nu) <- getLblType c va
+    checks (bs,nu) es
+    mapM_ checkFormula phis
     return va
   _ -> throwError ("infer " ++ show e)
 

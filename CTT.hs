@@ -327,9 +327,8 @@ showTer v = case v of
   Where e d          -> showTer e <+> text "where" <+> showDecls d
   Var x              -> text x
   Con c es           -> text c <+> showTers es
-  PCon c a es phis   -> text c <+> char '{' <+> showTer a <+> char '}'
-                        <+> showTers es
-                        <+> (hsep $ punctuate (char '@') (map showFormula phis))
+  PCon c a es phis   -> text c <+> braces (showTer a) <+> showTers es
+                        <+> (hsep $ map ((char '@' <+>) . showFormula) phis)
   Split f _ _ _      -> text f
   Sum _ n _          -> text n
   Undef{}            -> text "undefined"
@@ -375,9 +374,8 @@ showVal v = case v of
   Ter t@Split{} rho -> showTer t <+> showEnv False rho
   Ter t env         -> showTer1 t <+> showEnv True env
   VCon c us         -> text c <+> showVals us
-  VPCon c a us phis -> text c <+> char '{' <+> showVal a <+> char '}'
-                       <+> showVals us
-                       <+> (hsep $ punctuate (char '@') (map showFormula phis))
+  VPCon c a us phis -> text c <+> braces (showVal a) <+> showVals us
+                       <+> (hsep $ map ((char '@' <+>) . showFormula) phis)
   VPi a l@(VLam x t b) | "_" `isPrefixOf` x -> showVal1 a <+> text "->"
                                                <+> showVal1 b
                        | otherwise -> showVal l

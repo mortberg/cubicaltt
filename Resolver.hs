@@ -47,10 +47,10 @@ appsToIdents = mapM unVar . uncurry (:) . flip unApps []
 
 -- Transform a sequence of applications
 -- (((u v1) .. vn) phi1) .. phim into (u,[v1,..,vn],[phi1,..,phim])
-unAppsFormulas :: Exp -> [Exp] -> [Formula]-> (Exp,[Exp],[Formula])
-unAppsFormulas (AppFormula u phi) ws phis = unAppsFormulas u ws (phi:phis)
-unAppsFormulas u ws phis = (x,xs++ws,phis)
-  where (x,xs) = unApps u ws
+unAppsFormulas :: Exp -> [Formula]-> (Exp,[Exp],[Formula])
+unAppsFormulas (AppFormula u phi) phis = unAppsFormulas u (phi:phis)
+unAppsFormulas u phis = (x,xs,phis)
+  where (x,xs) = unApps u []
 
 
 -- Flatten a tele
@@ -196,13 +196,13 @@ resolveExp e = case e of
     mkWheres rdecls <$> local (insertIdents names) (resolveExp e)
   Path is e     -> paths is (resolveExp e)
   Hole (HoleIdent (l,_)) -> CTT.Hole <$> getLoc l
-  AppFormula e phi ->
-    let (x,xs,phis) = unAppsFormulas e [] []
+  AppFormula t phi ->
+    let (x,xs,phis) = unAppsFormulas e []
     in case x of
       PCon n a ->
         CTT.PCon (unAIdent n) <$> resolveExp a <*> mapM resolveExp xs
                               <*> mapM resolveFormula phis
-      _ -> CTT.AppFormula <$> resolveExp e <*> resolveFormula phi
+      _ -> CTT.AppFormula <$> resolveExp t <*> resolveFormula phi
   Trans x y   -> CTT.Trans <$> resolveExp x <*> resolveExp y
   IdP x y z   -> CTT.IdP <$> resolveExp x <*> resolveExp y <*> resolveExp z
   Comp u v ts -> CTT.Comp <$> resolveExp u <*> resolveExp v <*> resolveSystem ts

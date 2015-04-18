@@ -254,7 +254,7 @@ resolveBranch (OBranch (AIdent (_,lbl)) args e) = do
   return $ CTT.OBranch lbl (map unAIdent args) re
 resolveBranch (PBranch (AIdent (_,lbl)) args is e) = do
   re    <- local (insertNames is . insertAIdents args) $ resolveWhere e
-  names <- mapM resolveName is
+  let names = map (C.Name . unAIdent) is
   return $ CTT.PBranch lbl (map unAIdent args) names re
 
 resolveTele :: [(Ident,Exp)] -> Resolver CTT.Tele
@@ -269,6 +269,8 @@ resolveLabel cs (PLabel n vdecl is sys) = do
   let tele' = flattenTele vdecl
       ts    = map fst tele'
       names = map (C.Name . unAIdent) is
+  -- TODO: the system should *not* know about n; remove n before
+  -- inserting cs
   CTT.PLabel (unAIdent n) <$> resolveTele tele' <*> pure names
     <*> local (insertNames is . insertIdents cs . insertVars ts)
               (resolveSystem sys)
@@ -285,9 +287,10 @@ resolveDecl d = case d of
     let tele' = flattenTele tele
     a <- binds CTT.Pi tele' (return CTT.U)
     let cs  = [ (unAIdent lbl,Constructor) | OLabel lbl _ <- sums ]
-    d <- lams tele' $ local (insertVar f) $
-            CTT.Sum <$> getLoc l <*> pure f <*> mapM (resolveLabel cs) sums
     let pcs = [ (unAIdent lbl,PConstructor) | PLabel lbl _ _ _ <- sums ]
+    d <- lams tele' $ local (insertVar f) $
+         CTT.Sum <$> getLoc l <*> pure f
+                 <*> mapM (resolveLabel (cs ++ pcs)) sums
     return ((f,(a,d)),(f,Variable):cs ++ pcs)
   DeclSplit (AIdent (l,f)) tele t brs -> do
     let tele' = flattenTele tele

@@ -27,6 +27,7 @@ lookType x r@(Def rho r1) = case lookup x rho of
 lookType x (Sub rho _) = lookType x rho
 
 lookName :: Name -> Env -> Formula
+lookName i Empty       = error $ "lookName: not found " ++ show i
 lookName i (Upd rho _) = lookName i rho
 lookName i (Def _ rho) = lookName i rho
 lookName i (Sub rho (j,phi)) | i == j    = phi

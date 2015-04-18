@@ -305,17 +305,15 @@ checkBranch (OLabel _ tele,nu) f (OBranch c ns e) _ _ = do
   local (addBranch (zip ns us) (tele,nu)) $ check (app f (VCon c us)) e
 checkBranch (PLabel _ tele is ts,nu) f (PBranch c ns js e) g va = do
   k <- asks index
-  mapM_ checkFresh is
+  mapM_ checkFresh js
   let us   = mkVars k tele nu
       vus  = map snd us
-      is'  = map Atom is
-      vts  = evalSystem (upds nu us) ts
-      vfts = intersectionWith app (border f ts) vts
-  local (addBranch (zip ns vus) (tele,nu)) $ do
-    local (addSubs (zip is is')) $
-      check (app f (VPCon c va vus is')) e
-    rho <- asks env
-    ve  <- evalTyping e -- TODO: combine with next?
+      js'  = map Atom js
+      vts  = evalSystem (subs (upds nu us) (zip is js')) ts
+      vfts = intersectionWith app (border g ts) vts
+  local (addSubs (zip js js') . addBranch (zip ns vus) (tele,nu)) $ do
+    check (app f (VPCon c va vus js')) e
+    ve  <- evalTyping e -- TODO: combine with next line?
     unlessM (border ve ts === vfts) $
       throwError $ "Faces of branch don't match"
 

@@ -23,13 +23,13 @@ type LIdent = String
 type Tele   = [(Ident,Ter)]
 
 data Label = OLabel LIdent Tele -- Object label
-           | PLabel LIdent Tele Ter Ter -- Path label
+           | PLabel LIdent Tele [Name] (System Ter) -- Path label
   deriving (Eq,Show)
 
 -- OBranch of the form: c x1 .. xn -> e
--- PBranch of the form: c x1 .. xn i -> e
+-- PBranch of the form: c x1 .. xn i1 .. im -> e
 data Branch = OBranch LIdent [Ident] Ter
-            | PBranch LIdent [Ident] Name Ter
+            | PBranch LIdent [Ident] [Name] Ter
   deriving (Eq,Show)
 
 -- Declarations: x : A = e
@@ -60,8 +60,8 @@ labelTeles = map labelTele
 lookupLabel :: LIdent -> [Label] -> Maybe Tele
 lookupLabel x xs = lookup x (labelTeles xs)
 
-lookupPLabel :: LIdent -> [Label] -> Maybe (Tele,Ter,Ter)
-lookupPLabel x xs = listToMaybe [ (ts,t0,t1) | PLabel y ts t0 t1 <- xs, x == y ]
+lookupPLabel :: LIdent -> [Label] -> Maybe (Tele,[Name],System Ter)
+lookupPLabel x xs = listToMaybe [ (ts,is,es) | PLabel y ts is es <- xs, x == y ]
 
 branchName :: Branch -> LIdent
 branchName (OBranch c _ _) = c
@@ -89,7 +89,7 @@ data Ter = App Ter Ter
          | Snd Ter
            -- constructor c Ms
          | Con LIdent [Ter]
-         | PCon LIdent Ter [Ter] Formula -- c A ts phi (A is the data type)
+         | PCon LIdent Ter [Ter] [Formula] -- c A ts phis (A is the data type)
            -- branches c1 xs1  -> M1,..., cn xsn -> Mn
          | Split Ident Loc Ter [Branch]
            -- labelled sum c1 A1s,..., cn Ans (assumes terms are constructors)
@@ -138,8 +138,7 @@ data Val = VU
          | VSigma Val Val
          | VPair Val Val
          | VCon LIdent [Val]
-           -- The Formula is the direction of the equality in VPCon
-         | VPCon LIdent Val [Val] Formula
+         | VPCon LIdent Val [Val] [Formula]
 
            -- Id values
          | VIdP Val Val Val
@@ -237,6 +236,9 @@ upds = foldl Upd
 updsTele :: Env -> Tele -> [Val] -> Env
 updsTele rho tele vs = upds rho (zip (map fst tele) vs)
 
+subs :: Env -> [(Name,Formula)] -> Env
+subs = foldl Sub
+
 mapEnv :: (Val -> Val) -> (Formula -> Formula) -> Env -> Env
 mapEnv f g e = case e of
   Empty         -> Empty
@@ -325,8 +327,9 @@ showTer v = case v of
   Where e d          -> showTer e <+> text "where" <+> showDecls d
   Var x              -> text x
   Con c es           -> text c <+> showTers es
-  PCon c a es phi    -> text c <+> char '{' <+> showTer a <+> char '}' <+>
-                          showTers es <+> showFormula phi
+  PCon c a es phis   -> text c <+> char '{' <+> showTer a <+> char '}'
+                        <+> showTers es
+                        <+> (hsep $ punctuate (char '@') (map showFormula phis))
   Split f _ _ _      -> text f
   Sum _ n _          -> text n
   Undef{}            -> text "undefined"
@@ -372,9 +375,11 @@ showVal v = case v of
   Ter t@Split{} rho -> showTer t <+> showEnv False rho
   Ter t env         -> showTer1 t <+> showEnv True env
   VCon c us         -> text c <+> showVals us
-  VPCon c a us phi  -> text c <+> char '{' <+> showVal a <+> char '}' <+>
-                       showVals us <+> showFormula phi
-  VPi a l@(VLam x t b) | "_" `isPrefixOf` x -> showVal1 a <+> text "->" <+> showVal1 b
+  VPCon c a us phis -> text c <+> char '{' <+> showVal a <+> char '}'
+                       <+> showVals us
+                       <+> (hsep $ punctuate (char '@') (map showFormula phis))
+  VPi a l@(VLam x t b) | "_" `isPrefixOf` x -> showVal1 a <+> text "->"
+                                               <+> showVal1 b
                        | otherwise -> showVal l
   VPi a b           -> text "Pi" <+> showVals [a,b]
   VPair u v         -> parens (showVal u <> comma <> showVal v)

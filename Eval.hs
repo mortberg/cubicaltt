@@ -59,7 +59,7 @@ instance Nominal Val where
     VFst u              -> support u
     VSnd u              -> support u
     VCon _ vs           -> support vs
-    VPCon _ a vs phi    -> support (a,vs,phi)
+    VPCon _ a vs phis   -> support (a,vs,phis)
     VVar _ v            -> support v
     VApp u v            -> support (u,v)
     VLam _ u v          -> support (u,v)
@@ -90,7 +90,7 @@ instance Nominal Val where
          VFst u              -> fstVal (acti u)
          VSnd u              -> sndVal (acti u)
          VCon c vs           -> VCon c (acti vs)
-         VPCon c a vs phi    -> pcon c (acti a) (acti vs) (acti phi)
+         VPCon c a vs phis   -> pcon c (acti a) (acti vs) (acti phis)
          VVar x v            -> VVar x (acti v)
          VAppFormula u psi   -> acti u @@ acti psi
          VApp u v            -> app (acti u) (acti v)
@@ -118,7 +118,7 @@ instance Nominal Val where
          VFst u              -> VFst (sw u)
          VSnd u              -> VSnd (sw u)
          VCon c vs           -> VCon c (sw vs)
-         VPCon c a vs phi    -> VPCon c (sw a) (sw vs) (sw phi)
+         VPCon c a vs phis   -> VPCon c (sw a) (sw vs) (sw phis)
          VVar x v            -> VVar x (sw v)
          VAppFormula u psi   -> VAppFormula (sw u) (sw psi)
          VApp u v            -> VApp (sw u) (sw v)
@@ -144,8 +144,8 @@ eval rho v = case v of
   Snd a               -> sndVal (eval rho a)
   Where t decls       -> eval (Def decls rho) t
   Con name ts         -> VCon name (map (eval rho) ts)
-  PCon name a ts phi  ->
-    pcon name (eval rho a) (map (eval rho) ts) (evalFormula rho phi)
+  PCon name a ts phis  ->
+    pcon name (eval rho a) (map (eval rho) ts) (map (evalFormula rho) phis)
   Lam{}               -> Ter v rho
   Split{}             -> Ter v rho
   Sum{}               -> Ter v rho
@@ -190,8 +190,8 @@ app u v = case (u,v) of
   (Ter (Split _ _ _ nvs) e,VCon c vs) -> case lookupBranch c nvs of
     Just (OBranch _ xs t) -> eval (upds e (zip xs vs)) t
     _     -> error $ "app: missing case in split for " ++ c
-  (Ter (Split _ _ _ nvs) e,VPCon c _ us phi) -> case lookupBranch c nvs of
-    Just (PBranch _ xs i t) -> eval (Sub (upds e (zip xs us)) (i,phi)) t
+  (Ter (Split _ _ _ nvs) e,VPCon c _ us phis) -> case lookupBranch c nvs of
+    Just (PBranch _ xs is t) -> eval (subs (upds e (zip xs us)) (zip is phis)) t
     _ -> error $ "app: missing case in split for " ++ c
   (Ter Split{} _,_) | isNeutral v         -> VSplit u v
   (Ter Split{} _,VCompElem _ _ w _)       -> app u w
@@ -267,11 +267,13 @@ v @@ phi | isNeutral v = case (inferType v,toFormula phi) of
 (VElimComp _ _ u) @@ phi   = u @@ phi
 v @@ phi = error $ "(@@): " ++ show v ++ " should be neutral."
 
-pcon :: LIdent -> Val -> [Val] -> Formula -> Val
-pcon c a@(Ter (Sum _ _ lbls) rho) us phi = case lookupPLabel c lbls of
-  Just (tele,t0,t1) | phi == Dir 0 -> eval (updsTele rho tele us) t0
-                    | phi == Dir 1 -> eval (updsTele rho tele us) t1
-                    | otherwise -> VPCon c a us phi
+pcon :: LIdent -> Val -> [Val] -> [Formula] -> Val
+pcon c a@(Ter (Sum _ _ lbls) rho) us phis = case lookupPLabel c lbls of
+  -- TODO: is this correct? Double check!
+  Just (tele,is,ts) | eps `Map.member` vs -> vs ! eps
+                    | otherwise -> VPCon c a us phis
+    where rho' = subs (updsTele rho tele us) (zip is phis)
+          vs   = evalSystem rho' ts
   Nothing           -> error "pcon"
 -- pcon c a us phi     = VPCon c a us phi
 
@@ -303,9 +305,9 @@ trans i v0 v1 = case (v0,v1) of
   (Ter (Sum _ _ nass) env,VCon c us) -> case lookupLabel c nass of
     Just as -> VCon c $ transps i as env us
     Nothing -> error $ "trans: missing constructor " ++ c ++ " in " ++ show v0
-  (Ter (Sum _ _ nass) env,VPCon c _ ws0 phi) -> case lookupLabel c nass of
+  (Ter (Sum _ _ nass) env,VPCon c _ ws0 phis) -> case lookupLabel c nass of
     -- v1 should be independent of i, so i # phi
-    Just as -> VPCon c (v0 `face` (i ~> 1)) (transps i as env ws0) phi
+    Just as -> VPCon c (v0 `face` (i ~> 1)) (transps i as env ws0) phis
     Nothing -> error $ "trans: missing path constructor " ++ c ++
                        " in " ++ show v0
   _ | isNeutral w -> w
@@ -709,19 +711,21 @@ instance Convertible Val where
         let w = mkVar k "X" u
         in conv k u u' && conv (k+1) (app v w) (app v' w)
       (VCon c us,VCon c' us')   -> (c == c') && conv k us us'
-      (VPair u v,VPair u' v') -> conv k u u' && conv k v v'
-      (VPair u v,w)            -> conv k u (fstVal w) && conv k v (sndVal w)
-      (w,VPair u v)            -> conv k (fstVal w) u && conv k (sndVal w) v
-      (VFst u,VFst u')          -> conv k u u'
-      (VSnd u,VSnd u')          -> conv k u u'
-      (VApp u v,VApp u' v')     -> conv k u u' && conv k v v'
-      (VSplit u v,VSplit u' v') -> conv k u u' && conv k v v'
-      (VVar x _, VVar x' _)     -> x == x'
+      (VPCon c v us phis,VPCon c' v' us' phis') ->
+        (c == c') && conv k (v,us,phis) (v',us',phis')
+      (VPair u v,VPair u' v')    -> conv k u u' && conv k v v'
+      (VPair u v,w)              -> conv k u (fstVal w) && conv k v (sndVal w)
+      (w,VPair u v)              -> conv k (fstVal w) u && conv k (sndVal w) v
+      (VFst u,VFst u')           -> conv k u u'
+      (VSnd u,VSnd u')           -> conv k u u'
+      (VApp u v,VApp u' v')      -> conv k u u' && conv k v v'
+      (VSplit u v,VSplit u' v')  -> conv k u u' && conv k v v'
+      (VVar x _, VVar x' _)      -> x == x'
       (VIdP a b c,VIdP a' b' c') -> conv k a a' && conv k b b' && conv k c c'
       (VPath i a,VPath i' a')    -> conv k (a `swap` (i,j)) (a' `swap` (i',j))
       (VPath i a,p')             -> conv k (a `swap` (i,j)) (p' @@ j)
       (p,VPath i' a')            -> conv k (p @@ j) (a' `swap` (i',j))
-      (VTrans p u,VTrans p' u') -> conv k p p' && conv k u u'
+      (VTrans p u,VTrans p' u')  -> conv k p p' && conv k u u'
       (VAppFormula u x,VAppFormula u' x') -> conv k (u,x) (u',x')
       (VComp a u ts,VComp a' u' ts') -> conv k (a,u,ts) (a',u',ts')
       (VGlue v hisos,VGlue v' hisos') -> conv k (v,hisos) (v',hisos')
@@ -794,7 +798,7 @@ instance Normal Val where
     VSigma u v          -> VSigma (normal k u) (normal k v)
     VPair u v           -> VPair (normal k u) (normal k v)
     VCon n us           -> VCon n (normal k us)
-    VPCon n u us phi    -> VPCon n (normal k u) (normal k us) phi
+    VPCon n u us phis   -> VPCon n (normal k u) (normal k us) phis
     VIdP a u0 u1        -> VIdP (normal k a) (normal k u0) (normal k u1)
     VPath i u           -> VPath i (normal k u)
     VComp u v vs        -> compLine (normal k u) (normal k v) (normal k vs)

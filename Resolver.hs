@@ -45,6 +45,14 @@ unApps u         ws = (u, ws)
 appsToIdents :: Exp -> Maybe [Ident]
 appsToIdents = mapM unVar . uncurry (:) . flip unApps []
 
+-- Transform a sequence of applications
+-- (((u v1) .. vn) phi1) .. phim into (u,[v1,..,vn],[phi1,..,phim])
+unAppsFormulas :: Exp -> [Exp] -> [Formula]-> (Exp,[Exp],[Formula])
+unAppsFormulas (AppFormula u phi) ws phis = unAppsFormulas u ws (phi:phis)
+unAppsFormulas u ws phis = (x,xs++ws,phis)
+  where (x,xs) = unApps u ws
+
+
 -- Flatten a tele
 flattenTele :: [Tele] -> [(Ident,Exp)]
 flattenTele tele =
@@ -91,6 +99,9 @@ insertIdents = flip $ foldr insertIdent
 
 insertName :: AIdent -> Env -> Env
 insertName (AIdent (_,x)) = insertIdent (x,Name)
+
+insertNames :: [AIdent] -> Env -> Env
+insertNames = flip $ foldr insertName
 
 insertVar :: Ident -> Env -> Env
 insertVar x = insertIdent (x,Variable)
@@ -186,11 +197,11 @@ resolveExp e = case e of
   Path is e     -> paths is (resolveExp e)
   Hole (HoleIdent (l,_)) -> CTT.Hole <$> getLoc l
   AppFormula e phi ->
-    let (x,xs) = unApps e []
+    let (x,xs,phis) = unAppsFormulas e [] []
     in case x of
       PCon n a ->
         CTT.PCon (unAIdent n) <$> resolveExp a <*> mapM resolveExp xs
-                              <*> resolveFormula phi
+                              <*> mapM resolveFormula phis
       _ -> CTT.AppFormula <$> resolveExp e <*> resolveFormula phi
   Trans x y   -> CTT.Trans <$> resolveExp x <*> resolveExp y
   IdP x y z   -> CTT.IdP <$> resolveExp x <*> resolveExp y <*> resolveExp z
@@ -241,9 +252,10 @@ resolveBranch :: Branch -> Resolver CTT.Branch
 resolveBranch (OBranch (AIdent (_,lbl)) args e) = do
   re <- local (insertAIdents args) $ resolveWhere e
   return $ CTT.OBranch lbl (map unAIdent args) re
-resolveBranch (PBranch (AIdent (_,lbl)) args i e) = do
-  re <- local (insertName i . insertAIdents args) $ resolveWhere e
-  return $ CTT.PBranch lbl (map unAIdent args) (C.Name (unAIdent i)) re
+resolveBranch (PBranch (AIdent (_,lbl)) args is e) = do
+  re    <- local (insertNames is . insertAIdents args) $ resolveWhere e
+  names <- mapM resolveName is
+  return $ CTT.PBranch lbl (map unAIdent args) names re
 
 resolveTele :: [(Ident,Exp)] -> Resolver CTT.Tele
 resolveTele []        = return []
@@ -253,12 +265,13 @@ resolveTele ((i,d):t) =
 resolveLabel :: [(Ident,SymKind)] -> Label -> Resolver CTT.Label
 resolveLabel _ (OLabel n vdecl) =
   CTT.OLabel (unAIdent n) <$> resolveTele (flattenTele vdecl)
-resolveLabel cs (PLabel n vdecl t0 t1) = do
+resolveLabel cs (PLabel n vdecl is sys) = do
   let tele' = flattenTele vdecl
-      ts = map fst tele'
-  CTT.PLabel (unAIdent n) <$> resolveTele tele'
-                          <*> local (insertIdents cs . insertVars ts) (resolveExp t0)
-                          <*> local (insertIdents cs . insertVars ts) (resolveExp t1)
+      ts    = map fst tele'
+      names = map (C.Name . unAIdent) is
+  CTT.PLabel (unAIdent n) <$> resolveTele tele' <*> pure names
+    <*> local (insertNames is . insertIdents cs . insertVars ts)
+              (resolveSystem sys)
 
 -- Resolve Data or Def or Split declarations
 resolveDecl :: Decl -> Resolver (CTT.Decl,[(Ident,SymKind)])

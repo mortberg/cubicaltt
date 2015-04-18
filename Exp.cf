@@ -67,12 +67,13 @@ coercions Formula 2 ;
 
 -- Branches
 OBranch.   Branch ::= AIdent [AIdent] "->" ExpWhere ;
-PBranch.   Branch ::= AIdent [AIdent] "@" AIdent "->" ExpWhere ;
+-- TODO: better have ... @ i @ j @ k -> ... ?
+PBranch.   Branch ::= AIdent [AIdent] "@" [AIdent] "->" ExpWhere ;
 separator Branch ";" ;
 
 -- Labelled sum alternatives
 OLabel.   Label ::= AIdent [Tele] ;
-PLabel.   Label ::= AIdent [Tele] "@" Exp "~" Exp ;
+PLabel.   Label ::= AIdent [Tele] "<" [AIdent] ">" "@" System ;
 separator Label "|" ;
 
 -- Telescopes

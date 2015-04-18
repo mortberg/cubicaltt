@@ -4,7 +4,7 @@ module Connections where
 
 import Control.Applicative
 import Data.List
-import Data.Map (Map,(!))
+import Data.Map (Map,(!),keys)
 import Data.Set (Set)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -375,9 +375,6 @@ mkSystem = flip insertsSystem Map.empty
 unionSystem :: System a -> System a -> System a
 unionSystem us vs = insertsSystem (Map.assocs us) vs
 
--- could something like that work??
--- transposeSystem :: System [a] -> [System a]
--- transposeSystem as = Map.tranverseWithKey (const . id) as
 
 -- TODO: add some checks
 transposeSystemAndList :: System [a] -> [b] -> [(System a,b)]
@@ -445,3 +442,6 @@ proj us alpha | eps `Map.member` usalpha = usalpha ! eps
   error $ "proj: eps not in " ++ show usalpha ++ "\nwhich  is the "
     ++ show alpha ++ "\nface of " ++ show us
   where usalpha = us `face` alpha
+
+domain :: System a -> [Name]
+domain  = keys . Map.unions . keys

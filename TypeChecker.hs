@@ -169,8 +169,8 @@ check a t = case (a,t) of
       local (addSubs iis) $ localM (addTele tele) $ do
         checkSystemWith ts $ \alpha talpha ->
           local (faceEnv alpha) $ do
-            rhoAlpha <- asks env
-            check (Ter t rhoAlpha) talpha
+            -- NB: the type doesn't depend on is
+            check (Ter t rho) talpha
         rho' <- asks env
         checkCompSystem (evalSystem rho' ts)
   (VPi va@(Ter (Sum _ _ cas) nu) f,Split _ _ ty ces) -> do

@@ -45,3 +45,24 @@ Equiv (A B : U) : U = (f : A -> B) * isEquiv A B f
 
 lemIdEquiv (A B:U) (f g : Equiv A B) (h:Id (A->B) f.1 g.1) : Id (Equiv A B) f g
  = <i>(h@i,(lemPropF (A->B) (isEquiv A B) (propIsEquiv A B) f.1 g.1 h f.2 g.2)@i)
+
+-- a general lemma about equivalence and fibrations
+
+Sigma (A:U) (F:A->U) : U = (x:A) * F x
+
+lemEquivFib (A:U) (F G :A -> U) (f:(x:A) -> F x -> G x)
+   (h : isEquiv (Sigma A F) (Sigma A G) (\ (xp : Sigma A F) -> (xp.1,f xp.1 xp.2))) (x:A) (v:G x) : 
+    isContr (fiber (F x) (G x) (f x) v) = (rem7,psi (rem1.2))
+ where
+   AF : U = Sigma A F
+   AG : U = Sigma A G
+   g (xp : AF) : AG = (xp.1,f xp.1 xp.2)
+   rem1 : isContr (fiber AF AG g (x,v)) = h (x,v)
+   phi (z:fiber (F x) (G x) (f x) v) : fiber AF AG g (x,v) = ((x,z.1),<i>(x,(z.2)@ i))
+   psi (z:fiber AF AG g (x,v)) : fiber (F x) (G x) (f x) v = transport (<i> (u : F (p@-i)) * IdP (<j>G (p@-i /\ j)) v (f (p@-i) u)) (w,q)
+      where yu : AF = z.1
+            y : A = yu.1
+            w : F y = yu.2
+            p : Id A x y = <i>(rem3 @ i).1
+            q : IdP (<j>G (p@j)) v (f y w) = <i>((z.2) @ i).2
+   rem7 (z0 z1 : fiber (F x) (G x) (f x) v) : Id (fiber (F x) (G x) (f x) v) z0 z1 = <i>psi ((rem1.1 (phi z0) (phi z1))@i)

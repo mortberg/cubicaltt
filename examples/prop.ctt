@@ -1,0 +1,26 @@
+module prop where
+
+import prelude
+
+lemProp (A B : U) (f : A -> B) (g : B -> A)
+      (s : (y:B) -> Id B (f (g y)) y)
+      (t : (x:A) -> Id A (g (f x)) x) (pA:prop A) : prop B =
+ \ (b0 b1:B) -> subst U prop A B (isoId A B f g s t) pA b0 b1
+
+{- normal form
+ 
+\(A0 : U) -> \(B1 : U) -> \(f2 : A0 -> B1) -> \(g3 : B1 -> A0) -> 
+ \(s4 : \(y4 : B1) -> IdP (<i> B1) (f2 (g3 y4)) y4) -> 
+ \(t5 : \(x5 : A0) -> IdP (<i> A0) (g3 (f2 x5)) x5) ->
+ \(pA6 : \(a6 : A0) -> \(b7 : A0) -> IdP (<i> A0) a6 b7) ->
+ \(b07 : B1) -> \(b18 : B1) ->
+ <j> comp B1 (f2 ((pA6 (g3 b07) (g3 b18)) @ j))
+  [ (j = 0) -> <i> comp B1 b07 
+                [ (i = 0) -> <j> comp B1 (f2 (comp A0 (g3 b07) [ (j = 1) -> <i> (t5 (g3 b07)) @ -i ]))
+                                         [ (j = 0) -> <i> (s4 b07) @ i, (j = 1) -> <i> (s4 (f2 (g3 b07))) @ i ] 
+                ]
+  , (j = 1) -> <i> comp B1 b18 [ (i = 0) -> <j> comp B1 (f2 (comp A0 (g3 b18) [ (j = 1) -> <i> (t5 (g3 b18)) @ -i ])) 
+                                                [ (j = 0) -> <i> (s4 b18) @ i, (j = 1) -> <i> (s4 (f2 (g3 b18))) @ i ] 
+                               ] 
+  ]
+-}

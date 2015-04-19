@@ -1,0 +1,33 @@
+module gradLemma where
+
+import prelude
+
+lemIso (A B : U) (f : A -> B) (g : B -> A)
+       (s : (y:B) -> Id B (f (g y)) y)
+       (t : (x:A) -> Id A (g (f x)) x) 
+       (y:B) (x0 x1:A) (p0 : Id B y (f x0)) (p1 : Id B y (f x1)) :
+       Id ((x:A) * Id B y (f x)) (x0,p0) (x1,p1) =   <i>(p@i,sq1@i)
+    where
+ rem0 : Id A (g y) x0 = <i> comp A (g (p0 @ i)) [(i=1) -> t x0]
+ rem1 : Id A (g y) x1 = <i> comp A (g (p1 @ i)) [(i=1) -> t x1]
+ fill0 : Square A (g y) (g (f x0)) (<i>g (p0 @ i)) (g y) x0 rem0 (<i>(g y)) (t x0) =
+    <i j>comp A (g (p0@i)) [(i=1) -> <k>(t x0)@k/\j ]
+ fill1 : Square A (g y) (g (f x1)) (<i>g (p1 @ i)) (g y) x1 rem1 (<i>(g y)) (t x1) =
+    <i j>comp A (g (p1@i)) [(i=1) -> <k>(t x1)@k/\j ]
+ p : Id A x0 x1 = <i> comp A (g y) [(i=0) -> rem0, (i=1) -> rem1]
+ fill : Square A (g y) (g y) (refl A (g y)) x0 x1 p rem0 rem1 =
+    <i j> comp A (g y) [(i=0) -> <k>(rem0@j/\k), (i=1) -> <k>(rem1@j/\k)]
+ sq : Square A (g y) (g y) (refl A (g y)) (g (f x0)) (g (f x1)) (<i>(g (f (p@i))))
+                 (<i>g (p0@i)) (<i>g (p1@i)) = 
+  <i j>comp A ((fill@i)@j) [(i=0) -> <k>((fill0@j)@-k), (i=1)-><k>((fill1@j)@-k),(j=1) -> <k>(t (p@i))@-k]
+ sq1 : Square B y y (refl B y) (f x0) (f x1) (<i>f (p@i)) p0 p1 = 
+  <i j>comp B (f ((sq@i)@j)) [(i=0) -> s (p0@j),(i=1) -> s (p1@j),(j=0) -> s y,(j=1)-> s (f (p@i))]
+   
+-- special case
+
+corrIso (A B : U) (f : A -> B) (g : B -> A)
+        (s : (y:B) -> Id B (f (g y)) y)
+        (t : (x:A) -> Id A (g (f x)) x) 
+        (x0:A) :
+        Id ((x:A) * Id B (f x0) (f x)) (x0,refl B (f x0)) (g (f x0),<i>((s (f x0))@-i)) = 
+ lemIso A B f g s t (f x0) x0 (g (f x0)) (refl B (f x0)) (<i>((s (f x0))@-i)) 

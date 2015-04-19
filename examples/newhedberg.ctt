@@ -1,0 +1,35 @@
+module newhedberg where
+
+import prelude
+
+const (A : U) (f : A -> A) : U = (x y : A) -> Id A (f x) (f y)
+
+decEqCong (A B : U) (f : A -> B) (g : B -> A) : dec A -> dec B = split
+  inl a -> inl (f a)
+  inr h -> inr (\ (b:B) -> h (g b))
+
+exConst (A : U) : U = (f:A -> A) * const A f
+
+decConst (A : U) : dec A -> exConst A = split
+  inl a -> (\ (x:A)  -> a, \ (x y:A) -> refl A a)
+  inr h -> (\ (x:A) -> x, \ (x y:A) -> efq (Id A x y) (h x))
+
+hedbergLemma (A: U) (a b:A) (f : (x : A) -> Id A a x -> Id A a x) (p : Id A a b) :
+            Square A a a (refl A a) a b p (f a (refl A a)) (f b p) = 
+ transport (<i>Square A a a (refl A a) a p@i (<j>p@i/\j) (f a (refl A a)) (f p@i (<j>p@i/\j)))
+    (<i>(f a (refl A a)))
+
+hedberg (A:U) (a b:A) (h: (x:A) -> dec (Id A a x)) (p q : Id A a b) : Id (Id A a b) p q =
+ <j i>comp A a [(j=0) -> rem2 @ i, (j=1) -> rem3 @ i, (i=0) -> r, (i=1) -> rem4 @ j]
+ where 
+   ra : Id A a a = refl A a 
+   rem1 (x:A) : exConst (Id A a x) = decConst (Id A a x) (h x)
+   f (x:A) : Id A a x -> Id A a x  = (rem1 x).1
+   fIsConst (x : A) : const (Id A a x) (f x) = (rem1 x).2
+   rem4 : Square A a a ra b b (refl A b) (f b p) (f b q)  = fIsConst b p q
+   r : Id A a a = f a ra
+   rem2 : Square A a a ra a b p r (f b p) = hedbergLemma A a b f p
+   rem3 : Square A a a ra a b q r (f b q) = hedbergLemma A a b f q
+
+corrhedberg (A:U) (h : discrete A) : set A =
+ \ (a b :A) -> hedberg A a b (h a)

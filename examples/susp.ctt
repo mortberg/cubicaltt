@@ -4,7 +4,7 @@ import circle
 
 data susp (A : U) = north
                   | south
-                  | merid (a:A) @ north ~ south
+                  | merid (a:A) <i> [(i=0) -> north, (i=1) -> south]
 
 -- n-spheres
 sphere : nat -> U = split
@@ -22,19 +22,19 @@ path : bool -> Id S1 base base = split
 s1ToCircle : sone -> S1 = split
   north   -> base
   south   -> base
-  merid b @ i -> (path b) @ i
+  merid b @ i -> path b @ i
 
-m0 : Id sone north south = <i> (merid{sone} false) @ i
+m0 : Id sone north south = <i> merid{sone} false @ i
 
-m1 : Id sone north south = <i> (merid{sone} true) @ i
+m1 : Id sone north south = <i> merid{sone} true @ i
 
 invm1 : Id sone south north = inv sone north south m1
 
 circleToS1 : S1 -> sone = split
   base -> north
-  loop @ i -> (compId sone north south north m0 invm1) @ i
+  loop @ i -> compId sone north south north m0 invm1 @ i
 
-merid1 (b:bool) : Id sone north south = <i>(merid{sone} b)@ i
+merid1 (b:bool) : Id sone north south = <i> merid{sone} b @ i
 
 oc (x:S1) : S1 = s1ToCircle (circleToS1 x)
 
@@ -52,7 +52,7 @@ lemSquare (A:U) (a b : A) (m0 m1 : Id A a b) :
 coid : (x : sone) -> Id sone (co x) x = split
  north -> refl sone north
  south -> m1
- merid b @ i  -> (ind b) @ i
+ merid b @ i  -> ind b @ i
   where
     F (x:sone) : U = Id sone (co x) x
 
@@ -69,7 +69,7 @@ s1EqS1 : Id U S1 S1 = compId U S1 sone S1 (inv U sone S1 s1EqCircle) s1EqCircle
 ptU : U = (X : U) * X
 
 lemPt (A :U) (B:U) (p:Id U A B) (a:A) : Id ptU (A,a) (B,transport p a) =
- <i> (p @ i,transport (<j>p @ (i/\j)) a)
+ <i> (p @ i,transport (<j> p @ (i/\j)) a)
 
 Omega (X:ptU) : ptU = (Id X.1 X.2 X.2,refl X.1 X.2)
 
@@ -87,7 +87,7 @@ s1ToCId (p: Id sone north north) : Id S1 base base
  = <i> transport s1EqCircle (p @ i)
 
 s1ToCIdInv (p : Id S1 base base) : Id sone north north
- = <i> (transport (<j> s1EqCircle @(-j)) (p @ i))
+ = <i> (transport (<j> s1EqCircle @ -j) (p @ i))
 
 loop1S :  Id sone north north = s1ToCIdInv loop1
 

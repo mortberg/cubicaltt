@@ -68,6 +68,9 @@ addTypeVal (x,a) (TEnv k ind rho v) =
 addSub :: (Name,Formula) -> TEnv -> TEnv
 addSub iphi (TEnv k ind rho v) = TEnv k ind (Sub rho iphi) v
 
+addSubs :: [(Name,Formula)] -> TEnv -> TEnv
+addSubs = flip $ foldr addSub
+
 addType :: (Ident,Ter) -> TEnv -> Typing TEnv
 addType (x,a) tenv@(TEnv _ _ rho _) = return $ addTypeVal (x,eval rho a) tenv
 
@@ -129,7 +132,7 @@ mkSection vb vf vg =
         rho = Upd (Upd (Upd Empty ("b",vb)) ("f",vf)) ("g",vg)
 
 -- Test if two values are convertible
-(===) :: Val -> Val -> Typing Bool
+(===) :: Convertible a => a -> a -> Typing Bool
 u === v = conv <$> asks index <*> pure u <*> pure v
 
 -- eval in the typing monad
@@ -156,12 +159,20 @@ check a t = case (a,t) of
   (VU,Sigma f)    -> checkFam f
   (VU,Sum _ _ bs) -> forM_ bs $ \lbl -> case lbl of
     OLabel _ tele -> checkTele tele
-    PLabel _ tele t0 t1 -> do
+    PLabel _ tele is ts -> do
       checkTele tele
       rho <- asks env
-      localM (addTele tele) $ do
-        check (Ter t rho) t0
-        check (Ter t rho) t1
+      unless (all (`elem` is) (domain ts)) $
+        throwError $ "names in path label system" -- TODO
+      mapM_ checkFresh is
+      let iis = zip is (map Atom is)
+      local (addSubs iis) $ localM (addTele tele) $ do
+        checkSystemWith ts $ \alpha talpha ->
+          local (faceEnv alpha) $ do
+            -- NB: the type doesn't depend on is
+            check (Ter t rho) talpha
+        rho' <- asks env
+        checkCompSystem (evalSystem rho' ts)
   (VPi va@(Ter (Sum _ _ cas) nu) f,Split _ _ ty ces) -> do
     check VU ty
     rho <- asks env
@@ -292,21 +303,19 @@ checkBranch (OLabel _ tele,nu) f (OBranch c ns e) _ _ = do
   k <- asks index
   let us = map snd $ mkVars k tele nu
   local (addBranch (zip ns us) (tele,nu)) $ check (app f (VCon c us)) e
-checkBranch (PLabel _ tele t0 t1,nu) f (PBranch c ns i e) g va = do
+checkBranch (PLabel _ tele is ts,nu) f (PBranch c ns js e) g va = do
   k <- asks index
-  let us  = mkVars k tele nu
-      vus = map snd us
-      vt0 = eval (upds nu us) t0
-      vt1 = eval (upds nu us) t1
-  checkFresh i
-  local (addBranch (zip ns vus) (tele,nu)) $ do
-    local (addSub (i,Atom i)) $
-      check (app f (VPCon c va vus (Atom i))) e
-    rho <- asks env
-    k'  <- asks index
-    unless (conv k' (eval (Sub rho (i,Dir 0)) e) (app g vt0) &&
-            conv k' (eval (Sub rho (i,Dir 1)) e) (app g vt1)) $
-      throwError "Endpoints of branch don't match"
+  mapM_ checkFresh js
+  let us   = mkVars k tele nu
+      vus  = map snd us
+      js'  = map Atom js
+      vts  = evalSystem (subs (upds nu us) (zip is js')) ts
+      vfts = intersectionWith app (border g ts) vts
+  local (addSubs (zip js js') . addBranch (zip ns vus) (tele,nu)) $ do
+    check (app f (VPCon c va vus js')) e
+    ve  <- evalTyping e -- TODO: combine with next line?
+    unlessM (border ve ts === vfts) $
+      throwError $ "Faces of branch don't match"
 
 checkFormula :: Formula -> Typing ()
 checkFormula phi = do
@@ -428,12 +437,12 @@ infer e = case e of
     let ves = evalSystem rho es
     check (compLine VU va ves) u
     return va
-  PCon c a es phi -> do
+  PCon c a es phis -> do
     check VU a
     va <- evalTyping a
     (bs,nu) <- getLblType c va
     checks (bs,nu) es
-    checkFormula phi
+    mapM_ checkFormula phis
     return va
   _ -> throwError ("infer " ++ show e)
 

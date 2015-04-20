@@ -1,0 +1,60 @@
+module higherhit where
+
+import prelude
+
+-- Some experiments with higher HITs.
+
+-- old stuff looks now like this
+
+data S1 = base
+        | loop <i> [(i=0) -> base, (i=1) -> base]
+
+
+foo : S1 = base
+
+loop' : Id S1 base base = <i> loop {S1} @ i
+
+
+-- new
+
+data S2 = base
+        | loop2 <i j> [ (i=0) -> base
+                      , (i=1) -> base
+                      , (j=0) -> base
+                      , (j=1) -> base]
+
+loop2' : Id (Id S2 base base) (refl S2 base) (refl S2 base) =
+  <i j> loop2 {S2} @ i @ j
+
+data Torus = ptT
+           | pathOneT <i> [ (i=0) -> ptT, (i=1) -> ptT ]
+           | pathTwoT <i> [ (i=0) -> ptT, (i=1) -> ptT ]
+           | squareT <i j> [ (i=0) -> pathOneT {Torus} @ j
+                           , (i=1) -> pathOneT {Torus} @ j
+                           , (j=0) -> pathTwoT {Torus} @ i
+                           , (j=1) -> pathTwoT {Torus} @ i ]
+
+data setTrunc (A : U)
+  = inc (a : A)
+  | setTr (a b : setTrunc A) (p q : Id (setTrunc A) a b) <i j>
+       [ (i=0) -> p @ j
+       , (i=1) -> q @ j
+       , (j=0) -> a
+       , (j=1) -> b]
+
+setTruncSet (A : U) : set (setTrunc A) =
+   \(a b : setTrunc A) (p q : Id (setTrunc A) a b) ->
+     <i j> setTr {setTrunc A} a b p q @ i @ j
+
+
+setTruncRec (A : U)
+            (B : U)
+            (bS : set B)
+            (f : A -> B) :
+            setTrunc A -> B =
+  split
+    inc a -> f a
+    setTr a b p q @ i j -> (bS (setTruncRec A B bS f a)
+                               (setTruncRec A B bS f b)
+                               (<k> setTruncRec A B bS f (p @ k))
+                               (<k> setTruncRec A B bS f (q @ k))) @ i @ j

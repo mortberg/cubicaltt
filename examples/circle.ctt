@@ -4,7 +4,7 @@ import bool
 import int
 
 data S1 = base
-        | loop @ base ~ base
+        | loop <i> [(i=0) -> base, (i=1) -> base]
 
 loopS1 : U = Id S1 base base
 
@@ -33,11 +33,11 @@ loop2'' : loopS1 = compId'' S1 base base loop1 base loop1
 
 mLoop : (x : S1) -> Id S1 x x = split
   base -> loop1
-  loop @ i -> (constSquare S1 base loop1) @ i
+  loop @ i -> constSquare S1 base loop1 @ i
 
 mult (x : S1) : S1 -> S1 = split
   base -> x
-  loop @ i -> (mLoop x) @ i
+  loop @ i -> mLoop x @ i
 
 square (x : S1) : S1 = mult x x
 

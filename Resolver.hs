@@ -8,7 +8,7 @@ import Control.Monad
 import Control.Monad.Reader
 import Control.Monad.Except
 import Control.Monad.Identity
-import Data.List (nub)
+import Data.List
 import Data.Map (Map,(!))
 import qualified Data.Map as Map
 
@@ -51,7 +51,6 @@ unAppsFormulas :: Exp -> [Formula]-> (Exp,[Exp],[Formula])
 unAppsFormulas (AppFormula u phi) phis = unAppsFormulas u (phi:phis)
 unAppsFormulas u phis = (x,xs,phis)
   where (x,xs) = unApps u []
-
 
 -- Flatten a tele
 flattenTele :: [Tele] -> [(Ident,Exp)]
@@ -253,7 +252,7 @@ resolveBranch (OBranch (AIdent (_,lbl)) args e) = do
   re <- local (insertAIdents args) $ resolveWhere e
   return $ CTT.OBranch lbl (map unAIdent args) re
 resolveBranch (PBranch (AIdent (_,lbl)) args is e) = do
-  re    <- local (insertNames is . insertAIdents args) $ resolveWhere e
+  re <- local (insertNames is . insertAIdents args) $ resolveWhere e
   let names = map (C.Name . unAIdent) is
   return $ CTT.PBranch lbl (map unAIdent args) names re
 
@@ -269,11 +268,11 @@ resolveLabel cs (PLabel n vdecl is sys) = do
   let tele' = flattenTele vdecl
       ts    = map fst tele'
       names = map (C.Name . unAIdent) is
-  -- TODO: the system should *not* know about n; remove n before
-  -- inserting cs
-  CTT.PLabel (unAIdent n) <$> resolveTele tele' <*> pure names
-    <*> local (insertNames is . insertIdents cs . insertVars ts)
-              (resolveSystem sys)
+      n'    = unAIdent n
+      cs'   = delete (n',PConstructor) cs
+  CTT.PLabel n' <$> resolveTele tele' <*> pure names
+                <*> local (insertNames is . insertIdents cs' . insertVars ts)
+                      (resolveSystem sys)
 
 -- Resolve Data or Def or Split declarations
 resolveDecl :: Decl -> Resolver (CTT.Decl,[(Ident,SymKind)])

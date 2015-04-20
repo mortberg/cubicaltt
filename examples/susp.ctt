@@ -4,7 +4,7 @@ import circle
 
 data susp (A : U) = north
                   | south
-                  | merid (a:A) @ north ~ south
+                  | merid (a:A) <i> [(i=0) -> north, (i=1) -> south]
 
 -- n-spheres
 sphere : nat -> U = split

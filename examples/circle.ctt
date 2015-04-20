@@ -4,7 +4,7 @@ import bool
 import int
 
 data S1 = base
-        | loop @ base ~ base
+        | loop <i> [(i=0) -> base, (i=1) -> base]
 
 loopS1 : U = Id S1 base base
 

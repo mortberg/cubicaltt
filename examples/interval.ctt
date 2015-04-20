@@ -2,7 +2,7 @@ module interval where
 
 import prelude
 
-data I = zero | one | seg @ zero ~ one
+data I = zero | one | seg <i> [(i = 0) -> zero, (i = 1) -> one]
 
 -- Proof of funext from the interval
 fext (A B : U) (f g : A -> B) (p : (x : A) -> Id B (f x) (g x)) :

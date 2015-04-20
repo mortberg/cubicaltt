@@ -4,7 +4,7 @@ import int
 
 data int = pos (n : nat)
          | neg (n : nat)
-         | zeroP @ pos zero ~ neg zero
+         | zeroP <i> [(i=0) -> pos zero, (i=1) -> neg zero]
 
 zeroP' : Id int (pos zero) (neg zero) = <i> zeroP {int} @ i
 

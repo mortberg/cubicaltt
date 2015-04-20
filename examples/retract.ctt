@@ -11,7 +11,7 @@ lemRetract (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g) (x y:A) :
   = compUp A (g (f x)) x (g (f y)) y (rfg x) (rfg y)
 
 retractProp (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g) (pB :prop B) (x y:A) 
-  : Id A x y = lemRetract A B f g rfg x y (<i> g (pB (f x) (f y)) @ i)
+  : Id A x y = lemRetract A B f g rfg x y (<i> g (pB (f x) (f y) @ i))
 
 retractInv (A B : U)  (f : A -> B) (g : B -> A) (rfg : retract A B f g)
            (x y : A) (q: Id B (f x) (f y)) : Id A x y = 

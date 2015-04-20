@@ -391,7 +391,7 @@ showVal v = case v of
   VSnd u            -> showVal1 u <> text ".2"
   VIdP v0 v1 v2     -> text "IdP" <+> showVals [v0,v1,v2]
   VPath i v         -> char '<' <> text (show i) <> char '>' <+> showVal v
-  VAppFormula v phi -> showVal1 v <+> char '@' <+> showFormula phi
+  VAppFormula v phi -> showVal v <+> char '@' <+> showFormula phi
   VComp v0 v1 vs    -> text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)
   VTrans v0 v1      -> text "trans" <+> showVals [v0,v1]
   VGlue a ts        -> text "glue" <+> showVal1 a <+> text (showSystem ts)

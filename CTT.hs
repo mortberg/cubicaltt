@@ -213,6 +213,10 @@ isNeutralComp _ _ _ = False
 mkVar :: Int -> String -> Val -> Val
 mkVar k x = VVar (x ++ show k)
 
+mkVarNice :: [String] -> String -> Val -> Val
+mkVarNice xs x = VVar (head (ys \\ xs))
+  where ys = x:map (\n -> x ++ show n) [0..]
+
 unCon :: Val -> [Val]
 unCon (VCon _ vs) = vs
 unCon v           = error $ "unCon: not a constructor: " ++ show v

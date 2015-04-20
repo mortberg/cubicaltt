@@ -786,48 +786,48 @@ instance Convertible Formula where
 -- | Normalization
 
 class Normal a where
-  normal :: Int -> a -> a
+  normal :: [String] -> a -> a
 
 -- Does neither normalize formulas nor environments.
 instance Normal Val where
-  normal k v = case v of
+  normal ns v = case v of
     VU                  -> VU
     Ter (Lam x t u) e   -> let w = eval e t
-                               v@(VVar name _) = mkVar k x w
-                           in VLam name (normal k w) $ normal (k+1) (eval (Upd e (x,v)) u)
-    VPi u v             -> VPi (normal k u) (normal k v)
-    VSigma u v          -> VSigma (normal k u) (normal k v)
-    VPair u v           -> VPair (normal k u) (normal k v)
-    VCon n us           -> VCon n (normal k us)
-    VPCon n u us phis   -> VPCon n (normal k u) (normal k us) phis
-    VIdP a u0 u1        -> VIdP (normal k a) (normal k u0) (normal k u1)
-    VPath i u           -> VPath i (normal k u)
-    VComp u v vs        -> compLine (normal k u) (normal k v) (normal k vs)
-    VTrans u v          -> transLine (normal k u) (normal k v)
-    VGlue u hisos       -> glue (normal k u) (normal k hisos)
-    VGlueElem u us      -> glueElem (normal k u) (normal k us)
-    VCompElem a es u us -> compElem (normal k a) (normal k es) (normal k u) (normal k us)
-    VElimComp a es u    -> elimComp (normal k a) (normal k es) (normal k u)
-    VVar x t            -> VVar x t -- (normal k t)
-    VFst t              -> fstVal (normal k t)
-    VSnd t              -> sndVal (normal k t)
-    VSplit u t          -> VSplit (normal k u) (normal k t)
-    VApp u v            -> app (normal k u) (normal k v)
-    VAppFormula u phi   -> VAppFormula (normal k u) phi
+                               v@(VVar n _) = mkVarNice ns x w
+                           in VLam n (normal ns w) $ normal (n:ns) (eval (Upd e (x,v)) u)
+    VPi u v             -> VPi (normal ns u) (normal ns v)
+    VSigma u v          -> VSigma (normal ns u) (normal ns v)
+    VPair u v           -> VPair (normal ns u) (normal ns v)
+    VCon n us           -> VCon n (normal ns us)
+    VPCon n u us phis   -> VPCon n (normal ns u) (normal ns us) phis
+    VIdP a u0 u1        -> VIdP (normal ns a) (normal ns u0) (normal ns u1)
+    VPath i u           -> VPath i (normal ns u)
+    VComp u v vs        -> compLine (normal ns u) (normal ns v) (normal ns vs)
+    VTrans u v          -> transLine (normal ns u) (normal ns v)
+    VGlue u hisos       -> glue (normal ns u) (normal ns hisos)
+    VGlueElem u us      -> glueElem (normal ns u) (normal ns us)
+    VCompElem a es u us -> compElem (normal ns a) (normal ns es) (normal ns u) (normal ns us)
+    VElimComp a es u    -> elimComp (normal ns a) (normal ns es) (normal ns u)
+    VVar x t            -> VVar x t -- (normal ns t)
+    VFst t              -> fstVal (normal ns t)
+    VSnd t              -> sndVal (normal ns t)
+    VSplit u t          -> VSplit (normal ns u) (normal ns t)
+    VApp u v            -> app (normal ns u) (normal ns v)
+    VAppFormula u phi   -> VAppFormula (normal ns u) phi
     _                   -> v
 
 instance Normal a => Normal (Map k a) where
-  normal k us = Map.map (normal k) us
+  normal ns us = Map.map (normal ns) us
 
 instance (Normal a,Normal b) => Normal (a,b) where
-  normal k (u,v) = (normal k u,normal k v)
+  normal ns (u,v) = (normal ns u,normal ns v)
 
 instance (Normal a,Normal b,Normal c) => Normal (a,b,c) where
-  normal k (u,v,w) = (normal k u,normal k v,normal k w)
+  normal ns (u,v,w) = (normal ns u,normal ns v,normal ns w)
 
 instance (Normal a,Normal b,Normal c,Normal d) => Normal (a,b,c,d) where
-  normal k (u,v,w,x) =
-    (normal k u,normal k v,normal k w, normal k x)
+  normal ns (u,v,w,x) =
+    (normal ns u,normal ns v,normal ns w, normal ns x)
 
 instance Normal a => Normal [a] where
-  normal k us = map (normal k) us
+  normal ns us = map (normal ns) us

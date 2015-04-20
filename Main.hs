@@ -116,7 +116,7 @@ loop flags f names tenv = do
     Just str'  ->
       let (msg,str,mod) = case str' of
             (':':'n':' ':str) ->
-              ("NORMEVAL: ",str,E.normal 0)
+              ("NORMEVAL: ",str,E.normal [])
             str -> ("EVAL: ",str,id)
       in case pExp (lexer str) of
       Bad err -> outputStrLn ("Parse error: " ++ err) >> loop flags f names tenv

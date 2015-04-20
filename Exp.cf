@@ -73,7 +73,7 @@ separator Branch ";" ;
 
 -- Labelled sum alternatives
 OLabel.   Label ::= AIdent [Tele] ;
-PLabel.   Label ::= AIdent [Tele] "<" [AIdent] ">" "@" System ;
+PLabel.   Label ::= AIdent [Tele] "<" [AIdent] ">" System ;
 separator Label "|" ;
 
 -- Telescopes

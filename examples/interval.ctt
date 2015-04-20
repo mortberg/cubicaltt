@@ -10,4 +10,4 @@ fext (A B : U) (f g : A -> B) (p : (x : A) -> Id B (f x) (g x)) :
   where htpy (x : A) : I -> B = split
           zero    -> f x
           one     -> g x
-          seg @ i -> (p x) @ i
+          seg @ i -> p x @ i

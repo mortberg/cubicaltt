@@ -12,7 +12,7 @@ data S1 = base
 
 foo : S1 = base
 
-loop' : Id S1 base base = <i> (loop {S1}) @ i
+loop' : Id S1 base base = <i> loop {S1} @ i
 
 
 -- new
@@ -42,11 +42,9 @@ data setTrunc (A : U)
        , (j=0) -> a
        , (j=1) -> b]
 
--- TODO: fix parsing: no parentheses should be necessary
-
 setTruncSet (A : U) : set (setTrunc A) =
    \(a b : setTrunc A) (p q : Id (setTrunc A) a b) ->
-     <i j> (setTr {setTrunc A} a b p q) @ i @ j
+     <i j> setTr {setTrunc A} a b p q @ i @ j
 
 
 setTruncRec (A : U)

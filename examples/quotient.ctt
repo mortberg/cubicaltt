@@ -1,0 +1,20 @@
+module quotient where
+
+import prelude
+
+-- Quotient A by R
+data Quot (A : U) (R : A -> A -> U) =
+    quot (a : A)
+  | identification (a b : A) (r : R a b) <i> [ (i = 0) -> quot a, (i = 1) -> quot b ]
+  | setTruncation (a b : Quot A R) (p q : Id (Quot A R) a b) <i j> 
+       [ (i = 0) -> p @ j
+       , (i = 1) -> q @ j
+       , (j = 0) -> a
+       , (j = 1) -> b ]
+
+identQuot (A : U) (R : A -> A -> U) (a b : A) (r : R a b)
+  : Id (Quot A R) (quot a) (quot b) = <i> identification {Quot A R} a b r @ i
+
+setQuot (A : U) (R : A -> A -> U) : set (Quot A R) =
+   \(a b : Quot A R) (p q : Id (Quot A R) a b) ->
+     <i j> setTruncation {Quot A R} a b p q @ i @ j

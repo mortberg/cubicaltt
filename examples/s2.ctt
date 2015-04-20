@@ -1,0 +1,12 @@
+module s2 where
+
+import prelude
+
+data S2 = base
+        | loop2 <i j> [ (i=0) -> base
+                      , (i=1) -> base
+                      , (j=0) -> base
+                      , (j=1) -> base]
+
+loop2' : Id (Id S2 base base) (refl S2 base) (refl S2 base) =
+  <i j> loop2 {S2} @ i @ j

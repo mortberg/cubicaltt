@@ -1,0 +1,28 @@
+module setTrunc where
+
+import prelude
+
+data setTrunc (A : U)
+  = inc (a : A)
+  | setTr (a b : setTrunc A) (p q : Id (setTrunc A) a b) <i j>
+       [ (i=0) -> p @ j
+       , (i=1) -> q @ j
+       , (j=0) -> a
+       , (j=1) -> b]
+
+setTruncSet (A : U) : set (setTrunc A) =
+   \(a b : setTrunc A) (p q : Id (setTrunc A) a b) ->
+     <i j> setTr {setTrunc A} a b p q @ i @ j
+
+
+setTruncRec (A : U)
+            (B : U)
+            (bS : set B)
+            (f : A -> B) :
+            setTrunc A -> B =
+  split
+    inc a -> f a
+    setTr a b p q @ i j -> (bS (setTruncRec A B bS f a)
+                               (setTruncRec A B bS f b)
+                               (<k> setTruncRec A B bS f (p @ k))
+                               (<k> setTruncRec A B bS f (q @ k))) @ i @ j

@@ -1,0 +1,11 @@
+module torus where
+
+import prelude
+
+data Torus = ptT
+           | pathOneT <i> [ (i=0) -> ptT, (i=1) -> ptT ]
+           | pathTwoT <i> [ (i=0) -> ptT, (i=1) -> ptT ]
+           | squareT <i j> [ (i=0) -> pathOneT {Torus} @ j
+                           , (i=1) -> pathOneT {Torus} @ j
+                           , (j=0) -> pathTwoT {Torus} @ i
+                           , (j=1) -> pathTwoT {Torus} @ i ]

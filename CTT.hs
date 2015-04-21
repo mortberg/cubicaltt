@@ -381,7 +381,7 @@ showVal v = case v of
   VPCon c a us phis -> text c <+> braces (showVal a) <+> showVals us
                        <+> (hsep $ map ((char '@' <+>) . showFormula) phis)
   VPi a l@(VLam x t b)
-    | "_" `isPrefixOf` x -> showVal1 a <+> text "->" <+> showVal1 b
+    | "_" `isPrefixOf` x -> showVal a <+> text "->" <+> showVal1 b
     | otherwise          -> char '(' <> showLam v
   VPi a b           -> text "Pi" <+> showVals [a,b]
   VPair u v         -> parens (showVal u <> comma <> showVal v)

@@ -795,6 +795,7 @@ instance Normal Val where
     Ter (Lam x t u) e   -> let w = eval e t
                                v@(VVar n _) = mkVarNice ns x w
                            in VLam n (normal ns w) $ normal (n:ns) (eval (Upd e (x,v)) u)
+    Ter t e             -> Ter t (normal ns e)
     VPi u v             -> VPi (normal ns u) (normal ns v)
     VSigma u v          -> VSigma (normal ns u) (normal ns v)
     VPair u v           -> VPair (normal ns u) (normal ns v)
@@ -815,6 +816,9 @@ instance Normal Val where
     VApp u v            -> app (normal ns u) (normal ns v)
     VAppFormula u phi   -> VAppFormula (normal ns u) phi
     _                   -> v
+
+instance Normal Env where
+  normal ns = mapEnv (normal ns) id
 
 instance Normal a => Normal (Map k a) where
   normal ns us = Map.map (normal ns) us

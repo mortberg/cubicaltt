@@ -239,19 +239,19 @@ propInvFormulaIncomp phi b = incomparables (invFormula phi b)
 -- testInvFormula = invFormula (Atom (Name 0) :/\: Atom (Name 1)) 1
 
 -- | Nominal
-gensym :: [Name] -> Name
-gensym xs = head (ys \\ xs)
-  where ys = map Name $ ["i","j","k","l"] ++ map (('i':) . show) [0..]
-
-gensymNice :: Name -> [Name] -> Name
-gensymNice i@(Name s) xs = head (ys \\ xs)
-  where ys = i:map (\n -> Name (s ++ show n)) [0..]
-
 -- gensym :: [Name] -> Name
--- gensym xs = Name ('?' : show max)
---   where max = maximum' [ read x | Name ('?':x) <- xs ]
---         maximum' [] = 0
---         maximum' xs = maximum xs + 1
+-- gensym xs = head (ys \\ xs)
+--   where ys = map Name $ ["i","j","k","l"] ++ map (('i':) . show) [0..]
+
+-- gensymNice :: Name -> [Name] -> Name
+-- gensymNice i@(Name s) xs = head (ys \\ xs)
+--   where ys = i:map (\n -> Name (s ++ show n)) [0..]
+
+gensym :: [Name] -> Name
+gensym xs = Name ('?' : show max)
+  where max = maximum' [ read x | Name ('?':x) <- xs ]
+        maximum' [] = 0
+        maximum' xs = maximum xs + 1
 
 gensyms :: [Name] -> [Name]
 gensyms d = let x = gensym d in x : gensyms (x : d)
@@ -264,8 +264,8 @@ class Nominal a where
 fresh :: Nominal a => a -> Name
 fresh = gensym . support
 
-freshNice :: Nominal a => Name -> a -> Name
-freshNice i = gensymNice i . support
+-- freshNice :: Nominal a => Name -> a -> Name
+-- freshNice i = gensymNice i . support
 
 freshs :: Nominal a => a -> [Name]
 freshs = gensyms . support

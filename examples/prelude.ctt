@@ -146,7 +146,13 @@ data Unit = tt
 data or (A B : U) = inl (a : A)
                   | inr (b : B)
 
+stable (A:U) : U = neg (neg A) -> A
+
 dec (A : U) : U = or A (neg A)
+
+decStable (A:U) : dec A -> stable A = split
+ inl a -> \ (h :neg (neg A)) -> a
+ inr b -> \ (h :neg (neg A)) -> efq A (h b)
 
 discrete (A : U) : U = (a b : A) -> dec (Id A a b)
 

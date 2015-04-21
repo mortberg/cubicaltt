@@ -10,20 +10,19 @@ decEqCong (A B : U) (f : A -> B) (g : B -> A) : dec A -> dec B = split
 
 exConst (A : U) : U = (f:A -> A) * const A f
 
-decConst (A : U) : dec A -> exConst A = split
-  inl a -> (\ (x:A)  -> a, \ (x y:A) -> refl A a)
-  inr h -> (\ (x:A) -> x, \ (x y:A) -> efq (Id A x y) (h x))
+stableConst (A : U) (sA: stable A) : exConst A = 
+ (\ (x:A) -> sA (dNeg A x),\ (x y:A) -> <i>sA (propNeg (neg A) (dNeg A x) (dNeg A y) @ i))
 
 hedbergLemma (A: U) (a b:A) (f : (x : A) -> Id A a x -> Id A a x) (p : Id A a b) :
             Square A a a (refl A a) a b p (f a (refl A a)) (f b p) = 
  transport (<i>Square A a a (refl A a) a (p@i) (<j>p@i/\j) (f a (refl A a)) (f (p@i) (<j>p@i/\j)))
     (<i>(f a (refl A a)))
 
-hedberg (A:U) (a b:A) (h: (x:A) -> dec (Id A a x)) (p q : Id A a b) : Id (Id A a b) p q =
+hedberg (A:U) (a b:A) (h: (x:A) -> stable (Id A a x)) (p q : Id A a b) : Id (Id A a b) p q =
  <j i>comp A a [(j=0) -> rem2 @ i, (j=1) -> rem3 @ i, (i=0) -> r, (i=1) -> rem4 @ j]
  where 
    ra : Id A a a = refl A a 
-   rem1 (x:A) : exConst (Id A a x) = decConst (Id A a x) (h x)
+   rem1 (x:A) : exConst (Id A a x) = stableConst (Id A a x) (h x)
    f (x:A) : Id A a x -> Id A a x  = (rem1 x).1
    fIsConst (x : A) : const (Id A a x) (f x) = (rem1 x).2
    rem4 : Square A a a ra b b (refl A b) (f b p) (f b q)  = fIsConst b p q
@@ -31,5 +30,16 @@ hedberg (A:U) (a b:A) (h: (x:A) -> dec (Id A a x)) (p q : Id A a b) : Id (Id A a
    rem2 : Square A a a ra a b p r (f b p) = hedbergLemma A a b f p
    rem3 : Square A a a ra a b q r (f b q) = hedbergLemma A a b f q
 
+hedbergS (A:U) (h : (a x:A) -> stable (Id A a x)) : set A =
+ \ (a b:A) -> hedberg A a b (h a)
+
+{- normal form
+ \(A : U) -> 
+ \(h : (a x : A) -> (((IdP (<!0> A) a x) -> N0) -> N0) -> (IdP (<!0> A) a x)) -> 
+ \(a b : A) -> 
+ \(p q : IdP (<!0> A) a b) ->
+ <!0 !1> comp A a [ (!0 = 0) -> <!2> comp A (comp A (h a a (\(h0 : (IdP (<!0> A) a a) -> N0) -> h0 (<!0> a)) @ !2) [ (!2 = 1) -> <!3> p @ (!3 /\ !1) ]) [ (!1 = 1) -> <!3> comp A (h a (p @ !3) (\(h0 : (IdP (<!1> A) a (p @ !3)) -> N0) -> h0 (<!1> p @ (!3 /\ !1))) @ !2) [ (!2 = 1) -> <!4> p @ (!3 \/ !4) ] ], (!0 = 1) -> <!2> comp A (comp A (h a a (\(h0 : (IdP (<!0> A) a a) -> N0) -> h0 (<!0> a)) @ !2) [ (!2 = 1) -> <!3> q @ (!3 /\ !1) ]) [ (!1 = 1) -> <!3> comp A (h a (q @ !3) (\(h0 : (IdP (<!1> A) a (q @ !3)) -> N0) -> h0 (<!1> q @ (!3 /\ !1))) @ !2) [ (!2 = 1) -> <!4> q @ (!3 \/ !4) ] ], (!1 = 0) -> <!2> h a a (\(h0 : (IdP (<!0> A) a a) -> N0) -> h0 (<!0> a)) @ !2, (!1 = 1) -> <!2> h a b (\(x : (IdP (<!0> A) a b) -> N0) -> efq (IdP (<!0> N0) (x p) (x q)) (x p) @ !0) @ !2 ]
+-}
+
 corrhedberg (A:U) (h : discrete A) : set A =
- \ (a b :A) -> hedberg A a b (h a)
+ \ (a b :A) -> hedberg A a b (\ (b:A) -> decStable (Id A a b) (h a b))

@@ -1,0 +1,62 @@
+module other where
+
+import retract
+
+propUnit : prop Unit = rem
+ where rem1 : (x:Unit) -> Id Unit x tt = split tt -> refl Unit tt
+       rem (x:Unit) : (y:Unit) -> Id Unit x y = split tt -> rem1 x
+
+setUnit : set Unit = propSet Unit propUnit
+
+propSingl (A:U) (a:A) (u v : singl A a) : Id (singl A a) u v =
+ compId (singl A a) u (a,refl A a) v (<i>(contrSingl A a u.1 u.2)@-i) (contrSingl A a v.1 v.2)
+
+singlN (A:U) (a:A) : U = (x:A) * neg (neg (Id A a x))
+
+injN (A:U) (a:A) : singlN A a = (a,\ (h:neg (Id A a a)) -> h (refl A a))
+
+lem1 (A:U) (a:A) (h:(x:A) -> stable (Id A a x)) : prop (singlN A a) = 
+ retractProp T (singl A a) f g rfg (propSingl A a)
+ where
+  T :U = (x:A) * neg (neg (Id A a x))
+  f (u:T) : singl A a = (u.1,h u.1 u.2)
+  g (u:singl A a) : T = (u.1,\ (z:neg (Id A a u.1)) -> z u.2)
+  rfg (u:T) : Id T (g (f u)) u = <i>(u.1,(propNeg (neg (Id A a u.1)) (g (f u)).2 u.2)@i)
+ 
+cor1 (A:U) (a:A) (h:(x:A) -> stable (Id A a x)) : set (singlN A a) = 
+ propSet (singlN A a) (lem1 A a h)
+
+lem2 (A:U) (a:A) (h:(x:A) -> stable (Id A a x)) : prop (Id A a a) = 
+ retractProp (Id A a a) B f g rfg (cor1 A a h ia ia)
+ where
+ ia : singlN A a = injN A a 
+ B : U = Id (singlN A a) ia ia
+ P (x:A) : U = neg (neg (Id A a x))
+ pP (x:A) : prop (P x) = propNeg (neg (Id A a x))
+ na : P a = \ (h:neg (Id A a a)) -> h (refl A a)
+ f (p:Id A a a) : B = <i>(p@i,(lemPropF A P pP a a p na na)@i)
+ g (p:B) : Id A a a = <i>(p@i).1
+ rfg (p:Id A a a) : Id (Id A a a) (g (f p)) p = refl (Id A a a) p
+
+lem3 (A:U) (h : (a:A) -> prop (Id A a a)) (a b:A) (p q : Id A a b) : Id (Id A a b) p q =
+ transport (<i>prop (Id A a (p@i))) (h a) p q
+
+{-
+ \(A : U) -> 
+ \(h : (a : A) -> (a0 : IdP (<i> A) a a) -> (b : IdP (<i> A) a a) -> IdP (<i> IdP (<i> A) a a) a0 b) -> 
+ \(a : A) -> 
+ \(b : A) -> 
+ \(p : IdP (<i> A) a b) -> \(q : IdP (<i> A) a b) -> 
+ <j> <k> comp A (comp A (h a (<j> comp A (p @ j) [ (j = 1) -> <i> p @ -i ]) (<j> comp A (q @ j) [ (j = 1) -> <i> p @ -i ]) @ j @ k) [ (k = 1) -> <i> p @ i ]) [ (j = 0) -> <i> comp A (comp A (p @ k) [ (k = 1) -> <j> p @ (i \/ -j) ]) [ (k = 1) -> <j> p @ (i \/ j) ], (j = 1) -> <i> comp A (comp A (q @ k) [ (k = 1) -> <j> p @ (i \/ -j) ]) [ (k = 1) -> <j> p @ (i \/ j) ] ]
+-}
+
+hedberg (A:U) (h : (a x:A) -> stable (Id A a x)) : set A =
+ lem3 A (\ (a:A) -> lem2 A a (h a))
+
+{- normal form
+ \(A : U) ->
+ \(h : (a x : A) -> (((IdP (<!0> A) a x) -> N0) -> N0) -> (IdP (<!0> A) a x)) ->
+ \(a b : A) ->
+ \(p q : IdP (<!0> A) a b) -> 
+ <!1 !2> comp A (comp A (comp A a [ (!1 = 0) -> <!3> comp A (h a a (\(h0 : (IdP (<!0> A) a a) -> N0) -> h0 (<!0> a)) @ -!3) [ (!3 = 1) -> <!4> h a (comp A (p @ !2) [ (!2 = 1) -> <!3> p @ -!3 ]) (\(x : (IdP (<!1> A) a (comp A (p @ !2) [ (!2 = 1) -> <!3> p @ -!3 ])) -> N0) -> efq (IdP (<!3> N0) (x (<!4> comp A a [ (!4 = 1) -> <!3> comp A (p @ (!2 /\ !3)) [ (!2 = 1)(!3 = 1) -> <!4> p @ -!4 ] ])) (x (<!4> comp A a [ (!4 = 1) -> <!3> comp A (p @ (!2 \/ -!3)) [ (!2 = 1) -> <!4> p @ -!4, (!3 = 0) -> <!4> p @ -!4 ] ]))) (x (<!4> comp A a [ (!4 = 1) -> <!5> comp A (p @ (!2 /\ !5)) [ (!2 = 1)(!5 = 1) -> <!6> p @ -!6 ] ])) @ !2) @ !4 ], (!1 = 1) -> <!3> comp A (h a a (\(h0 : (IdP (<!0> A) a a) -> N0) -> h0 (<!0> a)) @ -!3) [ (!3 = 1) -> <!4> h a (comp A (q @ !2) [ (!2 = 1) -> <!3> p @ -!3 ]) (\(x : (IdP (<!1> A) a (comp A (q @ !2) [ (!2 = 1) -> <!3> p @ -!3 ])) -> N0) -> efq (IdP (<!3> N0) (x (<!4> comp A a [ (!4 = 1) -> <!3> comp A (q @ (!2 /\ !3)) [ (!2 = 1)(!3 = 1) -> <!4> p @ -!4 ] ])) (x (<!4> comp A a [ (!4 = 1) -> <!3> comp A (q @ (!2 \/ -!3)) [ (!2 = 1) -> <!4> p @ -!4, (!3 = 0) -> <!4> p @ -!4 ] ]))) (x (<!4> comp A a [ (!4 = 1) -> <!5> comp A (q @ (!2 /\ !5)) [ (!2 = 1)(!5 = 1) -> <!6> p @ -!6 ] ])) @ !2) @ !4 ], (!2 = 0) -> <!3> comp A (h a a (\(h0 : (IdP (<!0> A) a a) -> N0) -> h0 (<!0> a)) @ -!3) [ (!3 = 1) -> <!4> h a a (\(h0 : (IdP (<!0> A) a a) -> N0) -> h0 (<!0> a)) @ !4 ], (!2 = 1) -> <!3> comp A (h a a (\(h0 : (IdP (<!0> A) a a) -> N0) -> h0 (<!0> a)) @ -!3) [ (!3 = 1) -> <!4> h a a (\(h0 : (IdP (<!0> A) a a) -> N0) -> h0 (<!0> a)) @ !4 ] ]) [ (!2 = 1) -> <!3> p @ !3 ]) [ (!1 = 0) -> <!3> comp A (comp A (p @ !2) [ (!2 = 1) -> <!4> p @ (!3 \/ -!4) ]) [ (!2 = 1) -> <!4> p @ (!3 \/ !4) ], (!1 = 1) -> <!3> comp A (comp A (q @ !2) [ (!2 = 1) -> <!4> p @ (!3 \/ -!4) ]) [ (!2 = 1) -> <!4> p @ (!3 \/ !4) ] ]
+-}

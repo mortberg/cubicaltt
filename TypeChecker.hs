@@ -20,15 +20,15 @@ type Typing a = ReaderT TEnv (ExceptT String IO) a
 
 -- Environment for type checker
 data TEnv =
-  TEnv { index   :: Int   -- for de Bruijn levels
+  TEnv { names   :: [String]  -- generated names
        , indent  :: Int
        , env     :: Env
        , verbose :: Bool  -- Should it be verbose and print what it typechecks?
        } deriving (Eq,Show)
 
 verboseEnv, silentEnv :: TEnv
-verboseEnv = TEnv 0 0 Empty True
-silentEnv  = TEnv 0 0 Empty False
+verboseEnv = TEnv [] 0 Empty True
+silentEnv  = TEnv [] 0 Empty False
 
 -- Trace function that depends on the verbosity flag
 trace :: String -> Typing ()
@@ -62,11 +62,12 @@ runInfer lenv e = runTyping lenv (infer e)
 -- | Modifiers for the environment
 
 addTypeVal :: (Ident,Val) -> TEnv -> TEnv
-addTypeVal (x,a) (TEnv k ind rho v) =
-  TEnv (k+1) ind (Upd rho (x,mkVar k x a)) v
+addTypeVal (x,a) (TEnv ns ind rho v) =
+  let w@(VVar n _) = mkVarNice ns x a
+  in TEnv (n:ns) ind (Upd rho (x,w)) v
 
 addSub :: (Name,Formula) -> TEnv -> TEnv
-addSub iphi (TEnv k ind rho v) = TEnv k ind (Sub rho iphi) v
+addSub iphi (TEnv ns ind rho v) = TEnv ns ind (Sub rho iphi) v
 
 addSubs :: [(Name,Formula)] -> TEnv -> TEnv
 addSubs = flip $ foldr addSub
@@ -75,11 +76,11 @@ addType :: (Ident,Ter) -> TEnv -> TEnv
 addType (x,a) tenv@(TEnv _ _ rho _) = addTypeVal (x,eval rho a) tenv
 
 addBranch :: [(Ident,Val)] -> Env -> TEnv -> TEnv
-addBranch nvs env (TEnv k ind rho v) =
-  TEnv (k + length nvs) ind (upds rho nvs) v
+addBranch nvs env (TEnv ns ind rho v) =
+  TEnv ([n | (_,VVar n _) <- nvs] ++ ns) ind (upds rho nvs) v
 
 addDecls :: [Decl] -> TEnv -> TEnv
-addDecls d (TEnv k ind rho v) = TEnv k ind (Def d rho) v
+addDecls d (TEnv ns ind rho v) = TEnv ns ind (Def d rho) v
 
 addTele :: Tele -> TEnv -> TEnv
 addTele xas lenv = foldl (flip addType) lenv xas
@@ -106,11 +107,11 @@ unlessM mb x = mb >>= flip unless x
 constPath :: Val -> Val
 constPath = VPath (Name "_")
 
-mkVars :: Int -> Tele -> Env -> [(Ident,Val)]
+mkVars :: [String] -> Tele -> Env -> [(Ident,Val)]
 mkVars _ [] _           = []
-mkVars k ((x,a):xas) nu =
-  let w = mkVar k x (eval nu a)
-  in (x,w) : mkVars (k+1) xas (Upd nu (x,w))
+mkVars ns ((x,a):xas) nu =
+  let w@(VVar n _) = mkVarNice ns x (eval nu a)
+  in (x,w) : mkVars (n:ns) xas (Upd nu (x,w))
 
 -- Construct a fuction "(_ : va) -> vb"
 mkFun :: Val -> Val -> Val
@@ -126,7 +127,7 @@ mkSection vb vf vg =
 
 -- Test if two values are convertible
 (===) :: Convertible a => a -> a -> Typing Bool
-u === v = conv <$> asks index <*> pure u <*> pure v
+u === v = conv <$> asks names <*> pure u <*> pure v
 
 -- eval in the typing monad
 evalTyping :: Ter -> Typing Val
@@ -142,10 +143,9 @@ check a t = case (a,t) of
   (_,Hole l)  -> do
       rho <- asks env
       let e = unlines (reverse (contextOfEnv rho))
---      k <- asks index
-      -- TODO: Fix
+      ns <- asks names
       trace $ "\nHole at " ++ show l ++ ":\n\n" ++
-              e ++ replicate 80 '-' ++ "\n" ++ show (normal [] a)  ++ "\n"
+              e ++ replicate 80 '-' ++ "\n" ++ show (normal ns a)  ++ "\n"
   (_,Con c es) -> do
     (bs,nu) <- getLblType c a
     checks (bs,nu) es
@@ -177,11 +177,11 @@ check a t = case (a,t) of
        else throwError "case branches does not match the data type"
   (VPi a f,Lam x a' t)  -> do
     check VU a'
-    k <- asks index
+    ns <- asks names
     rho <- asks env
     unlessM (a === eval rho a') $
       throwError "check: lam types don't match"
-    let var = mkVar k x a
+    let var = mkVarNice ns x a
     local (addTypeVal (x,a)) $ check (app f var) t
   (VSigma a f, Pair t1 t2) -> do
     check a t1
@@ -196,8 +196,8 @@ check a t = case (a,t) of
     check a1 e1
   (VIdP p a0 a1,Path _ e) -> do
     (u0,u1) <- checkPath p t
-    k <- asks index
-    unless (conv k a0 u0 && conv k a1 u1) $
+    ns <- asks names
+    unless (conv ns a0 u0 && conv ns a1 u1) $
       throwError $ "path endpoints don't match for " ++ show e ++ ", got " ++
                    show (u0,u1) ++ ", but expected " ++ show (a0,a1)
   (VU,Glue a ts) -> do
@@ -241,8 +241,8 @@ checkFam x = throwError $ "checkFam: " ++ show x
 -- Check that a system is compatible
 checkCompSystem :: System Val -> Typing ()
 checkCompSystem vus = do
-  k <- asks index
-  unless (isCompSystem k vus)
+  ns <- asks names
+  unless (isCompSystem ns vus)
     (throwError $ "Incompatible system " ++ show vus)
 
 -- Check the values at corresponding faces with a function, assumes
@@ -294,13 +294,13 @@ checkIso vb (Pair a (Pair f (Pair g (Pair s t)))) = do
 
 checkBranch :: (Label,Env) -> Val -> Branch -> Val -> Val -> Typing ()
 checkBranch (OLabel _ tele,nu) f (OBranch c ns e) _ _ = do
-  k <- asks index
-  let us = map snd $ mkVars k tele nu
+  ns' <- asks names
+  let us = map snd $ mkVars ns' tele nu
   local (addBranch (zip ns us) nu) $ check (app f (VCon c us)) e
 checkBranch (PLabel _ tele is ts,nu) f (PBranch c ns js e) g va = do
-  k <- asks index
+  ns' <- asks names
   mapM_ checkFresh js
-  let us   = mkVars k tele nu
+  let us   = mkVars ns' tele nu
       vus  = map snd us
       js'  = map Atom js
       vts  = evalSystem (subs (upds nu us) (zip is js')) ts

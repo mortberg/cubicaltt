@@ -675,109 +675,109 @@ eqLemma e ts a = (t,VPath j theta'')
 -- | Conversion
 
 class Convertible a where
-  conv :: Int -> a -> a -> Bool
+  conv :: [String] -> a -> a -> Bool
 
-isIndep :: (Nominal a, Convertible a) => Int -> Name -> a -> Bool
-isIndep k i u = conv k u (u `face` (i ~> 0))
+isIndep :: (Nominal a, Convertible a) => [String] -> Name -> a -> Bool
+isIndep ns i u = conv ns u (u `face` (i ~> 0))
 
-isCompSystem :: (Nominal a, Convertible a) => Int -> System a -> Bool
-isCompSystem k ts = and [ conv k (getFace alpha beta) (getFace beta alpha)
-                        | (alpha,beta) <- allCompatible (keys ts) ]
+isCompSystem :: (Nominal a, Convertible a) => [String] -> System a -> Bool
+isCompSystem ns ts = and [ conv ns (getFace alpha beta) (getFace beta alpha)
+                         | (alpha,beta) <- allCompatible (keys ts) ]
     where getFace a b = face (ts ! a) (b `minus` a)
 
-instance Convertible Val where
-  conv k u v | u == v    = True
-             | otherwise =
-    let j = fresh (u,v)
-    in case (simplify k j u, simplify k j v) of
-      (Ter (Lam x a u) e,Ter (Lam x' a' u') e') ->
-        let v = mkVar k x (eval e a)
-        in conv (k+1) (eval (Upd e (x,v)) u) (eval (Upd e' (x',v)) u')
-      (Ter (Lam x a u) e,u') ->
-        let v = mkVar k x (eval e a)
-        in conv (k+1) (eval (Upd e (x,v)) u) (app u' v)
-      (u',Ter (Lam x a u) e) ->
-        let v = mkVar k x (eval e a)
-        in conv (k+1) (app u' v) (eval (Upd e (x,v)) u)
-      (Ter (Split _ p _ _) e,Ter (Split _ p' _ _) e') -> (p == p') && conv k e e'
-      (Ter (Sum p _ _) e,Ter (Sum p' _ _) e')         -> (p == p') && conv k e e'
-      (Ter (Undef p _) e,Ter (Undef p' _) e') -> p == p' && conv k e e'
-      (Ter (Hole p) e,Ter (Hole p') e') -> p == p' && conv k e e'
-      -- (Ter Hole{} e,_) -> True
-      -- (_,Ter Hole{} e') -> True
-      (VPi u v,VPi u' v') ->
-        let w = mkVar k "X" u
-        in conv k u u' && conv (k+1) (app v w) (app v' w)
-      (VSigma u v,VSigma u' v') ->
-        let w = mkVar k "X" u
-        in conv k u u' && conv (k+1) (app v w) (app v' w)
-      (VCon c us,VCon c' us')   -> (c == c') && conv k us us'
-      (VPCon c v us phis,VPCon c' v' us' phis') ->
-        (c == c') && conv k (v,us,phis) (v',us',phis')
-      (VPair u v,VPair u' v')    -> conv k u u' && conv k v v'
-      (VPair u v,w)              -> conv k u (fstVal w) && conv k v (sndVal w)
-      (w,VPair u v)              -> conv k (fstVal w) u && conv k (sndVal w) v
-      (VFst u,VFst u')           -> conv k u u'
-      (VSnd u,VSnd u')           -> conv k u u'
-      (VApp u v,VApp u' v')      -> conv k u u' && conv k v v'
-      (VSplit u v,VSplit u' v')  -> conv k u u' && conv k v v'
-      (VVar x _, VVar x' _)      -> x == x'
-      (VIdP a b c,VIdP a' b' c') -> conv k a a' && conv k b b' && conv k c c'
-      (VPath i a,VPath i' a')    -> conv k (a `swap` (i,j)) (a' `swap` (i',j))
-      (VPath i a,p')             -> conv k (a `swap` (i,j)) (p' @@ j)
-      (p,VPath i' a')            -> conv k (p @@ j) (a' `swap` (i',j))
-      (VTrans p u,VTrans p' u')  -> conv k p p' && conv k u u'
-      (VAppFormula u x,VAppFormula u' x') -> conv k (u,x) (u',x')
-      (VComp a u ts,VComp a' u' ts') -> conv k (a,u,ts) (a',u',ts')
-      (VGlue v hisos,VGlue v' hisos') -> conv k (v,hisos) (v',hisos')
-      (VGlueElem u us,VGlueElem u' us') -> conv k (u,us) (u',us')
-      (VCompElem a es u us,VCompElem a' es' u' us') ->
-        conv k (a,es,u,us) (a',es',u',us')
-      (VElimComp a es u,VElimComp a' es' u') -> conv k (a,es,u) (a',es',u')
-      _                         -> False
-
-simplify :: Int -> Name -> Val -> Val
-simplify k j v = case v of
-  VTrans p u | isIndep k j (p @@ j) -> simplify k j u
+simplify :: [String] -> Name -> Val -> Val
+simplify ns j v = case v of
+  VTrans p u | isIndep ns j (p @@ j) -> simplify ns j u
   VComp a u ts ->
-    let (indep,ts') = Map.partition (\t -> isIndep k j (t @@ j)) ts
-    in if Map.null ts' then simplify k j u else VComp a u ts'
+    let (indep,ts') = Map.partition (\t -> isIndep ns j (t @@ j)) ts
+    in if Map.null ts' then simplify ns j u else VComp a u ts'
   VCompElem a es u us ->
-    let (indep,es') = Map.partition (\e -> isIndep k j (e @@ j)) es
+    let (indep,es') = Map.partition (\e -> isIndep ns j (e @@ j)) es
         us'         = intersection us es'
-    in if Map.null es' then simplify k j u else VCompElem a es' u us'
+    in if Map.null es' then simplify ns j u else VCompElem a es' u us'
   VElimComp a es u ->
-    let (indep,es') = Map.partition (\e -> isIndep k j (e @@ j)) es
-        u'          = simplify k j u
+    let (indep,es') = Map.partition (\e -> isIndep ns j (e @@ j)) es
+        u'          = simplify ns j u
     in if Map.null es' then u' else case u' of
-      VCompElem _ _ w _ -> simplify k j w
+      VCompElem _ _ w _ -> simplify ns j w
       _ -> VElimComp a es' u'
   _ -> v
 
+instance Convertible Val where
+  conv ns u v | u == v    = True
+              | otherwise =
+    let j = fresh (u,v)
+    in case (simplify ns j u, simplify ns j v) of
+      (Ter (Lam x a u) e,Ter (Lam x' a' u') e') ->
+        let v@(VVar n _) = mkVarNice ns x (eval e a)
+        in conv (n:ns) (eval (Upd e (x,v)) u) (eval (Upd e' (x',v)) u')
+      (Ter (Lam x a u) e,u') ->
+        let v@(VVar n _) = mkVarNice ns x (eval e a)
+        in conv (n:ns) (eval (Upd e (x,v)) u) (app u' v)
+      (u',Ter (Lam x a u) e) ->
+        let v@(VVar n _) = mkVarNice ns x (eval e a)
+        in conv (n:ns) (app u' v) (eval (Upd e (x,v)) u)
+      (Ter (Split _ p _ _) e,Ter (Split _ p' _ _) e') -> (p == p') && conv ns e e'
+      (Ter (Sum p _ _) e,Ter (Sum p' _ _) e')         -> (p == p') && conv ns e e'
+      (Ter (Undef p _) e,Ter (Undef p' _) e') -> p == p' && conv ns e e'
+      (Ter (Hole p) e,Ter (Hole p') e') -> p == p' && conv ns e e'
+      -- (Ter Hole{} e,_) -> True
+      -- (_,Ter Hole{} e') -> True
+      (VPi u v,VPi u' v') ->
+        let w@(VVar n _) = mkVarNice ns "X" u
+        in conv ns u u' && conv (n:ns) (app v w) (app v' w)
+      (VSigma u v,VSigma u' v') ->
+        let w@(VVar n _) = mkVarNice ns "X" u
+        in conv ns u u' && conv (n:ns) (app v w) (app v' w)
+      (VCon c us,VCon c' us')   -> (c == c') && conv ns us us'
+      (VPCon c v us phis,VPCon c' v' us' phis') ->
+        (c == c') && conv ns (v,us,phis) (v',us',phis')
+      (VPair u v,VPair u' v')    -> conv ns u u' && conv ns v v'
+      (VPair u v,w)              -> conv ns u (fstVal w) && conv ns v (sndVal w)
+      (w,VPair u v)              -> conv ns (fstVal w) u && conv ns (sndVal w) v
+      (VFst u,VFst u')           -> conv ns u u'
+      (VSnd u,VSnd u')           -> conv ns u u'
+      (VApp u v,VApp u' v')      -> conv ns u u' && conv ns v v'
+      (VSplit u v,VSplit u' v')  -> conv ns u u' && conv ns v v'
+      (VVar x _, VVar x' _)      -> x == x'
+      (VIdP a b c,VIdP a' b' c') -> conv ns a a' && conv ns b b' && conv ns c c'
+      (VPath i a,VPath i' a')    -> conv ns (a `swap` (i,j)) (a' `swap` (i',j))
+      (VPath i a,p')             -> conv ns (a `swap` (i,j)) (p' @@ j)
+      (p,VPath i' a')            -> conv ns (p @@ j) (a' `swap` (i',j))
+      (VTrans p u,VTrans p' u')  -> conv ns p p' && conv ns u u'
+      (VAppFormula u x,VAppFormula u' x') -> conv ns (u,x) (u',x')
+      (VComp a u ts,VComp a' u' ts') -> conv ns (a,u,ts) (a',u',ts')
+      (VGlue v hisos,VGlue v' hisos') -> conv ns (v,hisos) (v',hisos')
+      (VGlueElem u us,VGlueElem u' us') -> conv ns (u,us) (u',us')
+      (VCompElem a es u us,VCompElem a' es' u' us') ->
+        conv ns (a,es,u,us) (a',es',u',us')
+      (VElimComp a es u,VElimComp a' es' u') -> conv ns (a,es,u) (a',es',u')
+      _                         -> False
+
 instance Convertible Env where
-  conv k e e' = conv k (valAndFormulaOfEnv e) (valAndFormulaOfEnv e')
+  conv ns e e' = conv ns (valAndFormulaOfEnv e) (valAndFormulaOfEnv e')
 
 instance Convertible () where
   conv _ _ _ = True
 
 instance (Convertible a, Convertible b) => Convertible (a, b) where
-  conv k (u, v) (u', v') = conv k u u' && conv k v v'
+  conv ns (u, v) (u', v') = conv ns u u' && conv ns v v'
 
 instance (Convertible a, Convertible b, Convertible c)
       => Convertible (a, b, c) where
-  conv k (u, v, w) (u', v', w') = conv k (u,(v,w)) (u',(v',w'))
+  conv ns (u, v, w) (u', v', w') = conv ns (u,(v,w)) (u',(v',w'))
 
 instance (Convertible a,Convertible b,Convertible c,Convertible d)
       => Convertible (a,b,c,d) where
-  conv k (u,v,w,x) (u',v',w',x') = conv k (u,v,(w,x)) (u',v',(w',x'))
+  conv ns (u,v,w,x) (u',v',w',x') = conv ns (u,v,(w,x)) (u',v',(w',x'))
 
 instance Convertible a => Convertible [a] where
-  conv k us us' = length us == length us' &&
-                  and [conv k u u' | (u,u') <- zip us us']
+  conv ns us us' = length us == length us' &&
+                  and [conv ns u u' | (u,u') <- zip us us']
 
 instance Convertible a => Convertible (System a) where
-  conv k ts ts' = keys ts == keys ts' &&
-                  and (elems (intersectionWith (conv k) ts ts'))
+  conv ns ts ts' = keys ts == keys ts' &&
+                   and (elems (intersectionWith (conv ns) ts ts'))
 
 instance Convertible Formula where
   conv _ phi psi = dnf phi == dnf psi

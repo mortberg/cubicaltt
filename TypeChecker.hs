@@ -74,8 +74,8 @@ addSubs = flip $ foldr addSub
 addType :: (Ident,Ter) -> TEnv -> TEnv
 addType (x,a) tenv@(TEnv _ _ rho _) = addTypeVal (x,eval rho a) tenv
 
-addBranch :: [(Ident,Val)] -> (Tele,Env) -> TEnv -> TEnv
-addBranch nvs (tele,env) (TEnv k ind rho v) =
+addBranch :: [(Ident,Val)] -> Env -> TEnv -> TEnv
+addBranch nvs env (TEnv k ind rho v) =
   TEnv (k + length nvs) ind (upds rho nvs) v
 
 addDecls :: [Decl] -> TEnv -> TEnv
@@ -107,7 +107,7 @@ constPath :: Val -> Val
 constPath = VPath (Name "_")
 
 mkVars :: Int -> Tele -> Env -> [(Ident,Val)]
-mkVars k [] _ = []
+mkVars _ [] _           = []
 mkVars k ((x,a):xas) nu =
   let w = mkVar k x (eval nu a)
   in (x,w) : mkVars (k+1) xas (Upd nu (x,w))
@@ -296,7 +296,7 @@ checkBranch :: (Label,Env) -> Val -> Branch -> Val -> Val -> Typing ()
 checkBranch (OLabel _ tele,nu) f (OBranch c ns e) _ _ = do
   k <- asks index
   let us = map snd $ mkVars k tele nu
-  local (addBranch (zip ns us) (tele,nu)) $ check (app f (VCon c us)) e
+  local (addBranch (zip ns us) nu) $ check (app f (VCon c us)) e
 checkBranch (PLabel _ tele is ts,nu) f (PBranch c ns js e) g va = do
   k <- asks index
   mapM_ checkFresh js
@@ -305,7 +305,7 @@ checkBranch (PLabel _ tele is ts,nu) f (PBranch c ns js e) g va = do
       js'  = map Atom js
       vts  = evalSystem (subs (upds nu us) (zip is js')) ts
       vfts = intersectionWith app (border g ts) vts
-  local (addSubs (zip js js') . addBranch (zip ns vus) (tele,nu)) $ do
+  local (addSubs (zip js js') . addBranch (zip ns vus) nu) $ do
     check (app f (VPCon c va vus js')) e
     ve  <- evalTyping e -- TODO: combine with next line?
     unlessM (border ve ts === vfts) $

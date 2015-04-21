@@ -60,7 +60,7 @@ helixSet : (x:S1) -> set (helix x) = lemPropFib (\ (x:S1) -> set (helix x)) rem 
  where rem (x:S1) : prop (set (helix x)) = setIsProp (helix x)
 
 retHelix (x:S1) (p : Id S1 base x) : Id (Id S1 base x) (decode x (encode x p)) p = 
- transport (<i>Id (Id S1 base p@i) (decode p@i (encode p@i (<j>p@(i/\j)))) (<j>p@(i/\j))) (refl loopS1 triv)
+ transport (<i>Id (Id S1 base (p@i)) (decode (p@i) (encode (p@i) (<j>p@(i/\j)))) (<j>p@(i/\j))) (refl loopS1 triv)
 
 setLoop : set loopS1 = retractSet loopS1 Z (encode base) (decode base) (retHelix base) ZSet
 
@@ -99,7 +99,7 @@ lemSetTorus (E : S1 -> S1 -> U) (sE : set (E base base))
       pP (y:S1) : prop (P y) = rem3
         where
           rem1 : Id U (P y) (Id (E base y) (subst S1 (G y) base base loop1 (f y)) (f y))
-            = funDepTr (G y base) (G y base) (<j>G y loop{S1}@j) (f y) (f y)
+            = funDepTr (G y base) (G y base) (<j>G y (loop{S1} @ j)) (f y) (f y)
 
           rem2 : prop (Id (E base y) (subst S1 (G y) base base loop1 (f y)) (f y))
             = sbE y (subst S1 (G y) base base loop1 (f y)) (f y)

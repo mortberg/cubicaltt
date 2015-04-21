@@ -2,12 +2,6 @@ module other where
 
 import retract
 
-propUnit : prop Unit = rem
- where rem1 : (x:Unit) -> Id Unit x tt = split tt -> refl Unit tt
-       rem (x:Unit) : (y:Unit) -> Id Unit x y = split tt -> rem1 x
-
-setUnit : set Unit = propSet Unit propUnit
-
 propSingl (A:U) (a:A) (u v : singl A a) : Id (singl A a) u v =
  compId (singl A a) u (a,refl A a) v (<i>(contrSingl A a u.1 u.2)@-i) (contrSingl A a v.1 v.2)
 

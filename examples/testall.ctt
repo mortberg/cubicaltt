@@ -6,12 +6,15 @@ import uafunext2
 import helix
 import susp
 import ex1
-import integer
 import setTrunc
-import newhedberg
 import prop
 import quotient
 import torus
 import s2
 import uafunext1
 import list
+import hedberg
+import newhedberg
+import other
+-- integer has to be after hedberg as it redefines neg
+import integer

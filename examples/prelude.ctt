@@ -143,16 +143,44 @@ neg (A : U) : U = A -> N0
 
 data Unit = tt
 
+propUnit : prop Unit = rem
+ where rem1 : (x:Unit) -> Id Unit x tt = split tt -> refl Unit tt
+       rem (x:Unit) : (y:Unit) -> Id Unit x y = split tt -> rem1 x
+
+setUnit : set Unit = propSet Unit propUnit
+
 data or (A B : U) = inl (a : A)
                   | inr (b : B)
 
 stable (A:U) : U = neg (neg A) -> A
 
+const (A : U) (f : A -> A) : U = (x y : A) -> Id A (f x) (f y)
+
+exConst (A : U) : U = (f:A -> A) * const A f
+
+
+propN0 : prop N0 = \ (x y:N0) -> efq (Id N0 x y) x
+
+propNeg (A:U) : prop (neg A) = \ (f g:neg A) -> <i>\(x:A) -> (propN0 (f x) (g x))@i
+
+dNeg (A:U) (a:A) : neg (neg A) = \ (h : neg A) -> h a
+
 dec (A : U) : U = or A (neg A)
+
+decEqCong (A B : U) (f : A -> B) (g : B -> A) : dec A -> dec B = split
+  inl a -> inl (f a)
+  inr h -> inr (\ (b:B) -> h (g b))
 
 decStable (A:U) : dec A -> stable A = split
  inl a -> \ (h :neg (neg A)) -> a
  inr b -> \ (h :neg (neg A)) -> efq A (h b)
+
+decConst (A : U) : dec A -> exConst A = split
+  inl a -> (\ (x:A)  -> a, \ (x y:A) -> refl A a)
+  inr h -> (\ (x:A) -> x, \ (x y:A) -> efq (Id A x y) (h x))
+
+stableConst (A : U) (sA: stable A) : exConst A = 
+ (\ (x:A) -> sA (dNeg A x),\ (x y:A) -> <i>sA (propNeg (neg A) (dNeg A x) (dNeg A y) @ i))
 
 discrete (A : U) : U = (a b : A) -> dec (Id A a b)
 

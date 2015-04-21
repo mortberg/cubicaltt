@@ -2,18 +2,6 @@ module hedberg where
 
 import prelude
 
-const (A : U) (f : A -> A) : U = (x y : A) -> Id A (f x) (f y)
-
-decEqCong (A B : U) (f : A -> B) (g : B -> A) : dec A -> dec B = split
-  inl a -> inl (f a)
-  inr h -> inr (\ (b:B) -> h (g b))
-
-exConst (A : U) : U = (f:A -> A) * const A f
-
-decConst (A : U) : dec A -> exConst A = split
-  inl a -> (\ (x:A)  -> a, \ (x y:A) -> refl A a)
-  inr h -> (\ (x:A) -> x, \ (x y:A) -> efq (Id A x y) (h x))
-
 hedbergLemma (A: U) (f : (a b : A) -> Id A a b -> Id A a b) (a :A) :
   (b : A) (p : Id A a b) ->
             Id (Id A a b) (compId A a a b (f a a (refl A a)) p) (f a b p) =

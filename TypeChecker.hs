@@ -71,8 +71,8 @@ addSub iphi (TEnv k ind rho v) = TEnv k ind (Sub rho iphi) v
 addSubs :: [(Name,Formula)] -> TEnv -> TEnv
 addSubs = flip $ foldr addSub
 
-addType :: (Ident,Ter) -> TEnv -> Typing TEnv
-addType (x,a) tenv@(TEnv _ _ rho _) = return $ addTypeVal (x,eval rho a) tenv
+addType :: (Ident,Ter) -> TEnv -> TEnv
+addType (x,a) tenv@(TEnv _ _ rho _) = addTypeVal (x,eval rho a) tenv
 
 addBranch :: [(Ident,Val)] -> (Tele,Env) -> TEnv -> TEnv
 addBranch nvs (tele,env) (TEnv k ind rho v) =
@@ -81,8 +81,8 @@ addBranch nvs (tele,env) (TEnv k ind rho v) =
 addDecls :: [Decl] -> TEnv -> TEnv
 addDecls d (TEnv k ind rho v) = TEnv k ind (Def d rho) v
 
-addTele :: Tele -> TEnv -> Typing TEnv
-addTele xas lenv = foldM (flip addType) lenv xas
+addTele :: Tele -> TEnv -> TEnv
+addTele xas lenv = foldl (flip addType) lenv xas
 
 faceEnv :: Face -> TEnv -> TEnv
 faceEnv alpha tenv = tenv{env=env tenv `face` alpha}
@@ -97,13 +97,6 @@ getLblType c (Ter (Sum _ _ cas) r) = case lookupLabel c cas of
   Nothing -> throwError ("getLblType: " ++ show c ++ " in " ++ show cas)
 getLblType c u = throwError ("expected a data type for the constructor "
                              ++ c ++ " but got " ++ show u)
-
--- Monadic version of local
-localM :: (TEnv -> Typing TEnv) -> Typing a -> Typing a
-localM f r = do
-  e <- ask
-  a <- f e
-  local (const a) r
 
 -- Monadic version of unless
 unlessM :: Monad m => m Bool -> m () -> m ()
@@ -167,7 +160,7 @@ check a t = case (a,t) of
         throwError $ "names in path label system" -- TODO
       mapM_ checkFresh is
       let iis = zip is (map Atom is)
-      local (addSubs iis) $ localM (addTele tele) $ do
+      local (addSubs iis . addTele tele) $ do
         checkSystemWith ts $ \alpha talpha ->
           local (faceEnv alpha) $ do
             -- NB: the type doesn't depend on is
@@ -236,13 +229,13 @@ checkTele :: Tele -> Typing ()
 checkTele []          = return ()
 checkTele ((x,a):xas) = do
   check VU a
-  localM (addType (x,a)) $ checkTele xas
+  local (addType (x,a)) $ checkTele xas
 
 -- Check a family
 checkFam :: Ter -> Typing ()
 checkFam (Lam x a b) = do
   check VU a
-  localM (addType (x,a)) $ check VU b
+  local (addType (x,a)) $ check VU b
 checkFam x = throwError $ "checkFam: " ++ show x
 
 -- Check that a system is compatible

@@ -26,9 +26,9 @@ predInt : int -> int = split
 
 toZ : int -> Z = split
   pos n -> inr n
-  neg n -> fun n
-    where fun : nat -> Z = split
-      zero -> zeroZ
+  neg n -> auxToZ n
+    where auxToZ : nat -> Z = split
+      zero -> inr zero
       suc n -> inl n
   zeroP @ i -> zeroZ
 

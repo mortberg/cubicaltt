@@ -63,6 +63,6 @@ lemEquivFib (A:U) (F G :A -> U) (f:(x:A) -> F x -> G x)
       where yu : AF = z.1
             y : A = yu.1
             w : F y = yu.2
-            p : Id A x y = <i>(rem3 @ i).1
+            p : Id A x y = <i>(z.2 @ i).1
             q : IdP (<j>G (p@j)) v (f y w) = <i>((z.2) @ i).2
    rem7 (z0 z1 : fiber (F x) (G x) (f x) v) : Id (fiber (F x) (G x) (f x) v) z0 z1 = <i>psi ((rem1.1 (phi z0) (phi z1))@i)

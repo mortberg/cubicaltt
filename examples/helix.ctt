@@ -183,3 +183,5 @@ invS1 (x:S1) : S1 = invMult x base
 
 test2 : Z = winding (<i>invS1 (loop2@i))
 test4 : Z = winding (<i>invS1 (compS1 loop2 loop2 @i))
+
+test0 : Z = winding (<i>invMult (loop2@i) (loop2@i))

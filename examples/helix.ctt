@@ -2,6 +2,7 @@ module helix where
 
 import circle
 import retract
+import equiv
 
 encode (x:S1) (p:Id S1 base x) : helix x = subst S1 helix base x p zeroZ
 
@@ -165,3 +166,20 @@ invLaw : (x y : S1) ->
 
   bP : P base base = refl (Id S1 base base) (refl S1 base)      
 
+
+-- the multiplication is invertible
+
+multIsEquiv : (x:S1) -> isEquiv S1 S1 (mult x) =  lemPropFib P pP bP 
+ where P (x:S1) : U            = isEquiv S1 S1 (mult x)
+       pP (x:S1) : prop (P x)  = propIsEquiv S1 S1 (mult x)
+       rem : Id (S1 -> S1) (idfun S1) (mult base) = <i>\ (x:S1) -> idL x @ -i
+       bP : P base = subst (S1->S1) (isEquiv S1 S1)  (idfun S1) (mult base) rem (idIsEquiv S1)
+
+-- inverse of multiplication by x
+
+invMult (x y:S1) : S1 = (multIsEquiv x y).2.1
+
+invS1 (x:S1) : S1 = invMult x base
+
+test2 : Z = winding (<i>invS1 (loop2@i))
+test4 : Z = winding (<i>invS1 (compS1 loop2 loop2 @i))

@@ -382,19 +382,18 @@ showVal v = case v of
                        <+> (hsep $ map ((char '@' <+>) . showFormula) phis)
   VPi a l@(VLam x t b)
     | "_" `isPrefixOf` x -> showVal1 a <+> text "->" <+> showVal1 b
-    | otherwise -> parens (text x <+> colon <+> showVal t) <+> text "->" <+> showVal b
+    | otherwise          -> char '(' <> showLam v
   VPi a b           -> text "Pi" <+> showVals [a,b]
   VPair u v         -> parens (showVal u <> comma <> showVal v)
   VSigma u v        -> text "Sigma" <+> showVals [u,v]
   VApp u v          -> showVal u <+> showVal1 v
-  VLam x t e        -> char '\\' <> parens (text x <+> colon <+> showVal t) <+>
-                         text "->" <+> showVal e
+  VLam{}            -> text "\\(" <> showLam v
+  VPath{}           -> char '<' <> showPath v
   VSplit u v        -> showVal u <+> showVal1 v
   VVar x _          -> text x
   VFst u            -> showVal1 u <> text ".1"
   VSnd u            -> showVal1 u <> text ".2"
   VIdP v0 v1 v2     -> text "IdP" <+> showVals [v0,v1,v2]
-  VPath i v         -> char '<' <> text (show i) <> char '>' <+> showVal v
   VAppFormula v phi -> showVal v <+> char '@' <+> showFormula phi
   VComp v0 v1 vs    -> text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)
   VTrans v0 v1      -> text "trans" <+> showVals [v0,v1]
@@ -404,6 +403,27 @@ showVal v = case v of
                          <+> showVal1 t <+> text (showSystem ts)
   VElimComp a es t    -> text "elimComp" <+> showVal1 a <+> text (showSystem es)
                          <+> showVal1 t
+
+showPath :: Val -> Doc
+showPath e = case e of
+  VPath i a@VPath{} -> text (show i) <+> showPath a
+  VPath i a         -> text (show i) <> char '>' <+> showVal a
+  _                 -> showVal e
+
+-- Merge lambdas of the same type
+showLam :: Val -> Doc
+showLam e = case e of
+  VLam x t a@(VLam _ t' _)
+    | t == t'   -> text x <+> showLam a
+    | otherwise -> text x <+> colon <+> showVal t <> char ')' <+> text "->" <+> showVal a
+  VPi _ (VLam x t a@(VPi _ (VLam _ t' _)))
+    | t == t'   -> text x <+> showLam a
+    | otherwise -> text x <+> colon <+> showVal t <> char ')' <+> text "->" <+> showVal a
+  VLam x t e         ->
+    text x <+> colon <+> showVal t <> char ')' <+> text "->" <+> showVal e
+  VPi _ (VLam x t e) ->
+    text x <+> colon <+> showVal t <> char ')' <+> text "->" <+> showVal e
+  _ -> showVal e
 
 showVal1 :: Val -> Doc
 showVal1 v = case v of
@@ -416,3 +436,4 @@ showVal1 v = case v of
 
 showVals :: [Val] -> Doc
 showVals = hsep . map showVal1
+

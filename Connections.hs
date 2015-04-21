@@ -159,7 +159,7 @@ arbFormula names s =
 instance Arbitrary Formula where
   arbitrary = do
       n <- arbitrary :: Gen Integer
-      sized $ arbFormula (map (\x -> Name ('?' : show x))  [0..(abs n)])
+      sized $ arbFormula (map (\x -> Name ('!' : show x))  [0..(abs n)])
 
 class ToFormula a where
   toFormula :: a -> Formula
@@ -248,8 +248,8 @@ propInvFormulaIncomp phi b = incomparables (invFormula phi b)
 --   where ys = i:map (\n -> Name (s ++ show n)) [0..]
 
 gensym :: [Name] -> Name
-gensym xs = Name ('?' : show max)
-  where max = maximum' [ read x | Name ('?':x) <- xs ]
+gensym xs = Name ('!' : show max)
+  where max = maximum' [ read x | Name ('!':x) <- xs ]
         maximum' [] = 0
         maximum' xs = maximum xs + 1
 

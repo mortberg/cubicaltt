@@ -304,11 +304,11 @@ checkBranch (PLabel _ tele is ts,nu) f (PBranch c ns js e) g va = do
       vus  = map snd us
       js'  = map Atom js
       vts  = evalSystem (subs (upds nu us) (zip is js')) ts
-      vfts = intersectionWith app (border g ts) vts
+      vfts = intersectionWith app (border g vts) vts
   local (addSubs (zip js js') . addBranch (zip ns vus) nu) $ do
     check (app f (VPCon c va vus js')) e
     ve  <- evalTyping e -- TODO: combine with next line?
-    unlessM (border ve ts === vfts) $
+    unlessM (border ve vts === vfts) $
       throwError $ "Faces of branch don't match"
 
 checkFormula :: Formula -> Typing ()

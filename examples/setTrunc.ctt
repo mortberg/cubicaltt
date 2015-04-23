@@ -1,18 +1,21 @@
 module setTrunc where
 
-import prelude
+import set
 
 data setTrunc (A : U)
   = inc (a : A)
-  | setTr (a b : setTrunc A) (p q : Id (setTrunc A) a b) <i j>
+  | setTrC (a b : setTrunc A) (p q : Id (setTrunc A) a b) <i j>
        [ (i=0) -> p @ j
        , (i=1) -> q @ j
        , (j=0) -> a
        , (j=1) -> b]
 
-setTruncSet (A : U) : set (setTrunc A) =
-   \(a b : setTrunc A) (p q : Id (setTrunc A) a b) ->
-     <i j> setTr {setTrunc A} a b p q @ i @ j
+setTr (A : U) (a b : setTrunc A) (p q : Id (setTrunc A) a b) : Id (Id (setTrunc A) a b) p q =
+  <i j> setTrC {setTrunc A} a b p q @ i @ j
+
+-- setTruncSet (A : U) : set (setTrunc A) =
+--    \(a b : setTrunc A) (p q : Id (setTrunc A) a b) ->
+--      <i j> setTrC {setTrunc A} a b p q @ i @ j
 
 
 setTruncRec (A : U)
@@ -22,7 +25,14 @@ setTruncRec (A : U)
             setTrunc A -> B =
   split
     inc a -> f a
-    setTr a b p q @ i j -> (bS (setTruncRec A B bS f a)
+    setTrC a b p q @ i j -> (bS (setTruncRec A B bS f a)
                                (setTruncRec A B bS f b)
                                (<k> setTruncRec A B bS f (p @ k))
                                (<k> setTruncRec A B bS f (q @ k))) @ i @ j
+
+setTruncElim (A : U) (P : setTrunc A -> U) (sP : (z : setTrunc A) -> set (P z)) (h : (x : A) -> P (inc x))
+  : (z : setTrunc A) -> P z = split
+    inc a -> h a
+    setTrC a b p q @ i j -> sqDepPath2 (setTrunc A) P sP a b p q (setTr A a b p q)
+                                       (f a) (f b) (<k> f (p @ k)) (<k> f (q @ k)) @ i @ j
+      where f : (z : setTrunc A) -> P z = setTruncElim A P sP h

@@ -1,0 +1,54 @@
+module set where
+
+sqDepPath (A:U) (F:A->U) (sF:(x:A) -> set (F x))
+          (a0 a1:A) (p:Id A a0 a1) (u0 : F a0) (u1 : F a1) (q r: IdP (<i> F (p@i)) u0 u1) :
+    Id (IdP (<i> F (p@i)) u0 u1) q r = <i j> rem @ j @ i
+ where
+ rem : IdP (<i>Id (F (p@i)) (q@i) (r@i)) (<i>u0) (<i>u1) =
+  <i> let xi : A = p@i
+          ui0 : F xi = transport (<j>F (p @ i/\j)) u0
+          ui1 : F xi = transport (<j>F (p @ i\/-j)) u1
+          qi : Id (F xi) ui0 ui1 = <j>transport (<k>F (p@(i/\-j/\k)\/(i/\j)\/(j/\-k)\/(i/\k))) (q@j)
+          ri : Id (F xi) ui0 ui1 = <j>transport (<k>F (p@(i/\-j/\k)\/(i/\j)\/(j/\-k)\/(i/\k))) (r@j)
+      in  <j>(sF xi ui0 ui1 qi ri @ j @ i)
+
+sqDepPathJ (A:U) (F:A->U) (sF:(x:A) -> set (F x))
+          (a0 : A) : (a1:A) (p:Id A a0 a1) (u0 : F a0) (u1 : F a1) (q r: IdP (<i> F (p@i)) u0 u1) ->
+    Id (IdP (<i> F (p@i)) u0 u1) q r =
+      J A a0 (\ (a1:A) (p:Id A a0 a1) -> (u0 : F a0) (u1 : F a1) (q r: IdP (<i> F (p@i)) u0 u1) ->
+                Id (IdP (<i> F (p@i)) u0 u1) q r) (sF a0)
+
+test (A:U) (F:A->U) (sF:(x:A) -> set (F x))
+          (a0 a1:A) (p:Id A a0 a1) (u0 : F a0) (u1 : F a1) (q r: IdP (<i> F (p@i)) u0 u1) :
+    Id (IdP (<i> F (p@i)) u0 u1) q r = sqDepPathJ A F sF a0 a1 p u0 u1 q r
+
+sqDepPath2 (A:U) (F:A->U) (sF:(x:A) -> set (F x))
+          (a0 a1:A) (p :Id A a0 a1) : (q : Id A a0 a1) (spq : Id (Id A a0 a1) p q)
+          (u0 : F a0) (u1 : F a1)
+          (r : IdP (<i> F (p@i)) u0 u1) (s : IdP (<i> F (q@i)) u0 u1) ->
+    IdP (<i> IdP (<j> F (spq @ i @ j)) u0 u1) r s =
+    J (Id A a0 a1) p
+      (\(q : Id A a0 a1) (spq : Id (Id A a0 a1) p q) ->
+            (u0 : F a0) (u1 : F a1) (r : IdP (<i> F (p@i)) u0 u1)
+            (s : IdP (<i> F (q@i)) u0 u1) -> IdP (<i> IdP (<j> F (spq @ i @ j)) u0 u1) r s) rem
+     where rem : (u0 : F a0) (u1 : F a1) (r s : IdP (<i> F (p@i)) u0 u1) ->
+                 Id (IdP (<j> F (p @ j)) u0 u1) r s = sqDepPath A F sF a0 a1 p
+
+-- <i j> rem @ j @ i
+--  where
+--  rem : IdP (<i> IdP (<j> F (spq @ j @ i)) (r@i) (s@i)) (<i>u0) (<i>u1) =
+--   <i> let xi : A = p @ i
+--           yi : A = q @ i
+--           li : Id A xi yi = <j> spq @ j @ i
+--           ui0 : F xi = transport (<j>F (p @ i/\j)) u0
+--           ui1 : F xi = transport (<j>F (p @ i\/-j)) u1
+--           vi0 : F yi = transport (<j>F (q @ i/\j)) u0
+--           vi1 : F yi = transport (<j>F (q @ i\/-j)) u1          
+--           ri : Id (F xi) ui0 ui1 = <j>transport (<k>F (p@(i/\-j/\k)\/(i/\j)\/(j/\-k)\/(i/\k))) (r@j)
+--           si : Id (F yi) vi0 vi1 = <j>transport (<k>F (q@(i/\-j/\k)\/(i/\j)\/(j/\-k)\/(i/\k))) (s@j)
+--           uvi0 : IdP (<j> F (li @ j)) ui0 vi0 = transport 
+--           uvi1 : IdP (<j> F (li @ j)) ui1 vi1 =
+--           test : U = U
+--       in  <j>(sF xi ui0 ui1 ri si @ j @ i)
+
+

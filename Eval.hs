@@ -814,11 +814,14 @@ instance Normal Val where
     VSnd t              -> sndVal (normal ns t)
     VSplit u t          -> VSplit (normal ns u) (normal ns t)
     VApp u v            -> app (normal ns u) (normal ns v)
-    VAppFormula u phi   -> VAppFormula (normal ns u) phi
+    VAppFormula u phi   -> VAppFormula (normal ns u) (normal ns phi)
     _                   -> v
 
 instance Normal Env where
   normal ns = mapEnv (normal ns) id
+
+instance Normal Formula where
+  normal _ = fromDNF . dnf
 
 instance Normal a => Normal (Map k a) where
   normal ns us = Map.map (normal ns) us

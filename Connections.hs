@@ -205,6 +205,11 @@ dnf (phi :/\: psi) =
                         | a <- Set.toList (dnf phi)
                         , b <- Set.toList (dnf psi) ]
 
+fromDNF :: Set (Set (Name,Dir)) -> Formula
+fromDNF s = foldr orFormula (Dir Zero) (map (foldr andFormula (Dir One)) fs)
+  where xss = map Set.toList $ Set.toList s
+        fs = [ [ if d == Zero then NegAtom n else Atom n | (n,d) <- xs ] | xs <- xss ]
+
 merge :: Set (Set (Name,Dir)) -> Set (Set (Name,Dir)) -> Set (Set (Name,Dir))
 merge a b =
   let as = Set.toList a
@@ -212,12 +217,6 @@ merge a b =
   in Set.fromList [ ai | ai <- as, not (any (\bj -> bj `Set.isProperSubsetOf` ai) bs) ] `Set.union`
      Set.fromList [ bi | bi <- bs, not (any (\aj -> aj `Set.isProperSubsetOf` bi) as) ] 
 
-
-i = Atom (Name "i")
-j = Atom (Name "j")
-nj = NegAtom (Name "j")
-phi = i :\/: nj :\/: (i :/\: j)
-psi = (i :/\: j) :\/: (i :/\: j)
 -- evalFormula :: Formula -> Face -> Formula
 -- evalFormula phi alpha =
 --   Map.foldWithKey (\i d psi -> act psi (i,Dir d)) phi alpha

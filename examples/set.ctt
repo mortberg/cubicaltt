@@ -1,5 +1,7 @@
 module set where
 
+import prelude
+
 sqDepPath (A:U) (F:A->U) (sF:(x:A) -> set (F x))
           (a0 a1:A) (p:Id A a0 a1) (u0 : F a0) (u1 : F a1) (q r: IdP (<i> F (p@i)) u0 u1) :
     Id (IdP (<i> F (p@i)) u0 u1) q r = <i j> rem @ j @ i

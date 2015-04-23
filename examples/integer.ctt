@@ -51,3 +51,24 @@ fromZK : (a : int) -> Id int (fromZ (toZ a)) a = split
 isoIntZ : Id U Z int = isoId Z int fromZ toZ fromZK toZK
 
 intSet : set int = subst U set Z int isoIntZ ZSet
+
+-- a concrete instance
+
+T : U = Id int (pos zero) (pos zero)
+p0 : T = refl int (pos zero)
+p1 : T = compId int (pos zero) (neg zero) (pos zero) zeroP' (<i>zeroP'@-i)
+
+test1 : Id T p0 p1 = intSet (pos zero) (pos zero) p0 p1
+
+test2 : Id T p0 p1 =
+ <i j> comp int (pos zero)
+    [ (i = 1) ->
+  <k> comp int
+          (comp int (zeroP {int} @ j)
+          [ (j = 1) -> <l> zeroP {int} @ -l ])
+       [ (k = 0) -> <l> comp int (pos zero)
+                           [ (l = 0) -> <m> comp int (comp int (zeroP {int} @ (j /\ m))
+                                                          [ (m = 1) -> <n> comp int (zeroP {int} @ j)
+                                                                   [ (j = 1) -> <p> zeroP {int} @ (-n \/ -p) ] ])
+                                               [ (j = 1) -> <n> comp int (zeroP {int} @ (-n /\ m))
+                                                                   [ (m = 1) -> <p> zeroP {int} @ (-n /\ -p) ] ]]]]

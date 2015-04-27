@@ -1,0 +1,36 @@
+module truncS2 where
+
+import ex1
+import indSusp
+
+-- is X is a set then Id U (aLoop X) X
+
+lemLoopSet (X:U) (sX: set X) : Id U (aLoop X) X
+ = isoId (aLoop X) X f g s t
+ where
+   f (z:  aLoop X) : X =  z.1
+   g (x: X) : aLoop X =  (x,refl X x)
+   s (y : X) : Id X (f (g y)) y =  refl X y
+   t (z : aLoop X) : Id (aLoop X) (g (f z)) z = <i>(z.1,sX z.1 z.1 (refl X z.1) z.2@i)
+
+lemS1Set (X : U) (sX: set X) : Id U (S1 -> X) X =
+ compId U (S1 -> X) (aLoop X) X (<i>thm X@-i) (lemLoopSet X sX)
+
+S2 : U = susp S1
+
+lemGrp1 (X : U) (gX: groupoid X) : Id U (suspOf S1 X) ((u:X) * (v : X) * Id X u v)
+   = <i> (u:X) * (v:X) * (lemS1Set (Id X u v) (gX u v) @ i)
+ 
+lemIdSig (X:U) :  Id U ((u:X) * (v:X) * Id X u v) X = isoId  ((u:X) * (v:X) * Id X u v) X f g s t
+ where
+  Z : U = (u:X) * (v:X) * Id X u v
+  f (z:Z) : X = z.1
+  g (x : X) : Z = (x,(x,refl X x))
+  s (y:X) : Id X (f (g y)) y = refl X y
+  t (z:Z) : Id Z (g (f z)) z = <i>(z.1,contrSingl X z.1 z.2.1 z.2.2 @ i)
+
+lemGrp2 (X : U) (gX:groupoid X) : Id U (suspOf S1 X) X = 
+ compId U (suspOf S1 X) ((u:X) * (v:X) * Id X u v) X (lemGrp1 X gX) (lemIdSig X)
+
+lemGrp3 (X : U) (gX: groupoid X) : Id U (S2 -> X) X =
+ compId U (S2 -> X) (suspOf S1 X) X (funSusp S1 X) (lemGrp2 X gX)

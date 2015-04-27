@@ -1,0 +1,59 @@
+module mult where
+
+import susp
+import helix
+
+-- another inverse function
+
+invS : S1 -> S1 = split
+ base -> base
+ loop @ i -> loop1 @ -i
+
+lemInv : (x:S1) -> Id S1 (mult x (invS x)) base = split 
+ base -> refl S1 base
+ loop @ i -> <j> loop1 @i\/-i\/j
+
+test0S : Z = winding (<i>mult (loop2@i) (invS (loop2@i)))
+test00S : Z = winding (<i>mult (loop4@i) (invS (loop4@i)))
+
+lemInv1 : (x:S1) -> Id S1 (mult (invS x) x) base = split
+ base -> refl S1 base
+ loop @ i -> <j> loop1 @ -i\/i\/j
+
+test : loopS1 = <i> mult (loop1@i) (loop1@-i)
+test1 : IdP (<i>Id S1 (mult (loop1@i) base) (mult (loop1@i) base)) loop1 loop1 = <i j> mult (loop1@i) (loop1@j)
+test2 : loopS1 = <i> mult (loop1@i) (loop1@i)
+test3 : Id loopS1 test2 (compS1 loop1 loop1) = refl loopS1 test2
+
+lemBase (y:S1) : Id S1 (mult base (mult base y)) y = 
+ compId S1 (mult base (mult base y)) (mult base y) y (idL (mult base y)) (idL y)
+
+{-
+corrInv (y:S1) : (x : S1) -> Id S1 (mult x (mult (invS x) y)) y = split
+ base -> lemBase y
+ loop @ i -> rem
+   where rem : Id S1 (mult (loop {S1} @ i) (mult (loop {S1} @ -i) y)) y =
+           transport (<j>Id S1 (mult (loop {S1} @ i/\j) (mult (loop {S1} @ -(i/\j)) y)) y) (lemBase y)
+-}
+
+corrInv (x y : S1) : Id S1 (mult x (mult (invS x) y)) y =
+ compId S1 (mult x (mult (invS x) y)) (mult (mult x (invS x)) y) y rem1 rem
+ where rem1 : Id S1 (mult x (mult (invS x) y)) (mult (mult x (invS x)) y) = multAssoc x (invS x) y
+
+       rem : Id S1 (mult (mult x (invS x)) y) y =
+        compId S1 (mult (mult x (invS x)) y) (mult base y) y  (<i>mult (lemInv x @i) y) (idL y)
+
+corrInv1 (x y : S1) : Id S1 (mult (invS x) (mult x y)) y =
+ compId S1 (mult (invS x) (mult x y)) (mult (mult (invS x) x) y) y rem1 rem
+ where rem1 : Id S1 (mult (invS x) (mult x y)) (mult (mult (invS x) x) y) = multAssoc (invS x) x y
+
+       rem : Id S1 (mult (mult (invS x) x) y) y =
+        compId S1 (mult (mult (invS x) x) y) (mult base y) y (<i>mult (lemInv1 x@i) y) (idL y)
+
+eqS1 (x:S1) : Id U S1 S1 = isoId S1 S1 (mult x) (mult (invS x)) (corrInv x) (corrInv1 x)
+
+-- we deduce the following fibration
+
+fibS1 (x:S1) : S1 -> U = split
+ base -> S1
+ loop @ i -> (eqS1 x) @ i

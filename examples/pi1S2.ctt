@@ -1,6 +1,7 @@
 module pi1S2 where
 
 import truncS2
+import susp
 import groupoidTrunc
 
 lemGrp4 (X : U) (gX:groupoid X) : Id U (gTrunc S2 -> X) X
@@ -21,5 +22,31 @@ corr2 (x:gTrunc S2) : Id (gTrunc S2) x (inc north) = <i> corr1@i x
 
 test : Id (gTrunc S2) (inc south) (inc north) = corr2 (inc south)
 
+-- normal form
+
+test : Id (gTrunc S2) (inc south) (inc north) = 
+ <i> inc (comp S2 north 
+       [ (i = 0) -> <j> comp S2 south 
+          [ (j = 0) -> <k> comp S2 north
+           [ (k = 0) -> <l> comp S2 south
+            [ (l = 0) -> <m> comp S2 north
+             [ (m = 0) -> <n> comp S2 south 
+              [ (n = 0) -> <p> comp S2 north 
+               [ (p = 0) -> <q> comp S2 north [ (q = 1) -> <r> merid {S2} base @ r ] ] ] ] ] ] ] ])
+
+
+
 test1 : Id (gTrunc S2) (inc north) (inc north) = corr2 (inc north)
 
+-- this should imply that any element in gTrunc (susp sone) is equal to inc north
+
+
+
+stwo : U = susp sone
+
+corr3 : (x:gTrunc stwo) -> Id (gTrunc stwo) x (inc north) =
+ transport (<i>(x:gTrunc (susp (s1EqCircle@-i))) -> Id (gTrunc (susp (s1EqCircle@-i))) x (inc north)) corr2
+
+test2 : Id (gTrunc stwo) (inc south) (inc north) = corr3 (inc south)
+
+-- corr2 (x:gTrunc S2) : Id (gTrunc S2) x (inc north) = <i> corr1@i x 

@@ -9,10 +9,9 @@ lemGrp4 (X : U) (gX:groupoid X) : Id U (gTrunc S2 -> X) X
 
 corr : Id U (gTrunc S2 -> gTrunc S2) (gTrunc S2) = lemGrp4 (gTrunc S2) (gTr S2)
 
-lemTransport (A :U) : 
-  (B : U) (p : Id U A B) (a0 a1 : A) -> Id B (transport p a0) (transport p a1) -> Id A a0 a1 =
- J U A ( \ (B : U) (p : Id U A B) -> (a0 a1 : A) -> Id B (transport p a0) (transport p a1) -> Id A a0 a1) rem
- where rem (a0 a1:A) (h:Id A a0 a1) : Id A a0 a1 = h
+lemTransport (A B :U) (p : Id U A B) (a0 a1 : A) (h: Id B (transport p a0) (transport p a1)) : Id A a0 a1 =
+ transport (<i>Id (p@-i) (transport (<j>p@(-i/\j)) a0) (transport (<j>p@(-i/\j)) a1)) h
+
 
 corr1 : Id (gTrunc S2 -> gTrunc S2) (\ (x:gTrunc S2) -> x) (\ (x:gTrunc S2) -> inc north) =
  lemTransport (gTrunc S2 -> gTrunc S2) (gTrunc S2) corr 
@@ -26,7 +25,7 @@ test : Id (gTrunc S2) (inc south) (inc north) = corr2 (inc south)
 
 test : Id (gTrunc S2) (inc south) (inc north) = 
  <i> inc (comp S2 north 
-       [ (i = 0) -> <j> comp S2 south 
+         [ (i = 0) -> <j> comp S2 south 
           [ (j = 0) -> <k> comp S2 north
            [ (k = 0) -> <l> comp S2 south
             [ (l = 0) -> <m> comp S2 north
@@ -40,13 +39,9 @@ test1 : Id (gTrunc S2) (inc north) (inc north) = corr2 (inc north)
 
 -- this should imply that any element in gTrunc (susp sone) is equal to inc north
 
-
-
 stwo : U = susp sone
 
 corr3 : (x:gTrunc stwo) -> Id (gTrunc stwo) x (inc north) =
  transport (<i>(x:gTrunc (susp (s1EqCircle@-i))) -> Id (gTrunc (susp (s1EqCircle@-i))) x (inc north)) corr2
 
 test2 : Id (gTrunc stwo) (inc south) (inc north) = corr3 (inc south)
-
--- corr2 (x:gTrunc S2) : Id (gTrunc S2) x (inc north) = <i> corr1@i x 

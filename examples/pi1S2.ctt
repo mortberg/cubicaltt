@@ -1,0 +1,25 @@
+module pi1S2 where
+
+import truncS2
+import groupoidTrunc
+
+lemGrp4 (X : U) (gX:groupoid X) : Id U (gTrunc S2 -> X) X
+ = compId U (gTrunc S2 -> X) (S2 -> X) X (univG S2 X gX) (lemGrp3 X gX)
+
+corr : Id U (gTrunc S2 -> gTrunc S2) (gTrunc S2) = lemGrp4 (gTrunc S2) (gTr S2)
+
+lemTransport (A :U) : 
+  (B : U) (p : Id U A B) (a0 a1 : A) -> Id B (transport p a0) (transport p a1) -> Id A a0 a1 =
+ J U A ( \ (B : U) (p : Id U A B) -> (a0 a1 : A) -> Id B (transport p a0) (transport p a1) -> Id A a0 a1) rem
+ where rem (a0 a1:A) (h:Id A a0 a1) : Id A a0 a1 = h
+
+corr1 : Id (gTrunc S2 -> gTrunc S2) (\ (x:gTrunc S2) -> x) (\ (x:gTrunc S2) -> inc north) =
+ lemTransport (gTrunc S2 -> gTrunc S2) (gTrunc S2) corr 
+              (\ (x:gTrunc S2) -> x) (\ (x:gTrunc S2) -> inc north) (refl (gTrunc S2) (inc north))
+
+corr2 (x:gTrunc S2) : Id (gTrunc S2) x (inc north) = <i> corr1@i x 
+
+test : Id (gTrunc S2) (inc south) (inc north) = corr2 (inc south)
+
+test1 : Id (gTrunc S2) (inc north) (inc north) = corr2 (inc north)
+

@@ -34,3 +34,5 @@ lemGrp2 (X : U) (gX:groupoid X) : Id U (suspOf S1 X) X =
 
 lemGrp3 (X : U) (gX: groupoid X) : Id U (S2 -> X) X =
  compId U (S2 -> X) (suspOf S1 X) X (funSusp S1 X) (lemGrp2 X gX)
+
+test (X:U) (gX: groupoid X) (f:S2 -> X) : X = transport (lemGrp3 X gX) f

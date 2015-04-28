@@ -222,9 +222,13 @@ app u v = case (u,v) of
 
 fstVal, sndVal :: Val -> Val
 fstVal (VPair a b)     = a
+fstVal (VElimComp _ _ u) = fstVal u
+fstVal (VCompElem _ _ u _) = fstVal u
 fstVal u | isNeutral u = VFst u
 fstVal u               = error $ "fstVal: " ++ show u ++ " is not neutral."
 sndVal (VPair a b)     = b
+sndVal (VElimComp _ _ u) = sndVal u
+sndVal (VCompElem _ _ u _) = sndVal u
 sndVal u | isNeutral u = VSnd u
 sndVal u               = error $ "sndVal: " ++ show u ++ " is not neutral."
 

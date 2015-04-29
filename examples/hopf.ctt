@@ -1,0 +1,10 @@
+module hopf where
+
+import truncS2
+import mult
+
+hopf : S2 -> U = split
+ north -> S1
+ south -> S1
+ merid x @ i -> eqS1 x @ i
+

@@ -211,7 +211,7 @@ check a t = case (a,t) of
   _ -> do
     v <- infer t
     unlessM (v === a) $
-      throwError $ "check conv: " ++ show v ++ " /= " ++ show a
+      throwError $ "check conv:\n" ++ show v ++ "\n/=\n" ++ show a
 
 -- Check a list of declarations
 checkDecls :: [Decl] -> Typing ()
@@ -304,12 +304,15 @@ checkBranch (PLabel _ tele is ts,nu) f (PBranch c ns js e) g va = do
       vus  = map snd us
       js'  = map Atom js
       vts  = evalSystem (subs (upds nu us) (zip is js')) ts
-      vfts = intersectionWith app (border g vts) vts
+      vgts = intersectionWith app (border g vts) vts
   local (addSubs (zip js js') . addBranch (zip ns vus) nu) $ do
     check (app f (VPCon c va vus js')) e
-    ve  <- evalTyping e -- TODO: combine with next line?
-    unlessM (border ve vts === vfts) $
-      throwError $ "Faces of branch don't match"
+    ve  <- evalTyping e -- TODO: combine with next two lines?
+    let veborder = border ve vts
+    unlessM (veborder === vgts) $
+      throwError $ "Faces in branch for " ++ show c ++ " don't match:"
+                   ++ "\ngot\n" ++ show veborder ++ "\nbut expected\n"
+                   ++ show vgts
 
 checkFormula :: Formula -> Typing ()
 checkFormula phi = do

@@ -213,6 +213,11 @@ resolveExp e = case e of
       (throwError $ "Not a system of isomorphisms: " ++ show rs)
     CTT.Glue <$> resolveExp u <*> pure rs
   GlueElem u ts      -> CTT.GlueElem <$> resolveExp u <*> resolveSystem ts
+  GlueLine phi psi u ->
+    CTT.GlueLine <$> resolveExp u <*> resolveFormula phi <*> resolveFormula psi
+  GlueLineElem phi psi u ->
+    CTT.GlueLineElem <$> resolveExp u <*> resolveFormula phi
+      <*> resolveFormula psi
   CompElem a es t ts -> CTT.CompElem <$> resolveExp a <*> resolveSystem es
                                      <*> resolveExp t <*> resolveSystem ts
   ElimComp a es t    -> CTT.ElimComp <$> resolveExp a <*> resolveSystem es <*> resolveExp t

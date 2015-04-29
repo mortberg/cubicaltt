@@ -84,6 +84,12 @@ isoId (A B : U) (f : A -> B) (g : B -> A)
       (t : (x:A) -> Id A (g (f x)) x) : Id U A B =
       <i> glue B [ (i = 0) -> (A,f,g,s,t) ]
 
+idfun (A : U) (a : A) : A = a
+
+isoIdRef (A : U) :
+  Id (Id U A A) (refl U A) (isoId A A (idfun A) (idfun A) (refl A) (refl A)) =
+  <i j> glueLine j i A
+
 --         u
 --    a0 -----> a1
 --    |         |
@@ -186,7 +192,5 @@ discrete (A : U) : U = (a b : A) -> dec (Id A a b)
 
 injective (A B : U) (f : A -> B) : U =
   (a0 a1 : A) -> Id B (f a0) (f a1) -> Id A a0 a1
-
-idfun (A : U) (a : A) : A = a
 
 and (A B : U) : U = (_ : A) * B

@@ -112,6 +112,9 @@ data Ter = App Ter Ter
            -- Glue
          | Glue Ter (System Ter)
          | GlueElem Ter (System Ter)
+           -- GlueLine: connecting any type to its glue with identities
+         | GlueLine Ter Formula Formula
+         | GlueLineElem Ter Formula Formula
   deriving Eq
 
 -- For an expression t, returns (u,ts) where u is no application and t = u ts
@@ -149,6 +152,10 @@ data Val = VU
            -- Glue values
          | VGlue Val (System Val)
          | VGlueElem Val (System Val)
+
+           -- GlueLine values
+         | VGlueLine Val Formula Formula
+         | VGlueLineElem Val Formula Formula
 
            -- Universe Composition Values
          | VCompElem Val (System Val) Val (System Val)
@@ -207,6 +214,10 @@ isNeutralComp (VGlue _ as) u ts | isNeutral u = True
       testFace beta _ = let shasBeta = shas `face` beta
                         in shasBeta /= Map.empty && eps `Map.notMember` shasBeta
   in isNeutralSystem (Map.filterWithKey testFace ts)
+-- isNeutralComp (VGlueLine _ phi psi) u ts | isNeutral u = True
+--                                          | otherwise   =
+--   let fs = invFormula psi One
+--   in isNeutralSystem ()
 isNeutralComp _ _ _ = False
 
 
@@ -345,6 +356,10 @@ showTer v = case v of
   Trans e0 e1        -> text "transport" <+> showTers [e0,e1]
   Glue a ts          -> text "glue" <+> showTer1 a <+> text (showSystem ts)
   GlueElem a ts      -> text "glueElem" <+> showTer1 a <+> text (showSystem ts)
+  GlueLine a phi psi -> text "glueLine" <+> showTer1 a <+>
+                        showFormula phi <+> showFormula psi
+  GlueLineElem a phi psi -> text "glueLineElem" <+> showTer1 a <+>
+                            showFormula phi <+> showFormula psi
   CompElem a es t ts -> text "compElem" <+> showTer1 a <+> text (showSystem es)
                         <+> showTer1 t <+> text (showSystem ts)
   ElimComp a es t    -> text "elimComp" <+> showTer1 a <+> text (showSystem es)
@@ -399,6 +414,10 @@ showVal v = case v of
   VTrans v0 v1      -> text "trans" <+> showVals [v0,v1]
   VGlue a ts        -> text "glue" <+> showVal1 a <+> text (showSystem ts)
   VGlueElem a ts    -> text "glueElem" <+> showVal1 a <+> text (showSystem ts)
+  VGlueLine a phi psi     -> text "glueLine" <+> showVal1 a <+>
+                             showFormula phi <+> showFormula psi
+  VGlueLineElem a phi psi -> text "glueLineElem" <+> showVal1 a <+>
+                             showFormula phi <+> showFormula psi
   VCompElem a es t ts -> text "compElem" <+> showVal1 a <+> text (showSystem es)
                          <+> showVal1 t <+> text (showSystem ts)
   VElimComp a es t    -> text "elimComp" <+> showVal1 a <+> text (showSystem es)

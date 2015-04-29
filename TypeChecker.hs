@@ -208,6 +208,14 @@ check a t = case (a,t) of
     check va u
     vu <- evalTyping u
     checkGlueElem vu ts us
+  (VU,GlueLine b phi psi) -> do
+    check VU b
+    checkFormula phi
+    checkFormula psi
+  (VGlueLine vb phi psi,GlueLineElem r phi' psi') -> do
+    check vb r
+    unlessM ((phi,psi) === (phi',psi')) $
+      throwError $ "GlueLineElem: formulas don't match"
   _ -> do
     v <- infer t
     unlessM (v === a) $

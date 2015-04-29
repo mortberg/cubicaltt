@@ -48,28 +48,30 @@ instance Nominal Env where
 
 instance Nominal Val where
   support v = case v of
-    VU                  -> []
-    Ter _ e             -> support e
-    VPi u v             -> support [u,v]
-    VComp a u ts        -> support (a,u,ts)
-    VIdP a v0 v1        -> support [a,v0,v1]
-    VPath i v           -> i `delete` support v
-    VTrans u v          -> support (u,v)
-    VSigma u v          -> support (u,v)
-    VPair u v           -> support (u,v)
-    VFst u              -> support u
-    VSnd u              -> support u
-    VCon _ vs           -> support vs
-    VPCon _ a vs phis   -> support (a,vs,phis)
-    VVar _ v            -> support v
-    VApp u v            -> support (u,v)
-    VLam _ u v          -> support (u,v)
-    VAppFormula u phi   -> support (u,phi)
-    VSplit u v          -> support (u,v)
-    VGlue a ts          -> support (a,ts)
-    VGlueElem a ts      -> support (a,ts)
-    VCompElem a es u us -> support (a,es,u,us)
-    VElimComp a es u    -> support (a,es,u)
+    VU                      -> []
+    Ter _ e                 -> support e
+    VPi u v                 -> support [u,v]
+    VComp a u ts            -> support (a,u,ts)
+    VIdP a v0 v1            -> support [a,v0,v1]
+    VPath i v               -> i `delete` support v
+    VTrans u v              -> support (u,v)
+    VSigma u v              -> support (u,v)
+    VPair u v               -> support (u,v)
+    VFst u                  -> support u
+    VSnd u                  -> support u
+    VCon _ vs               -> support vs
+    VPCon _ a vs phis       -> support (a,vs,phis)
+    VVar _ v                -> support v
+    VApp u v                -> support (u,v)
+    VLam _ u v              -> support (u,v)
+    VAppFormula u phi       -> support (u,phi)
+    VSplit u v              -> support (u,v)
+    VGlue a ts              -> support (a,ts)
+    VGlueElem a ts          -> support (a,ts)
+    VGlueLine a phi psi     -> support (a,phi,psi)
+    VGlueLineElem a phi psi -> support (a,phi,psi)
+    VCompElem a es u us     -> support (a,es,u,us)
+    VElimComp a es u        -> support (a,es,u)
 
   act u (i, phi) =
     let acti :: Nominal a => a -> a
@@ -85,50 +87,54 @@ instance Nominal Val where
                    | j `notElem` sphi -> VPath j (acti v)
                    | otherwise -> VPath k (acti (v `swap` (j,k)))
               where k = fresh (v,Atom i,phi)
-         VTrans u v          -> transLine (acti u) (acti v)
-         VSigma a f          -> VSigma (acti a) (acti f)
-         VPair u v           -> VPair (acti u) (acti v)
-         VFst u              -> fstVal (acti u)
-         VSnd u              -> sndVal (acti u)
-         VCon c vs           -> VCon c (acti vs)
-         VPCon c a vs phis   -> pcon c (acti a) (acti vs) (acti phis)
-         VVar x v            -> VVar x (acti v)
-         VAppFormula u psi   -> acti u @@ acti psi
-         VApp u v            -> app (acti u) (acti v)
-         VLam x t u          -> VLam x (acti t) (acti u)
-         VSplit u v          -> app (acti u) (acti v)
-         VGlue a ts          -> glue (acti a) (acti ts)
-         VGlueElem a ts      -> glueElem (acti a) (acti ts)
-         VCompElem a es u us -> compElem (acti a) (acti es) (acti u) (acti us)
-         VElimComp a es u    -> elimComp (acti a) (acti es) (acti u)
+         VTrans u v              -> transLine (acti u) (acti v)
+         VSigma a f              -> VSigma (acti a) (acti f)
+         VPair u v               -> VPair (acti u) (acti v)
+         VFst u                  -> fstVal (acti u)
+         VSnd u                  -> sndVal (acti u)
+         VCon c vs               -> VCon c (acti vs)
+         VPCon c a vs phis       -> pcon c (acti a) (acti vs) (acti phis)
+         VVar x v                -> VVar x (acti v)
+         VAppFormula u psi       -> acti u @@ acti psi
+         VApp u v                -> app (acti u) (acti v)
+         VLam x t u              -> VLam x (acti t) (acti u)
+         VSplit u v              -> app (acti u) (acti v)
+         VGlue a ts              -> glue (acti a) (acti ts)
+         VGlueElem a ts          -> glueElem (acti a) (acti ts)
+         VGlueLine a phi psi     -> glueLine (acti a) (acti phi) (acti psi)
+         VGlueLineElem a phi psi -> glueLineElem (acti a) (acti phi) (acti psi)
+         VCompElem a es u us     -> compElem (acti a) (acti es) (acti u) (acti us)
+         VElimComp a es u        -> elimComp (acti a) (acti es) (acti u)
 
   -- This increases efficiency as it won't trigger computation.
   swap u ij@(i,j) =
     let sw :: Nominal a => a -> a
         sw u = swap u ij
     in case u of
-         VU                  -> VU
-         Ter t e             -> Ter t (sw e)
-         VPi a f             -> VPi (sw a) (sw f)
-         VComp a v ts        -> VComp (sw a) (sw v) (sw ts)
-         VIdP a u v          -> VIdP (sw a) (sw u) (sw v)
-         VPath k v           -> VPath (swapName k ij) (sw v)
-         VTrans u v          -> VTrans (sw u) (sw v)
-         VSigma a f          -> VSigma (sw a) (sw f)
-         VPair u v           -> VPair (sw u) (sw v)
-         VFst u              -> VFst (sw u)
-         VSnd u              -> VSnd (sw u)
-         VCon c vs           -> VCon c (sw vs)
-         VPCon c a vs phis   -> VPCon c (sw a) (sw vs) (sw phis)
-         VVar x v            -> VVar x (sw v)
-         VAppFormula u psi   -> VAppFormula (sw u) (sw psi)
-         VApp u v            -> VApp (sw u) (sw v)
-         VLam x u v          -> VLam x (sw u) (sw v)
-         VSplit u v          -> VSplit (sw u) (sw v)
-         VGlue a ts          -> VGlue (sw a) (sw ts)
-         VGlueElem a ts      -> VGlueElem (sw a) (sw ts)
-         VCompElem a es u us -> VCompElem (sw a) (sw es) (sw u) (sw us)
-         VElimComp a es u    -> VElimComp (sw a) (sw es) (sw u)
+         VU                      -> VU
+         Ter t e                 -> Ter t (sw e)
+         VPi a f                 -> VPi (sw a) (sw f)
+         VComp a v ts            -> VComp (sw a) (sw v) (sw ts)
+         VIdP a u v              -> VIdP (sw a) (sw u) (sw v)
+         VPath k v               -> VPath (swapName k ij) (sw v)
+         VTrans u v              -> VTrans (sw u) (sw v)
+         VSigma a f              -> VSigma (sw a) (sw f)
+         VPair u v               -> VPair (sw u) (sw v)
+         VFst u                  -> VFst (sw u)
+         VSnd u                  -> VSnd (sw u)
+         VCon c vs               -> VCon c (sw vs)
+         VPCon c a vs phis       -> VPCon c (sw a) (sw vs) (sw phis)
+         VVar x v                -> VVar x (sw v)
+         VAppFormula u psi       -> VAppFormula (sw u) (sw psi)
+         VApp u v                -> VApp (sw u) (sw v)
+         VLam x u v              -> VLam x (sw u) (sw v)
+         VSplit u v              -> VSplit (sw u) (sw v)
+         VGlue a ts              -> VGlue (sw a) (sw ts)
+         VGlueElem a ts          -> VGlueElem (sw a) (sw ts)
+         VGlueLine a phi psi     -> VGlueLine (sw a) (sw phi) (sw psi)
+         VGlueLineElem a phi psi -> VGlueLineElem (sw a) (sw phi) (sw psi)
+         VCompElem a es u us     -> VCompElem (sw a) (sw es) (sw u) (sw us)
+         VElimComp a es u        -> VElimComp (sw a) (sw es) (sw u)
 
 -----------------------------------------------------------------------
 -- The evaluator
@@ -161,6 +167,10 @@ eval rho v = case v of
   Comp a t0 ts        -> compLine (eval rho a) (eval rho t0) (evalSystem rho ts)
   Glue a ts           -> glue (eval rho a) (evalSystem rho ts)
   GlueElem a ts       -> glueElem (eval rho a) (evalSystem rho ts)
+  GlueLine a phi psi  ->
+    glueLine (eval rho a) (evalFormula rho phi) (evalFormula rho psi)
+  GlueLineElem a phi psi ->
+    glueLineElem (eval rho a) (evalFormula rho phi) (evalFormula rho psi)
   CompElem a es u us  -> compElem (eval rho a) (evalSystem rho es) (eval rho u)
                                   (evalSystem rho us)
   ElimComp a es u     -> elimComp (eval rho a) (evalSystem rho es) (eval rho u)
@@ -318,6 +328,7 @@ trans i v0 v1 = case (v0,v1) of
   _ | isNeutral w -> w
     where w = VTrans (VPath i v0) v1
   (VGlue a ts,_)    -> transGlue i a ts v1
+  (VGlueLine a phi psi,_) -> transGlueLine i a phi psi v1
   (VComp VU a es,_) -> transU i a es v1
   (Ter (Sum _ _ nass) env,VComp b w ws) -> comp k v01 (trans i v0 w) ws'
     where v01 = v0 `face` (i ~> 1)  -- b is vi0 and independent of j
@@ -368,6 +379,10 @@ genComp i a u ts = comp i ai1 (trans i a u) ts'
         ts' = mapWithKey (\alpha -> squeeze i (a `face` alpha)) ts
 genCompNeg i a u ts = genComp i (a `sym` i) u (ts `sym` i)
 
+fillLine :: Val -> Val -> System Val -> Val
+fillLine a u ts = VPath i $ fill i a u (Map.map (@@ i) ts)
+  where i = fresh (a,u,ts)
+
 fill, fillNeg :: Name -> Val -> Val -> System Val -> Val
 fill i a u ts = comp j a u (ts `conj` (i,j))
   where j = fresh (Atom i,a,u,ts)
@@ -408,6 +423,7 @@ comp i a u ts = case a of
     where w = VComp a u (Map.map (VPath i) ts)
   VComp VU a es -> compU i a es u ts
   VGlue b hisos -> compGlue i b hisos u ts
+  VGlueLine b phi psi -> compGlueLine i b phi psi u ts
   Ter (Sum _ _ nass) env -> case u of
     VCon n us -> case lookupLabel n nass of
       Just as ->
@@ -544,7 +560,8 @@ pathComp i a u u' us = VPath j $ comp i a (u `face` (i ~> 0)) us'
 -- outputs u s.t. border u = us and an L-path between v and sigma u
 -- an theta is a L path if L-border theta is constant
 gradLemma :: Val -> Val -> System Val -> Val -> (Val, Val)
-gradLemma b hiso@(VPair a (VPair f (VPair g (VPair s t)))) us v = (u, VPath i theta'')
+gradLemma b hiso@(VPair a (VPair f (VPair g (VPair s t)))) us v =
+  (u, VPath i theta'')
   where i:j:_   = freshs (a,hiso,us,v)
         us'     = mapWithKey (\alpha uAlpha ->
                                    app (t `face` alpha) uAlpha @@ i) us
@@ -561,6 +578,122 @@ gradLemma b hiso@(VPair a (VPair f (VPair g (VPair s t)))) us v = (u, VPath i th
                     (\alpha uAlpha ->
                       app (s `face` alpha) (app (f `face` alpha) uAlpha) @@ j) us
         theta'' = comp j b (app f theta') xs
+
+
+-------------------------------------------------------------------------------
+-- | GlueLine
+
+
+glueLine :: Val -> Formula -> Formula -> Val
+glueLine t _ (Dir Zero)  = t
+glueLine t (Dir _) _     = t
+glueLine t phi (Dir One) = glue t isos
+  where isos = mkSystem (map (\alpha -> (alpha,idIso (t `face` alpha)))
+                         (invFormula phi Zero))
+glueLine t phi psi       = VGlueLine t phi psi
+
+idIso :: Val -> Val
+idIso a = VPair a $ VPair idV $ VPair idV $ VPair refl refl
+  where idV  = Ter (Lam "x" (Var "A") (Var "x")) (Upd Empty ("A",a))
+        refl = Ter (Lam "x" (Var "A") (Path (Name "i") (Var "x")))
+                   (Upd Empty ("A",a))
+
+glueLineElem :: Val -> Formula -> Formula -> Val
+glueLineElem u (Dir _) _     = u
+glueLineElem u _ (Dir Zero)  = u
+glueLineElem u phi (Dir One) = glueElem u ss
+ where ss = mkSystem (map (\alpha -> (alpha,u `face` alpha))
+                      (invFormula phi Zero))
+glueLineElem u phi psi       = VGlueLineElem u phi psi
+
+unGlueLine :: Val -> Formula -> Formula -> Val -> Val
+unGlueLine b phi psi u = case (phi,psi,u) of
+   (Dir _,_,_)    -> u
+   (_,Dir Zero,_) -> u
+   (_,Dir One,_)  ->
+      let isos = mkSystem (map (\alpha -> (alpha,idIso (b `face` alpha)))
+                            (invFormula phi Zero))
+      in unGlue isos u
+   (_,_,VGlueLineElem w _ _ ) -> w
+   (_,_,_) -> error ("UnGlueLine, should be VGlueLineElem " ++ show u)
+
+compGlueLine :: Name -> Val -> Formula -> Formula -> Val -> System Val -> Val
+compGlueLine i b phi psi u us = glueLineElem vm phi psi
+  where fs = invFormula psi One
+        ws = Map.mapWithKey
+               (\alpha -> unGlueLine (b `face` alpha)
+                            (phi `face` alpha) (psi `face` alpha)) us
+        w  = unGlueLine b phi psi u
+        v  = comp i b w ws
+
+        lss = mkSystem $ map
+                (\alpha ->
+                  (alpha,(face phi alpha,face b alpha,
+                          face us alpha,face u alpha))) fs
+        ls = Map.mapWithKey (\alpha vAlpha ->
+                              auxGlueLine i vAlpha (v `face` alpha)) lss
+
+        vm = compLine b v ls
+
+auxGlueLine :: Name -> (Formula,Val,System Val,Val) -> Val -> Val
+auxGlueLine i (Dir _,b,ws,wi0) vi1 = VPath j vi1 where j = fresh vi1
+auxGlueLine i (phi,b,ws,wi0) vi1   = fillLine b vi1 ls'
+  where hisos = mkSystem (map (\alpha ->
+                  (alpha,idIso (b `face` alpha))) (invFormula phi Zero))
+        vs  = Map.mapWithKey (\alpha -> unGlue (hisos `face` alpha)) ws
+        vi0 = unGlue hisos wi0 -- in b
+
+        v   = fill i b vi0 vs  -- in b
+
+        us' = Map.mapWithKey (\gamma _ ->
+                  fill i (b `face` gamma) (wi0 `face` gamma)
+                    (ws `face` gamma))
+                hisos
+
+        ls' = Map.mapWithKey (\gamma _ ->
+                  pathComp i (b `face` gamma) (v `face` gamma)
+                    (us' ! gamma) (vs `face` gamma))
+                 hisos
+
+transGlueLine :: Name -> Val -> Formula -> Formula -> Val -> Val
+transGlueLine i b phi psi u = glueLineElem vm phii1 psii1
+  where fs = filter (i `Map.notMember`) (invFormula psi One)
+        phii1   = phi `face` (i ~> 1)
+        psii1   = psi `face` (i ~> 1)
+        phii0   = phi `face` (i ~> 0)
+        psii0   = psi `face` (i ~> 0)
+        bi1 = b `face`  (i ~> 1)
+        bi0 = b `face`  (i ~> 0)
+        lss = mkSystem (map (\ alpha ->
+                (alpha,(face phi alpha,face b alpha,face u alpha))) fs)
+        ls = Map.mapWithKey (\alpha vAlpha ->
+               auxTransGlueLine i vAlpha (v `face` alpha)) lss
+        v = trans i b w
+        w  = unGlueLine bi0 phii0 psii0 u
+        vm = compLine bi1 v ls
+
+
+
+auxTransGlueLine :: Name -> (Formula,Val,Val) -> Val -> Val
+auxTransGlueLine i (Dir _,b,wi0) vi1 = VPath j vi1 where j = fresh vi1
+auxTransGlueLine i (phi,b,wi0) vi1   = fillLine (b `face` (i ~> 1)) vi1 ls'
+  where hisos = mkSystem (map (\ alpha ->
+                  (alpha,idIso (b `face` alpha))) (invFormula phi Zero))
+        vi0  = unGlue (hisos `face` (i ~> 0)) wi0 -- in b(i0)
+
+        v    = transFill i b vi0           -- in b
+
+        -- set of elements in hisos independent of i
+        hisos'  = Map.filterWithKey (\alpha _ -> i `Map.notMember` alpha) hisos
+
+        us'    = Map.mapWithKey (\gamma _ ->
+                  transFill i (b `face` gamma) (wi0 `face` gamma))
+                hisos'
+
+        ls'    = Map.mapWithKey (\gamma _ ->
+                     VPath i $ squeeze i (b `face` gamma) (us' ! gamma))
+                   hisos'
+
 
 
 -------------------------------------------------------------------------------

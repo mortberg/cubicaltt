@@ -42,7 +42,7 @@ lem (A:U) (P:A -> U) (gP:(x:A) -> groupoid (P x))
     (a :A) : (b:A) (p q:Id A a b) (r s:Id (Id A a b) p q) (t:Id (Id (Id A a b) p q) r s)
     (a1:P a) (b1:P b) (p1: IdP (<i>P (p@i)) a1 b1) (q1: IdP (<i>P (q@i)) a1 b1)
     (r1 : IdP (<i>IdP (<j>P (r@i@j)) a1 b1) p1 q1)  (s1 : IdP (<i>IdP (<j>P (s@i@j)) a1 b1) p1 q1) ->
-    IdP (<i>IdP (<j>IdP (<k>P (t@i@j@k)) a1 b1) p1 q1) r1 s1 =
+    IdP (<i>IdP (<j>IdP (<k>P (t@i@j@k)) a1 b1) p1 q1) r1 s1 = 
  J A a (\ (b:A) (p :Id A a b) -> (q:Id A a b) (r s:Id (Id A a b) p q) (t:Id (Id (Id A a b) p q) r s)
           (a1:P a) (b1:P b) (p1: IdP (<i>P (p@i)) a1 b1) (q1: IdP (<i>P (q@i)) a1 b1)
           (r1 : IdP (<i>IdP (<j>P (r@i@j)) a1 b1) p1 q1)  (s1 : IdP (<i>IdP (<j>P (s@i@j)) a1 b1) p1 q1) ->
@@ -58,19 +58,35 @@ lem (A:U) (P:A -> U) (gP:(x:A) -> groupoid (P x))
      (r1 : IdP (<i>IdP (<j>P (r@i@j)) a1 b1) p1 q1)  (s1 : IdP (<i>IdP (<j>P (s@i@j)) a1 b1) p1 q1) ->
      IdP (<i>IdP (<j>IdP (<k>P (t@i@j@k)) a1 b1) p1 q1) r1 s1) (lem1 A P gP a)
 
-gTruncElim (A : U)
+T:U =  (A:U) (P:A -> U) (gP:(x:A) -> groupoid (P x))
+       (a b:A) (p q:Id A a b) (r s:Id (Id A a b) p q) (t:Id (Id (Id A a b) p q) r s)
+       (a1:P a) (b1:P b) (p1: IdP (<i>P (p@i)) a1 b1) (q1: IdP (<i>P (q@i)) a1 b1)
+       (r1 : IdP (<i>IdP (<j>P (r@i@j)) a1 b1) p1 q1)  (s1 : IdP (<i>IdP (<j>P (s@i@j)) a1 b1) p1 q1) ->
+         IdP (<i>IdP (<j>IdP (<k>P (t@i@j@k)) a1 b1) p1 q1) r1 s1
+
+gTruncElim1 (lem:T) (A : U)
            (B : (gTrunc A) -> U)
            (bG : (z:gTrunc A) -> groupoid (B z))
            (f : (x:A) -> B (inc x)) : (z:gTrunc A) -> B z = split
     inc a -> f a
     squashC a b p q r s @ i j k   -> lem (gTrunc A) B bG a b p q r s
                                         (gTr A a b p q r s)
-                                        (gTruncElim A B bG f a)
-                                        (gTruncElim A B bG f b)
-                                        (<m> gTruncElim A B bG f (p @ m))
-                                        (<m> gTruncElim A B bG f (q @ m))
-                                        (<m n> gTruncElim A B bG f (r @ m @ n))
-                                        (<m n> gTruncElim A B bG f (s @ m @ n)) @ i @ j @ k
+                                        (gTruncElim1 lem A B bG f a)
+                                        (gTruncElim1 lem A B bG f b)
+                                        (<m> gTruncElim1 lem A B bG f (p @ m))
+                                        (<m> gTruncElim1 lem A B bG f (q @ m))
+                                        (<m n> gTruncElim1 lem A B bG f (r @ m @ n))
+                                        (<m n> gTruncElim1 lem A B bG f (s @ m @ n)) @ i @ j @ k
+
+gTruncElim : (A : U)
+           (B : (gTrunc A) -> U)
+           (bG : (z:gTrunc A) -> groupoid (B z))
+           (f : (x:A) -> B (inc x)) (z:gTrunc A) -> B z = gTruncElim1 lem
+
+
+
+
+
 
 setGroupoid (A:U) (h:set A) (a b:A) : set (Id A a b) =  propSet (Id A a b) (h a b)
 

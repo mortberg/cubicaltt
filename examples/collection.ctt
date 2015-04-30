@@ -1,0 +1,36 @@
+module collection where
+
+import sigma
+import pi
+import univalence
+import retract
+
+lem1 (A B:U) (sB: set B) : set (A -> B) = setPi A (\ (x:A) -> B) (\ (x:A) -> sB)
+
+lem2 (A B : U) (gB:groupoid B) : groupoid (A -> B) = groupoidPi A (\ (x:A) -> B) (\ (x:A) -> gB)
+
+lem3 (A B : U) (t u : Equiv A B) : Id U (Id (Equiv A B) t u) (Id (A -> B) t.1 u.1)
+ = lemSigProp (A->B) (isEquiv A B) (propIsEquiv A B) t u 
+
+lem4 (A B : U) (sB:set B) (t u:Equiv A B) : prop (Id  (Equiv A B) t u)
+ = substInv U prop (Id (Equiv A B) t u) (Id (A -> B) t.1 u.1) (lem3 A B t u) (lem1 A B sB t.1 u.1)
+
+lem5 (A B : U) (gB:groupoid B) (t u:Equiv A B) : set (Id (Equiv A B) t u)
+ = substInv U set  (Id (Equiv A B) t u) (Id (A -> B) t.1 u.1) (lem3 A B t u) (lem2 A B gB t.1 u.1)
+
+lem6 (A B : U) (sB : set B) : set (Id U A B) = 
+ retractSet (Id U A B) (Equiv A B) (IdToEquiv A B) (EquivToId A B) (secIdEquiv A B) (lem4 A B sB)
+
+-- the collection of all sets
+
+SET : U = (X:U) * set X
+
+-- the collection of all sets is a groupoid
+
+groupoidSET (A B : SET) : set (Id SET A B) = 
+ rem2
+ where
+   rem : set (Id U A.1 B.1) = lem6 A.1 B.1 B.2
+   rem1 : Id U (Id SET A B) (Id U A.1 B.1) = lemSigProp U set setIsProp A B
+   rem2 : set (Id SET A B) = substInv U set (Id SET A B) (Id U A.1 B.1) rem1 rem
+

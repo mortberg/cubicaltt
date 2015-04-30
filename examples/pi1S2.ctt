@@ -24,7 +24,12 @@ test1 : Id pi1S2 trivS2 trivS2 = propPi1S2 trivS2 trivS2
 
 -- we can transport this since S1 = susp bool
 
-eqS1
+eqS1 : Id U S1 sone = <i>s1EqCircle@-i
 
-eqS2 : Id U S2 stwo = subst U susp S1 sone (<i>s1EqCircle@-i)
+eqS2 : Id U S2 stwo = <i>susp (eqS1@i)
 
+pi1stwo : U = sTrunc (Id stwo north north) 
+
+eqPi1 : Id U pi1S2 pi1stwo = <i>sTrunc (Id (susp (eqS1@i)) north north)
+
+propPi1stwo : prop pi1stwo = subst U prop pi1S2 pi1stwo eqPi1 propPi1S2

@@ -3,7 +3,7 @@ module CTT where
 import Control.Applicative
 import Data.List
 import Data.Maybe
-import Data.Map (Map,(!))
+import Data.Map (Map,(!),filterWithKey)
 import qualified Data.Map as Map
 import Text.PrettyPrint as PP
 
@@ -208,16 +208,15 @@ isNeutralTrans u _ = isNeutral u
 isNeutralComp :: Val -> Val -> System Val -> Bool
 isNeutralComp a _ _ | isNeutral a = True
 isNeutralComp (Ter Sum{} _) u ts  = isNeutral u || isNeutralSystem ts
-isNeutralComp (VGlue _ as) u ts | isNeutral u = True
-                                | otherwise   =
-  let shas = shape as
-      testFace beta _ = let shasBeta = shas `face` beta
-                        in shasBeta /= Map.empty && eps `Map.notMember` shasBeta
-  in isNeutralSystem (Map.filterWithKey testFace ts)
--- isNeutralComp (VGlueLine _ phi psi) u ts | isNeutral u = True
---                                          | otherwise   =
---   let fs = invFormula psi One
---   in isNeutralSystem ()
+isNeutralComp (VGlue _ as) u ts =
+  isNeutral u || isNeutralSystem (filterWithKey testFace ts)
+  where shas = shape as
+        testFace beta _ = let shasBeta = shas `face` beta
+                          in not (Map.null shasBeta || eps `Map.member` shasBeta)
+-- isNeutralComp (VGlueLine _ phi psi) u ts =
+--   isNeutral u || isNeutralSystem ts || isNeutralSystem ws
+--   where fs = invFormula psi One
+--         ws =
 isNeutralComp _ _ _ = False
 
 
@@ -449,8 +448,8 @@ showVal1 v = case v of
   VU                -> showVal v
   VCon c []         -> showVal v
   VVar{}            -> showVal v
-  Ter t@Sum{} rho   -> showTer t <+> showEnv False rho
-  Ter t@Split{} rho -> showTer t <+> showEnv False rho
+  Ter t@Sum{} rho   -> parens (showTer t <+> showEnv False rho)
+  Ter t@Split{} rho -> parens (showTer t <+> showEnv False rho)
   _                 -> parens (showVal v)
 
 showVals :: [Val] -> Doc

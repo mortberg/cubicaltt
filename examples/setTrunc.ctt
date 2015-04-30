@@ -2,37 +2,36 @@ module setTrunc where
 
 import set
 
-data setTrunc (A : U)
+data sTrunc (A : U)
   = inc (a : A)
-  | setTrC (a b : setTrunc A) (p q : Id (setTrunc A) a b) <i j>
+  | setTrC (a b : sTrunc A) (p q : Id (sTrunc A) a b) <i j>
        [ (i=0) -> p @ j
        , (i=1) -> q @ j
        , (j=0) -> a
        , (j=1) -> b]
 
-setTr (A : U) (a b : setTrunc A) (p q : Id (setTrunc A) a b) : Id (Id (setTrunc A) a b) p q =
-  <i j> setTrC {setTrunc A} a b p q @ i @ j
+sTr (A : U) (a b : sTrunc A) (p q : Id (sTrunc A) a b) : Id (Id (sTrunc A) a b) p q =
+  <i j> setTrC {sTrunc A} a b p q @ i @ j
 
--- setTruncSet (A : U) : set (setTrunc A) =
---    \(a b : setTrunc A) (p q : Id (setTrunc A) a b) ->
---      <i j> setTrC {setTrunc A} a b p q @ i @ j
+-- sTruncSet (A : U) : set (sTrunc A) =
+--    \(a b : sTrunc A) (p q : Id (sTrunc A) a b) ->
+--      <i j> setTrC {sTrunc A} a b p q @ i @ j
 
-
-setTruncRec (A : U)
+sTruncRec (A : U)
             (B : U)
             (bS : set B)
             (f : A -> B) :
-            setTrunc A -> B =
+            sTrunc A -> B =
   split
     inc a -> f a
-    setTrC a b p q @ i j -> (bS (setTruncRec A B bS f a)
-                               (setTruncRec A B bS f b)
-                               (<k> setTruncRec A B bS f (p @ k))
-                               (<k> setTruncRec A B bS f (q @ k))) @ i @ j
+    setTrC a b p q @ i j -> (bS (sTruncRec A B bS f a)
+                               (sTruncRec A B bS f b)
+                               (<k> sTruncRec A B bS f (p @ k))
+                               (<k> sTruncRec A B bS f (q @ k))) @ i @ j
 
-setTruncElim (A : U) (P : setTrunc A -> U) (sP : (z : setTrunc A) -> set (P z)) (h : (x : A) -> P (inc x))
-  : (z : setTrunc A) -> P z = split
+sTruncElim (A : U) (P : sTrunc A -> U) (sP : (z : sTrunc A) -> set (P z)) (h : (x : A) -> P (inc x))
+  : (z : sTrunc A) -> P z = split
     inc a -> h a
-    setTrC a b p q @ i j -> sqDepPath2 (setTrunc A) P sP a b p q (setTr A a b p q)
+    setTrC a b p q @ i j -> sqDepPath2 (sTrunc A) P sP a b p q (sTr A a b p q)
                                        (f a) (f b) (<k> f (p @ k)) (<k> f (q @ k)) @ i @ j
-      where f : (z : setTrunc A) -> P z = setTruncElim A P sP h
+      where f : (z : sTrunc A) -> P z = sTruncElim A P sP h

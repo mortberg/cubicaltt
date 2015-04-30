@@ -33,3 +33,12 @@ pi1stwo : U = sTrunc (Id stwo north north)
 eqPi1 : Id U pi1S2 pi1stwo = <i>sTrunc (Id (susp (eqS1@i)) north north)
 
 propPi1stwo : prop pi1stwo = subst U prop pi1S2 pi1stwo eqPi1 propPi1S2
+
+meridNstwo : Id stwo north south = <i>merid{stwo} north@i
+meridSstwo : Id stwo north south = <i>merid{stwo} south@i
+trivstwo : pi1stwo = inc (refl stwo north)
+loopstwo : pi1stwo = inc (compId stwo north south north meridNstwo (<i>meridSstwo@-i))
+
+
+test2 : Id pi1stwo trivstwo loopstwo = propPi1stwo trivstwo loopstwo
+test3 : Id pi1stwo trivstwo trivstwo = propPi1stwo trivstwo trivstwo

@@ -104,11 +104,6 @@ lemSigProp (A:U) (B:A-> U) (pB : (x:A) -> prop (B x)) (t u : sig A B) : Id U (Id
    rem1 : Id U ((p:T) * C p) T = lem6 T C rem
    rem2 : Id U (Id (sig A B) t u) ((p:T) * C p) = lemIdSig A B t u
 
-{-
-idSigProp (A:U)(B:A->U)(pB: (x:A) -> prop (B x))(t u : sig A B) (h: Id A t.1 u.1) : Id (sig A B) t u
- = fun2 A B t u (h,pB u.1  (subst A B t.1 u.1 h t.2) u.2)
--}
-
 setGroupoid (A:U) (sA:set A) (a0 a1:A) : set (Id A a0 a1) = propSet (Id A a0 a1) (sA a0 a1)
 
 propGroupoid (A:U) (pA: prop A) : groupoid A = setGroupoid A (propSet A pA)

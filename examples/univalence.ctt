@@ -1,0 +1,18 @@
+module univalence where
+
+import retract
+import equiv
+
+-- we do something simpler than univalence
+
+transpIsEquiv (A B:U) (p:Id U A B) : isEquiv A B (\ (x:A) -> transport p x) =
+ transport (<i>isEquiv A (p@i) (\ (x:A) -> transport (<j>p@i/\j) x)) (idIsEquiv A)
+
+IdToEquiv (A B:U) (p: Id U A B) : Equiv A B = (\ (x:A) -> transport p x, transpIsEquiv A B p)
+
+EquivToId (A B:U) (z:Equiv A B) : Id U A B = isEquivEq A B z.1 z.2
+
+secIdEquiv (A B :U) (p : Id U A B) : Id (Id U A B) (EquivToId A B (IdToEquiv A B p)) p =
+ transport (<i>Id (Id U A (p@i)) (EquivToId A (p@i) (IdToEquiv A (p@i) (<j>p@i/\j))) (<j>p@i/\j))
+           (<i>isoIdRef A@-i)
+

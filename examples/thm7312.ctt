@@ -1,0 +1,96 @@
+module thm7312 where
+
+import setTrunc
+import groupoidTrunc
+import pi
+import collection
+
+gTruncElim2 (A : U) (R : gTrunc A -> gTrunc A -> U)
+            (tR : (x y : gTrunc A) -> groupoid (R x y))
+            (g:(a b : A) -> R (inc a) (inc b)) : (x y : gTrunc A) -> R x y =
+ gTruncElim A P tP hP
+ where
+  P (x: gTrunc A) : U = (y : gTrunc A) -> R x y
+  tP (x : gTrunc A) : groupoid (P x) = groupoidPi (gTrunc A) (R x) (tR x)
+  hP (a : A) : P (inc a) = gTruncElim A (R (inc a)) (tR (inc a)) (g a)
+
+-- Theorem 7.3.12
+thm7312 (A : U) (x y : A) : Id U (sTrunc (Id A x y))
+                                 (Id (gTrunc A) (inc x) (inc y)) = lem3 (inc x) (inc y)
+  where
+  tA : U = gTrunc A
+
+  tAtrunc : groupoid tA = gTr A
+
+  P : tA -> tA -> SET
+    = gTruncElim2 A (\ (z t: tA) -> SET) (\ (x t:tA) -> groupoidSET)
+                    (\ (x y:A) -> (sTrunc (Id A x y),sTr (Id A x y)))
+
+  Q (u v: tA) : U = (P u v).1
+
+  encode : (u v : tA) -> Q u v -> Id tA u v
+   = gTruncElim2 A (\(u v:tA) -> Q u v -> Id tA u v)
+                   (\(u v:tA) -> setGroupoid (Q u v -> Id tA u v) (setFun (Q u v) (Id tA u v) (tAtrunc u v)))
+                   rem
+    where
+     rem (x y : A) : sTrunc (Id A x y) -> Id tA (inc x) (inc y)
+             = sTruncRec (Id A x y) (Id tA (inc x) (inc y)) (tAtrunc (inc x) (inc y))
+                         (\ (p:Id A x y) -> <i>inc (p@i))
+
+
+  test (x : A) : Id U (Q (inc x) (inc x)) (sTrunc (Id A x x)) = refl U (sTrunc (Id A x x))
+
+  r : (u : tA) -> Q u u
+    = gTruncElim A (\ (u:tA) -> Q u u) rem1 rem
+    where
+     rem1 (u : tA) : groupoid (Q u u) = setGroupoid (Q u u) (P u u).2
+     rem (x : A) : sTrunc (Id A x x) = inc (refl A x)
+
+  decode (u v : tA) (p:Id tA u v) : Q u v = subst tA (Q u) u v p (r u) -- J tA u (\v p -> Q u v) (r u)
+
+  lem1 (u :tA) : (v : tA) (p : Id tA u v) -> Id (Id tA u v) (encode u v (decode u v p)) p
+   = J tA u (\(v : tA) (p : Id tA u v) -> Id (Id tA u v) (encode u v (decode u v p)) p) (rem u)
+    where
+     T (u : tA) : U = Id (Id tA u u) (encode u u (decode u u (refl tA u))) (refl tA u)
+
+     truncT (u : tA) : groupoid (T u) =
+      setGroupoid (T u) (rem (encode u u (decode u u (refl tA u))) (refl tA u))
+       where
+        rem : groupoid (Id tA u u) = setGroupoid (Id tA u u) (tAtrunc u u)
+
+     rem : (u : tA) -> T u = gTruncElim A T truncT (\ (x:A) -> refl (Id tA (inc x) (inc x)) (refl tA (inc x)))
+
+
+  lem2 : (u v : tA) (p : Q u v) -> Id (Q u v) (decode u v (encode u v p)) p
+    = gTruncElim2 A R tR rem
+    where
+     R (u v : tA) : U = (p : Q u v) -> Id (Q u v) (decode u v (encode u v p)) p
+
+     tR (u v : tA) : groupoid (R u v)
+       = groupoidPi (Q u v) (\ (p:Q u v) -> Id (Q u v) (decode u v (encode u v p)) p) rem1
+       where
+        rem : groupoid (Q u v) = setGroupoid (Q u v) (P u v).2
+        rem1 (p : Q u v) : groupoid (Id (Q u v) (decode u v (encode u v p)) p)
+         = setGroupoid (Id (Q u v) (decode u v (encode u v p)) p) (rem (decode u v (encode u v p)) p)
+
+     rem1 (x:A) : (y : A) (p : Id A x y) ->
+            Id (sTrunc (Id A x y)) (decode (inc x) (inc y) (encode (inc x) (inc y) (inc p))) (inc p)
+       = J A x (\ (y:A) (p:Id A x y) -> 
+                 Id (sTrunc (Id A x y)) (decode (inc x) (inc y) (encode (inc x) (inc y) (inc p))) (inc p)) rem2
+       where
+        rem2 : Id (sTrunc (Id A x x)) (decode (inc x) (inc x) (encode (inc x) (inc x) (inc (refl A x)))) (inc (refl A x))
+            = refl (sTrunc (Id A x x)) (inc (refl A x)) 
+
+     rem (x y : A) : (p : sTrunc (Id A x y)) ->
+           Id (sTrunc (Id A x y)) (decode (inc x) (inc y) (encode (inc x) (inc y) p)) p
+        = sTruncElim (Id A x y) T tT (rem1 x y)
+       where
+        T (p: sTrunc (Id A x y)) : U = Id (sTrunc (Id A x y)) (decode (inc x) (inc y) (encode (inc x) (inc y) p)) p
+
+        tT (p : sTrunc (Id A x y)) : set (T p)
+          = setGroupoid (sTrunc (Id A x y)) (sTr (Id A x y))
+                        (decode (inc x) (inc y) (encode (inc x) (inc y) p)) p
+
+
+  lem3 (u v : tA) : Id U (Q u v) (Id tA u v) =
+     isoId (Q u v) (Id tA u v) (encode u v) (decode u v) (lem1 u v) (lem2 u v)

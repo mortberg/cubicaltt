@@ -1,0 +1,15 @@
+module deppath where
+
+import prelude
+
+funDepTr (A0 A1 :U) (p:Id U A0 A1) (u0:A0) (u1:A1) :
+             Id U (IdP p u0 u1) (Id A1 (transport p u0) u1) =
+ <i> IdP (<l> p @ (i\/l)) (transport (<l> p @ (i/\l)) u0) u1
+
+funDepTrInv (A0 A1 :U) (p:Id U A0 A1) (u0:A0) (u1:A1) :
+             Id U (Id A0 u0 (transport (<i>p@-i) u1)) (IdP p u0 u1) =
+ <i> IdP (<l> p @ (i/\l)) u0 (transport (<l> p @ (i\/-l)) u1)
+
+funDep (A0 A1 :U) (p:Id U A0 A1) (u0:A0) (u1:A1) :
+      Id U (Id A0 u0 (transport (<i>p@-i) u1)) (Id A1 (transport p u0) u1) =
+ <i> Id (p @ i) (transport (<l> p @ (i/\l)) u0) (transport (<l> p @ (i\/-l)) u1)

@@ -1,47 +1,30 @@
 module pi1S2 where
 
 import truncS2
-import susp
-import groupoidTrunc
+import thm7312
 
-lemGrp4 (X : U) (gX:groupoid X) : Id U (gTrunc S2 -> X) X
- = compId U (gTrunc S2 -> X) (S2 -> X) X (univG S2 X gX) (lemGrp3 X gX)
+pi1S2 : U = sTrunc (Id S2 north north) 
 
-corr : Id U (gTrunc S2 -> gTrunc S2) (gTrunc S2) = lemGrp4 (gTrunc S2) (gTr S2)
+incN : gTrunc S2 = inc north
 
-lemTransport (A B :U) (p : Id U A B) (a0 a1 : A) (h: Id B (transport p a0) (transport p a1)) : Id A a0 a1 =
- transport (<i>Id (p@-i) (transport (<j>p@(-i/\j)) a0) (transport (<j>p@(-i/\j)) a1)) h
+cor7312 : Id U pi1S2 (Id (gTrunc S2) incN incN) =
+ thm7312 S2 north north
 
+propPi1S2 : prop pi1S2 =
+ substInv U prop pi1S2 (Id (gTrunc S2) incN incN)  cor7312
+    (propSet (gTrunc S2) propgTruncS2 incN incN)
 
-corr1 : Id (gTrunc S2 -> gTrunc S2) (\ (x:gTrunc S2) -> x) (\ (x:gTrunc S2) -> inc north) =
- lemTransport (gTrunc S2 -> gTrunc S2) (gTrunc S2) corr 
-              (\ (x:gTrunc S2) -> x) (\ (x:gTrunc S2) -> inc north) (refl (gTrunc S2) (inc north))
+meridS2 : Id S2 north south = <i>merid{S2} base@i
 
-corr2 (x:gTrunc S2) : Id (gTrunc S2) x (inc north) = <i> corr1@i x 
+trivS2 : pi1S2 = inc (refl S2 north)
+loopS2 : pi1S2 = inc (compId S2 north south north meridS2 (<i>meridS2@-i))
 
-test : Id (gTrunc S2) (inc south) (inc north) = corr2 (inc south)
+test : Id pi1S2 trivS2 loopS2 = propPi1S2 trivS2 loopS2
+test1 : Id pi1S2 trivS2 trivS2 = propPi1S2 trivS2 trivS2
 
--- normal form
+-- we can transport this since S1 = susp bool
 
-test : Id (gTrunc S2) (inc south) (inc north) = 
- <i> inc (comp S2 north 
-         [ (i = 0) -> <j> comp S2 south 
-          [ (j = 0) -> <k> comp S2 north
-           [ (k = 0) -> <l> comp S2 south
-            [ (l = 0) -> <m> comp S2 north
-             [ (m = 0) -> <n> comp S2 south 
-              [ (n = 0) -> <p> comp S2 north 
-               [ (p = 0) -> <q> comp S2 north [ (q = 1) -> <r> merid {S2} base @ r ] ] ] ] ] ] ] ])
+eqS1
 
+eqS2 : Id U S2 stwo = subst U susp S1 sone (<i>s1EqCircle@-i)
 
-
-test1 : Id (gTrunc S2) (inc north) (inc north) = corr2 (inc north)
-
--- this should imply that any element in gTrunc (susp sone) is equal to inc north
-
-stwo : U = susp sone
-
-corr3 : (x:gTrunc stwo) -> Id (gTrunc stwo) x (inc north) =
- transport (<i>(x:gTrunc (susp (s1EqCircle@-i))) -> Id (gTrunc (susp (s1EqCircle@-i))) x (inc north)) corr2
-
-test2 : Id (gTrunc stwo) (inc south) (inc north) = corr3 (inc south)

@@ -307,7 +307,7 @@ checkBranch (OLabel _ tele,nu) f (OBranch c ns e) _ _ = do
   local (addBranch (zip ns us) nu) $ check (app f (VCon c us)) e
 checkBranch (PLabel _ tele is ts,nu) f (PBranch c ns js e) g va = do
   ns' <- asks names
-  mapM_ checkFresh js
+  -- mapM_ checkFresh js
   let us   = mkVars ns' tele nu
       vus  = map snd us
       js'  = map Atom js
@@ -339,7 +339,7 @@ checkFresh i = do
 checkPath :: Val -> Ter -> Typing (Val,Val)
 checkPath v (Path i a) = do
   rho <- asks env
-  checkFresh i
+  -- checkFresh i
   local (addSub (i,Atom i)) $ check (v @@ i) a
   return (eval (Sub rho (i,Dir 0)) a,eval (Sub rho (i,Dir 1)) a)
 checkPath v t = do

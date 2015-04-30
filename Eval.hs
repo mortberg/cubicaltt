@@ -620,7 +620,7 @@ unGlueLine b phi psi u = case (phi,psi,u) of
 compGlueLine :: Name -> Val -> Formula -> Formula -> Val -> System Val -> Val
 compGlueLine i b phi psi u us = glueLineElem vm phi psi
   where fs = invFormula psi One
-        ws = Map.mapWithKey
+        ws = mapWithKey
                (\alpha -> unGlueLine (b `face` alpha)
                             (phi `face` alpha) (psi `face` alpha)) us
         w  = unGlueLine b phi psi u
@@ -628,10 +628,10 @@ compGlueLine i b phi psi u us = glueLineElem vm phi psi
 
         lss = mkSystem $ map
                 (\alpha ->
-                  (alpha,(face phi alpha,face b alpha,
-                          face us alpha,face u alpha))) fs
-        ls = Map.mapWithKey (\alpha vAlpha ->
-                              auxGlueLine i vAlpha (v `face` alpha)) lss
+                  (alpha,(phi `face` alpha,b `face` alpha,
+                          us `face` alpha,u `face` alpha))) fs
+        ls = mapWithKey (\alpha vAlpha ->
+                          auxGlueLine i vAlpha (v `face` alpha)) lss
 
         vm = compLine b v ls
 
@@ -640,20 +640,19 @@ auxGlueLine i (Dir _,b,ws,wi0) vi1 = VPath j vi1 where j = fresh vi1
 auxGlueLine i (phi,b,ws,wi0) vi1   = fillLine b vi1 ls'
   where hisos = mkSystem (map (\alpha ->
                   (alpha,idIso (b `face` alpha))) (invFormula phi Zero))
-        vs  = Map.mapWithKey (\alpha -> unGlue (hisos `face` alpha)) ws
+        vs  = mapWithKey (\alpha -> unGlue (hisos `face` alpha)) ws
         vi0 = unGlue hisos wi0 -- in b
 
         v   = fill i b vi0 vs  -- in b
-
-        us' = Map.mapWithKey (\gamma _ ->
-                  fill i (b `face` gamma) (wi0 `face` gamma)
-                    (ws `face` gamma))
+        us' = mapWithKey (\gamma _ ->
+                           fill i (b `face` gamma) (wi0 `face` gamma)
+                             (ws `face` gamma))
                 hisos
 
-        ls' = Map.mapWithKey (\gamma _ ->
-                  pathComp i (b `face` gamma) (v `face` gamma)
-                    (us' ! gamma) (vs `face` gamma))
-                 hisos
+        ls' = mapWithKey (\gamma _ ->
+                           pathComp i (b `face` gamma) (v `face` gamma)
+                             (us' ! gamma) (vs `face` gamma))
+                hisos
 
 transGlueLine :: Name -> Val -> Formula -> Formula -> Val -> Val
 transGlueLine i b phi psi u = glueLineElem vm phii1 psii1
@@ -666,13 +665,11 @@ transGlueLine i b phi psi u = glueLineElem vm phii1 psii1
         bi0 = b `face`  (i ~> 0)
         lss = mkSystem (map (\ alpha ->
                 (alpha,(face phi alpha,face b alpha,face u alpha))) fs)
-        ls = Map.mapWithKey (\alpha vAlpha ->
+        ls = mapWithKey (\alpha vAlpha ->
                auxTransGlueLine i vAlpha (v `face` alpha)) lss
         v = trans i b w
         w  = unGlueLine bi0 phii0 psii0 u
         vm = compLine bi1 v ls
-
-
 
 auxTransGlueLine :: Name -> (Formula,Val,Val) -> Val -> Val
 auxTransGlueLine i (Dir _,b,wi0) vi1 = VPath j vi1 where j = fresh vi1
@@ -680,19 +677,18 @@ auxTransGlueLine i (phi,b,wi0) vi1   = fillLine (b `face` (i ~> 1)) vi1 ls'
   where hisos = mkSystem (map (\ alpha ->
                   (alpha,idIso (b `face` alpha))) (invFormula phi Zero))
         vi0  = unGlue (hisos `face` (i ~> 0)) wi0 -- in b(i0)
-
         v    = transFill i b vi0           -- in b
 
         -- set of elements in hisos independent of i
-        hisos'  = Map.filterWithKey (\alpha _ -> i `Map.notMember` alpha) hisos
+        hisos'  = filterWithKey (\alpha _ -> i `Map.notMember` alpha) hisos
 
-        us'    = Map.mapWithKey (\gamma _ ->
+        us' = mapWithKey (\gamma _ ->
                   transFill i (b `face` gamma) (wi0 `face` gamma))
                 hisos'
 
-        ls'    = Map.mapWithKey (\gamma _ ->
-                     VPath i $ squeeze i (b `face` gamma) (us' ! gamma))
-                   hisos'
+        ls' = mapWithKey (\gamma _ ->
+                  VPath i $ squeeze i (b `face` gamma) (us' ! gamma))
+                hisos'
 
 
 

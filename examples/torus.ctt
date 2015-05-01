@@ -46,7 +46,7 @@ t2c : Torus -> ((x : S1) * S1) = split
 --   loop @ x -> split
 --        base -> pathOneT{Torus} @ x
 --        loop @ y -> squareT{Torus} @ y @ x
-
+-- 
 -- I tried doing this with helper functions
 -- 
 -- c2t' : S1 -> S1 -> Torus = split
@@ -60,9 +60,9 @@ t2c : Torus -> ((x : S1) * S1) = split
 --        loop @ y -> squareT{Torus} @ y @ x
 -- 
 -- but the faces don't work: want c2t2 <0/x> = c2t1 and similarly for 1.
--- why don't faces decend into function bodies?
+-- I guess faces don't reduce on functions?
 
--- Instead, lift each branch into a helper function:
+-- Instead, we can lift each branch into a helper function:
 
 -- branch for base
 c2t_base : S1 -> Torus = split 
@@ -73,29 +73,31 @@ c2t_base : S1 -> Torus = split
 -- 
 -- I want to be able to do a split inside an interval abstraction:
 --
--- c2tloop : IdP (<_>S1 -> Torus) c2t1 c2t1 = 
+-- c2t_loop : IdP (<_>S1 -> Torus) c2t_base c2t_base = 
 --   <x> split
 --         base -> pathOneT{Torus} @ x
 --         loop @ y -> squareT{Torus} @ y @ x
 -- 
--- but this would require split to be a first-class term.
+-- but this doesn't seem possible?
+-- 
+-- One option would be to have split as a first-class term, rather
+-- than something that only follows a definition.  
 --
--- alternatively, it would be enough if when something has an identity type, 
+-- Alternatively, it would be enough if when something has an identity type, 
 -- you could bind the dimension in the telescope somehow.
 -- i.e. we could write this clausally as 
--- c2tloop x base = pathOneT{Torus} @ x
--- c2tloop x (loop @ y) = squareT{Torus} @ y @ x
--- because something of type Id(A->B) is really a two-argument function
--- I->A->B.  
+-- c2t_loop x base = pathOneT{Torus} @ x
+-- c2t_loop x (loop @ y) = squareT{Torus} @ y @ x
 
 -- Instead, we can use function extensionality to exchange the interval
 -- variable and the circle variable, so that the thing we want to induct on 
--- is on the outside.
+-- is on the outside.  
 
 c2t_loop' : (c : S1) -> IdP (<_>Torus) (c2t_base c) (c2t_base c) = split
    base -> < x > pathOneT{Torus} @ x
    loop @ y -> < x > squareT{Torus} @ y @ x
--- use funext to move the interval variable inside
+
+-- use funext to exchange the interval variable and the S1 variable
 c2t_loop : IdP (<_>S1 -> Torus) c2t_base c2t_base =
    <y> (\ (c : S1) -> (c2t_loop' c) @ y)
 
@@ -122,23 +124,17 @@ c2t2c_base : (c2 : S1) -> IdP (<_> (_ : S1) * S1) (t2c (c2t_base c2)) (base , c2
   base -> <_> (base , base)
   loop @ y -> <_> (base , loop{S1} @ y)
 
--- again, I shouldn't need to do funext here;
--- I should be able to do a split inside of an interval binding
+-- the loop goal reduced using the defintional equalties, and with the two binders exchanged.
+-- c2t' (loop @ y) c2 = (c2t_loop @ y c2) = c2t_loop' c2 @ y
 c2t2c_loop' : (c2 : S1) ->
       IdP (<y> IdP (<_> (_ : S1) * S1) (t2c (c2t_loop @ y c2)) (loop{S1} @ y , c2))
           (c2t2c_base c2)
           (c2t2c_base c2) = split 
-    base -> <x> <_> (loop{S1}@x, base)
-    loop @ y -> <x> <_> (loop{S1} @ x, loop{S1} @ y)
-
--- specialize the loop goal and use defintional equalties
---   c2t' (loop @ y) c2 = (c2t_loop @ y c2) = c2t_loop' c2 @ y
-c2t2c_loop : 
-     IdP (<y> (c2 : S1) -> IdP (<_> (_ : S1) * S1) (t2c (c2t_loop' c2 @ y)) (loop{S1} @ y , c2))
-         c2t2c_base
-         c2t2c_base = <y> (\ (c : S1) -> c2t2c_loop' c @ y)
+    base -> <y> <_> (loop{S1}@y, base)
+    loop @ x -> <y> <_> (loop{S1} @ y, loop{S1} @ x)
 
 c2t2c : (c1 : S1) (c2 : S1) -> IdP (<_> (_ : S1) * S1) (t2c (c2t' c1 c2)) (c1 , c2) = split
      base -> c2t2c_base
-     loop @ y -> c2t2c_loop @ y
-
+                 -- again, I shouldn't need to do funext here;
+                 -- I should be able to do a split inside of an interval binding
+     loop @ y -> (\ (c : S1) -> c2t2c_loop' c @ y)

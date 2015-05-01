@@ -1,6 +1,7 @@
 module torus where
 
 import prelude
+import circle
 
 data Torus = ptT
            | pathOneT <i> [ (i=0) -> ptT, (i=1) -> ptT ]
@@ -9,3 +10,135 @@ data Torus = ptT
                            , (i=1) -> pathOneT {Torus} @ j
                            , (j=0) -> pathTwoT {Torus} @ i
                            , (j=1) -> pathTwoT {Torus} @ i ]
+
+
+-- Torus = S1 * S1 proof
+
+--                  pathTwoT x
+--              ________________
+--              |              |
+--   pathOneT y | squareT x y  | pathOneT y
+--              |              |
+--              |              |
+--              ________________
+--                  pathTwoT x
+
+-- pathOneT is (loop,refl)
+-- pathTwoT is (refl,loop)
+
+-- ----------------------------------------------------------------------
+-- function from the torus to two circles
+
+t2c : Torus -> ((x : S1) * S1) = split
+  ptT -> (base,base)
+  pathOneT @ y -> (loop{S1} @ y, base)
+  pathTwoT @ x -> (base, loop{S1} @ x)
+  squareT @ x y -> (loop{S1} @ y, loop{S1} @ x)
+
+-- ----------------------------------------------------------------------
+-- function from two circles to the torus
+
+-- if we had nested splits, we could write this like this:
+-- c2t' : S1 -> S1 -> Torus = split
+--   base -> split
+--        base -> ptT
+--        loop @ x -> pathTwoT{Torus} @ x
+--   loop @ x -> split
+--        base -> pathOneT{Torus} @ x
+--        loop @ y -> squareT{Torus} @ y @ x
+
+-- I tried doing this with helper functions
+-- 
+-- c2t' : S1 -> S1 -> Torus = split
+--   base -> c2tbase where
+--           c2tbase : S1 -> Torus = split 
+--             base -> ptT
+--             loop @ x -> pathTwoT{Torus} @ x
+--   loop @ x -> c2t2 where 
+--     c2tbase : S1 -> Torus = split
+--        base -> pathOneT{Torus} @ x
+--        loop @ y -> squareT{Torus} @ y @ x
+-- 
+-- but the faces don't work: want c2t2 <0/x> = c2t1 and similarly for 1.
+-- why don't faces decend into function bodies?
+
+-- Instead, lift each branch into a helper function:
+
+-- branch for base
+c2t_base : S1 -> Torus = split 
+  base -> ptT
+  loop @ x -> pathTwoT{Torus} @ x
+
+-- branch for loop
+-- 
+-- I want to be able to do a split inside an interval abstraction:
+--
+-- c2tloop : IdP (<_>S1 -> Torus) c2t1 c2t1 = 
+--   <x> split
+--         base -> pathOneT{Torus} @ x
+--         loop @ y -> squareT{Torus} @ y @ x
+-- 
+-- but this would require split to be a first-class term.
+--
+-- alternatively, it would be enough if when something has an identity type, 
+-- you could bind the dimension in the telescope somehow.
+-- i.e. we could write this clausally as 
+-- c2tloop x base = pathOneT{Torus} @ x
+-- c2tloop x (loop @ y) = squareT{Torus} @ y @ x
+-- because something of type Id(A->B) is really a two-argument function
+-- I->A->B.  
+
+-- Instead, we can use function extensionality to exchange the interval
+-- variable and the circle variable, so that the thing we want to induct on 
+-- is on the outside.
+
+c2t_loop' : (c : S1) -> IdP (<_>Torus) (c2t_base c) (c2t_base c) = split
+   base -> < x > pathOneT{Torus} @ x
+   loop @ y -> < x > squareT{Torus} @ y @ x
+-- use funext to move the interval variable inside
+c2t_loop : IdP (<_>S1 -> Torus) c2t_base c2t_base =
+   <y> (\ (c : S1) -> (c2t_loop' c) @ y)
+
+c2t' : S1 -> S1 -> Torus = split
+  base -> c2t_base 
+  loop @ y -> c2t_loop @ y
+
+c2t (cs : ((_ : S1) * S1)) : Torus = c2t' cs.1 cs.2
+
+------------------------------------------------------------------------
+-- first composite: induct and reflexivity! 
+
+t2c2t : (t : Torus) -> IdP (<_> Torus) (c2t (t2c t)) t = split 
+  ptT -> (<_> ptT)
+  pathOneT @ y -> (<_> pathOneT{Torus} @ y)
+  pathTwoT @ x -> (<_> pathTwoT{Torus} @ x)
+  squareT @ x y -> (<_> squareT{Torus} @ x @ y)
+
+------------------------------------------------------------------------
+-- second composite: induct and reflexivity!
+-- except we need to use the same tricks as in c2t to do the inner induction
+
+c2t2c_base : (c2 : S1) -> IdP (<_> (_ : S1) * S1) (t2c (c2t_base c2)) (base , c2) = split
+  base -> <_> (base , base)
+  loop @ y -> <_> (base , loop{S1} @ y)
+
+-- again, I shouldn't need to do funext here;
+-- I should be able to do a split inside of an interval binding
+c2t2c_loop' : (c2 : S1) ->
+      IdP (<y> IdP (<_> (_ : S1) * S1) (t2c (c2t_loop @ y c2)) (loop{S1} @ y , c2))
+          (c2t2c_base c2)
+          (c2t2c_base c2) = split 
+    base -> <x> <_> (loop{S1}@x, base)
+    loop @ y -> <x> <_> (loop{S1} @ x, loop{S1} @ y)
+
+-- specialize the loop goal and use defintional equalties
+--   c2t' (loop @ y) c2 = (c2t_loop @ y c2) = c2t_loop' c2 @ y
+c2t2c_loop : 
+     IdP (<y> (c2 : S1) -> IdP (<_> (_ : S1) * S1) (t2c (c2t_loop' c2 @ y)) (loop{S1} @ y , c2))
+         c2t2c_base
+         c2t2c_base = <y> (\ (c : S1) -> c2t2c_loop' c @ y)
+
+c2t2c : (c1 : S1) (c2 : S1) -> IdP (<_> (_ : S1) * S1) (t2c (c2t' c1 c2)) (c1 , c2) = split
+     base -> c2t2c_base
+     loop @ y -> c2t2c_loop @ y
+

@@ -171,40 +171,38 @@ encode_decode : (c : S1) (p : Id S1 base c) -> Id (Id S1 base c) (decode c (enco
 
 decode_encode_base_neg : (n : nat) -> Id Z (transport (<x> helix (itLoopNeg n @ x)) (inr zero)) (inl n) = split
   zero -> <_> inl zero
-  suc n -> compId Z (transport (<x> helix (comp (S1) (itLoopNeg n @ x) [ (x = 1) -> <y> loop {S1} @ -y ])) (inr zero))
+  suc n -> <x> comp Z (adjust @ x) [ (x = 1) -> (<x> predZ (IH @ x)) ]
+{-
+-- FIXME: for some reason writing the comp directly didn't work as I was writing the function,
+--        but writing compId did.
+--        but now it does work.  not sure how to get back to the state where it didn't work;
+--        I think there were some holes in places.  
+compId Z (transport (<x> helix (comp (S1) (itLoopNeg n @ x) [ (x = 1) -> <y> loop {S1} @ -y ])) (inr zero))
                     (predZ (transport (<x> helix (itLoopNeg n @ x)) (inr zero)))
                     (predZ (inl n))
                     adjust
                     (<x> predZ (IH @ x))
-      -- FIXME: this says incompatible system, but isn't it the definition of compId
-      -- <x> comp Z (adjust @ x) [ (x = 1) -> (<x> predZ (IH @ x)) ]
+-}
     where
      IH : Id Z (transport (<x> helix (itLoopNeg n @ x)) (inr zero)) (inl n) = decode_encode_base_neg n
 
      adjust : Id Z (transport (<x> helix (comp (S1) (itLoopNeg n @ x) [ (x = 1) -> <y> loop {S1} @ -y ])) (inr zero))
                    (predZ (transport (<x> helix (itLoopNeg n @ x)) (inr zero))) = 
-                   compId Z (transport (<x> helix (comp (S1) (itLoopNeg n @ x) [ (x = 1) -> <y> loop {S1} @ -y ])) (inr zero))
-                            (transport (<x> (comp U (helix (itLoopNeg n @ x)) [ (x = 1) -> <y> helix (loop {S1} @ -y) ])) (inr zero))
-                            (predZ (transport (<x> helix (itLoopNeg n @ x)) (inr zero)))
-                            (<x> transport ((shouldBeDefinitional base base base (itLoopNeg n) (<y> loop{S1} @ -y)) @ x) (inr zero))
-                            (transport_compId Z Z Z (<x> (helix (itLoopNeg n @ x))) (<y> helix (loop {S1} @ -y)) (inr zero))
+                   <x> (comp Z 
+                             (transport ((shouldBeDefinitional base base base (itLoopNeg n) (<y> loop{S1} @ -y)) @ x) (inr zero))
+                             [ (x=1) -> 
+                               (transport_compId Z Z Z (<x> (helix (itLoopNeg n @ x))) (<y> helix (loop {S1} @ -y)) (inr zero))])
 
 decode_encode_base_nonneg : (n : nat) -> Id Z (transport (<x> helix (itLoop n @ x)) (inr zero)) (inr n) = split
   zero -> <_> inr zero
-  suc n -> compId Z (transport (<x> helix (comp (S1) (itLoop n @ x) [ (x = 1) -> <y> loop {S1} @ y ])) (inr zero))
-                    (sucZ (transport (<x> helix (itLoop n @ x)) (inr zero)))
-                    (sucZ (inr n))
-                    adjust
-                    (<x> sucZ (IH @ x)) where
+  suc n -> <x> comp Z (adjust @ x) [ (x = 1) -> (<x> sucZ (IH @ x)) ] where
      IH : Id Z (transport (<x> helix (itLoop n @ x)) (inr zero)) (inr n) = decode_encode_base_nonneg n
 
      adjust : Id Z (transport (<x> helix (comp (S1) (itLoop n @ x) [ (x = 1) -> <y> loop {S1} @ y ])) (inr zero))
                    (sucZ (transport (<x> helix (itLoop n @ x)) (inr zero))) = 
-                   compId Z (transport (<x> helix (comp (S1) (itLoop n @ x) [ (x = 1) -> <y> loop {S1} @ y ])) (inr zero))
-                            (transport (<x> (comp U (helix (itLoop n @ x)) [ (x = 1) -> <y> helix (loop {S1} @ y) ])) (inr zero))
-                            (sucZ (transport (<x> helix (itLoop n @ x)) (inr zero)))
-                            (<x> transport ((shouldBeDefinitional base base base (itLoop n) (<y> loop{S1} @ y)) @ x) (inr zero))
-                            (transport_compId Z Z Z (<x> (helix (itLoop n @ x))) (<y> helix (loop {S1} @ y)) (inr zero))
+                   <x> (comp Z 
+                            (transport ((shouldBeDefinitional base base base (itLoop n) (<y> loop{S1} @ y)) @ x) (inr zero))
+                            [(x=1) -> (transport_compId Z Z Z (<x> (helix (itLoop n @ x))) (<y> helix (loop {S1} @ y)) (inr zero))])
 
 decode_encode_base : (n : Z) -> Id Z (encode base (decode base n)) n = split 
   inl n -> decode_encode_base_neg n
@@ -274,6 +272,5 @@ test4 : Id (and Z Z) (mystery ((oneZ,twoZ),(threeZ,fourZ))) (fourZ,sixZ) =
  <_> (fourZ,sixZ)
 FIXME: 
   Stack space overflow
-  Use `+RTS -Ksize -RTS' to increase it.
   runs out of stack space with 900MB stack
 -}

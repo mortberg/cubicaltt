@@ -138,3 +138,41 @@ c2t2c : (c1 : S1) (c2 : S1) -> IdP (<_> (_ : S1) * S1) (t2c (c2t' c1 c2)) (c1 , 
                  -- again, I shouldn't need to do funext here;
                  -- I should be able to do a split inside of an interval binding
      loop @ y -> (\ (c : S1) -> c2t2c_loop' c @ y)
+
+-- ----------------------------------------------------------------------
+-- tests
+
+-- p * p
+pp : IdP (<_> Torus) ptT ptT =
+   <x> comp Torus (pathOneT{Torus} @ x) [(x=1) -> <y> pathOneT{Torus}@y]
+
+f :IdP (<x> IdP (<_> Torus) (pathTwoT{Torus}@x) (pathTwoT{Torus}@x) ) (<y> pathOneT{Torus}@y) (<y> pathOneT{Torus}@y) = 
+  <x> <y> squareT{Torus} @ x @ y
+
+
+-- vertically compose two torus squares
+ff : IdP (<x> IdP (<_> Torus) (pathTwoT{Torus}@x) (pathTwoT{Torus}@x) ) pp pp = 
+   <x> <y> comp Torus (squareT{Torus} @ x @ y) [(y=1) -> <y> squareT{Torus} @ x @ y]
+
+
+image_of_f : IdP (<x> IdP (<_> (_ : S1) * S1) (t2c (pathTwoT{Torus}@x)) (t2c (pathTwoT{Torus}@x)) ) (<x> t2c ((pathOneT{Torus}@x))) (<x> t2c ((pathOneT{Torus}@x))) = 
+      <x> <y> t2c (f @ x @ y)
+
+image_of_ff : IdP (<x> IdP (<_> (_ : S1) * S1) (t2c (pathTwoT{Torus}@x)) (t2c (pathTwoT{Torus}@x)) ) (<x> t2c (pp @ x)) (<x> t2c (pp @ x)) = 
+      <x> <y> t2c (ff @ x @ y)
+
+diag_of_image_of_ff : IdP (<_> (_ : S1) * S1) (base,base) (base,base)
+  = <x> image_of_ff @ x @ x
+
+-- Type checking failed: path endpoints don't match for 
+-- got (<!0> comp (Torus) (pathOneT {Torus} @ !0) [ (!0 = 1) -> <!1> pathOneT {Torus} @ !1 ],
+--      <!0> comp (Torus) (pathOneT {Torus} @ !0) [ (!0 = 1) -> <!1> pathOneT {Torus} @ !1 ]), 
+-- but expected
+--  (<!0> comp (Torus) (pathOneT {Torus} @ !0) 
+--                    [ (!0 = 0) -> <!1> pathOneT {Torus} @ !1 ],
+--                        <!0> comp (Torus) (pathOneT {Torus} @ !0) 
+--                             [ (!0 = 0) -> <!1> pathOneT {Torus} @ !1 ])
+
+S1S1equalsTorus : Id U (and S1 S1) Torus = isoId (and S1 S1) Torus c2t t2c t2c2t rem
+where
+ rem (c:and S1 S1) : Id (and S1 S1) (t2c (c2t c)) c = c2t2c c.1 c.2

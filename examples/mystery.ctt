@@ -250,7 +250,18 @@ twoZ : Z = sucZ (oneZ)
 threeZ : Z = sucZ twoZ
 fourZ : Z = sucZ threeZ
 fiveZ : Z = sucZ fourZ
-sixZ : Z = sucZ sixZ
+sixZ : Z = sucZ fiveZ
+sevenZ : Z = sucZ sixZ
+
+double : nat -> nat = split
+   zero -> zero
+   suc n -> suc (suc (double n))
+
+sixteenN : nat = (double (double (double (double (double (suc zero))))))
+thirtyTwoN : nat = double sixteenN
+sixtyFourN : nat = double thirtyTwoN
+oneTwentyEightN : nat = double sixtyFourN
+twoFiftySixN : nat = double oneTwentyEightN
 
 test0 : Id (and Z Z) (mystery ((zeroZ,oneZ),(twoZ,threeZ))) (twoZ,fourZ) =
  <_> (twoZ,fourZ)
@@ -267,10 +278,21 @@ test2 : Id (and Z Z) (mystery ((oneZ,twoZ),(threeZ,threeZ))) (fourZ,fiveZ) =
 test3 : Id (and Z Z) (mystery ((twoZ,twoZ),(threeZ,threeZ))) (fiveZ,fiveZ) =
  <_> (fiveZ,fiveZ)
 
-{-
 test4 : Id (and Z Z) (mystery ((oneZ,twoZ),(threeZ,fourZ))) (fourZ,sixZ) =
  <_> (fourZ,sixZ)
-FIXME: 
-  Stack space overflow
-  runs out of stack space with 900MB stack
--}
+
+test5 : Id (and Z Z) (mystery ((inr sixteenN,inr sixteenN),(inr sixteenN,inr sixteenN)))
+                     (inr thirtyTwoN, inr thirtyTwoN) =
+ <_> (inr thirtyTwoN, inr thirtyTwoN)
+
+test6 : Id (and Z Z) (mystery ((inr thirtyTwoN,inr sixteenN),(inr thirtyTwoN,inr sixteenN)))
+                     (inr sixtyFourN, inr thirtyTwoN) =
+ <_> (inr sixtyFourN, inr thirtyTwoN)
+
+test7 : Id (and Z Z) (mystery ((inr sixtyFourN,inr sixteenN),(inr sixtyFourN,inr sixteenN)))
+                     (inr oneTwentyEightN, inr thirtyTwoN) =
+ <_> (inr oneTwentyEightN, inr thirtyTwoN)
+
+test8 : Id (and Z Z) (mystery ((inr oneTwentyEightN,inr sixteenN),(inr oneTwentyEightN,inr sixteenN)))
+                     (inr twoFiftySixN, inr thirtyTwoN) =
+ <_> (inr twoFiftySixN, inr thirtyTwoN)

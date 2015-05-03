@@ -138,7 +138,7 @@ c2t2c : (c1 : S1) (c2 : S1) -> IdP (<_> (_ : S1) * S1) (t2c (c2t' c1 c2)) (c1 , 
      loop @ y -> (\ (c : S1) -> c2t2c_loop' c @ y)
 
 S1S1equalsTorus : Id U (and S1 S1) Torus = isoId (and S1 S1) Torus c2t t2c t2c2t rem
-where
+ where
  rem (c:and S1 S1) : Id (and S1 S1) (t2c (c2t c)) c = c2t2c c.1 c.2
 
 

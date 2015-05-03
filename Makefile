@@ -3,7 +3,7 @@ GHC=ghc
 OPT=2
 
 all:
-	$(GHC) --make -O$(OPT) -o cubical Main.hs
+	$(GHC) --make -O$(OPT) -o cubical -rtsopts Main.hs 
 bnfc:
 	bnfc --haskell -d Exp.cf
 	happy -gca Exp/Par.y

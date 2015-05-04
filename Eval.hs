@@ -204,9 +204,6 @@ app u v = case (u,v) of
   (Ter (Split _ _ _ nvs) e,VPCon c _ us phis) -> case lookupBranch c nvs of
     Just (PBranch _ xs is t) -> eval (subs (upds e (zip xs us)) (zip is phis)) t
     _ -> error $ "app: missing case in split for " ++ c
-  (Ter Split{} _,_) | isNeutral v         -> VSplit u v
-  (Ter Split{} _,VCompElem _ _ w _)       -> app u w
-  (Ter Split{} _,VElimComp _ _ w)         -> app u w
   (Ter (Split _ _ ty hbr) e,VComp a w ws) -> case eval e ty of
     VPi _ f -> let j   = fresh (e,v)
                    wsj = Map.map (@@ j) ws
@@ -214,6 +211,9 @@ app u v = case (u,v) of
                    ws' = mapWithKey (\alpha -> app (u `face` alpha)) wsj
                in genComp j (app f (fill j a w wsj)) w' ws'
     _ -> error $ "app: Split annotation not a Pi type " ++ show u
+  (Ter Split{} _,_) | isNeutral v         -> VSplit u v
+  (Ter Split{} _,VCompElem _ _ w _)       -> app u w
+  (Ter Split{} _,VElimComp _ _ w)         -> app u w
   (VTrans (VPath i (VPi a f)) li0,vi1) ->
     let j       = fresh (u,vi1)
         (aj,fj) = (a,f) `swap` (i,j)

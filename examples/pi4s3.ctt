@@ -1,0 +1,89 @@
+module pi4s3 where
+
+import join
+import hopf
+
+ptJoin (pA : ptType) (B:U) : ptType = (join pA.1 B, inl (pt pA))
+
+ptbool : ptType = (bool,true)
+
+bjbToS1 (x:join bool bool) : S1 = s1ToCircle (suspJoinInv bool x)
+
+bjbToS1Inv (x : S1) : join bool bool = suspJoin bool (circleToS1 x)
+
+-- The map e^-1 from 7.3
+s3ToS1JoinS1Inv (x : join S1 S1) : S3 =
+  suspJoinInv S2
+    (mapJoin bool (join bool S1) bool S2 (\(b:bool) -> b) (suspJoinInv S1)
+      (l2r bool bool S1
+        (mapJoin S1 S1 (join bool bool) S1 bjbToS1Inv (\(z:S1) -> z) x)))
+
+
+-- The map e from 7.3
+s3ToS1JoinS1 (x:S3) : join S1 S1 = 
+  mapJoin (join bool bool) S1 S1 S1 bjbToS1 (\(z:S1) -> z)
+          (r2l bool bool S1
+            (mapJoin bool S2 bool (join bool S1) (\(b:bool) -> b) (suspJoin S1)
+              (suspJoin S2 x)))
+
+
+-- A modified version of the main map alpha from 8, which is equal to the
+-- other one (to be checked) but pointed by reflexivity
+alpha : join S1 S1 -> S2 = split
+  inl x   -> north
+  inr y   -> north
+  pushC x y @ i -> compId S2 north south north (<i>merid{S2} x@i) (<i>merid{S2} y@-i)@i
+
+ptAlpha : ptMap (ptJoin ptS1 S1) ptS2 = (alpha, refl S2 north)
+
+-- Let’s define the twelve maps first
+
+f0 : Z -> loopS1 = loopIt
+
+compInvRight (A:U) (a b:A) (p:Id A a b) : Id (Id A a a) (compId A a b a p (<i>p@-i)) (refl A a) =
+ <i j>comp A (p@-i/\j) [(j=1) -> <k>p@(-k/\-i)]
+
+ptSusp (A : U) : ptType = (susp A, north)
+
+sigma (A : ptType) : ptMap A (Omega (ptSusp A.1))= 
+ (s,s0)
+  where s (x:A.1) : Id (susp A.1) north north 
+         = compId (susp A.1) north south north
+                  (<i>merid{susp A.1} x@i)
+                  (<i>(merid{susp A.1} (pt A))@-i)
+
+        s0 : Id (Omega (ptSusp A.1)).1
+                  (s (pt A))
+                  (refl (susp A.1) north)
+         = compInvRight (susp A.1) north south (<i>merid{susp A.1} (pt A)@i)
+
+f1 : loopS1 -> (itOmega two ptS2).1 = (mapOmega ptS1 (Omega ptS2) (sigma ptS1)).1
+
+f2 : (itOmega two ptS2).1 -> (itOmega three ptS3).1 = 
+ (itMapOmega two ptS2 (Omega ptS3) (sigma ptS2)).1
+
+f3 : (itOmega three ptS3).1 -> (itOmega three (ptJoin ptS1 S1)).1
+ = itMapOmegaRefl three ptS3 (join S1 S1) s3ToS1JoinS1
+
+f4 : (itOmega three (ptJoin ptS1 S1)).1 -> (itOmega three ptS2).1
+ = itMapOmegaRefl three (ptJoin ptS1 S1) S2 ptAlpha.1
+
+f5 : (itOmega three ptS2).1 -> (itOmega three (ptJoin ptS1 S1)).1
+ = hopfLoop
+
+oneZ : Z = sucZ zeroZ
+
+-- WORKS
+test0To1 : (itOmega two ptS2).1 = f1 (f0 oneZ)
+
+-- WORKS
+test0To2 : (itOmega three ptS3).1 = f2 test0To1
+
+-- WORKS
+test0To3 : (itOmega three (ptJoin ptS1 S1)).1 = f3 test0To2
+
+-- WORKS
+test0To4 : (itOmega three ptS2).1 = f4 test0To3
+
+-- NOT SURE (takes a long time)
+test0To5 : (itOmega three (ptJoin ptS1 S1)).1 = f5 test0To4

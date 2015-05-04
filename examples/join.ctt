@@ -1,0 +1,119 @@
+module join where
+
+import prelude
+import susp
+
+data join (A B:U) = inl (a:A) | inr (b:B) | pushC (a:A) (b:B) <i> [(i=0) -> inl a, (i=1) -> inr b]
+
+push (A B:U) (a:A) (b:B) : Id (join A B) (inl a) (inr b) = <i>pushC{join A B} a b@i
+
+-- Map from [join (join A B) C] to [join A (join B C)]
+
+l2rInl (A B C : U) : join A B -> join A (join B C) = split
+  inl a    -> inl a
+  inr b    -> inr (inl b)
+  pushC a b @ i -> push A (join B C) a (inl b) @ i
+
+l2rPushInr (A B C : U) (b : B) (c : C) : Id (join A (join B C)) (inr (inl b)) (inr (inr c)) = 
+ <i>inr (push B C b c@i)
+
+l2rSquare (A B C : U) (a : A) (b : B) (c : C) :
+       IdP (<i> Id (join A (join B C)) (inl a) (inr (push B C b c@i)))
+           (<i>push A (join B C) a (inl b)@i) (<i>push A (join B C) a (inr c)@i) =
+ <i j>push A (join B C) a (push B C b c@i)@j
+
+opl2r (A : U) (a b c : A) (p : Id A a c) (q : Id A a b) (r : Id A b c) 
+     (sq : Square A a a (refl A a) b c r q p) : Square A a b q c c (refl A c) p r =
+ <i j>comp A (sq@j@i) [(i=0) -> <k>p@(j/\k),(j=1) -> <k>p@(i\/k)]
+
+l2rPushPush (A B C : U) (a : A) (b : B) (c : C) :
+           Square (join A (join B C))
+                  (inl a) (inr (inl b)) (push A (join B C) a (inl b))
+                  (inr (inr c)) (inr (inr c)) (refl (join A (join B C)) (inr (inr c)))
+                  (push A (join B C) a (inr c))
+                  (l2rPushInr A B C b c) =  
+  opl2r (join A (join B C)) (inl a) (inr (inl b)) (inr (inr c))
+        (push A (join B C) a (inr c)) (push A (join B C) a (inl b)) (l2rPushInr A B C b c)
+        (l2rSquare A B C a b c)
+
+l2rPush (A B C : U) (c : C) : (u : join A B) ->
+            Id (join A (join B C)) (l2rInl A B C u) (inr (inr c)) = split
+  inl a -> push A (join B C) a (inr c)
+  inr b -> l2rPushInr A B C b c
+  pushC a b @ i -> l2rPushPush A B C a b c @ i
+
+l2r (A B C : U) : join (join A B) C -> join A (join B C) = split
+  inl jab -> l2rInl A B C jab
+  inr c   -> inr (inr c)
+  pushC p q @i  -> l2rPush A B C q p @i
+
+
+-- Map from [join A (join B C)] to [join (join A B) C]
+
+r2lInr (A B C : U) : join B C -> join (join A B) C = split
+  inl b   -> inl (inr b)
+  inr c   -> inr c
+  pushC b c @i -> push (join A B) C (inr b) c @i
+
+r2lPushInl (A B C : U) (a : A) (b : B) : Id (join (join A B) C) (inl (inl a)) (inl (inr b)) = 
+ <i>inl (push A B a b@i) -- r2lPushInl A B C a b = mapOnPath (join A B) (join (join A B) C) inl (inl a) (inr b) (push a b)
+
+r2lSquare (A B C : U) (a : A) (b : B) (c : C) :
+        IdP (<i> Id (join (join A B) C) (inl (push A B a b@i)) (inr c))
+            (push (join A B) C (inl a) c) (push (join A B) C (inr b) c)
+ = <i j>push (join A B) C (push A B a b@i) c@ j 
+
+opr2l (A : U) (a b c : A) (p : Id A a c) (q : Id A a b)
+     (r : Id A b c)
+     (sq : Square A a b q c c (refl A c) p r) :
+     Square A a a (refl A a) b c r q p = 
+ <i j>comp A (sq@j@i) [(j=0) -> <k>p@(i/\-k),(i=1) -> <k>p@(j\/-k)]
+
+r2lPushPush (A B C : U) (a : A) (b : B) (c : C) :
+           Square (join (join A B) C)
+                  (inl (inl a)) (inl (inl a)) (refl (join (join A B) C) (inl (inl a)))
+                  (inl (inr b)) (inr c) (push (join A B) C (inr b) c)
+                  (r2lPushInl A B C a b)
+                  (push (join A B) C (inl a) c) = 
+  opr2l (join (join A B) C) (inl (inl a)) (inl (inr b)) (inr c)
+        (push (join A B) C (inl a) c) (r2lPushInl A B C a b) (push (join A B) C (inr b) c)
+        (r2lSquare A B C a b c)
+
+r2lPush (A B C : U) (a : A) : (bc : join B C) -> Id (join (join A B) C) (inl (inl a)) (r2lInr A B C bc) = split
+  inl b -> r2lPushInl A B C a b
+  inr c -> push (join A B) C (inl a) c
+  pushC b c @ i -> r2lPushPush A B C a b c @ i
+
+r2l (A B C : U) : join A (join B C) -> join (join A B) C = split
+  inl a  -> inl (inl a)
+  inr bc -> r2lInr A B C bc
+  pushC a bc @i -> r2lPush A B C a bc @i
+
+
+
+-- Other stuff
+
+mapJoin (A B C D : U) (f : A -> C) (g : B -> D) : join A B -> join C D = split
+  inl a -> inl (f a)
+  inr b -> inr (g b)
+  pushC a b @i -> push C D (f a) (g b)@i
+
+--  Suspension and join with the booleans
+suspJoin (A : U) : susp A -> join bool A = split
+  north   -> inl true
+  south   -> inl false
+  merid a @ i -> compId (join bool A) (inl true) (inr a) (inl false)
+                        (push bool A true a)
+                        (<i>(push bool A false a)@-i) @ i
+
+case1 (A:U) : bool -> susp A = split
+ false -> south
+ true -> north 
+
+suspJoinInv (A : U) : join bool A -> susp A = split
+  inl b -> case1 A b
+  inr a -> south
+  pushC b a @i -> case2 a b @ i
+   where case2 (a:A) : (b : bool) -> Id (susp A) (suspJoinInv A (inl b)) south = split
+                  false -> refl (susp A) south
+                  true  -> <i>merid{susp A} a @i

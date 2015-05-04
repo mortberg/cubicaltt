@@ -2,9 +2,59 @@ module hopf where
 
 import truncS2
 import mult
+import pointed
+import join
 
 hopf : S2 -> U = split
  north -> S1
  south -> S1
  merid x @ i -> eqS1 x @ i
+
+funExt1 (C B : U) (F : C -> U) (a :C) : (b : C) (p : Id C a b)
+          (f : F a -> B) (g : F b -> B)
+	    (h : (x : F a) -> Id B (f x) (g (subst C F a b p x)))
+          -> IdS C (\ (z:C) -> F z -> B) a b p f g = 
+  J C a (\ (b:C) (p:Id C a b) -> (f : F a -> B) (g : F b -> B)
+             (h : (x : F a) -> Id B (f x) (g (subst C F a b p x)))
+               -> IdS C (\ (z:C) -> F z -> B) a b p f g) rem
+ where rem (f g : F a -> B) (h : (x : F a) -> Id B (f x) (g x)) : Id (F a -> B) f g = 
+         <i>\(x:F a) -> h x @ i
+
+t : (x : S2) -> hopf x -> join S1 S1 = split
+      north   -> \ (a:S1) -> inl a
+      south   -> \ (a:S1) -> inr a
+      merid x @ i -> funExt1 S2 (join S1 S1) hopf north south (<j>merid{S2} x@j) (\ (y:S1) -> inl y) (\ (y:S1) ->  inr y)
+                      (\ (y:S1) -> <j>pushC{join S1 S1} y (mult x y)@j) @ i
+
+totalHopfToJoin (xy:(x : S2) * hopf x) : join S1 S1 = t xy.1 xy.2
+
+one : nat = suc zero
+two : nat = suc one
+three : nat = suc two
+
+S3 : U = susp S2
+ptS3 :  ptType = (S3,north)
+ptS2 : ptType = (S2,north)
+ptS1 : ptType = (S1,base)
+
+hopfOne : (itOmega one ptS2).1 -> U = itFibOmega one ptS2 hopf base
+
+hopfTwo : (itOmega two ptS2).1 -> U = itFibOmega two ptS2 hopf base
+
+hopfThree : (itOmega three ptS2).1 -> U = itFibOmega three ptS2 hopf base
+
+ptJoin (pA:ptType) (B:U) : ptType = (join pA.1 B, inl (pt pA))
+
+fibContrHopfThree (p : (itOmega three ptS2).1) : hopfThree p = 
+  truncFibOmega (itOmega two ptS2) hopfTwo (refl (Id S1 base base) (refl S1 base)) zero
+    (truncFibOmega (Omega ptS2) hopfOne (refl S1 base) one
+          (truncFibOmega ptS2 hopf base two isGroupoidS1 (refl S2 north))
+        (refl (Omega ptS2).1 (pt (Omega ptS2)))) p
+
+
+-- The map h from 9.3
+hopfLoop (p : (itOmega three ptS2).1) : (itOmega three (ptJoin ptS1 S1)).1 = 
+  itMapOmegaRefl three (Sigma S2 hopf, (north,base)) (join S1 S1) totalHopfToJoin
+    (itTotalFibOmega three ptS2 hopf base (p, fibContrHopfThree p))
+
 

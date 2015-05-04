@@ -1,0 +1,101 @@
+module pointed where
+
+import nat
+import sigma
+
+-- Pointed types
+ptType : U = (X : U) * X
+
+pt (Z : ptType) : Z.1 = Z.2
+
+-- Maps between pointed types
+isPtMap (A B : ptType) (f : A.1 -> B.1) : U = Id B.1 (f (pt A)) (pt B)
+
+ptMap (A B : ptType) : U = (f : A.1 -> B.1) * isPtMap A B f
+
+-- The loop space of a pointed type
+Omega (Z : ptType) : ptType = (Id Z.1 (pt Z) (pt Z),refl Z.1 (pt Z))
+
+kanOp (A : U) (a : A) (p : Id A a a) (b : A) (q : Id A a b) : Id A b b = 
+ <i>comp A (p@i) [(i=0) -> q, (i=1) -> q]
+
+kanOpRefl (A : U) (a b : A) (q : Id A a b) : Id (Id A b b) (refl A b) (kanOp A a (refl A a) b q) = 
+ <i j>comp A (comp A a [(j=0) -> <k>q@(i/\k),(j=1)-> <k>q@(i/\k)]) 
+  [(j=0)-> <k>q@(i\/k),(j=1)-><k>q@(i\/k), (i=0) -> q]
+
+mapOmega (A B : ptType) (h : ptMap A B) : ptMap (Omega A) (Omega B) =
+ (omf,omf0)
+  where a : A.1 = pt A
+        b : B.1 = pt B
+
+        f : A.1 ->  B.1 = h.1
+        f0 : Id B.1 (f a) b = h.2
+
+        omf (p : (Omega A).1) : (Omega B).1 = kanOp B.1 (f a) (<i>f (p@i)) b f0
+        omf0 : Id (Omega B).1 (omf (refl A.1 a)) (refl B.1 b) = <i>kanOpRefl B.1 (f a) b f0@-i
+
+-- Simplified mapOmega when the function is pointed by reflexivity
+mapOmegaRefl (A : ptType) (B : U) (h : A.1 -> B) (p: (Omega A).1) : (Omega (B, h (pt A))).1 =
+ <i>h (p@i)
+
+-- Iterated loop space
+itOmega : nat -> ptType -> ptType = split
+  zero  -> \ (A:ptType) -> A
+  suc n -> \(A:ptType) -> itOmega n (Omega A)
+
+itMapOmega : (n : nat) (A B : ptType) (h : ptMap A B) -> ptMap (itOmega n A) (itOmega n B) = split
+  zero  -> \ (A B : ptType) (h : ptMap A B) -> h
+  suc n -> \ (A B : ptType) (h : ptMap A B) -> itMapOmega n (Omega A) (Omega B) (mapOmega A B h)
+
+itMapOmegaRefl : (n : nat) (A : ptType) (B : U) (h : A.1 -> B) -> (itOmega n A).1 -> (itOmega n (B, h (pt A))).1
+ = split
+  zero  -> \ (A : ptType) (B : U) (h : A.1 -> B) -> h
+  suc n -> \  (A : ptType) (B : U) (h : A.1 -> B) -> itMapOmegaRefl n (Omega A) (Omega (B, h (pt A))).1 (mapOmegaRefl A B h)
+
+-- Looping a fibration (9.2)
+
+fibOmega (B : ptType) (P : B.1 -> U) (f : P (pt B)) (p : (Omega B).1) : U =
+ IdS B.1 P (pt B) (pt B) p f f
+
+totalFibOmega (B : ptType) (P : B.1 -> U) (f : P (pt B)) 
+  (p : sig (Omega B).1 (fibOmega B P f)) : (Omega (sig B.1 P, (pt B, f))).1
+ = <i>(p.1@i,p.2@i) -- pairPath B.1 P (pt B) (pt B) f f p.1 p.2
+
+itFibOmega : (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B)) -> (itOmega n B).1 -> U
+ = split
+  zero  -> \ (B : ptType) (P : B.1 -> U) (f : P (pt B)) -> P
+  suc n -> \ (B : ptType) (P : B.1 -> U) (f : P (pt B)) -> itFibOmega n (Omega B) (fibOmega B P f) (refl (P (pt B)) f)
+
+itTotalFibOmega : (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B)) (x:sig (itOmega n B).1 (itFibOmega n B P f)) 
+   -> (itOmega n (sig B.1 P, (pt B, f))).1
+ = split
+  zero  -> \ (B : ptType) (P : B.1 -> U) (f : P (pt B)) (x:sig B.1 P) -> x
+  suc n -> \ (B : ptType) (P : B.1 -> U) (f : P (pt B))
+             (x:sig (itOmega n (Omega B)).1 (itFibOmega n (Omega B) (fibOmega B P f) (refl (P (pt B)) f))) -> 
+   let
+    BOm : ptType =  Omega B
+    POm : BOm.1 -> U = fibOmega B P f
+    fOm : Id (P (pt B)) f f = refl (P (pt B)) f
+    ih : (sig (itOmega n BOm).1 (itFibOmega n BOm POm fOm)) ->
+         (itOmega n (sig BOm.1 POm, (pt BOm, fOm))).1
+      = itTotalFibOmega n (Omega B) (fibOmega B P f) (refl (P (pt B)) f)
+   in (itMapOmega n (sig BOm.1 POm, (pt BOm, fOm))
+                     (Omega (sig B.1 P, (pt B, f)))
+                     (totalFibOmega B P f,
+                       refl (Omega (sig B.1 P, (pt B, f))).1
+                         (refl (sig B.1 P) (pt B, f)))).1
+                  (ih x)
+
+-- TODO: better name!
+-- isContr : U -> U
+-- isContr A = (a : A) * ((x : A) -> Id A a x)
+
+inhOrTrunc (A:U) : nat -> U = split
+  zero  -> A
+  suc n -> (x y : A) -> inhOrTrunc (Id A x y) n
+
+truncFibOmega (B : ptType) (P : B.1 -> U) (f : P (pt B)) (n : nat) 
+  (tr:inhOrTrunc (P (pt B)) (suc n)) (p : (Omega B).1) : inhOrTrunc (fibOmega B P f p) n 
+ = substInv U (\ (X:U) -> inhOrTrunc X n)
+  (IdS B.1 P (pt B) (pt B) p f f) (Id (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f)
+  (funDepTr (P (pt B)) (P (pt B)) (<i>P (p@i)) f f) (tr (subst B.1 P (pt B) (pt B) p f) f)

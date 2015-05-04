@@ -4,12 +4,14 @@ import Control.Monad.Reader
 import Control.Monad.Except
 import Control.Exception (try)
 import Data.List
+import Data.Time
 import System.Directory
 import System.FilePath
 import System.Environment
 import System.Console.GetOpt
 import System.Console.Haskeline
 import System.Console.Haskeline.History
+import Text.Printf
 
 import Exp.Lex
 import Exp.Par
@@ -26,13 +28,14 @@ import qualified Eval as E
 type Interpreter a = InputT IO a
 
 -- Flag handling
-data Flag = Debug | Help | Version
+data Flag = Debug | Help | Version | Time
   deriving (Eq,Show)
 
 options :: [OptDescr Flag]
-options = [ Option "d" ["debug"]   (NoArg Debug)   "run in debugging mode"
-          , Option ""  ["help"]    (NoArg Help)    "print help"
-          , Option ""  ["version"] (NoArg Version) "print version number" ]
+options = [ Option "d"  ["debug"]   (NoArg Debug)   "run in debugging mode"
+          , Option ""   ["help"]    (NoArg Help)    "print help"
+          , Option "-t" ["time"]    (NoArg Time)    "measure time spent computing"
+          , Option ""   ["version"] (NoArg Version) "print version number" ]
 
 -- Version number, welcome message, usage and prompt strings
 version, welcome, usage, prompt :: String
@@ -130,11 +133,24 @@ loop flags f names tenv = do
             Left err -> do outputStrLn ("Could not type-check: " ++ err)
                            loop flags f names tenv
             Right _  -> do
+              start <- liftIO getCurrentTime
               let e = mod $ E.eval (TC.env tenv) body
+
               -- Let's not crash if the evaluation raises an error:
               liftIO $ catch (putStrLn (msg ++ show e))
                              (\e -> putStrLn ("Exception: " ++
                                               show (e :: SomeException)))
+              stop <- liftIO getCurrentTime
+              -- Compute time and print nicely
+              let time = diffUTCTime stop start
+                  secs = read (takeWhile (/='.') (init (show time)))
+                  rest = read ('0':dropWhile (/='.') (init (show time)))
+                  mins = secs `quot` 60
+                  sec  = printf "%.3f" (fromInteger (secs `rem` 60) + rest :: Float)
+              when (Time `elem` flags) $
+                 outputStrLn $ "Time: " ++ show mins ++ "m" ++ sec ++ "s"
+              -- Only print in seconds:
+              -- when (Time `elem` flags) $ outputStrLn $ "Time: " ++ show time
               loop flags f names tenv
 
 -- (not ok,loaded,already loaded defs) -> to load ->

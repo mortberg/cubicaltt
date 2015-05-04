@@ -203,6 +203,7 @@ isNeutralTrans (VPath i a) u = foo i a u
           let shasBeta = shape as `face` (i ~> 0)
           in shasBeta /= Map.empty && eps `Map.notMember` shasBeta && isNeutral u
         foo _ _ _ = False
+-- TODO: case for VGLueLine
 isNeutralTrans u _ = isNeutral u
 
 isNeutralComp :: Val -> Val -> System Val -> Bool
@@ -213,10 +214,16 @@ isNeutralComp (VGlue _ as) u ts =
   where shas = shape as
         testFace beta _ = let shasBeta = shas `face` beta
                           in not (Map.null shasBeta || eps `Map.member` shasBeta)
+-- TODO
 -- isNeutralComp (VGlueLine _ phi psi) u ts =
---   isNeutral u || isNeutralSystem ts || isNeutralSystem ws
+--   isNeutral u || isNeutralSystem (filterWithKey (not . test) ts) || and (elems ws)
 --   where fs = invFormula psi One
---         ws =
+--         test alpha _ = phi `face` alpha `elem` [Dir Zero, Dir One] ||
+--                        psi `face` alpha == Dir One
+--         ws = mapWithKey
+--                (\alpha -> let phiAlpha0 = invFormula (phi `face` alpha) Zero
+--                           in isNeutral (u `face` alpha) || isNeutralSystem )
+--                  fs
 isNeutralComp _ _ _ = False
 
 
@@ -413,10 +420,10 @@ showVal v = case v of
   VTrans v0 v1      -> text "trans" <+> showVals [v0,v1]
   VGlue a ts        -> text "glue" <+> showVal1 a <+> text (showSystem ts)
   VGlueElem a ts    -> text "glueElem" <+> showVal1 a <+> text (showSystem ts)
-  VGlueLine a phi psi     -> text "glueLine" <+> showVal1 a <+>
-                             showFormula phi <+> showFormula psi
-  VGlueLineElem a phi psi -> text "glueLineElem" <+> showVal1 a <+>
-                             showFormula phi <+> showFormula psi
+  VGlueLine a phi psi     -> text "glueLine" <+> showFormula phi
+                             <+> showFormula psi  <+> showVal1 a
+  VGlueLineElem a phi psi -> text "glueLineElem" <+> showFormula phi
+                             <+> showFormula psi  <+> showVal1 a
   VCompElem a es t ts -> text "compElem" <+> showVal1 a <+> text (showSystem es)
                          <+> showVal1 t <+> text (showSystem ts)
   VElimComp a es t    -> text "elimComp" <+> showVal1 a <+> text (showSystem es)
@@ -445,12 +452,10 @@ showLam e = case e of
 
 showVal1 :: Val -> Doc
 showVal1 v = case v of
-  VU                -> showVal v
-  VCon c []         -> showVal v
-  VVar{}            -> showVal v
-  Ter t@Sum{} rho   -> parens (showTer t <+> showEnv False rho)
-  Ter t@Split{} rho -> parens (showTer t <+> showEnv False rho)
-  _                 -> parens (showVal v)
+  VU        -> showVal v
+  VCon c [] -> showVal v
+  VVar{}    -> showVal v
+  _         -> parens (showVal v)
 
 showVals :: [Val] -> Doc
 showVals = hsep . map showVal1

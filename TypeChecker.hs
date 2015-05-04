@@ -319,8 +319,8 @@ checkBranch (PLabel _ tele is ts,nu) f (PBranch c ns js e) g va = do
     let veborder = border ve vts
     unlessM (veborder === vgts) $
       throwError $ "Faces in branch for " ++ show c ++ " don't match:"
-                   ++ "\ngot\n" ++ show veborder ++ "\nbut expected\n"
-                   ++ show vgts
+                   ++ "\ngot\n" ++ showSystem veborder ++ "\nbut expected\n"
+                   ++ showSystem vgts
 
 checkFormula :: Formula -> Typing ()
 checkFormula phi = do

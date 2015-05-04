@@ -361,8 +361,10 @@ checkPathSystem t0 va ps = do
     local (faceEnv alpha) $ do
       rhoAlpha <- asks env
       (a0,a1)  <- checkPath (constPath (va `face` alpha)) pAlpha
-      unlessM (a0 === eval rhoAlpha t0) $
-        throwError $ "Incompatible system with " ++ show t0
+      let v0 = eval rhoAlpha t0
+      unlessM (a0 === v0) $
+        throwError $ "Incompatible system:\n" ++ show v0
+                     ++ "\nnot compatible with\n" ++ show a0
       return a1) ps
 
 checks :: (Tele,Env) -> [Ter] -> Typing ()

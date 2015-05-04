@@ -303,7 +303,7 @@ transNegLine u v = transNeg i (u @@ i) v
   where i = fresh (u,v)
 
 trans :: Name -> Val -> Val -> Val
--- trans i v0 v1 | i `notElem` support v0 = v1
+trans i v0 v1 | i `notElem` support v0 = v1
 trans i v0 v1 = case (v0,v1) of
   (VIdP a u v,w) ->
     let j   = fresh (Atom i,v0,w)
@@ -419,9 +419,9 @@ comps _ _ _ _ = error "comps: different lengths of types and values"
 -- i is independent of a and u
 comp :: Name -> Val -> Val -> System Val -> Val
 comp i a u ts | eps `Map.member` ts    = (ts ! eps) `face` (i ~> 1)
--- comp i a u ts | i `notElem` support ts = u
--- comp i a u ts | not (Map.null indep)   = comp i a u ts'
---   where (ts',indep) = Map.partition (\t -> i `elem` support t) ts
+comp i a u ts | i `notElem` support ts = u
+comp i a u ts | not (Map.null indep)   = comp i a u ts'
+  where (ts',indep) = Map.partition (\t -> i `elem` support t) ts
 comp i a u ts = case a of
   VIdP p _ _ -> let j = fresh (Atom i,a,u,ts)
                 in VPath j $ comp i (p @@ j) (u @@ j) (Map.map (@@ j) ts)

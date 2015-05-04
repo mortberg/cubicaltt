@@ -284,7 +284,6 @@ v @@ phi = error $ "(@@): " ++ show v ++ " should be neutral."
 
 pcon :: LIdent -> Val -> [Val] -> [Formula] -> Val
 pcon c a@(Ter (Sum _ _ lbls) rho) us phis = case lookupPLabel c lbls of
-  -- TODO: is this correct? Double check!
   Just (tele,is,ts) | eps `Map.member` vs -> vs ! eps
                     | otherwise -> VPCon c a us phis
     where rho' = subs (updsTele rho tele us) (zip is phis)
@@ -304,7 +303,7 @@ transNegLine u v = transNeg i (u @@ i) v
   where i = fresh (u,v)
 
 trans :: Name -> Val -> Val -> Val
-trans i v0 v1 | i `notElem` support v0 = v1
+-- trans i v0 v1 | i `notElem` support v0 = v1
 trans i v0 v1 = case (v0,v1) of
   (VIdP a u v,w) ->
     let j   = fresh (Atom i,v0,w)
@@ -320,9 +319,16 @@ trans i v0 v1 = case (v0,v1) of
   (Ter (Sum _ _ nass) env,VCon c us) -> case lookupLabel c nass of
     Just as -> VCon c $ transps i as env us
     Nothing -> error $ "trans: missing constructor " ++ c ++ " in " ++ show v0
-  (Ter (Sum _ _ nass) env,VPCon c _ ws0 phis) -> case lookupLabel c nass of
-    -- v1 should be independent of i, so i # phi
-    Just as -> VPCon c (v0 `face` (i ~> 1)) (transps i as env ws0) phis
+  (Ter (Sum _ _ nass) env,VPCon c _ ws0 phis) -> case lookupPLabel c nass of
+    -- v1 should be independent of i, so i # phis
+    Just (tele,is,ts) -> compNeg i v01 pc vs'
+      where v01 = v0 `face` (i ~> 1)
+            ws   = transFills i tele env ws0
+            env' = subs (updsTele env tele ws) (zip is phis)
+            vs   = evalSystem env' ts
+            vs'  = mapWithKey
+                   (\alpha vAlpha -> squeeze i (v0 `face` alpha) vAlpha) vs
+            pc = VPCon c v01 (transps i tele env ws0) phis
     Nothing -> error $ "trans: missing path constructor " ++ c ++
                        " in " ++ show v0
   _ | isNeutral w -> w
@@ -354,6 +360,14 @@ transps i ((x,a):as) e (u:us) =
       vs  = transps i as (Upd e (x,v)) us
   in vi1 : vs
 transps _ _ _ _ = error "transps: different lengths of types and values"
+
+transFills :: Name -> [(Ident,Ter)] -> Env -> [Val] -> [Val]
+transFills i []         _ []     = []
+transFills i ((x,a):as) e (u:us) =
+  let v   = transFill i (eval e a) u
+      vs  = transFills i as (Upd e (x,v)) us
+  in v:vs
+transFills _ _ _ _ = error "transFills: different lengths of types and values"
 
 -- Given u of type a "squeeze i a u" connects in the direction i
 -- trans i a u(i=0) to u(i=1)
@@ -405,9 +419,9 @@ comps _ _ _ _ = error "comps: different lengths of types and values"
 -- i is independent of a and u
 comp :: Name -> Val -> Val -> System Val -> Val
 comp i a u ts | eps `Map.member` ts    = (ts ! eps) `face` (i ~> 1)
-comp i a u ts | i `notElem` support ts = u
-comp i a u ts | not (Map.null indep)   = comp i a u ts'
-  where (ts',indep) = Map.partition (\t -> i `elem` support t) ts
+-- comp i a u ts | i `notElem` support ts = u
+-- comp i a u ts | not (Map.null indep)   = comp i a u ts'
+--   where (ts',indep) = Map.partition (\t -> i `elem` support t) ts
 comp i a u ts = case a of
   VIdP p _ _ -> let j = fresh (Atom i,a,u,ts)
                 in VPath j $ comp i (p @@ j) (u @@ j) (Map.map (@@ j) ts)

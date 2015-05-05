@@ -77,10 +77,10 @@ test6 : Id (and Z Z) (mystery ((inr thirtyTwoN,inr sixteenN),(inr thirtyTwoN,inr
                      (inr sixtyFourN, inr thirtyTwoN) =
  <_> (inr sixtyFourN, inr thirtyTwoN)
 
-test7 : Id (and Z Z) (mystery ((inr sixtyFourN,inr sixteenN),(inr sixtyFourN,inr sixteenN)))
-                     (inr oneTwentyEightN, inr thirtyTwoN) =
- <_> (inr oneTwentyEightN, inr thirtyTwoN)
+-- test7 : Id (and Z Z) (mystery ((inr sixtyFourN,inr sixteenN),(inr sixtyFourN,inr sixteenN)))
+--                      (inr oneTwentyEightN, inr thirtyTwoN) =
+--  <_> (inr oneTwentyEightN, inr thirtyTwoN)
 
-test8 : Id (and Z Z) (mystery ((inr oneTwentyEightN,inr sixteenN),(inr oneTwentyEightN,inr sixteenN)))
-                     (inr twoFiftySixN, inr thirtyTwoN) =
- <_> (inr twoFiftySixN, inr thirtyTwoN)
+-- test8 : Id (and Z Z) (mystery ((inr oneTwentyEightN,inr sixteenN),(inr oneTwentyEightN,inr sixteenN)))
+--                      (inr twoFiftySixN, inr thirtyTwoN) =
+--  <_> (inr twoFiftySixN, inr thirtyTwoN)

@@ -1,6 +1,5 @@
 module torus where
 
-import prelude
 import circle
 
 data Torus = ptT

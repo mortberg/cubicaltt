@@ -1,8 +1,5 @@
-
 module mystery where
 
-import prelude
-import circle
 import helix
 import torus
 

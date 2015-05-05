@@ -1,6 +1,5 @@
 module join where
 
-import prelude
 import susp
 
 data join (A B:U) = inl (a:A) | inr (b:B) | pushC (a:A) (b:B) <i> [(i=0) -> inl a, (i=1) -> inr b]

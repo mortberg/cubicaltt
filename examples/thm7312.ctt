@@ -2,7 +2,6 @@ module thm7312 where
 
 import setTrunc
 import groupoidTrunc
-import pi
 import collection
 
 gTruncElim2 (A : U) (R : gTrunc A -> gTrunc A -> U)

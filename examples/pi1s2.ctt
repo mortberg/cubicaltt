@@ -1,4 +1,4 @@
-module pi1S2 where
+module pi1s2 where
 
 import truncS2
 import thm7312

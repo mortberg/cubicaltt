@@ -3,18 +3,15 @@ module testall where
 import gradLemma
 import interval
 import uafunext2
-import helix
-import susp
-import ex1
-import setTrunc
 import prop
 import quotient
-import torus
 import s2
 import uafunext1
 import list
-import hedberg
 import newhedberg
 import other
 -- integer has to be after hedberg as it redefines neg
 import integer
+import pi1s2
+import pi4s3
+import mystery

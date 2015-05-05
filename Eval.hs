@@ -434,6 +434,8 @@ comp i a u ts = case a of
       Nothing -> error $ "comp: missing constructor in labelled sum " ++ n
     VPCon{} -> VComp a u (Map.map (VPath i) ts)
     VComp{} -> VComp a u (Map.map (VPath i) ts)
+    VCompElem _ _ u1 _  -> comp i a u1 ts
+    VElimComp _ _ u1    -> comp i a u1 ts
     _ -> error $ "comp ter sum" ++ show u
 
 compNeg :: Name -> Val -> Val -> System Val -> Val

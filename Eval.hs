@@ -73,7 +73,8 @@ instance Nominal Val where
     VCompElem a es u us     -> support (a,es,u,us)
     VElimComp a es u        -> support (a,es,u)
 
-  act u (i, phi) =
+  act u (i, phi) | i `notElem` support u = u
+                 | otherwise =
     let acti :: Nominal a => a -> a
         acti u = act u (i, phi)
         sphi = support phi
@@ -272,15 +273,15 @@ inferType v = case v of
   _ -> error $ "inferType: not neutral " ++ show v
 
 (@@) :: ToFormula a => Val -> a -> Val
-(VPath i u) @@ phi = u `act` (i,toFormula phi)
-v@(Ter Hole{} _) @@ phi = VAppFormula v (toFormula phi)
-v @@ phi | isNeutral v = case (inferType v,toFormula phi) of
+(VPath i u) @@ phi         = u `act` (i,toFormula phi)
+v@(Ter Hole{} _) @@ phi    = VAppFormula v (toFormula phi)
+v @@ phi | isNeutral v     = case (inferType v,toFormula phi) of
   (VIdP  _ a0 _,Dir 0) -> a0
   (VIdP  _ _ a1,Dir 1) -> a1
   _  -> VAppFormula v (toFormula phi)
 (VCompElem _ _ u _) @@ phi = u @@ phi
 (VElimComp _ _ u) @@ phi   = u @@ phi
-v @@ phi = error $ "(@@): " ++ show v ++ " should be neutral."
+v @@ phi                   = error $ "(@@): " ++ show v ++ " should be neutral."
 
 pcon :: LIdent -> Val -> [Val] -> [Formula] -> Val
 pcon c a@(Ter (Sum _ _ lbls) rho) us phis = case lookupPLabel c lbls of

@@ -39,6 +39,7 @@ meridSstwo : Id stwo north south = <i>merid{stwo} south@i
 trivstwo : pi1stwo = inc (refl stwo north)
 loopstwo : pi1stwo = inc (compId stwo north south north meridNstwo (<i>meridSstwo@-i))
 
+test2 : Id pi1stwo trivstwo trivstwo = propPi1stwo trivstwo trivstwo
 
-test2 : Id pi1stwo trivstwo loopstwo = propPi1stwo trivstwo loopstwo
-test3 : Id pi1stwo trivstwo trivstwo = propPi1stwo trivstwo trivstwo
+test3 : Id pi1stwo trivstwo loopstwo = propPi1stwo trivstwo loopstwo
+

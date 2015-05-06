@@ -11,40 +11,36 @@ import Connections
 import CTT
 
 look :: String -> Env -> Val
-look x (Upd rho (y,u)) | x == y    = u
-                        | otherwise = look x rho
-look x r@(Def rho r1) = case lookup x rho of
+look x (Upd y rho,v:vs,fs) | x == y = v
+                           | otherwise = look x (rho,vs,fs)
+look x r@(Def decls rho,vs,fs) = case lookup x decls of
   Just (_,t) -> eval r t
-  Nothing    -> look x r1
-look x (Sub rho _) = look x rho
+  Nothing    -> look x (rho,vs,fs)
+look x (Sub _ rho,vs,_:fs) = look x (rho,vs,fs)
 
 lookType :: String -> Env -> Val
-lookType x (Upd rho (y,VVar _ a)) | x == y    = a
-                                  | otherwise = lookType x rho
-lookType x r@(Def rho r1) = case lookup x rho of
+lookType x (Upd y rho,VVar _ a:vs,fs)
+  | x == y    = a
+  | otherwise = lookType x (rho,vs,fs)
+lookType x r@(Def decls rho,vs,fs) = case lookup x decls of
   Just (a,_) -> eval r a
-  Nothing -> lookType x r1
-lookType x (Sub rho _) = lookType x rho
+  Nothing -> lookType x (rho,vs,fs)
+lookType x (Sub _ rho,vs,_:fs) = lookType x (rho,vs,fs)
 
 lookName :: Name -> Env -> Formula
-lookName i Empty       = error $ "lookName: not found " ++ show i
-lookName i (Upd rho _) = lookName i rho
-lookName i (Def _ rho) = lookName i rho
-lookName i (Sub rho (j,phi)) | i == j    = phi
-                             | otherwise = lookName i rho
+-- lookName i Empty       = error $ "lookName: not found " ++ show i
+lookName i (Upd _ rho,v:vs,fs) = lookName i (rho,vs,fs)
+lookName i (Def _ rho,vs,fs) = lookName i (rho,vs,fs)
+lookName i (Sub j rho,vs,phi:fs) | i == j    = phi
+                                 | otherwise = lookName i (rho,vs,fs)
 
 -----------------------------------------------------------------------
 -- Nominal instances
 
-instance Nominal Env where
-  support e = case e of
-    Empty           -> []
-    Upd rho (_,u)   -> support u `union` support rho
-    Sub rho (_,phi) -> support phi `union` support rho
-    Def _ rho       -> support rho
-
-  act e iphi = mapEnv (`act` iphi) (`act` iphi) e
-  swap e ij  = mapEnv (`swap` ij) (`swap` ij) e
+instance Nominal Ctxt where
+  support _ = []
+  act e _   = e
+  swap e _  = e
 
 instance Nominal Val where
   support v = case v of
@@ -150,7 +146,7 @@ eval rho v = case v of
   Pair a b            -> VPair (eval rho a) (eval rho b)
   Fst a               -> fstVal (eval rho a)
   Snd a               -> sndVal (eval rho a)
-  Where t decls       -> eval (Def decls rho) t
+  Where t decls       -> eval (def decls rho) t
   Con name ts         -> VCon name (map (eval rho) ts)
   PCon name a ts phis  ->
     pcon name (eval rho a) (map (eval rho) ts) (map (evalFormula rho) phis)
@@ -162,7 +158,7 @@ eval rho v = case v of
   IdP a e0 e1         -> VIdP (eval rho a) (eval rho e0) (eval rho e1)
   Path i t            ->
     let j = fresh rho
-    in VPath j (eval (Sub rho (i,Atom j)) t)
+    in VPath j (eval (sub (i,Atom j) rho) t)
   Trans u v           -> transLine (eval rho u) (eval rho v)
   AppFormula e phi    -> (eval rho e) @@ (evalFormula rho phi)
   Comp a t0 ts        -> compLine (eval rho a) (eval rho t0) (evalSystem rho ts)
@@ -198,7 +194,7 @@ evalSystem rho ts =
 
 app :: Val -> Val -> Val
 app u v = case (u,v) of
-  (Ter (Lam x _ t) e,_)               -> eval (Upd e (x,v)) t
+  (Ter (Lam x _ t) e,_)               -> eval (upd (x,v) e) t
   (Ter (Split _ _ _ nvs) e,VCon c vs) -> case lookupBranch c nvs of
     Just (OBranch _ xs t) -> eval (upds e (zip xs vs)) t
     _     -> error $ "app: missing case in split for " ++ c
@@ -352,7 +348,7 @@ transps i []         _ []     = []
 transps i ((x,a):as) e (u:us) =
   let v   = transFill i (eval e a) u
       vi1 = trans i (eval e a) u
-      vs  = transps i as (Upd e (x,v)) us
+      vs  = transps i as (upd (x,v) e) us
   in vi1 : vs
 transps _ _ _ _ = error "transps: different lengths of types and values"
 
@@ -399,7 +395,7 @@ comps i []         _ []         = []
 comps i ((x,a):as) e ((ts,u):tsus) =
   let v   = genFill i (eval e a) u ts
       vi1 = genComp i (eval e a) u ts
-      vs  = comps i as (Upd e (x,v)) tsus
+      vs  = comps i as (upd (x,v) e) tsus
   in vi1 : vs
 comps _ _ _ _ = error "comps: different lengths of types and values"
 
@@ -597,9 +593,9 @@ glueLine t phi psi       = VGlueLine t phi psi
 
 idIso :: Val -> Val
 idIso a = VPair a $ VPair idV $ VPair idV $ VPair refl refl
-  where idV  = Ter (Lam "x" (Var "A") (Var "x")) (Upd Empty ("A",a))
+  where idV  = Ter (Lam "x" (Var "A") (Var "x")) (upd ("A",a) empty)
         refl = Ter (Lam "x" (Var "A") (Path (Name "i") (Var "x")))
-                   (Upd Empty ("A",a))
+                   (upd ("A",a) empty)
 
 glueLineElem :: Val -> Formula -> Formula -> Val
 glueLineElem u (Dir _) _     = u
@@ -846,13 +842,13 @@ instance Convertible Val where
     in case (simplify ns j u, simplify ns j v) of
       (Ter (Lam x a u) e,Ter (Lam x' a' u') e') ->
         let v@(VVar n _) = mkVarNice ns x (eval e a)
-        in conv (n:ns) (eval (Upd e (x,v)) u) (eval (Upd e' (x',v)) u')
+        in conv (n:ns) (eval (upd (x,v) e) u) (eval (upd (x',v) e') u')
       (Ter (Lam x a u) e,u') ->
         let v@(VVar n _) = mkVarNice ns x (eval e a)
-        in conv (n:ns) (eval (Upd e (x,v)) u) (app u' v)
+        in conv (n:ns) (eval (upd (x,v) e) u) (app u' v)
       (u',Ter (Lam x a u) e) ->
         let v@(VVar n _) = mkVarNice ns x (eval e a)
-        in conv (n:ns) (app u' v) (eval (Upd e (x,v)) u)
+        in conv (n:ns) (app u' v) (eval (upd (x,v) e) u)
       (Ter (Split _ p _ _) e,Ter (Split _ p' _ _) e') -> (p == p') && conv ns e e'
       (Ter (Sum p _ _) e,Ter (Sum p' _ _) e')         -> (p == p') && conv ns e e'
       (Ter (Undef p _) e,Ter (Undef p' _) e') -> p == p' && conv ns e e'
@@ -890,8 +886,8 @@ instance Convertible Val where
       (VElimComp a es u,VElimComp a' es' u') -> conv ns (a,es,u) (a',es',u')
       _                         -> False
 
-instance Convertible Env where
-  conv ns e e' = conv ns (valAndFormulaOfEnv e) (valAndFormulaOfEnv e')
+instance Convertible Ctxt where
+  conv _ _ _ = True
 
 instance Convertible () where
   conv _ _ _ = True
@@ -930,7 +926,7 @@ instance Normal Val where
     VU                  -> VU
     Ter (Lam x t u) e   -> let w = eval e t
                                v@(VVar n _) = mkVarNice ns x w
-                           in VLam n (normal ns w) $ normal (n:ns) (eval (Upd e (x,v)) u)
+                           in VLam n (normal ns w) $ normal (n:ns) (eval (upd (x,v) e) u)
     Ter t e             -> Ter t (normal ns e)
     VPi u v             -> VPi (normal ns u) (normal ns v)
     VSigma u v          -> VSigma (normal ns u) (normal ns v)
@@ -953,8 +949,8 @@ instance Normal Val where
     VAppFormula u phi   -> VAppFormula (normal ns u) (normal ns phi)
     _                   -> v
 
-instance Normal Env where
-  normal ns = mapEnv (normal ns) id
+instance Normal Ctxt where
+  normal _ = id
 
 instance Normal Formula where
   normal _ = fromDNF . dnf

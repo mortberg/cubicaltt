@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 module CTT where
 
 import Control.Applicative
@@ -245,36 +246,48 @@ isCon _      = False
 --------------------------------------------------------------------------------
 -- | Environments
 
-data Env = Empty
-         | Upd Env (Ident,Val)
-         | Def [Decl] Env
-         | Sub Env (Name,Formula)
-  deriving Eq
+-- data Env = Empty
+--          | Upd Env (Ident,Val)
+--          | Def [Decl] Env
+--          | Sub Env (Name,Formula)
+--   deriving Eq
+
+data Ctxt = Empty
+          | Upd Ident Ctxt
+          | Sub Name Ctxt
+          | Def [Decl] Ctxt
+  deriving (Show,Eq)
+
+type Env = (Ctxt,[Val],[Formula])         
+
+def :: [Decl] -> Env -> Env
+def ds (rho,vs,fs) = (Def ds rho,vs,fs)
+
+sub :: (Name,Formula) -> Env -> Env
+sub (i,phi) (rho,vs,fs) = (Sub i rho,vs,phi:fs)
+
+upd :: (Ident,Val) -> Env -> Env
+upd (x,v) (rho,vs,fs) = (Upd x rho,v:vs,fs)
+
+empty :: Env
+empty = (Empty,[],[])
 
 upds :: Env -> [(Ident,Val)] -> Env
-upds = foldl Upd
+upds rho [] = rho
+upds rho (xu:xus) = upds (upd xu rho) xus
 
 updsTele :: Env -> Tele -> [Val] -> Env
 updsTele rho tele vs = upds rho (zip (map fst tele) vs)
 
 subs :: Env -> [(Name,Formula)] -> Env
-subs = foldl Sub
+subs env [] = env
+subs (g,vs,fs) ((i,phi):iphis) = subs (Sub i g,vs,phi:fs) iphis
 
 mapEnv :: (Val -> Val) -> (Formula -> Formula) -> Env -> Env
-mapEnv f g e = case e of
-  Empty         -> Empty
-  Upd e (x,v)   -> Upd (mapEnv f g e) (x,f v)
-  Def ts e      -> Def ts (mapEnv f g e)
-  Sub e (i,phi) -> Sub (mapEnv f g e) (i,g phi)
+mapEnv f g (rho,vs,fs) = (rho,map f vs,map g fs)
 
 valAndFormulaOfEnv :: Env -> ([Val],[Formula])
-valAndFormulaOfEnv rho = case rho of
-  Empty -> ([],[])
-  Upd rho (_,u) -> let (us,phis) = valAndFormulaOfEnv rho
-                   in (u:us,phis)
-  Sub rho (_,phi) -> let (us,phis) = valAndFormulaOfEnv rho
-                     in (us,phi:phis)
-  Def _ rho -> valAndFormulaOfEnv rho
+valAndFormulaOfEnv (_,vs,fs) = (vs,fs)
 
 valOfEnv :: Env -> [Val]
 valOfEnv = fst . valAndFormulaOfEnv
@@ -283,20 +296,22 @@ formulaOfEnv :: Env -> [Formula]
 formulaOfEnv = snd . valAndFormulaOfEnv
 
 domainEnv :: Env -> [Name]
-domainEnv rho = case rho of
-  Empty       -> []
-  Upd e (x,v) -> domainEnv e
-  Def ts e    -> domainEnv e
-  Sub e (i,_) -> i : domainEnv e
+domainEnv (rho,_,_) = domCtxt rho
+  where domCtxt rho = case rho of
+          Empty    -> []
+          Upd _ e  -> domCtxt e
+          Def ts e -> domCtxt e
+          Sub i e  -> i : domCtxt e
 
+-- TODO: Fix
 -- Extract the context from the environment, used when printing holes
 contextOfEnv :: Env -> [String]
-contextOfEnv rho = case rho of
-  Empty         -> []
-  Upd e (x, VVar n t)  -> (n ++ " : " ++ show t) : contextOfEnv e
-  Upd e (x, v)  -> (x ++ " = " ++ show v) : contextOfEnv e
-  Def ts e      -> contextOfEnv e
-  Sub e (i,phi) -> (show i ++ " = " ++ show phi) : contextOfEnv e
+contextOfEnv rho = undefined -- case rho of
+  -- Empty         -> []
+  -- Upd e (x, VVar n t)  -> (n ++ " : " ++ show t) : contextOfEnv e
+  -- Upd e (x, v)  -> (x ++ " = " ++ show v) : contextOfEnv e
+  -- Def ts e      -> contextOfEnv e
+  -- Sub e (i,phi) -> (show i ++ " = " ++ show phi) : contextOfEnv e
 
 --------------------------------------------------------------------------------
 -- | Pretty printing
@@ -310,14 +325,14 @@ showEnv b e =
       names x = if b then text x <+> equals else PP.empty
 
       showEnv1 e = case e of
-        Upd env (x,u)   -> showEnv1 env <> names x <+> showVal u <> comma
-        Sub env (i,phi) -> showEnv1 env <> names (show i) <+> text (show phi) <> comma
-        _               -> showEnv b e
+        (Upd x env,u:us,fs)   -> showEnv1 (env,us,fs) <> names x <+> showVal u <> comma
+        (Sub i env,us,phi:fs) -> showEnv1 (env,us,fs) <> names (show i) <+> text (show phi) <> comma
+        _                     -> showEnv b e
   in case e of
-    Empty           -> PP.empty
-    Def _ env       -> showEnv b env
-    Upd env (x,u)   -> parens (showEnv1 env <+> names x <+> showVal u)
-    Sub env (i,phi) -> parens (showEnv1 env <+> names (show i) <+> text (show phi))
+    (Empty,_,_)           -> PP.empty
+    (Def _ env,vs,fs)     -> showEnv b (env,vs,fs)
+    (Upd x env,u:us,fs)   -> parens (showEnv1 (env,us,fs) <+> names x <+> showVal u)
+    (Sub i env,us,phi:fs) -> parens (showEnv1 (env,us,fs) <+> names (show i) <+> text (show phi))
 
 instance Show Loc where
   show = render . showLoc
@@ -397,7 +412,7 @@ showVal v = case v of
   VU                -> char 'U'
   Ter t@Sum{} rho   -> showTer t <+> showEnv False rho
   Ter t@Split{} rho -> showTer t <+> showEnv False rho
-  Ter t env         -> showTer1 t <+> showEnv True env
+  Ter t rho         -> showTer1 t <+> showEnv True rho
   VCon c us         -> text c <+> showVals us
   VPCon c a us phis -> text c <+> braces (showVal a) <+> showVals us
                        <+> (hsep $ map ((char '@' <+>) . showFormula) phis)

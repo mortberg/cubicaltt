@@ -1,7 +1,7 @@
 {-# LANGUAGE TupleSections #-}
 module TypeChecker where
 
-import Control.Applicative
+import Control.Applicative hiding (empty)
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Reader
@@ -24,11 +24,11 @@ data TEnv =
        , indent  :: Int
        , env     :: Env
        , verbose :: Bool  -- Should it be verbose and print what it typechecks?
-       } deriving (Eq,Show)
+       } deriving (Eq)
 
 verboseEnv, silentEnv :: TEnv
-verboseEnv = TEnv [] 0 Empty True
-silentEnv  = TEnv [] 0 Empty False
+verboseEnv = TEnv [] 0 empty True
+silentEnv  = TEnv [] 0 empty False
 
 -- Trace function that depends on the verbosity flag
 trace :: String -> Typing ()
@@ -64,10 +64,10 @@ runInfer lenv e = runTyping lenv (infer e)
 addTypeVal :: (Ident,Val) -> TEnv -> TEnv
 addTypeVal (x,a) (TEnv ns ind rho v) =
   let w@(VVar n _) = mkVarNice ns x a
-  in TEnv (n:ns) ind (Upd rho (x,w)) v
+  in TEnv (n:ns) ind (upd (x,w) rho) v
 
 addSub :: (Name,Formula) -> TEnv -> TEnv
-addSub iphi (TEnv ns ind rho v) = TEnv ns ind (Sub rho iphi) v
+addSub iphi (TEnv ns ind rho v) = TEnv ns ind (sub iphi rho) v
 
 addSubs :: [(Name,Formula)] -> TEnv -> TEnv
 addSubs = flip $ foldr addSub
@@ -80,7 +80,7 @@ addBranch nvs env (TEnv ns ind rho v) =
   TEnv ([n | (_,VVar n _) <- nvs] ++ ns) ind (upds rho nvs) v
 
 addDecls :: [Decl] -> TEnv -> TEnv
-addDecls d (TEnv ns ind rho v) = TEnv ns ind (Def d rho) v
+addDecls d (TEnv ns ind rho v) = TEnv ns ind (def d rho) v
 
 addTele :: Tele -> TEnv -> TEnv
 addTele xas lenv = foldl (flip addType) lenv xas
@@ -111,19 +111,19 @@ mkVars :: [String] -> Tele -> Env -> [(Ident,Val)]
 mkVars _ [] _           = []
 mkVars ns ((x,a):xas) nu =
   let w@(VVar n _) = mkVarNice ns x (eval nu a)
-  in (x,w) : mkVars (n:ns) xas (Upd nu (x,w))
+  in (x,w) : mkVars (n:ns) xas (upd (x,w) nu)
 
 -- Construct a fuction "(_ : va) -> vb"
 mkFun :: Val -> Val -> Val
 mkFun va vb = VPi va (eval rho (Lam "_" (Var "a") (Var "b")))
-  where rho = Upd (Upd Empty ("a",va)) ("b",vb)
+  where rho = upd ("b",vb) (upd ("a",va) empty)
 
 -- Construct "(x : b) -> IdP (<_> b) (f (g x)) x"
 mkSection :: Val -> Val -> Val -> Val
 mkSection vb vf vg =
   VPi vb (eval rho (Lam "x" b (IdP (Path (Name "_") b) (App f (App g x)) x)))
   where [b,x,f,g] = map Var ["b","x","f","g"]
-        rho = Upd (Upd (Upd Empty ("b",vb)) ("f",vf)) ("g",vg)
+        rho = upd ("g",vg) (upd ("f",vf) (upd ("b",vb) empty))
 
 -- Test if two values are convertible
 (===) :: Convertible a => a -> a -> Typing Bool
@@ -341,7 +341,7 @@ checkPath v (Path i a) = do
   rho <- asks env
   -- checkFresh i
   local (addSub (i,Atom i)) $ check (v @@ i) a
-  return (eval (Sub rho (i,Dir 0)) a,eval (Sub rho (i,Dir 1)) a)
+  return (eval (sub (i,Dir 0) rho) a,eval (sub (i,Dir 1) rho) a)
 checkPath v t = do
   vt <- infer t
   case vt of
@@ -370,7 +370,7 @@ checks _              []     = return ()
 checks ((x,a):xas,nu) (e:es) = do
   check (eval nu a) e
   v' <- evalTyping e
-  checks (xas,Upd nu (x,v')) es
+  checks (xas,upd (x,v') nu) es
 checks _              _      = throwError "checks"
 
 -- infer the type of e

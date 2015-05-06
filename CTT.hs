@@ -246,19 +246,19 @@ isCon _      = False
 --------------------------------------------------------------------------------
 -- | Environments
 
--- data Env = Empty
---          | Upd Env (Ident,Val)
---          | Def [Decl] Env
---          | Sub Env (Name,Formula)
---   deriving Eq
-
 data Ctxt = Empty
           | Upd Ident Ctxt
           | Sub Name Ctxt
           | Def [Decl] Ctxt
   deriving (Show,Eq)
 
-type Env = (Ctxt,[Val],[Formula])         
+-- The Idents and Names in the Ctxt refer to the elements in the two
+-- lists. This is more efficient because acting on an environment now
+-- only need to affect the lists and not the whole context.
+type Env = (Ctxt,[Val],[Formula])
+
+empty :: Env
+empty = (Empty,[],[])
 
 def :: [Decl] -> Env -> Env
 def ds (rho,vs,fs) = (Def ds rho,vs,fs)
@@ -269,19 +269,14 @@ sub (i,phi) (rho,vs,fs) = (Sub i rho,vs,phi:fs)
 upd :: (Ident,Val) -> Env -> Env
 upd (x,v) (rho,vs,fs) = (Upd x rho,v:vs,fs)
 
-empty :: Env
-empty = (Empty,[],[])
+upds :: [(Ident,Val)] -> Env -> Env
+upds xus rho = foldl (flip upd) rho xus
 
-upds :: Env -> [(Ident,Val)] -> Env
-upds rho [] = rho
-upds rho (xu:xus) = upds (upd xu rho) xus
+updsTele :: Tele -> [Val] -> Env -> Env
+updsTele tele vs = upds (zip (map fst tele) vs)
 
-updsTele :: Env -> Tele -> [Val] -> Env
-updsTele rho tele vs = upds rho (zip (map fst tele) vs)
-
-subs :: Env -> [(Name,Formula)] -> Env
-subs env [] = env
-subs (g,vs,fs) ((i,phi):iphis) = subs (Sub i g,vs,phi:fs) iphis
+subs :: [(Name,Formula)] -> Env -> Env
+subs iphis rho = foldl (flip sub) rho iphis
 
 mapEnv :: (Val -> Val) -> (Formula -> Formula) -> Env -> Env
 mapEnv f g (rho,vs,fs) = (rho,map f vs,map g fs)
@@ -303,15 +298,14 @@ domainEnv (rho,_,_) = domCtxt rho
           Def ts e -> domCtxt e
           Sub i e  -> i : domCtxt e
 
--- TODO: Fix
 -- Extract the context from the environment, used when printing holes
 contextOfEnv :: Env -> [String]
-contextOfEnv rho = undefined -- case rho of
-  -- Empty         -> []
-  -- Upd e (x, VVar n t)  -> (n ++ " : " ++ show t) : contextOfEnv e
-  -- Upd e (x, v)  -> (x ++ " = " ++ show v) : contextOfEnv e
-  -- Def ts e      -> contextOfEnv e
-  -- Sub e (i,phi) -> (show i ++ " = " ++ show phi) : contextOfEnv e
+contextOfEnv rho = case rho of
+  (Empty,_,_)              -> []
+  (Upd x e,VVar n t:vs,fs) -> (n ++ " : " ++ show t) : contextOfEnv (e,vs,fs)
+  (Upd x e,v:vs,fs)        -> (x ++ " = " ++ show v) : contextOfEnv (e,vs,fs)
+  (Def _ e,vs,fs)          -> contextOfEnv (e,vs,fs)
+  (Sub i e,vs,phi:fs)      -> (show i ++ " = " ++ show phi) : contextOfEnv (e,vs,fs)
 
 --------------------------------------------------------------------------------
 -- | Pretty printing
@@ -364,7 +358,7 @@ showTer v = case v of
   Var x              -> text x
   Con c es           -> text c <+> showTers es
   PCon c a es phis   -> text c <+> braces (showTer a) <+> showTers es
-                        <+> (hsep $ map ((char '@' <+>) . showFormula) phis)
+                        <+> hsep (map ((char '@' <+>) . showFormula) phis)
   Split f _ _ _      -> text f
   Sum _ n _          -> text n
   Undef{}            -> text "undefined"
@@ -415,7 +409,7 @@ showVal v = case v of
   Ter t rho         -> showTer1 t <+> showEnv True rho
   VCon c us         -> text c <+> showVals us
   VPCon c a us phis -> text c <+> braces (showVal a) <+> showVals us
-                       <+> (hsep $ map ((char '@' <+>) . showFormula) phis)
+                       <+> hsep (map ((char '@' <+>) . showFormula) phis)
   VPi a l@(VLam x t b)
     | "_" `isPrefixOf` x -> showVal a <+> text "->" <+> showVal1 b
     | otherwise          -> char '(' <> showLam v
@@ -474,4 +468,3 @@ showVal1 v = case v of
 
 showVals :: [Val] -> Doc
 showVals = hsep . map showVal1
-

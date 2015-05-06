@@ -5,7 +5,7 @@ module Connections where
 import Control.Applicative
 import Data.List
 import Data.Map (Map,(!),keys)
-import Data.Set (Set)
+import Data.Set (Set,isProperSubsetOf)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Maybe
@@ -206,7 +206,7 @@ dnf (phi :/\: psi) =
                         , b <- Set.toList (dnf psi) ]
 
 fromDNF :: Set (Set (Name,Dir)) -> Formula
-fromDNF s = foldr orFormula (Dir Zero) (map (foldr andFormula (Dir One)) fs)
+fromDNF s = foldr (orFormula . foldr andFormula (Dir One)) (Dir Zero) fs
   where xss = map Set.toList $ Set.toList s
         fs = [ [ if d == Zero then NegAtom n else Atom n | (n,d) <- xs ] | xs <- xss ]
 
@@ -214,8 +214,8 @@ merge :: Set (Set (Name,Dir)) -> Set (Set (Name,Dir)) -> Set (Set (Name,Dir))
 merge a b =
   let as = Set.toList a
       bs = Set.toList b
-  in Set.fromList [ ai | ai <- as, not (any (\bj -> bj `Set.isProperSubsetOf` ai) bs) ] `Set.union`
-     Set.fromList [ bi | bi <- bs, not (any (\aj -> aj `Set.isProperSubsetOf` bi) as) ] 
+  in Set.fromList [ ai | ai <- as, not (any (`isProperSubsetOf` ai) bs) ] `Set.union`
+     Set.fromList [ bi | bi <- bs, not (any (`isProperSubsetOf` bi) as) ]
 
 -- evalFormula :: Formula -> Face -> Formula
 -- evalFormula phi alpha =
@@ -369,8 +369,8 @@ type System a = Map Face a
 
 showSystem :: Show a => System a -> String
 showSystem ts =
-  "[ " ++ concat (intersperse ", " [ showFace alpha ++ " -> " ++ show u
-                                   | (alpha,u) <- Map.toList ts ]) ++ " ]"
+  "[ " ++ intercalate ", " [ showFace alpha ++ " -> " ++ show u
+                           | (alpha,u) <- Map.toList ts ] ++ " ]"
 
 insertSystem :: Face -> a -> System a -> System a
 insertSystem alpha v ts = case find (comparable alpha) (Map.keys ts) of
@@ -379,8 +379,7 @@ insertSystem alpha v ts = case find (comparable alpha) (Map.keys ts) of
   Nothing -> Map.insert alpha v ts
 
 insertsSystem :: [(Face, a)] -> System a -> System a
-insertsSystem faces us =
-  foldr (\(alpha, ualpha) -> insertSystem alpha ualpha) us faces
+insertsSystem faces us = foldr (uncurry insertSystem) us faces
 
 mkSystem :: [(Face, a)] -> System a
 mkSystem = flip insertsSystem Map.empty

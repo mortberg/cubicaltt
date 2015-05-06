@@ -160,7 +160,7 @@ eval rho v = case v of
     let j = fresh rho
     in VPath j (eval (sub (i,Atom j) rho) t)
   Trans u v           -> transLine (eval rho u) (eval rho v)
-  AppFormula e phi    -> (eval rho e) @@ (evalFormula rho phi)
+  AppFormula e phi    -> eval rho e @@ evalFormula rho phi
   Comp a t0 ts        -> compLine (eval rho a) (eval rho t0) (evalSystem rho ts)
   Glue a ts           -> glue (eval rho a) (evalSystem rho ts)
   GlueElem a ts       -> glueElem (eval rho a) (evalSystem rho ts)
@@ -196,10 +196,10 @@ app :: Val -> Val -> Val
 app u v = case (u,v) of
   (Ter (Lam x _ t) e,_)               -> eval (upd (x,v) e) t
   (Ter (Split _ _ _ nvs) e,VCon c vs) -> case lookupBranch c nvs of
-    Just (OBranch _ xs t) -> eval (upds e (zip xs vs)) t
+    Just (OBranch _ xs t) -> eval (upds (zip xs vs) e) t
     _     -> error $ "app: missing case in split for " ++ c
   (Ter (Split _ _ _ nvs) e,VPCon c _ us phis) -> case lookupBranch c nvs of
-    Just (PBranch _ xs is t) -> eval (subs (upds e (zip xs us)) (zip is phis)) t
+    Just (PBranch _ xs is t) -> eval (subs (zip is phis) (upds (zip xs us) e)) t
     _ -> error $ "app: missing case in split for " ++ c
   (Ter (Split _ _ ty hbr) e,VComp a w ws) -> case eval e ty of
     VPi _ f -> let j   = fresh (e,v)
@@ -284,7 +284,7 @@ pcon c a@(Ter (Sum _ _ lbls) rho) us phis = case lookupPLabel c lbls of
   -- TODO: is this correct? Double check!
   Just (tele,is,ts) | eps `Map.member` vs -> vs ! eps
                     | otherwise -> VPCon c a us phis
-    where rho' = subs (updsTele rho tele us) (zip is phis)
+    where rho' = subs (zip is phis) (updsTele tele us rho)
           vs   = evalSystem rho' ts
   Nothing           -> error "pcon"
 -- pcon c a us phi     = VPCon c a us phi
@@ -332,8 +332,8 @@ trans i v0 v1 = case (v0,v1) of
           k   = fresh (v0,v1,Atom i)
           transp alpha w = trans i (v0 `face` alpha) (w @@ k)
           ws'          = mapWithKey transp ws
-  _ | otherwise -> error $ "trans not implemented for v0 = " ++ show v0
-                   ++ "\n and v1 = " ++ show v1
+  _ -> error $ "trans not implemented for v0 = " ++ show v0
+            ++ "\n and v1 = " ++ show v1
 
 transNeg :: Name -> Val -> Val -> Val
 transNeg i a u = trans i (a `sym` i) u
@@ -506,7 +506,7 @@ transGlue i b hisos wi0 = glueElem vi1'' usi1
 
         ls'    = mapWithKey (\gamma isoG ->
                    VPath i $ squeeze i (b `face` gamma)
-                           ((hisoFun isoG) `app` (us' ! gamma)))
+                           (hisoFun isoG `app` (us' ! gamma)))
                  hisos'
         bi1    = b `face` (i ~> 1)
         vi1'   = compLine bi1 vi1 ls'
@@ -798,8 +798,7 @@ eqLemma e ts a = (t,VPath j theta'')
         theta   = genFill i ei a vs
         t       = genComp i ei a vs
         theta'  = transFillNeg i ei t
-        ws      = insertSystem (j ~> 1) theta' $
-                  insertSystem (j ~> 0) theta $ vs
+        ws      = insertSystem (j ~> 1) theta' $ insertSystem (j ~> 0) theta vs
         theta'' = genCompNeg i ei t ws
 
 
@@ -956,7 +955,7 @@ instance Normal Formula where
   normal _ = fromDNF . dnf
 
 instance Normal a => Normal (Map k a) where
-  normal ns us = Map.map (normal ns) us
+  normal ns = Map.map (normal ns)
 
 instance (Normal a,Normal b) => Normal (a,b) where
   normal ns (u,v) = (normal ns u,normal ns v)
@@ -969,4 +968,4 @@ instance (Normal a,Normal b,Normal c,Normal d) => Normal (a,b,c,d) where
     (normal ns u,normal ns v,normal ns w, normal ns x)
 
 instance Normal a => Normal [a] where
-  normal ns us = map (normal ns) us
+  normal ns = map (normal ns)

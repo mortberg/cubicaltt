@@ -77,7 +77,7 @@ addType (x,a) tenv@(TEnv _ _ rho _) = addTypeVal (x,eval rho a) tenv
 
 addBranch :: [(Ident,Val)] -> Env -> TEnv -> TEnv
 addBranch nvs env (TEnv ns ind rho v) =
-  TEnv ([n | (_,VVar n _) <- nvs] ++ ns) ind (upds rho nvs) v
+  TEnv ([n | (_,VVar n _) <- nvs] ++ ns) ind (upds nvs rho) v
 
 addDecls :: [Decl] -> TEnv -> TEnv
 addDecls d (TEnv ns ind rho v) = TEnv ns ind (def d rho) v
@@ -157,12 +157,12 @@ check a t = case (a,t) of
       checkTele tele
       rho <- asks env
       unless (all (`elem` is) (domain ts)) $
-        throwError $ "names in path label system" -- TODO
+        throwError "names in path label system" -- TODO
       mapM_ checkFresh is
       let iis = zip is (map Atom is)
       local (addSubs iis . addTele tele) $ do
         checkSystemWith ts $ \alpha talpha ->
-          local (faceEnv alpha) $ do
+          local (faceEnv alpha) $
             -- NB: the type doesn't depend on is
             check (Ter t rho) talpha
         rho' <- asks env
@@ -215,7 +215,7 @@ check a t = case (a,t) of
   (VGlueLine vb phi psi,GlueLineElem r phi' psi') -> do
     check vb r
     unlessM ((phi,psi) === (phi',psi')) $
-      throwError $ "GlueLineElem: formulas don't match"
+      throwError "GlueLineElem: formulas don't match"
   _ -> do
     v <- infer t
     unlessM (v === a) $
@@ -311,7 +311,7 @@ checkBranch (PLabel _ tele is ts,nu) f (PBranch c ns js e) g va = do
   let us   = mkVars ns' tele nu
       vus  = map snd us
       js'  = map Atom js
-      vts  = evalSystem (subs (upds nu us) (zip is js')) ts
+      vts  = evalSystem (subs (zip is js') (upds us nu)) ts
       vgts = intersectionWith app (border g vts) vts
   local (addSubs (zip js js') . addBranch (zip ns vus) nu) $ do
     check (app f (VPCon c va vus js')) e
@@ -326,7 +326,7 @@ checkFormula :: Formula -> Typing ()
 checkFormula phi = do
   rho <- asks env
   let dom = domainEnv rho
-  unless (all (\x -> x `elem` dom) (support phi)) $
+  unless (all (`elem` dom) (support phi)) $
     throwError $ "checkFormula: " ++ show phi
 
 checkFresh :: Name -> Typing ()
@@ -427,7 +427,7 @@ infer e = case e of
       (throwError ("Keys don't match in " ++ show es ++ " and " ++ show us))
     check va u
     let vu = eval rho u
-    checkSystemsWith ts us (\_ -> check)
+    checkSystemsWith ts us (const check)
     let vus = evalSystem rho us
     checkCompSystem vus
     checkSystemsWith ves vus (\alpha eA vuA ->

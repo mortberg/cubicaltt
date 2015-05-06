@@ -1,6 +1,7 @@
 module torus where
 
-import circle
+import sigma
+import helix
 
 data Torus = ptT
            | pathOneT <i> [ (i=0) -> ptT, (i=1) -> ptT ]
@@ -174,3 +175,16 @@ diag_of_image_of_ff : IdP (<_> (_ : S1) * S1) (base,base) (base,base)
 S1S1equalsTorus : Id U (and S1 S1) Torus = isoId (and S1 S1) Torus c2t t2c t2c2t rem
  where
  rem (c:and S1 S1) : Id (and S1 S1) (t2c (c2t c)) c = c2t2c c.1 c.2
+
+TorusEqualsS1S1 : Id U Torus (and S1 S1) = <i> S1S1equalsTorus @ -i
+
+loopT : U = Id Torus ptT ptT
+
+loopTorusEqualsZZ : Id U loopT (and Z Z) = <i> comp U (rem @ i) [(i = 1) -> rem1]
+  where
+  rem : Id U loopT (Id (and S1 S1) (base,base) (base,base)) =
+    funDep Torus (and S1 S1) TorusEqualsS1S1 ptT (base,base)
+
+  rem1 : Id U (Id (and S1 S1) (base,base) (base,base)) (and Z Z) =
+    <i> comp U (lemIdAnd S1 S1 (base,base) (base,base) @ i)
+             [(i = 1) -> <j> and (loopS1equalsZ @ j) (loopS1equalsZ @ j)]

@@ -5,16 +5,20 @@ import equiv
 
 -- application of this fact
 
-sig (A:U) (P : A -> U) : U = (x:A) * P x
+sig (A : U) (P : A -> U) : U = (x : A) * P x
 
-lemIdSig  (A:U) (B:A-> U) (t u : sig A B) : Id U (Id (sig A B) t u) ((p:Id A t.1 u.1) * IdP (<i> B (p@i)) t.2 u.2) =
- isoId T0 T1 f g s t where
-  T0 : U = Id (sig A B) t u
-  T1 : U = (p:Id A t.1 u.1) * IdP (<i> B (p@i)) t.2 u.2
-  f (q:T0) : T1 = (<i> (q@i).1,<i> (q@i).2)
-  g (z:T1) : T0 = <i>(z.1 @i,z.2 @i)
-  s (z:T1) : Id T1 (f (g z)) z = refl T1 z
-  t (q:T0) : Id T0 (g (f q)) q = refl T0 q
+lemIdSig (A:U) (B : A -> U) (t u : sig A B) :
+ Id U (Id (sig A B) t u) ((p : Id A t.1 u.1) * IdP (<i> B (p @ i)) t.2 u.2) =
+  isoId T0 T1 f g s t where
+   T0 : U = Id (sig A B) t u
+   T1 : U = (p:Id A t.1 u.1) * IdP (<i> B (p@i)) t.2 u.2
+   f (q:T0) : T1 = (<i> (q@i).1,<i> (q@i).2)
+   g (z:T1) : T0 = <i>(z.1 @i,z.2 @i)
+   s (z:T1) : Id T1 (f (g z)) z = refl T1 z
+   t (q:T0) : Id T0 (g (f q)) q = refl T0 q
+
+lemIdAnd (A B : U) (t u : and A B) :
+  Id U (Id (and A B) t u) (and (Id A t.1 u.1) (Id B t.2 u.2)) = lemIdSig A (\(_ : A) -> B) t u
 
 lem (A:U) (P:A->U) (pP:(x:A) -> prop (P x)) (u v:(x:A) * P x) (p:Id A u.1 v.1) :
  Id ((x:A)*P x) u v = <i>(p@i,(lemPropF A P pP u.1 v.1 p u.2 v.2)@i)

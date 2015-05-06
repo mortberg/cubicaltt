@@ -11,8 +11,6 @@ import torus
 -- (5) convert back to (loopS1 * loopS1)
 -- (6) convert back to (Z * Z)
 
-loopT : U = IdP (<_>Torus) ptT ptT
-
 -- use transport to lift just because we can :)
 Zs_to_loopS1s (input : and (and Z Z) (and Z Z)) : and (and loopS1 loopS1) (and loopS1 loopS1) =
    transport (<i> and (and (loopS1equalsZ @ -i) (loopS1equalsZ @ -i)) (and (loopS1equalsZ @ -i) (loopS1equalsZ @ -i))) input

@@ -367,10 +367,13 @@ face = Map.foldWithKey (\i d a -> act a (i,Dir d))
 -- the faces should be incomparable
 type System a = Map Face a
 
-showSystem :: Show a => System a -> String
-showSystem ts =
+showListSystem :: Show a => [(Face,a)] -> String
+showListSystem ts =
   "[ " ++ intercalate ", " [ showFace alpha ++ " -> " ++ show u
-                           | (alpha,u) <- Map.toList ts ] ++ " ]"
+                           | (alpha,u) <- ts ] ++ " ]"
+
+showSystem :: Show a => System a -> String
+showSystem = showListSystem . Map.toList
 
 insertSystem :: Face -> a -> System a -> System a
 insertSystem alpha v ts = case find (comparable alpha) (Map.keys ts) of

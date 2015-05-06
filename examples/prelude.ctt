@@ -6,6 +6,8 @@ Id (A : U) (a0 a1 : A) : U = IdP (<i> A) a0 a1
 
 refl (A : U) (a : A) : Id A a a = <i> a
 
+testEta (A : U) (a b : A) (p : Id A a b) : Id (Id A a b) p p = refl (Id A a b) (<i> p @ i)
+
 mapOnPath (A B : U) (f : A -> B) (a b : A)
           (p : Id A a b) : Id B (f a) (f b) = <i> f (p @ i)
 

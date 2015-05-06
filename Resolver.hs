@@ -229,10 +229,14 @@ resolveWhere :: ExpWhere -> Resolver Ter
 resolveWhere = resolveExp . unWhere
 
 resolveSystem :: System -> Resolver (C.System Ter)
-resolveSystem (System ts) =
+resolveSystem (System ts) = do
+  ts' <- sequence [ (,) <$> resolveFace alpha <*> resolveExp u
+                  | Side alpha u <- ts ]
+  let alphas = map fst ts'
+  unless (nub alphas == alphas) $
+    throwError $ "system contains same face multiple times: " ++ C.showListSystem ts'
   -- Note: the symbols in alpha are in scope in u, but they mean 0 or 1
-  Map.fromList <$> sequence [ (,) <$> resolveFace alpha <*> resolveExp u
-                            | Side alpha u <- ts ]
+  return $ Map.fromList ts'
 
 resolveFace :: [Face] -> Resolver C.Face
 resolveFace alpha =

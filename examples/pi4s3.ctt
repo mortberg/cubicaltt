@@ -2,6 +2,7 @@ module pi4s3 where
 
 import join
 import hopf
+import exchange
 
 ptJoin (pA : ptType) (B:U) : ptType = (join pA.1 B, inl (pt pA))
 
@@ -87,3 +88,6 @@ test0To4 : (itOmega three ptS2).1 = f4 test0To3
 
 -- NOT SURE (takes a long time)
 test0To5 : (itOmega three (ptJoin ptS1 S1)).1 = f5 test0To4
+
+-- Test f5 on a generator given by the exchange law
+testf5 : (itOmega three (ptJoin ptS1 S1)).1 = f5 genPi3S2

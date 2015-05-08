@@ -96,3 +96,8 @@ loop2S : Id sone north north = compId sone north north north loop1S loop1S
 test0S : Z = windingS (refl sone north)
 
 test2S : Z = windingS loop2S
+
+-- The sphere is the suspension of the circle:
+S2 : U = susp S1
+
+loopS2 : U = Id S2 north north

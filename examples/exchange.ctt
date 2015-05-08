@@ -1,0 +1,135 @@
+module exchange where
+
+import susp
+
+r2 : loopS2 = refl S2 north
+
+Omega2 : U = Id loopS2 r2 r2
+
+test1 :  Omega2 =
+ <i j>comp S2 (merid {S2} (loop1@j)@i) 
+     [(i=1) -> <k>merid{S2} base @-k,
+      (j=0) -> <k>merid{S2} base @(i/\-k),
+      (j=1) -> <k>merid{S2} base @(i/\-k)]
+
+compS2 (p q : loopS2) : loopS2 = compId S2 north north north p q
+
+-- horizontal and vertical composition
+
+hcomp (s t : Omega2) : Omega2 = <i j>comp S2 (s@i@j) [(i=1) -> <k> t@k@j]
+vcomp (s t : Omega2) : Omega2 = <i j>comp S2 (s@i@j) [(j=1) -> <k> t@i@k]
+
+-- constant square
+
+cs2 : Omega2 = refl loopS2 r2
+
+-- need to be generalized with squares
+
+Square (a0 a1 : S2) (u : Id S2 a0 a1)
+       (b0 b1 : S2) (v : Id S2 b0 b1)
+       (r0 : Id S2 a0 b0) (r1 : Id S2 a1 b1) : U
+  = IdP (<i> (Id S2 (u @ i) (v @ i))) r0 r1
+
+squareS2 (a0 a1:S2) (q0:Id S2 north a0) (q1:Id S2 north a1) (p0:Id S2 a0 a1) : U =
+ Square north a0 q0 north a1 q1 r2 p0 
+
+sqS2 (u v:loopS2) : U = Square north north u north north v r2 r2
+
+-- horizontal and vertical composition
+
+vComp  (a0 a1 a2:S2) (q0:Id S2 north a0) (q1:Id S2 north a1) (q2:Id S2 north a2)
+       (p0:Id S2 a0 a1) (p1:Id S2 a1 a2) (s:squareS2 a0 a1 q0 q1 p0) (s1:squareS2 a1 a2 q1 q2 p1) :
+       squareS2 a0 a2 q0 q2 (compId S2 a0 a1 a2 p0 p1) =
+ <i j>comp S2 (s@i@j) [(j=1) -> <k> s1@i@k]
+
+hComp  (a0 a1:S2) (q0 : Id S2 north a0) (q1 : Id S2 north a1) (p0 : Id S2 a0 a1) (u0 u1:loopS2)
+       (s : squareS2 a0 a1 q0 q1 p0) (t : sqS2 u0 u1) : 
+  squareS2 a0 a1 (compId S2 north north a0 u0 q0) (compId S2 north north a1 u1 q1) p0 =
+ <i j>comp S2 (t@i@j) [(i=1) -> <k> s@k@j]
+
+-- exchange lemma
+
+compN (a:S2) (p:Id S2 north a) (q:loopS2) : Id S2 north a = compId S2 north north a q p
+
+exLem (a0 a1 a2 : S2) (q0 : Id S2 north a0) (q1:Id S2 north a1) (q2 : Id S2 north a2)
+      (p0 : Id S2 a0 a1) (p1: Id S2 a1 a2) (u0 u1 u2 : loopS2) 
+      (s : squareS2 a0 a1 q0 q1 p0) (s1 : squareS2 a1 a2 q1 q2 p1) 
+      (t : sqS2 u0 u1) (t1 : sqS2 u1 u2) : 
+ Id (squareS2 a0 a2 (compN a0 q0 u0) (compN a2 q2 u2) (compId S2 a0 a1 a2 p0 p1))
+    (vComp a0 a1 a2 (compN a0 q0 u0) (compN a1 q1 u1) (compN a2 q2 u2) p0 p1
+                     (hComp a0 a1 q0 q1 p0 u0 u1 s t)
+                     (hComp a1 a2 q1 q2 p1 u1 u2 s1 t1))
+    (hComp a0 a2 q0 q2 (compId S2 a0 a1 a2 p0 p1) u0 u2 
+           (vComp a0 a1 a2 q0 q1 q2 p0 p1 s s1)
+           (vComp north north north u0 u1 u2 r2 r2 t t1)) = 
+ transport 
+ (<i> Id (squareS2 (q0@i) (q2@i) (compN (q0@i) (<j>q0@i/\j) u0) (compN (q2@i) (<j>q2@i/\j) u2) (compId S2 (q0@i) (q1@i) (q2@i) (<k>s@i@k) (<k>s1@i@k)))
+    (vComp (q0@i) (q1@i) (q2@i) (compN (q0@i) (<j>q0@i/\j) u0) (compN (q1@i) (<j>q1@i/\j) u1) (compN (q2@i) (<j>q2@i/\j) u2) (<k>s@i@k) (<k>s1@i@k)
+                     (hComp (q0@i) (q1@i) (<j>q0@i/\j) (<j>q1@i/\j) (<k>s@i@k) u0 u1 (<j k>s@i/\j@k) t)
+                     (hComp (q1@i) (q2@i) (<j>q1@i/\j) (<j>q2@i/\j) (<k>s1@i@k) u1 u2 (<j k>s1@i/\j@k) t1))
+    (hComp (q0@i) (q2@i) (<j>q0@i/\j) (<j>q2@i/\j) (compId S2 (q0@i) (q1@i) (q2@i) (<k>s@i@k) (<k>s1@i@k)) u0 u2 
+           (vComp (q0@i) (q1@i) (q2@i) (<j>q0@i/\j) (<j>q1@i/\j) (<j>q2@i/\j) (<k>s@i@k) (<k>s1@i@k) (<j k>s@i/\j@k) (<j k>s1@i/\j@k))
+           (vComp north north north u0 u1 u2 r2 r2 t t1)))
+    (refl (sqS2 u0 u2) (vComp north north north u0 u1 u2 r2 r2 t t1))
+
+corExLem (t t1 s s1 : Omega2) :
+ Id Omega2 (vcomp (hcomp t s) (hcomp t1 s1)) (hcomp (vcomp t t1) (vcomp s s1)) = 
+ exLem north north north r2 r2 r2 r2 r2 r2 r2 r2 s s1 t t1
+
+-- we should be able to deduce that vcomp t s = hcomp t s
+
+rR2 : Omega2 = refl loopS2 r2
+
+lemIdl (A:U) (a b:A) (p:Id A a b) : Id (Id A a b) (compId A a a b (refl A a) p) p = 
+ transport (<i>Id (Id A a (p@i)) (compId A a a (p@i) (refl A a) (<j>p@i/\j)) (<j>p@i/\j))
+           (refl (Id A a a) (refl A a))
+
+lemRV (s:Omega2) : Id Omega2 (vcomp rR2 s) s = <k i j>lemIdl S2 north north (s@i)@k@j
+
+lemRH (s:Omega2) : Id Omega2 (hcomp rR2 s) s = <k i j>lemIdl S2 north north (<l>s@l@j)@k@i
+
+lem1 (s t:Omega2) : Id Omega2 (vcomp t s) (hcomp t s) = 
+ compId Omega2 (vcomp t s) (hcomp t (vcomp rR2 s)) (hcomp t s) 
+   (compId Omega2 (vcomp t s) (vcomp (hcomp t rR2) (hcomp rR2 s)) (hcomp t (vcomp rR2 s)) rem1 rem2)
+    rem3
+ where
+ rem1 : Id Omega2 (vcomp t s) (vcomp (hcomp t rR2) (hcomp rR2 s)) =  <i>vcomp t (lemRH s@-i)
+ rem2 : Id Omega2 (vcomp (hcomp t rR2) (hcomp rR2 s)) (hcomp t (vcomp rR2 s)) =  corExLem t rR2 rR2 s
+ rem3 : Id Omega2 (hcomp t (vcomp rR2 s)) (hcomp t s) =  <i>hcomp t (lemRV s@i)
+
+lemInv (A:U) (a b:A) (p:Id A a b) : Id (Id A a a) (compId A a b a p (<i>p@-i)) (refl A a) =
+ transport (<i>Id (Id A a a) (compId A a (p@i) a (<j>p@i/\j) (<j>p@i/\-j)) (refl A a)) (refl (Id A a a) (refl A a))
+
+g2 : Omega2 = test1
+invG2 : Omega2 = <i j>g2@i@-j
+
+-- lem2 : Id Omega2 (hcomp g2 invG2) rR2 = <k i j>lemInv S2 north north (<l>g2@l@j)@k@i
+
+lem3 : Id Omega2 (vcomp g2 invG2) rR2 = <k i j>lemInv S2 north north (g2@i)@k@j
+--  compId Omega2 (vcomp g2 invG2) (hcomp h2 invG2) rR2 (lem1 g2 invG2) lem2
+
+lemInv1 (A:U) (a b:A) (p:Id A a b) : Id (Id A b b) (compId A b a b (<i>p@-i) p) (refl A b) =
+ transport (<i>Id (Id A b b) (compId A b (p@-i) b (<j>p@-i\/-j) (<j>p@-i\/j)) (refl A b)) (refl (Id A b b) (refl A b))
+
+lem4 : Id Omega2 (vcomp invG2 g2) rR2 = <k i j>lemInv1 S2 north north (g2@i)@k@j
+
+-- commutativity
+
+lem5 (s t:Omega2) : Id Omega2 (vcomp t s) (vcomp s t) =
+ compId Omega2 (vcomp t s) (vcomp (hcomp rR2 s) t) (vcomp s t)
+  (compId Omega2 (vcomp t s) (hcomp (vcomp rR2 t) s) (vcomp (hcomp rR2 s) t) 
+   (compId Omega2 (vcomp t s) (hcomp t s) (hcomp (vcomp rR2 t) s) (lem1 s t) rem4)
+    rem5)
+   rem6
+ where
+ rem4 : Id Omega2 (hcomp t s) (hcomp (vcomp rR2 t) s) = <i>hcomp (lemRV t@-i) s
+ rem5 : Id Omega2 (hcomp (vcomp rR2 t) s) (vcomp (hcomp rR2 s) t) = <i>corExLem rR2 t s rR2@-i
+ rem6 : Id Omega2 (vcomp (hcomp rR2 s) t) (vcomp s t) = <i>vcomp (lemRH s@i) t
+
+genPi3S2 : Id Omega2 rR2 rR2 = 
+ compId Omega2 rR2 (vcomp invG2 g2) rR2 (compId Omega2 rR2 (vcomp g2 invG2) (vcomp invG2 g2) rem1 rem2) lem4
+ where
+  rem1 : Id Omega2 rR2 (vcomp g2 invG2) = <i>lem3@-i
+  rem2 : Id Omega2 (vcomp g2 invG2) (vcomp invG2 g2) = lem5 invG2 g2
+
+

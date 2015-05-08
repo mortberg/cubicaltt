@@ -18,8 +18,6 @@ lemLoopSet (X:U) (sX: set X) : Id U (aLoop X) X
 lemS1Set (X : U) (sX: set X) : Id U (S1 -> X) X =
  compId U (S1 -> X) (aLoop X) X (<i>thm X@-i) (lemLoopSet X sX)
 
-S2 : U = susp S1
-
 lemGrp1 (X : U) (gX: groupoid X) : Id U (suspOf S1 X) ((u:X) * (v : X) * Id X u v)
    = <i> (u:X) * (v:X) * (lemS1Set (Id X u v) (gX u v) @ i)
  

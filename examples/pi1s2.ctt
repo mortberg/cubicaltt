@@ -3,7 +3,7 @@ module pi1s2 where
 import truncS2
 import thm7312
 
-pi1S2 : U = sTrunc (Id S2 north north) 
+pi1S2 : U = sTrunc loopS2
 
 incN : gTrunc S2 = inc north
 

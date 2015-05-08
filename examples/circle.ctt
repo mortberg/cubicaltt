@@ -8,7 +8,7 @@ data S1 = base
 
 loopS1 : U = Id S1 base base
 
-loop1 : Id S1 base base = <i> loop{S1} @ i
+loop1 : loopS1 = <i> loop{S1} @ i
 
 invLoop : loopS1 = inv S1 base base loop1
 

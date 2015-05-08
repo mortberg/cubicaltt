@@ -356,14 +356,15 @@ checkPath v t = do
 checkPathSystem :: Ter -> Val -> System Ter -> Typing (System Val)
 checkPathSystem t0 va ps = do
   rho <- asks env
-  checkCompSystem (evalSystem rho ps)
-  T.sequence $ mapWithKey (\alpha pAlpha ->
+  v <- T.sequence $ mapWithKey (\alpha pAlpha ->
     local (faceEnv alpha) $ do
       rhoAlpha <- asks env
       (a0,a1)  <- checkPath (constPath (va `face` alpha)) pAlpha
       unlessM (a0 === eval rhoAlpha t0) $
         throwError $ "Incompatible system with " ++ show t0
       return a1) ps
+  checkCompSystem (evalSystem rho ps)
+  return v
 
 checks :: (Tele,Env) -> [Ter] -> Typing ()
 checks _              []     = return ()

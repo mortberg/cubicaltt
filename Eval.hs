@@ -324,6 +324,8 @@ trans i v0 v1 = case (v0,v1) of
                        " in " ++ show v0
   _ | isNeutral w -> w
     where w = VTrans (VPath i v0) v1
+  (Ter (Sum _ _ nass) env,VElimComp _ _ u) -> trans i v0 u
+  (Ter (Sum _ _ nass) env,VCompElem _ _ u _) -> trans i v0 u
   (VGlue a ts,_)    -> transGlue i a ts v1
   (VGlueLine a phi psi,_) -> transGlueLine i a phi psi v1
   (VComp VU a es,_) -> transU i a es v1
@@ -694,15 +696,21 @@ auxTransGlueLine i (phi,b,wi0) vi1   = fillLine (b `face` (i ~> 1)) vi1 ls'
 -------------------------------------------------------------------------------
 -- | Composition in the Universe
 
-compElem :: Val -> System Val -> Val -> System Val -> Val
-compElem a es u us | Map.null es         = u
-                   | eps `Map.member` us = us ! eps
-                   | otherwise           = VCompElem a es u us
+isConstPath :: Val -> Bool
+isConstPath (VPath i u) = i `notElem` support u
+isConstPath _ = False
 
-elimComp ::Val -> System Val -> Val -> Val
-elimComp a es u | Map.null es         = u
-                | eps `Map.member` es = transNegLine (es ! eps) u
-                | otherwise           = VElimComp a es u
+compElem :: Val -> System Val -> Val -> System Val -> Val
+compElem a es u us = compElem' (Map.filter (not . isConstPath) es)
+  where compElem' es | Map.null es         = u
+                     | eps `Map.member` us = us ! eps
+                     | otherwise           = VCompElem a es u us
+
+elimComp :: Val -> System Val -> Val -> Val
+elimComp a es u = elimComp' (Map.filter (not . isConstPath) es)
+  where elimComp' es | Map.null es         = u
+                     | eps `Map.member` es = transNegLine (es ! eps) u
+                     | otherwise           = VElimComp a es u
 
 compU :: Name -> Val -> System Val -> Val -> System Val -> Val
 compU i a es w0 ws =

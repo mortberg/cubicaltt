@@ -1,12 +1,90 @@
 module s2 where
 
-import prelude
+import pointed
+import pi1s2
 
-data S2 = base
-        | loop2 <i j> [ (i=0) -> base
-                      , (i=1) -> base
-                      , (j=0) -> base
-                      , (j=1) -> base]
+data sph
+  = base
+  | surf <i j> [ (i=0) -> base
+               , (i=1) -> base
+               , (j=0) -> base
+               , (j=1) -> base
+               ]
 
-loop2' : Id (Id S2 base base) (refl S2 base) (refl S2 base) =
-  <i j> loop2 {S2} @ i @ j
+-- Isomorphism of sph and S2 due to tomjack:
+
+suspSurf : Id (Id S2 north north) (<i> north) (<i> north)
+  = <j k> comp S2 (merid{S2} (loop{S1} @ j) @ k)
+            [ (j=0) -> <j> merid{S2} base @ -j /\ k
+            , (j=1) -> <j> merid{S2} base @ -j /\ k
+            , (k=1) -> <k> merid{S2} base @ -k
+            ]
+
+toS2 : sph -> S2 = split
+  base -> north
+  surf @ j k -> suspSurf @ j @ k
+
+sphMerid : S1 -> Id sph base base = split
+  base -> <k> base
+  loop @ j -> <k> surf{sph} @ j @ k
+
+fromS2 : S2 -> sph = split
+  north -> base
+  south -> base
+  merid x @ k -> sphMerid x @ k
+
+toFromS2 : (x : S2) -> Id S2 (toS2 (fromS2 x)) x = split
+  north -> <i> north
+  south -> <i> merid{S2} base @ i
+  merid x @ k -> rem x @ k
+    where
+    rem : (x : S1)
+        -> IdP (<k> Id S2 (toS2 (fromS2 (merid{S2} x @ k))) (merid{S2} x @ k))
+               (<i> north)
+               (<i> merid{S2} base @ i)
+      = split
+        base -> <k i> merid{S2} base @ k /\ i
+        loop @ j -> <k i> comp S2 (merid{S2} (loop{S1} @ j) @ k)
+                            [ (j=0) -> <j> merid{S2} base @ -(-i /\ j) /\ k
+                            , (j=1) -> <j> merid{S2} base @ -(-i /\ j) /\ k
+                            , (k=1) -> <k> merid{S2} base @ -(-i /\ k)
+                            ]
+
+fromToS2 : (x : sph) -> Id sph (fromS2 (toS2 x)) x = split
+  base -> <i> base
+  surf @ j k -> <i> surf{sph} @ j @ k
+
+s2EqSph : Id U S2 sph
+  = isoId S2 sph fromS2 toS2 fromToS2 toFromS2
+
+s2EqSphPt : Id ptType (S2, north) (sph, base)
+  = <i> (s2EqSph @ i, transport (<j> s2EqSph @ i /\ j) north)
+
+loopSph : U = Id sph base base
+pi1Sph : U = sTrunc loopSph
+
+pi1 (A : ptType) : U = sTrunc (Id A.1 A.2 A.2)
+propPi1 (A : ptType) : U = prop (pi1 A)
+
+trivSph : pi1Sph = subst ptType pi1 (S2, north) (sph, base) s2EqSphPt trivS2
+-- NORMEVAL: inc (<!1> base)
+
+loopSph : pi1Sph = subst ptType pi1 (S2, north) (sph, base) s2EqSphPt loopS2
+-- NORMEVAL: inc (<!1> base)
+
+loopSph' : pi1Sph = inc (<i> surf{sph} @ i @ i)
+-- NORMEVAL: inc (<!0> surf {sph} @ !0 @ !0)
+
+propPi1Sph : prop pi1Sph
+  = subst ptType propPi1 (S2, north) (sph, base) s2EqSphPt propPi1S2
+
+-- > :n propPi1Sph trivSph loopSph
+-- NORMEVAL: <!1> inc (<!1> base)
+
+-- > :n propPi1Sph trivSph loopSph'
+npropPi1Sph : Id pi1Sph trivSph loopSph' = 
+  <i1> inc (<i2> comp sph (comp sph base [ (i1 = 1) -> <i3> comp sph base [ (i3 = 1) -> <i4> comp sph base [ (i4 = 1) -> <i5> comp sph (comp sph base [ (i2 = 1) -> <i3> surf {sph} @ i3 @ i3 ]) [ (i5 = 0) -> <i6> comp sph base [ (i6 = 0) -> <i7> comp sph (comp sph base [ (i2 = 1) -> <i3> surf {sph} @ i3 @ i3 ]) [ (i7 = 0) -> <i8> comp sph base [ (i8 = 0) -> <i9> comp sph (comp sph base [ (i2 = 1) -> <i3> surf {sph} @ i3 @ i3 ]) [ (i9 = 0) -> <i10> comp sph base [ (i10 = 0) -> <i11> comp sph base [ (i11 = 1) -> <i12> comp sph base [ (i12 = 1) -> <i13> comp sph base [ (i13 = 1) -> <i14> comp sph base [ (i14 = 0) -> <i15> comp sph base [ (i2 = 1) -> <i16> surf {sph} @ i16 @ i15 ], (i14 = 1) -> <i15> comp sph base [ (i2 = 1) -> <i16> surf {sph} @ i16 @ (i15 /\ i16) ] ] ] ] ] ] ] ] ] ] ] ] ] ]) [ (i1 = 1) -> <i3> comp sph (comp sph base [ (i2 = 1) -> <i3> surf {sph} @ i3 @ i3 ]) [ (i3 = 1) -> <i4> comp sph (comp sph base [ (i2 = 1) -> <i3> surf {sph} @ i3 @ i3 ]) [ (i4 = 0) -> <i5> comp sph (comp sph base [ (i2 = 1) -> <i6> surf {sph} @ (i5 /\ i6) @ (i5 /\ i6) ]) [ (i2 = 1) -> <i6> surf {sph} @ (i5 \/ i6) @ (i5 \/ i6) ], (i4 = 1) -> <i5> comp sph (surf {sph} @ (i5 /\ i2) @ (i5 /\ i2)) [ (i2 = 1) -> <i6> surf {sph} @ (i5 \/ i6) @ (i5 \/ i6) ] ] ] ])
+
+-- Slightly simplified:
+npropPi1Sph' : Id pi1Sph trivSph loopSph' = 
+  <i1> inc (<i2> comp sph (comp sph base [ (i1 = 1) -> <i4> comp sph (comp sph base [ (i2 = 1) -> <i3> surf {sph} @ i3 @ i3 ]) [ (i4 = 0) -> <i6> comp sph base [ (i6 = 0) -> <i7> comp sph (comp sph base [ (i2 = 1) -> <i3> surf {sph} @ i3 @ i3 ]) [ (i7 = 0) -> <i8> comp sph base [ (i8 = 0) -> <i9> comp sph (comp sph base [ (i2 = 1) -> <i3> surf {sph} @ i3 @ i3 ]) [ (i9 = 0) -> <i10> comp sph base [ (i10 = 0) -> <i11> comp sph base [ (i11 = 1) -> <i12> comp sph base [ (i12 = 1) -> <i13> comp sph base [ (i13 = 1) -> <i14> comp sph base [ (i14 = 0) -> <i15> comp sph base [ (i2 = 1) -> <i16> surf {sph} @ i16 @ i15 ], (i14 = 1) -> <i15> comp sph base [ (i2 = 1) -> <i16> surf {sph} @ i16 @ (i15 /\ i16) ] ] ] ] ] ] ] ] ] ] ] ]) [ (i1 = 1) -> <i3> comp sph (comp sph base [ (i2 = 1) -> <i3> surf {sph} @ i3 @ i3 ]) [ (i3 = 1) -> <i4> comp sph (comp sph base [ (i2 = 1) -> <i3> surf {sph} @ i3 @ i3 ]) [ (i4 = 0) -> <i5> comp sph (comp sph base [ (i2 = 1) -> <i6> surf {sph} @ (i5 /\ i6) @ (i5 /\ i6) ]) [ (i2 = 1) -> <i6> surf {sph} @ (i5 \/ i6) @ (i5 \/ i6) ], (i4 = 1) -> <i5> comp sph (surf {sph} @ (i5 /\ i2) @ (i5 /\ i2)) [ (i2 = 1) -> <i6> surf {sph} @ (i5 \/ i6) @ (i5 \/ i6) ] ] ] ])

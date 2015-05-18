@@ -88,3 +88,38 @@ npropPi1Sph : Id pi1Sph trivSph loopSph' =
 -- Slightly simplified:
 npropPi1Sph' : Id pi1Sph trivSph loopSph' = 
   <i1> inc (<i2> comp sph (comp sph base [ (i1 = 1) -> <i4> comp sph (comp sph base [ (i2 = 1) -> <i3> surf {sph} @ i3 @ i3 ]) [ (i4 = 0) -> <i6> comp sph base [ (i6 = 0) -> <i7> comp sph (comp sph base [ (i2 = 1) -> <i3> surf {sph} @ i3 @ i3 ]) [ (i7 = 0) -> <i8> comp sph base [ (i8 = 0) -> <i9> comp sph (comp sph base [ (i2 = 1) -> <i3> surf {sph} @ i3 @ i3 ]) [ (i9 = 0) -> <i10> comp sph base [ (i10 = 0) -> <i11> comp sph base [ (i11 = 1) -> <i12> comp sph base [ (i12 = 1) -> <i13> comp sph base [ (i13 = 1) -> <i14> comp sph base [ (i14 = 0) -> <i15> comp sph base [ (i2 = 1) -> <i16> surf {sph} @ i16 @ i15 ], (i14 = 1) -> <i15> comp sph base [ (i2 = 1) -> <i16> surf {sph} @ i16 @ (i15 /\ i16) ] ] ] ] ] ] ] ] ] ] ] ]) [ (i1 = 1) -> <i3> comp sph (comp sph base [ (i2 = 1) -> <i3> surf {sph} @ i3 @ i3 ]) [ (i3 = 1) -> <i4> comp sph (comp sph base [ (i2 = 1) -> <i3> surf {sph} @ i3 @ i3 ]) [ (i4 = 0) -> <i5> comp sph (comp sph base [ (i2 = 1) -> <i6> surf {sph} @ (i5 /\ i6) @ (i5 /\ i6) ]) [ (i2 = 1) -> <i6> surf {sph} @ (i5 \/ i6) @ (i5 \/ i6) ], (i4 = 1) -> <i5> comp sph (surf {sph} @ (i5 /\ i2) @ (i5 /\ i2)) [ (i2 = 1) -> <i6> surf {sph} @ (i5 \/ i6) @ (i5 \/ i6) ] ] ] ])
+  
+-- Comparison with a direct proof of prop pi1Sph
+
+contrTruncSph : (x : gTrunc sph) -> Id (gTrunc sph) (inc base) x
+  = gTruncElim sph (\(x : gTrunc sph) -> Id (gTrunc sph) (inc base) x) rem1 rem2
+  where
+  rem1 : (x : gTrunc sph) -> groupoid (Id (gTrunc sph) (inc base) x)
+    = \(x : gTrunc sph)
+       (p q : Id (gTrunc sph) (inc base) x)
+       (r s : Id (Id (gTrunc sph) (inc base) x) p q)
+       (t u : Id (Id (Id (gTrunc sph) (inc base) x) p q) r s)
+         -> propSet (Id (Id (gTrunc sph) (inc base) x) p q)
+              (\(r s : Id (Id (gTrunc sph) (inc base) x) p q)
+                  -> <i j k> squashC{gTrunc sph} (inc base) x p q r s @ i @ j @ k)
+              r s t u
+
+  rem2 : (x : sph) -> Id (gTrunc sph) (inc base) (inc x) = split
+    base -> <i> inc base
+    surf @ i j -> <k> squashC{gTrunc sph} (inc base) (inc base)
+                        (<i> inc base) (<i> inc base)
+                        (<i j> inc base) (<i j> inc (surf{sph} @ i @ j))
+                        @ k @ i @ j
+
+propTruncSph : prop (gTrunc sph)
+  = \(x y : gTrunc sph)
+      -> compId (gTrunc sph) x (inc base) y (<i> contrTruncSph x @ -i) (contrTruncSph y)
+
+propPi1SphDirect : prop pi1Sph
+  = substInv U prop pi1Sph (Id (gTrunc sph) (inc base) (inc base)) (thm7312 sph base base)
+      (propSet (gTrunc sph) propTruncSph (inc base) (inc base))
+
+-- Roughly 30x faster
+npropPi1SphDirect : Id pi1Sph trivSph loopSph'
+  -- = propPi1SphDirect trivSph loopSph'
+  = <i1> inc (<i2> comp (sph) (comp (sph) base [ (i1 = 1) -> <i3> comp (sph) base [ (i3 = 1) -> <i4> comp (sph) base [ (i4 = 1) -> <i5> comp (sph) base [ (i5 = 1) -> <i6> comp (sph) base [ (i6 = 0) -> <i7> comp (sph) base [ (i2 = 1) -> <i8> surf {sph} @ i8 @ i7 ], (i6 = 1) -> <i7> comp (sph) base [ (i2 = 1) -> <i8> surf {sph} @ i8 @ (i7 /\ i8) ] ] ] ] ] ]) [ (i1 = 1) -> <i3> comp (sph) (comp (sph) base [ (i2 = 1) -> <i3> surf {sph} @ i3 @ i3 ]) [ (i3 = 1) -> <i4> comp (sph) (comp (sph) base [ (i2 = 1) -> <i3> surf {sph} @ i3 @ i3 ]) [ (i4 = 0) -> <i5> comp (sph) (comp (sph) base [ (i2 = 1) -> <i6> surf {sph} @ (i5 /\ i6) @ (i5 /\ i6) ]) [ (i2 = 1) -> <i6> surf {sph} @ (i5 \/ i6) @ (i5 \/ i6) ], (i4 = 1) -> <i5> comp (sph) (surf {sph} @ (i5 /\ i2) @ (i5 /\ i2)) [ (i2 = 1) -> <i6> surf {sph} @ (i5 \/ i6) @ (i5 \/ i6) ] ] ] ])

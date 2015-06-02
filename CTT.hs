@@ -106,16 +106,16 @@ data Ter = App Ter Ter
          | AppFormula Ter Formula
            -- Kan Composition
          | Comp Ter Ter (System Ter)
-         | Trans Ter Ter
+         -- | Trans Ter Ter
            -- Composition in the Universe
-         | CompElem Ter (System Ter) Ter (System Ter)
-         | ElimComp Ter (System Ter) Ter
+         -- | CompElem Ter (System Ter) Ter (System Ter)
+         -- | ElimComp Ter (System Ter) Ter
            -- Glue
          | Glue Ter (System Ter)
          | GlueElem Ter (System Ter)
            -- GlueLine: connecting any type to its glue with identities
-         | GlueLine Ter Formula Formula
-         | GlueLineElem Ter Formula Formula
+         -- | GlueLine Ter Formula Formula
+         -- | GlueLineElem Ter Formula Formula
   deriving Eq
 
 -- For an expression t, returns (u,ts) where u is no application and t = u ts
@@ -148,19 +148,19 @@ data Val = VU
          | VIdP Val Val Val
          | VPath Name Val
          | VComp Val Val (System Val)
-         | VTrans Val Val
+         -- | VTrans Val Val
 
            -- Glue values
          | VGlue Val (System Val)
          | VGlueElem Val (System Val)
 
            -- GlueLine values
-         | VGlueLine Val Formula Formula
-         | VGlueLineElem Val Formula Formula
+         -- | VGlueLine Val Formula Formula
+         -- | VGlueLineElem Val Formula Formula
 
            -- Universe Composition Values
-         | VCompElem Val (System Val) Val (System Val)
-         | VElimComp Val (System Val) Val
+         -- | VCompElem Val (System Val) Val (System Val)
+         -- | VElimComp Val (System Val) Val
 
            -- Neutral values:
          | VVar Ident Val
@@ -171,6 +171,15 @@ data Val = VU
          | VAppFormula Val Formula
          | VLam Ident Val Val
   deriving Eq
+
+-- data HIso = Iso Val Val Val Val Val
+--           | Eq Val
+--   deriving (Eq,Show)
+
+-- toHIso :: Val -> HIso
+-- toHIso (VPair a (VPair f (VPair g (VPair s t)))) = Iso a f g s t
+-- toHIso v = Eq v
+-- toHIso _ = error "toHIso"
 
 isNeutral :: Val -> Bool
 isNeutral v = case v of
@@ -183,9 +192,9 @@ isNeutral v = case v of
   VApp v _          -> isNeutral v
   VAppFormula v _   -> isNeutral v
   VComp a u ts      -> isNeutralComp a u ts
-  VTrans a u        -> isNeutralTrans a u
-  VCompElem _ _ u _ -> isNeutral u
-  VElimComp _ _ u   -> isNeutral u
+  -- VTrans a u        -> isNeutralTrans a u
+  -- VCompElem _ _ u _ -> isNeutral u
+  -- VElimComp _ _ u   -> isNeutral u
   _                 -> False
 
 isNeutralSystem :: System Val -> Bool
@@ -195,18 +204,19 @@ isNeutralPath :: Val -> Bool
 isNeutralPath (VPath _ v) = isNeutral v
 isNeutralPath _ = True
 
-isNeutralTrans :: Val -> Val -> Bool
-isNeutralTrans (VPath i a) u = foo i a u
-  where foo :: Name -> Val -> Val -> Bool
-        foo i a u | isNeutral a = True
-        foo i (Ter Sum{} _) u   = isNeutral u
-        foo i (VGlue _ as) u    =
-          let shasBeta = shape as `face` (i ~> 0)
-          in shasBeta /= Map.empty && eps `Map.notMember` shasBeta && isNeutral u
-        foo _ _ _ = False
--- TODO: case for VGLueLine
-isNeutralTrans u _ = isNeutral u
+-- isNeutralTrans :: Val -> Val -> Bool
+-- isNeutralTrans (VPath i a) u = foo i a u
+--   where foo :: Name -> Val -> Val -> Bool
+--         foo i a u | isNeutral a = True
+--         foo i (Ter Sum{} _) u   = isNeutral u
+--         foo i (VGlue _ as) u    =
+--           let shasBeta = shape as `face` (i ~> 0)
+--           in shasBeta /= Map.empty && eps `Map.notMember` shasBeta && isNeutral u
+--         foo _ _ _ = False
+-- -- TODO: case for VGLueLine
+-- isNeutralTrans u _ = isNeutral u
 
+-- TODO: adapt for non-regular setting
 isNeutralComp :: Val -> Val -> System Val -> Bool
 isNeutralComp a _ _ | isNeutral a = True
 isNeutralComp (Ter Sum{} _) u ts  = isNeutral u || isNeutralSystem ts
@@ -368,17 +378,17 @@ showTer v = case v of
   AppFormula e phi   -> showTer1 e <+> char '@' <+> showFormula phi
   Comp e0 e1 es      -> text "comp" <+> showTers [e0,e1]
                         <+> text (showSystem es)
-  Trans e0 e1        -> text "transport" <+> showTers [e0,e1]
+  -- Trans e0 e1        -> text "transport" <+> showTers [e0,e1]
   Glue a ts          -> text "glue" <+> showTer1 a <+> text (showSystem ts)
   GlueElem a ts      -> text "glueElem" <+> showTer1 a <+> text (showSystem ts)
-  GlueLine a phi psi -> text "glueLine" <+> showTer1 a <+>
-                        showFormula phi <+> showFormula psi
-  GlueLineElem a phi psi -> text "glueLineElem" <+> showTer1 a <+>
-                            showFormula phi <+> showFormula psi
-  CompElem a es t ts -> text "compElem" <+> showTer1 a <+> text (showSystem es)
-                        <+> showTer1 t <+> text (showSystem ts)
-  ElimComp a es t    -> text "elimComp" <+> showTer1 a <+> text (showSystem es)
-                        <+> showTer1 t
+  -- GlueLine a phi psi -> text "glueLine" <+> showTer1 a <+>
+  --                       showFormula phi <+> showFormula psi
+  -- GlueLineElem a phi psi -> text "glueLineElem" <+> showTer1 a <+>
+  --                           showFormula phi <+> showFormula psi
+  -- CompElem a es t ts -> text "compElem" <+> showTer1 a <+> text (showSystem es)
+  --                       <+> showTer1 t <+> text (showSystem ts)
+  -- ElimComp a es t    -> text "elimComp" <+> showTer1 a <+> text (showSystem es)
+  --                       <+> showTer1 t
 
 showTers :: [Ter] -> Doc
 showTers = hsep . map showTer1
@@ -426,17 +436,17 @@ showVal v = case v of
   VIdP v0 v1 v2     -> text "IdP" <+> showVals [v0,v1,v2]
   VAppFormula v phi -> showVal v <+> char '@' <+> showFormula phi
   VComp v0 v1 vs    -> text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)
-  VTrans v0 v1      -> text "trans" <+> showVals [v0,v1]
+  -- VTrans v0 v1      -> text "trans" <+> showVals [v0,v1]
   VGlue a ts        -> text "glue" <+> showVal1 a <+> text (showSystem ts)
   VGlueElem a ts    -> text "glueElem" <+> showVal1 a <+> text (showSystem ts)
-  VGlueLine a phi psi     -> text "glueLine" <+> showFormula phi
-                             <+> showFormula psi  <+> showVal1 a
-  VGlueLineElem a phi psi -> text "glueLineElem" <+> showFormula phi
-                             <+> showFormula psi  <+> showVal1 a
-  VCompElem a es t ts -> text "compElem" <+> showVal1 a <+> text (showSystem es)
-                         <+> showVal1 t <+> text (showSystem ts)
-  VElimComp a es t    -> text "elimComp" <+> showVal1 a <+> text (showSystem es)
-                         <+> showVal1 t
+  -- VGlueLine a phi psi     -> text "glueLine" <+> showFormula phi
+  --                            <+> showFormula psi  <+> showVal1 a
+  -- VGlueLineElem a phi psi -> text "glueLineElem" <+> showFormula phi
+  --                            <+> showFormula psi  <+> showVal1 a
+  -- VCompElem a es t ts -> text "compElem" <+> showVal1 a <+> text (showSystem es)
+  --                        <+> showVal1 t <+> text (showSystem ts)
+  -- VElimComp a es t    -> text "elimComp" <+> showVal1 a <+> text (showSystem es)
+  --                        <+> showVal1 t
 
 showPath :: Val -> Doc
 showPath e = case e of

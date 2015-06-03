@@ -40,11 +40,11 @@ boolEqF2 : Id U bool F2 =
   
 negF2 : F2 -> F2 = subst U (\(X : U) -> (X -> X)) bool F2 boolEqF2 negBool
 
-lemTest (A : U) : (B : U) (p : Id U A B) (a : A) -> IdP p a (transport p a) =
-  J U A (\(B : U) (p : Id U A B) -> (a : A) -> IdP p a (transport p a)) (refl A)
+-- lemTest (A : U) : (B : U) (p : Id U A B) (a : A) -> IdP p a (transport p a) =
+--   J U A (\(B : U) (p : Id U A B) -> (a : A) -> IdP p a (transport p a)) (refl A)
 
-test : IdP boolEqF2 true oneF2 = <i> glueElem oneF2 [ (i = 0) -> true ]
-test1 : IdP boolEqF2 true oneF2 = lemTest bool F2 boolEqF2 true
+-- test : IdP boolEqF2 true oneF2 = <i> glueElem oneF2 [ (i = 0) -> true ]
+-- test1 : IdP boolEqF2 true oneF2 = lemTest bool F2 boolEqF2 true
 
 F2EqBool : Id U F2 bool = inv U bool F2 boolEqF2
 
@@ -71,8 +71,8 @@ squareBoolF2 : Square U bool bool (refl U bool) bool F2
 test5 : IdP boolEqF2 true oneF2 = 
   <i> transport (<j> boolEqF2 @ i /\ j) true
 
-test6 : Id bool true true =
-  <i> transport (<j> F2EqBool @ i \/ j) (test5 @ - i)
+-- test6 : Id bool true true =
+--   <i> transport (<j> F2EqBool @ i \/ j) (test5 @ - i)
 
 test7 : Id U F2 F2 =
   subst U (\(X:U) -> Id U X X) bool F2 boolEqF2 negNegEq
@@ -83,5 +83,5 @@ test8 : Id U F2 F2 =
 test9 : Id U F2 F2 =
   transport (<i> Id U (boolEqF2 @ i) (boolEqF2 @ i)) (refl U bool)
 
-p : Id U F2 bool = <i> comp U bool [ (i = 0) -> boolEqF2 ]
-q : Id U F2 F2 = <i> p @ (i /\ - i)
+-- p : Id U F2 bool = <i> comp U bool [ (i = 0) -> boolEqF2 ]
+-- q : Id U F2 F2 = <i> p @ (i /\ - i)

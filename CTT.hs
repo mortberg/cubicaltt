@@ -216,15 +216,29 @@ isNeutralPath _ = True
 -- -- TODO: case for VGLueLine
 -- isNeutralTrans u _ = isNeutral u
 
--- TODO: adapt for non-regular setting
 isNeutralComp :: Val -> Val -> System Val -> Bool
-isNeutralComp a _ _ | isNeutral a = True
-isNeutralComp (Ter Sum{} _) u ts  = isNeutral u || isNeutralSystem ts
-isNeutralComp (VGlue _ as) u ts =
-  isNeutral u || isNeutralSystem (filterWithKey testFace ts)
-  where shas = shape as
-        testFace beta _ = let shasBeta = shas `face` beta
-                          in not (Map.null shasBeta || eps `Map.member` shasBeta)
+isNeutralComp (VPath i a) u ts = isNeutralComp' i a u ts
+  where isNeutralComp' i a u ts | isNeutral a = True
+        isNeutralComp' i (Ter Sum{} _) u ts   = isNeutral u || isNeutralSystem ts
+        isNeutralComp' i (VGlue _ as) u ts    =
+          isNeutral u && isNeutralSystem (filterWithKey testFace ts)
+            where shas = shape as `face` (i ~> 0)
+                  testFace beta _ = let shasBeta = shas `face` beta
+                                    in shasBeta /= Map.empty && eps `Map.member` shasBeta
+--        isNeutralComp' _ _ _ _ = isNeutral u
+isNeutralComp _ u _ = isNeutral u
+
+-- -- TODO: adapt for non-regular setting
+-- isNeutralComp :: Val -> Val -> System Val -> Bool
+-- isNeutralComp a _ _ | isNeutral a = True
+-- isNeutralComp (Ter Sum{} _) u ts  = isNeutral u || isNeutralSystem ts
+-- isNeutralComp (VGlue _ as) u ts =
+--   isNeutral u || isNeutralSystem (filterWithKey testFace ts)
+--   where shas = shape as
+--         testFace beta _ = let shasBeta = shas `face` beta
+--                           in not (Map.null shasBeta || eps `Map.member` shasBeta)
+
+        
 -- TODO
 -- isNeutralComp (VGlueLine _ phi psi) u ts =
 --   isNeutral u || isNeutralSystem (filterWithKey (not . test) ts) || and (elems ws)
@@ -235,7 +249,7 @@ isNeutralComp (VGlue _ as) u ts =
 --                (\alpha -> let phiAlpha0 = invFormula (phi `face` alpha) Zero
 --                           in isNeutral (u `face` alpha) || isNeutralSystem )
 --                  fs
-isNeutralComp _ _ _ = False
+-- isNeutralComp _ _ _ = False
 
 
 mkVar :: Int -> String -> Val -> Val

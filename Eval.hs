@@ -431,11 +431,11 @@ comp i a u ts = case a of
           ui1        = comp i a u1 t1s
           comp_u2    = comp i (app f fill_u1) u2 t2s
   VPi{} -> VComp (VPath i a) u (Map.map (VPath i) ts)
-  VU -> VComp VU u (Map.map (VPath i) ts)
+  VU -> VComp (VPath i VU) u (Map.map (VPath i) ts)
     -- VGlue u (Map.map (eqToIso i) ts)
   _ | isNeutral w -> w
-    where w = VComp a u (Map.map (VPath i) ts)
-  VComp VU a es -> compU i a es u ts
+    where w = VComp (VPath i a) u (Map.map (VPath i) ts)
+  VComp (VPath _ VU) a es -> compU i a es u ts
   VGlue b hisos -> compGlue i b hisos u ts
   -- VGlueLine b phi psi -> compGlueLine i b phi psi u ts
   Ter (Sum _ _ nass) env -> case u of
@@ -451,7 +451,8 @@ comp i a u ts = case a of
     -- VCompElem _ _ u1 _  -> comp i a u1 ts
     -- VElimComp _ _ u1    -> comp i a u1 ts
     _ -> error $ "comp ter sum" ++ show u
-
+  _ -> error $ "comp: case missing for " ++ show i ++ " " ++ show a ++ " " ++ show u ++ " " ++ showSystem ts
+  
 compNeg :: Name -> Val -> Val -> System Val -> Val
 compNeg i a u ts = comp i (a `sym` i) u (ts `sym` i)
 

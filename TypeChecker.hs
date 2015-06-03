@@ -103,10 +103,6 @@ getLblType c u = throwError ("expected a data type for the constructor "
 unlessM :: Monad m => m Bool -> m () -> m ()
 unlessM mb x = mb >>= flip unless x
 
--- Constant path: <_> v
-constPath :: Val -> Val
-constPath = VPath (Name "_")
-
 mkVars :: [String] -> Tele -> Env -> [(Ident,Val)]
 mkVars _ [] _           = []
 mkVars ns ((x,a):xas) nu =

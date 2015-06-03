@@ -253,6 +253,11 @@ isCon :: Val -> Bool
 isCon VCon{} = True
 isCon _      = False
 
+-- Constant path: <_> v
+constPath :: Val -> Val
+constPath = VPath (Name "_")
+
+
 --------------------------------------------------------------------------------
 -- | Environments
 

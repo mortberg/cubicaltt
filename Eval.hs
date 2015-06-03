@@ -42,16 +42,16 @@ instance Nominal Ctxt where
   act e _   = e
   swap e _  = e
 
-instance Nominal HIso where
-  support h = case h of
-    Iso a f g s t -> support [a,f,g,s,t]
-    Eq v -> support v
-  act h iphi = case h of
-    Iso a f g s t -> Iso (a `act` iphi) (f `act` iphi) (g `act` iphi) (s `act` iphi) (t `act` iphi)
-    Eq v -> Eq (v `act` iphi)
-  swap h ij = case h of
-    Iso a f g s t -> Iso (a `swap` ij) (f`swap` ij) (g`swap` ij) (s`swap` ij) (t`swap` ij)
-    Eq v -> Eq (v`swap` ij)
+-- instance Nominal HIso where
+--   support h = case h of
+--     Iso a f g s t -> support [a,f,g,s,t]
+--     Eq v -> support v
+--   act h iphi = case h of
+--     Iso a f g s t -> Iso (a `act` iphi) (f `act` iphi) (g `act` iphi) (s `act` iphi) (t `act` iphi)
+--     Eq v -> Eq (v `act` iphi)
+--   swap h ij = case h of
+--     Iso a f g s t -> Iso (a `swap` ij) (f`swap` ij) (g`swap` ij) (s`swap` ij) (t`swap` ij)
+--     Eq v -> Eq (v`swap` ij)
 
 instance Nominal Val where
   support v = case v of
@@ -560,27 +560,57 @@ transGlue i b hisos wi0 = glueElem vi1'' usi1
                   hisosI1
 
 compGlue :: Name -> Val -> System Val -> Val -> System Val -> Val
-compGlue i b hisos wi0 ws = glueElem vi1' usi1'
-  where vs   = mapWithKey
+compGlue i b hisos wi0 ws = glueElem vi1'' usi1''
+  where bi1 = b `face` (i ~> 1)
+        vs   = mapWithKey
                  (\alpha wAlpha -> unGlue (hisos `face` alpha) wAlpha) ws
-        vi0  = unGlue hisos wi0 -- in b
+        vsi1 = vs `face` (i ~> 1) -- same as: border vi1 vs
+        vi0  = unGlue (hisos `face` (i ~> 0)) wi0 -- in b(i0)
 
         v    = fill i b vi0 vs           -- in b
-        vi1  = comp i b vi0 vs           -- in b
+        vi1  = comp i b vi0 vs           -- is v `face` (i ~> 1) in b(i1)
+
+        hisosI1 = hisos `face` (i ~> 1)
+        hisos'  = filterWithKey (\alpha _ -> i `Map.notMember` alpha) hisos
+        -- hisos'' = filterWithKey (\alpha _ -> not (alpha `Map.member` hisos)) hisosI1
+        hisos'' = filterWithKey (\alpha _ -> not (alpha `Map.member` hisos')) hisosI1
 
         us'    = mapWithKey (\gamma isoG ->
                    fill i (hisoDom isoG) (wi0 `face` gamma) (ws `face` gamma))
-                 hisos
+                 hisos'
         usi1'  = mapWithKey (\gamma isoG ->
                    comp i (hisoDom isoG) (wi0 `face` gamma) (ws `face` gamma))
-                 hisos
+                 hisos'
 
         ls'    = mapWithKey (\gamma isoG ->
                    pathComp i (b `face` gamma) (v `face` gamma)
-                   (hisoFun isoG `app` (us' ! gamma)) (vs `face` gamma))
-                 hisos
+                     (hisoFun isoG `app` (us' ! gamma)) (vs `face` gamma))
+                 hisos'
 
-        vi1'  = compLine b vi1 ls'
+        vi1' = compLine (constPath bi1) vi1 (ls' `unionSystem` vsi1)
+
+        wsi1 = ws `face` (i ~> 1)
+
+        -- for gamma in hisos'', (i1) gamma is in hisos, so wsi1 gamma
+        -- is in the domain of isoGamma
+        uls'' = mapWithKey (\gamma isoG ->
+                  gradLemma (bi1 `face` gamma) isoG
+                    ((usi1' `face` gamma) `unionSystem` (wsi1 `face` gamma))
+                    (vi1' `face` gamma))
+                  hisos''
+
+        vsi1' = border vi1' hisos'
+
+        vi1'' = compLine (constPath bi1) vi1'
+                  (Map.map snd uls'' `unionSystem` vsi1' `unionSystem` vsi1)
+
+        usi1'' = Map.mapWithKey (\gamma _ ->
+                     if gamma `Map.member` usi1' then usi1' ! gamma
+                     else fst (uls'' ! gamma))
+                   hisosI1
+
+
+
 
 -- assumes u and u' : A are solutions of us + (i0 -> u(i0))
 -- The output is an L-path in A(i1) between u(i1) and u'(i1)

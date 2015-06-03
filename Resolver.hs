@@ -202,9 +202,10 @@ resolveExp e = case e of
         CTT.PCon (unAIdent n) <$> resolveExp a <*> mapM resolveExp xs
                               <*> mapM resolveFormula phis
       _ -> CTT.AppFormula <$> resolveExp t <*> resolveFormula phi
-  Trans x y   -> CTT.Trans <$> resolveExp x <*> resolveExp y
+  Trans x y   -> CTT.Comp <$> resolveExp x <*> resolveExp y <*> pure Map.empty
   IdP x y z   -> CTT.IdP <$> resolveExp x <*> resolveExp y <*> resolveExp z
-  Comp u v ts -> CTT.Comp <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
+  Comp u v ts -> CTT.Comp <$> (CTT.Path (C.Name "_") <$> resolveExp u)
+                   <*> resolveExp v <*> resolveSystem ts
   Glue u ts   -> do
     rs <- resolveSystem ts
     let isIso (CTT.Pair _ (CTT.Pair _ (CTT.Pair _ (CTT.Pair _ _)))) = True
@@ -212,15 +213,15 @@ resolveExp e = case e of
     unless (all isIso $ Map.elems rs)
       (throwError $ "Not a system of isomorphisms: " ++ show rs)
     CTT.Glue <$> resolveExp u <*> pure rs
-  GlueElem u ts      -> CTT.GlueElem <$> resolveExp u <*> resolveSystem ts
-  GlueLine phi psi u ->
-    CTT.GlueLine <$> resolveExp u <*> resolveFormula phi <*> resolveFormula psi
-  GlueLineElem phi psi u ->
-    CTT.GlueLineElem <$> resolveExp u <*> resolveFormula phi
-      <*> resolveFormula psi
-  CompElem a es t ts -> CTT.CompElem <$> resolveExp a <*> resolveSystem es
-                                     <*> resolveExp t <*> resolveSystem ts
-  ElimComp a es t    -> CTT.ElimComp <$> resolveExp a <*> resolveSystem es <*> resolveExp t
+  -- GlueElem u ts      -> CTT.GlueElem <$> resolveExp u <*> resolveSystem ts
+  -- GlueLine phi psi u ->
+  --   CTT.GlueLine <$> resolveExp u <*> resolveFormula phi <*> resolveFormula psi
+  -- GlueLineElem phi psi u ->
+  --   CTT.GlueLineElem <$> resolveExp u <*> resolveFormula phi
+  --     <*> resolveFormula psi
+  -- CompElem a es t ts -> CTT.CompElem <$> resolveExp a <*> resolveSystem es
+  --                                    <*> resolveExp t <*> resolveSystem ts
+  -- ElimComp a es t    -> CTT.ElimComp <$> resolveExp a <*> resolveSystem es <*> resolveExp t
   _ -> do
     modName <- asks envModule
     throwError ("Could not resolve " ++ show e ++ " in module " ++ modName)

@@ -200,18 +200,18 @@ check a t = case (a,t) of
     check VU a
     rho <- asks env
     checkGlue (eval rho a) ts
-  (VGlue va ts,GlueElem u us) -> do
-    check va u
-    vu <- evalTyping u
-    checkGlueElem vu ts us
-  (VU,GlueLine b phi psi) -> do
-    check VU b
-    checkFormula phi
-    checkFormula psi
-  (VGlueLine vb phi psi,GlueLineElem r phi' psi') -> do
-    check vb r
-    unlessM ((phi,psi) === (phi',psi')) $
-      throwError "GlueLineElem: formulas don't match"
+  -- (VGlue va ts,GlueElem u us) -> do
+  --   check va u
+  --   vu <- evalTyping u
+  --   checkGlueElem vu ts us
+  -- (VU,GlueLine b phi psi) -> do
+  --   check VU b
+  --   checkFormula phi
+  --   checkFormula psi
+  -- (VGlueLine vb phi psi,GlueLineElem r phi' psi') -> do
+  --   check vb r
+  --   unlessM ((phi,psi) === (phi',psi')) $
+  --     throwError "GlueLineElem: formulas don't match"
   _ -> do
     v <- infer t
     unlessM (v === a) $
@@ -355,7 +355,7 @@ checkPathSystem t0 va ps = do
   v <- T.sequence $ mapWithKey (\alpha pAlpha ->
     local (faceEnv alpha) $ do
       rhoAlpha <- asks env
-      (a0,a1)  <- checkPath (constPath (va `face` alpha)) pAlpha
+      (a0,a1)  <- checkPath (va `face` alpha) pAlpha
       unlessM (a0 === eval rhoAlpha t0) $
         throwError $ "Incompatible system with " ++ show t0
       return a1) ps
@@ -404,41 +404,41 @@ infer e = case e of
     case t of
       VIdP a _ _ -> return $ a @@ phi
       _ -> throwError (show e ++ " is not a path")
-  Trans p t -> do
-    (a0,a1) <- checkPath (constPath VU) p
-    check a0 t
-    return a1
+  -- Trans p t -> do
+  --   (a0,a1) <- checkPath (constPath VU) p
+  --   check a0 t
+  --   return a1
   Comp a t0 ps -> do
-    check VU a
+    checkPath (constPath VU) a
     va <- evalTyping a
-    check va t0
+    check (va @@ Zero) t0
     checkPathSystem t0 va ps
-    return va
-  CompElem a es u us -> do
-    check VU a
-    rho <- asks env
-    let va = eval rho a
-    ts <- checkPathSystem a VU es
-    let ves = evalSystem rho es
-    unless (keys es == keys us)
-      (throwError ("Keys don't match in " ++ show es ++ " and " ++ show us))
-    check va u
-    let vu = eval rho u
-    checkSystemsWith ts us (const check)
-    let vus = evalSystem rho us
-    checkCompSystem vus
-    checkSystemsWith ves vus (\alpha eA vuA ->
-      unlessM (transNegLine eA vuA === (vu `face` alpha)) $
-        throwError $ "Malformed compElem: " ++ show us)
-    return $ compLine VU va ves
-  ElimComp a es u -> do
-    check VU a
-    rho <- asks env
-    let va = eval rho a
-    checkPathSystem a VU es
-    let ves = evalSystem rho es
-    check (compLine VU va ves) u
-    return va
+    return (va @@ One)
+  -- CompElem a es u us -> do
+  --   check VU a
+  --   rho <- asks env
+  --   let va = eval rho a
+  --   ts <- checkPathSystem a VU es
+  --   let ves = evalSystem rho es
+  --   unless (keys es == keys us)
+  --     (throwError ("Keys don't match in " ++ show es ++ " and " ++ show us))
+  --   check va u
+  --   let vu = eval rho u
+  --   checkSystemsWith ts us (const check)
+  --   let vus = evalSystem rho us
+  --   checkCompSystem vus
+  --   checkSystemsWith ves vus (\alpha eA vuA ->
+  --     unlessM (transNegLine eA vuA === (vu `face` alpha)) $
+  --       throwError $ "Malformed compElem: " ++ show us)
+  --   return $ compLine VU va ves
+  -- ElimComp a es u -> do
+  --   check VU a
+  --   rho <- asks env
+  --   let va = eval rho a
+  --   checkPathSystem a VU es
+  --   let ves = evalSystem rho es
+  --   check (compLine VU va ves) u
+  --   return va
   PCon c a es phis -> do
     check VU a
     va <- evalTyping a

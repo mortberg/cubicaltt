@@ -587,7 +587,8 @@ compGlue i b hisos wi0 ws = glueElem vi1'' usi1''
                      (hisoFun isoG `app` (us' ! gamma)) (vs `face` gamma))
                  hisos'
 
-        vi1' = compLine (constPath bi1) vi1 (ls' `unionSystem` vsi1)
+        vi1' = compLine (constPath bi1) vi1
+                 (ls' `unionSystem` Map.map constPath vsi1)
 
         wsi1 = ws `face` (i ~> 1)
 
@@ -599,10 +600,10 @@ compGlue i b hisos wi0 ws = glueElem vi1'' usi1''
                     (vi1' `face` gamma))
                   hisos''
 
-        vsi1' = border vi1' hisos'
+        vsi1' = Map.map constPath $ border vi1' hisos' `unionSystem` vsi1
 
         vi1'' = compLine (constPath bi1) vi1'
-                  (Map.map snd uls'' `unionSystem` vsi1' `unionSystem` vsi1)
+                  (Map.map snd uls'' `unionSystem` vsi1')
 
         usi1'' = Map.mapWithKey (\gamma _ ->
                      if gamma `Map.member` usi1' then usi1' ! gamma
@@ -798,7 +799,8 @@ compU i b es wi0 ws = glueElem vi1'' usi1''
                        (transNegLine eGamma (us' ! gamma)) (vs `face` gamma))
                    es'
 
-        vi1' = compLine (constPath bi1) vi1 (ls' `unionSystem` vsi1)
+        vi1' = compLine (constPath bi1) vi1
+                 (ls' `unionSystem` Map.map constPath vsi1)
 
         wsi1 = ws `face` (i ~> 1)
 
@@ -810,10 +812,11 @@ compU i b es wi0 ws = glueElem vi1'' usi1''
                     (vi1' `face` gamma))
                   es''
 
-        vsi1' = border vi1' es'
+
+        vsi1' = Map.map constPath $ border vi1' es' `unionSystem` vsi1
 
         vi1'' = compLine (constPath bi1) vi1'
-                  (Map.map snd uls'' `unionSystem` vsi1' `unionSystem` vsi1)
+                  (Map.map snd uls'' `unionSystem` vsi1')
 
         usi1'' = Map.mapWithKey (\gamma _ ->
                      if gamma `Map.member` usi1' then usi1' ! gamma

@@ -247,7 +247,7 @@ checkCompSystem :: System Val -> Typing ()
 checkCompSystem vus = do
   ns <- asks names
   unless (isCompSystem ns vus)
-    (throwError $ "Incompatible system " ++ show vus)
+    (throwError $ "Incompatible system " ++ showSystem vus)
 
 -- Check the values at corresponding faces with a function, assumes
 -- systems have the same faces

@@ -1,6 +1,6 @@
 module nat where
 
-import hedberg
+import prelude
 
 data nat = zero | suc (n : nat)
 
@@ -53,4 +53,4 @@ natDec : (n m:nat) -> dec (Id nat n m) = split
    (\ (m:nat) -> decEqCong (Id nat n m) (Id nat (suc n) (suc m)) (\ (p:Id nat n m) -> <i> suc (p @ i))
                  (sucInj n m) (natDec n m))
 
-natSet : set nat = hedberg nat natDec
+-- natSet : set nat = hedberg nat natDec

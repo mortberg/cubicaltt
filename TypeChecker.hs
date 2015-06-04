@@ -429,6 +429,15 @@ infer e = case e of
     check va0 t0
     checkPathSystem t0 va ps
     return va1
+  Fill a t0 ps -> do
+    (va0, va1) <- checkPath (constPath VU) a
+    va <- evalTyping a
+    check va0 t0
+    checkPathSystem t0 va ps
+    vt  <- evalTyping t0
+    rho <- asks env
+    let vps = evalSystem rho ps
+    return (VIdP va vt (compLine va vt vps))
   -- CompElem a es u us -> do
   --   check VU a
   --   rho <- asks env

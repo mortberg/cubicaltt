@@ -105,8 +105,9 @@ data Ter = App Ter Ter
          | IdP Ter Ter Ter
          | Path Name Ter
          | AppFormula Ter Formula
-           -- Kan Composition
+           -- Kan composition and filling
          | Comp Ter Ter (System Ter)
+         | Fill Ter Ter (System Ter)
          -- | Trans Ter Ter
            -- Composition in the Universe
          -- | CompElem Ter (System Ter) Ter (System Ter)
@@ -182,15 +183,6 @@ data Val = VU
          | VAppFormula Val Formula
          | VLam Ident Val Val
   deriving Eq
-
--- data HIso = Iso Val Val Val Val Val
---           | Eq Val
---   deriving (Eq,Show)
-
--- toHIso :: Val -> HIso
--- toHIso (VPair a (VPair f (VPair g (VPair s t)))) = Iso a f g s t
--- toHIso v = Eq v
--- toHIso _ = error "toHIso"
 
 isNeutral :: Val -> Bool
 isNeutral v = case v of
@@ -407,8 +399,8 @@ showTer v = case v of
   IdP e0 e1 e2       -> text "IdP" <+> showTers [e0,e1,e2]
   Path i e           -> char '<' <> text (show i) <> char '>' <+> showTer e
   AppFormula e phi   -> showTer1 e <+> char '@' <+> showFormula phi
-  Comp e0 e1 es      -> text "comp" <+> showTers [e0,e1]
-                        <+> text (showSystem es)
+  Comp e t ts        -> text "comp" <+> showTers [e,t] <+> text (showSystem ts)
+  Fill e t ts        -> text "fill" <+> showTers [e,t] <+> text (showSystem ts)
   -- Trans e0 e1        -> text "transport" <+> showTers [e0,e1]
   Glue a ts          -> text "glue" <+> showTer1 a <+> text (showSystem ts)
   GlueElem a ts      -> text "glueElem" <+> showTer1 a <+> text (showSystem ts)

@@ -159,6 +159,7 @@ eval rho v = case v of
     in VPath j (eval (sub (i,Atom j) rho) t)
   AppFormula e phi    -> eval rho e @@ evalFormula rho phi
   Comp a t0 ts        -> compLine (eval rho a) (eval rho t0) (evalSystem rho ts)
+  Fill a t0 ts        -> fillLine (eval rho a) (eval rho t0) (evalSystem rho ts)
   Glue a ts           -> glue (eval rho a) (evalSystem rho ts)
   GlueElem a ts       -> glueElem (eval rho a) (evalSystem rho ts)
   _                   -> error $ "Cannot evaluate " ++ show v
@@ -442,6 +443,25 @@ hisoDom x           = error $ "HisoDom: Not an hiso: " ++ show x
 hisoFun :: Val -> Val
 hisoFun (VPair _ (VPair f _)) = f
 hisoFun x                     = error $ "HisoFun: Not an hiso: " ++ show x
+
+-- -- Every line in the universe induces an hiso
+-- eqToIso :: Val -> Val
+-- eqToIso e = VPair e0 (VPair f (VPair g (VPair s t)))
+--   where e0 = e @@ Zero
+--         (i,j,x,y,ev) = (Name "i",Name "j",Var "x",Var "y",Var "E")
+--         evinv = Path "i" $ AppFormula ev (NegAtom i)
+--         (ev0, ev1) = (AppFormula ev (Dir Zero),AppFormula ev (Dir One))
+--         eenv = upd ("E",e) empty
+--         (eplus z,eminus z) = (Comp ev z Map.empty,Comp evinv z Map.empty)
+--         (eup z,edown z) = (Comp )
+--         f = Ter (Lam x ev1 (eminus x)) eenv
+--         g = Ter (Lam y ev0 (eplus y)) eenv
+--         -- s : (y : b) -> f (g y) = y
+--         ssys = mkSystem [(j ~> 0, transFill j (e @@ j) b)
+--                         ,(j ~> 1, transFillNeg j (e @@ j)
+--                                   (trans j (e @@ j) b))])
+--         s = Ter (Lam y ev0 $ Path j $ Comp einv
+--               ) eenv
 
 -- eqToIso :: Name -> Val -> Val
 -- eqToIso i u = VPair a (VPair f (VPair g (VPair s t)))

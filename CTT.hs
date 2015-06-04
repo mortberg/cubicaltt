@@ -177,7 +177,7 @@ data Val = VU
          | VUnGlueElem Val Val (System Val)
          | VUnGlueElemU Val Val (System Val)
          | VSplit Val Val
-         | VSqueezeH Val Val
+         -- | VHSqueeze Val Val Formula
          | VApp Val Val
          | VAppFormula Val Formula
          | VLam Ident Val Val
@@ -207,8 +207,8 @@ isNeutral v = case v of
   VUnGlueElemU{} -> True
   _              -> False
 
--- isNeutralSystem :: System Val -> Bool
--- isNeutralSystem = any isNeutralPath . Map.elems
+isNeutralSystem :: System Val -> Bool
+isNeutralSystem = any isNeutral . Map.elems
 
 -- isNeutralPath :: Val -> Bool
 -- isNeutralPath (VPath _ v) = isNeutral v
@@ -454,6 +454,7 @@ showVal v = case v of
   VPCon c a us phis -> text c <+> braces (showVal a) <+> showVals us
                        <+> hsep (map ((char '@' <+>) . showFormula) phis)
   VHComp v0 v1 vs   -> text "hComp" <+> showVals [v0,v1] <+> text (showSystem vs)
+  -- VHSqueeze a u phi -> text "hSqueeze" <+> showVals [a,u] <+> showFormula phi
   VPi a l@(VLam x t b)
     | "_" `isPrefixOf` x -> showVal a <+> text "->" <+> showVal1 b
     | otherwise          -> char '(' <> showLam v

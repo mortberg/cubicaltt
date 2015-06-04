@@ -96,6 +96,9 @@ getLblType :: LIdent -> Val -> Typing (Tele, Env)
 getLblType c (Ter (Sum _ _ cas) r) = case lookupLabel c cas of
   Just as -> return (as,r)
   Nothing -> throwError ("getLblType: " ++ show c ++ " in " ++ show cas)
+getLblType c (Ter (HSum _ _ cas) r) = case lookupLabel c cas of
+  Just as -> return (as,r)
+  Nothing -> throwError ("getLblType: " ++ show c ++ " in " ++ show cas)
 getLblType c u = throwError ("expected a data type for the constructor "
                              ++ c ++ " but got " ++ show u)
 
@@ -149,6 +152,10 @@ check a t = case (a,t) of
   (VU,Sigma f)    -> checkFam f
   (VU,Sum _ _ bs) -> forM_ bs $ \lbl -> case lbl of
     OLabel _ tele -> checkTele tele
+    PLabel _ tele is ts ->
+      throwError $ "check: no path constructor allowed in " ++ show t
+  (VU,HSum _ _ bs) -> forM_ bs $ \lbl -> case lbl of
+    OLabel _ tele -> checkTele tele
     PLabel _ tele is ts -> do
       checkTele tele
       rho <- asks env
@@ -164,6 +171,14 @@ check a t = case (a,t) of
         rho' <- asks env
         checkCompSystem (evalSystem rho' ts)
   (VPi va@(Ter (Sum _ _ cas) nu) f,Split _ _ ty ces) -> do
+    check VU ty
+    rho <- asks env
+    unlessM (a === eval rho ty) $ throwError "check: split annotations"
+    if map labelName cas == map branchName ces
+       then sequence_ [ checkBranch (lbl,nu) f brc (Ter t rho) va
+                      | (brc, lbl) <- zip ces cas ]
+       else throwError "case branches does not match the data type"
+  (VPi va@(Ter (HSum _ _ cas) nu) f,Split _ _ ty ces) -> do
     check VU ty
     rho <- asks env
     unlessM (a === eval rho ty) $ throwError "check: split annotations"
@@ -409,11 +424,11 @@ infer e = case e of
   --   check a0 t
   --   return a1
   Comp a t0 ps -> do
-    checkPath (constPath VU) a
+    (va0, va1) <- checkPath (constPath VU) a
     va <- evalTyping a
-    check (va @@ Zero) t0
+    check va0 t0
     checkPathSystem t0 va ps
-    return (va @@ One)
+    return va1
   -- CompElem a es u us -> do
   --   check VU a
   --   rho <- asks env

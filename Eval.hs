@@ -69,6 +69,7 @@ instance Nominal Val where
     VCon _ vs               -> support vs
     VPCon _ a vs phis       -> support (a,vs,phis)
     VHComp a u ts           -> support (a,u,ts)
+    -- VHSqueeze a u phi       -> support (a,u,phi)
     VVar _ v                -> support v
     VApp u v                -> support (u,v)
     VLam _ u v              -> support (u,v)
@@ -106,7 +107,8 @@ instance Nominal Val where
          VSnd u                  -> sndVal (acti u)
          VCon c vs               -> VCon c (acti vs)
          VPCon c a vs phis       -> pcon c (acti a) (acti vs) (acti phis)
-         VHComp a u us           -> VHComp (acti a) (acti u) (acti us)
+         VHComp a u us           -> hComp (acti a) (acti u) (acti us)
+         -- VHSqueeze a u phi       -> hSqueeze (acti a) (acti u) (acti phi)
          VVar x v                -> VVar x (acti v)
          VAppFormula u psi       -> acti u @@ acti psi
          VApp u v                -> app (acti u) (acti v)
@@ -141,6 +143,7 @@ instance Nominal Val where
          VCon c vs               -> VCon c (sw vs)
          VPCon c a vs phis       -> VPCon c (sw a) (sw vs) (sw phis)
          VHComp a u us           -> VHComp (sw a) (sw u) (sw us)
+         -- VHSqueeze a u phi       -> VHSqueeze (sw a) (sw u) (sw phi)
          VVar x v                -> VVar x (sw v)
          VAppFormula u psi       -> VAppFormula (sw u) (sw psi)
          VApp u v                -> VApp (sw u) (sw v)
@@ -225,13 +228,13 @@ app u v = case (u,v) of
   (Ter (Split _ _ _ nvs) e,VPCon c _ us phis) -> case lookupBranch c nvs of
     Just (PBranch _ xs is t) -> eval (subs (zip is phis) (upds (zip xs us) e)) t
     _ -> error $ "app: missing case in split for " ++ c
-  (Ter (Split _ _ ty hbr) e,VComp a w ws) -> case eval e ty of
+  (Ter (Split _ _ ty hbr) e,VHComp a w ws) -> case eval e ty of
     VPi _ f -> let j   = fresh (e,v)
                    wsj = Map.map (@@ j) ws
                    w'  = app u w
                    ws' = mapWithKey (\alpha -> app (u `face` alpha)) wsj
                    -- a should be constant
-               in comp j (app f (fill j (a @@ j) w wsj)) w' ws'
+               in comp j (app f (fill j a w wsj)) w' ws'
     _ -> error $ "app: Split annotation not a Pi type " ++ show u
   (Ter Split{} _,_) | isNeutral v         -> VSplit u v
   -- (Ter Split{} _,VCompElem _ _ w _)       -> app u w
@@ -386,10 +389,34 @@ transps _ _ _ _ = error "transps: different lengths of types and values"
 -- Given u of type a "squeeze i a u" connects in the direction i
 -- trans i a u(i=0) to u(i=1)
 squeeze :: Name -> Val -> Val -> Val
-squeeze i a u = comp i a ui0 $ mkSystem [ (j ~> 0, transFill i a ui0)
-                                        , (j ~> 1, u) ]
+squeeze i a u = comp i (a `disj` (i,j)) u $ mkSystem [ (j ~> 1, ui1) ]
   where j = fresh (Atom i,a,u)
-        ui0 = u `face` (i ~> 0)
+        ui1 = u `face` (i ~> 1)
+
+squeezeFill :: Name -> Val -> Val -> Val
+squeezeFill i a u = fill i (a `disj` (i,j)) u $ mkSystem [ (j ~> 1, ui1) ]
+  where j = fresh (Atom i,a,u)
+        ui1 = u `face` (i ~> 1)
+
+
+squeezes :: Name -> [(Ident,Ter)] -> Env -> [Val] -> [Val]
+squeezes i []         _ []     = []
+squeezes i ((x,a):as) e (u:us) =
+  let v   = squeezeFill i (eval e a) u
+      vi1 = squeeze i (eval e a) u
+      vs  = squeezes i as (upd (x,v) e) us
+  in vi1 : vs
+squeezes _ _ _ _ = error "squeezes: different lengths of types and values"
+
+-- squeezes :: Name -> [(Ident,Ter)] -> Env -> [Val] -> [Val]
+-- squeezes i xas rho us = comps i xas (rho `disj` (i,j))
+-- squeezes i []         _ []     = []
+-- squeezes i ((x,a):as) e (u:us) =
+--   let v  = squeeze i (eval e a) u
+--       vs = squeezes i as (upd (x,v) e) us
+--   in v : vs
+-- squeezes _ _ _ _ = error "squeezes: different lengths of types and values"
+
 
 -- squeezeNeg :: Name -> Val -> Val -> Val
 -- squeezeNeg i a u = transNeg j (a `conj` (i,j)) u
@@ -479,29 +506,36 @@ compNeg i a u ts = comp i (a `sym` i) u (ts `sym` i)
 -- | HIT
 
 compHIT :: Name -> Val -> Val -> System Val -> Val
-compHIT = undefined
-
-
--- case u of
---     VCon n us -> case lookupLabel n nass of
---       Just as ->
---         if all isCon (elems ts)
---            then let tsus = transposeSystemAndList (Map.map unCon ts) us
---                 in VCon n $ comps i as env tsus
---            else VComp (VPath i a) u (Map.map (VPath i) ts)
---       Nothing -> error $ "comp: missing constructor in labelled sum " ++ n
---     VPCon{} -> compHIT i a u ts
---     VComp{} -> VComp (VPath i a) u (Map.map (VPath i) ts)
---     _ -> error $ "comp ter sum" ++ show u
-
+compHIT i a u us
+  | isNeutral u || isNeutralSystem us =
+      VComp (VPath i a) u (Map.map (VPath i) us)
+  | otherwise =
+      hComp (a `face` (i ~> 1)) (transpHIT i a u) $
+        mapWithKey (\alpha uAlpha ->
+                     VPath i $ squeezeHIT i (a `face` alpha) uAlpha) us
 
 transpHIT :: Name -> Val -> Val -> Val
 transpHIT i a u = squeezeHIT i a u `face` (i ~> 0)
 
--- Given u(i) of type a(i) "squeezeHIT i a u" connects in the direction i
+-- given u(i) of type a(i) "squeezeHIT i a u" connects in the direction i
 -- transHIT i a u(i=0) to u(i=1) in a(1)
 squeezeHIT :: Name -> Val -> Val -> Val
-squeezeHIT = undefined
+squeezeHIT i a@(Ter (HSum _ _ nass) env) u = case u of
+  VCon n us -> case lookupLabel n nass of
+    Just as -> VCon n (squeezes i as env us)
+    Nothing -> error $ "squeezeHIT: missing constructor in labelled sum " ++ n
+  VPCon c _ ws0 phis -> case lookupLabel c nass of
+    Just as -> VPCon c (a `face` (i ~> 1)) (squeezes i as env ws0) phis
+    Nothing -> error $ "squeezeHIT: missing path constructor " ++ c
+  VHComp _ v vs ->
+    hComp (a `face` (i ~> 1)) (transpHIT i a v) $
+      mapWithKey (\alpha vAlpha ->
+                   VPath i $ squeezeHIT i (a `face` alpha) (vAlpha @@ i)) vs
+  _ -> error $ "squeezeHIT: neutral " ++ show u
+
+hComp :: Val -> Val -> System Val -> Val
+hComp a u us | eps `Map.member` us = (us ! eps) @@ One
+             | otherwise         = VHComp a u us
 
 -------------------------------------------------------------------------------
 -- | Glue

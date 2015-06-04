@@ -42,4 +42,4 @@ predsucZ : (x : Z) -> Id Z (predZ (sucZ x)) x = split
 
 sucIdZ : Id U Z Z = isoId Z Z sucZ predZ sucpredZ predsucZ
 
-ZSet : set Z = hedberg Z (orDisc nat nat natDec natDec)
+ZSet : set Z = corrhedberg Z (orDisc nat nat natDec natDec)

@@ -297,9 +297,10 @@ resolveDecl d = case d of
     a <- binds CTT.Pi tele' (return CTT.U)
     let cs  = [ (unAIdent lbl,Constructor) | OLabel lbl _ <- sums ]
     let pcs = [ (unAIdent lbl,PConstructor) | PLabel lbl _ _ _ <- sums ]
+    let sum = if null pcs then CTT.Sum else CTT.HSum
     d <- lams tele' $ local (insertVar f) $
-         CTT.Sum <$> getLoc l <*> pure f
-                 <*> mapM (resolveLabel (cs ++ pcs)) sums
+         sum <$> getLoc l <*> pure f
+             <*> mapM (resolveLabel (cs ++ pcs)) sums
     return ((f,(a,d)),(f,Variable):cs ++ pcs)
   DeclSplit (AIdent (l,f)) tele t brs -> do
     let tele' = flattenTele tele

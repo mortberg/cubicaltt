@@ -372,7 +372,7 @@ checkPathSystem t0 va ps = do
       rhoAlpha <- asks env
       (a0,a1)  <- checkPath (va `face` alpha) pAlpha
       unlessM (a0 === eval rhoAlpha t0) $
-        throwError $ "Incompatible system with " ++ show t0
+        throwError $ "Incompatible system " ++ showSystem ps ++ " with " ++ show t0
       return a1) ps
   checkCompSystem (evalSystem rho ps)
   return v

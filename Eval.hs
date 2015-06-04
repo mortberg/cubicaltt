@@ -445,23 +445,32 @@ hisoFun (VPair _ (VPair f _)) = f
 hisoFun x                     = error $ "HisoFun: Not an hiso: " ++ show x
 
 -- -- Every line in the universe induces an hiso
--- eqToIso :: Val -> Val
--- eqToIso e = VPair e0 (VPair f (VPair g (VPair s t)))
---   where e0 = e @@ Zero
---         (i,j,x,y,ev) = (Name "i",Name "j",Var "x",Var "y",Var "E")
---         evinv = Path "i" $ AppFormula ev (NegAtom i)
---         (ev0, ev1) = (AppFormula ev (Dir Zero),AppFormula ev (Dir One))
---         eenv = upd ("E",e) empty
---         (eplus z,eminus z) = (Comp ev z Map.empty,Comp evinv z Map.empty)
---         (eup z,edown z) = (Comp )
---         f = Ter (Lam x ev1 (eminus x)) eenv
---         g = Ter (Lam y ev0 (eplus y)) eenv
---         -- s : (y : b) -> f (g y) = y
---         ssys = mkSystem [(j ~> 0, transFill j (e @@ j) b)
---                         ,(j ~> 1, transFillNeg j (e @@ j)
---                                   (trans j (e @@ j) b))])
---         s = Ter (Lam y ev0 $ Path j $ Comp einv
---               ) eenv
+eqToIso :: Val -> Val
+eqToIso e = VPair e0 (VPair f (VPair g (VPair s t)))
+  where e0 = e @@ Zero
+        (i,j,x,y,ev) = (Name "i",Name "j",Var "x",Var "y",Var "E")
+        inv t = Path "i" $ AppFormula t (NegAtom i)
+        evinv = inv ev
+        (ev0, ev1) = (AppFormula ev (Dir Zero),AppFormula ev (Dir One))
+        eenv = upd ("E",e) empty
+        (eplus z,eminus z) = (Comp ev z Map.empty,Comp evinv z Map.empty)
+        -- NB: edown is not transNegFill
+        (eup z,edown z) = (Fill ev z Map.empty,Fill evinv z Map.empty)
+        f = Ter (Lam x ev1 (eminus x)) eenv
+        g = Ter (Lam y ev0 (eplus y)) eenv
+        -- s : (y : e0) -> f (g y) = y
+        ssys = mkSystem [(j ~> 0, inv (eup y)),
+                        ,(j ~> 1, edown (eplus y))]
+        s = Ter (Lam y ev0 $ Path j $ Comp einv (eplus y) ssys) eenv
+        -- t : (x : e1) -> g (f x) = x
+        -- tsys = mkSystem [(j ~> 0, eup (eup y)),
+        --                 ,(j ~> 1, edown (eplus y))]
+        -- t = Ter (Lam y ev0 $ Path j $ Comp einv (eplus y) ssys) eenv
+        -- t e a   = VPath j $ comp j (e @@ j) (transNeg j (e @@ j) a)
+        --             (mkSystem [(j ~> 0, transFill j (e @@ j)
+        --                                   (transNeg j (e @@ j) a))
+        --                       ,(j ~> 1, transFillNeg j (e @@ j) a)])
+
 
 -- eqToIso :: Name -> Val -> Val
 -- eqToIso i u = VPair a (VPair f (VPair g (VPair s t)))

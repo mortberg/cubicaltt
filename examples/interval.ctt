@@ -11,3 +11,73 @@ fext (A B : U) (f g : A -> B) (p : (x : A) -> Id B (f x) (g x)) :
           zero    -> f x
           one     -> g x
           seg @ i -> p x @ i
+
+
+toUnit : I -> Unit = split
+  zero -> tt
+  one  -> tt
+  seg @ i -> tt
+
+fromUnit : Unit -> I = split
+  tt -> zero
+
+toUnitK : (a : Unit) -> Id Unit (toUnit (fromUnit a)) a = split
+  tt -> <i> tt
+
+fromUnitK : (a : I) -> Id I (fromUnit (toUnit a)) a = split
+  zero -> <i> zero
+  one -> <i> seg {I} @ i
+  seg @ i -> <j> seg {I} @ i /\ j
+
+unitEqI : Id U Unit I = isoId Unit I fromUnit toUnit fromUnitK toUnitK
+
+propI : prop I = subst U prop Unit I unitEqI propUnit
+
+setI : set I = subst U set Unit I unitEqI setUnit
+
+foo (X : U) : U = (x : X) -> Id X x x
+
+T : U = Id I zero zero
+p0 : T = refl I zero
+test : T = propI zero zero
+
+fooI : foo I = subst U foo Unit I unitEqI (\(x : Unit) -> <i> x)
+test2 : T = fooI zero
+
+-- ntest2 : T = <i1> comp I (comp I (comp I zero [ (i1 = 0) -> <i2> comp I (comp I (comp I zero [  ]) [  ]) [ (i2 = 0) -> <i2> comp I zero [ (i2 = 0) -> <i2> comp I zero [ (i2 = 0) -> <i2> zero, (i2 = 1) -> <i2> comp I (comp I zero [  ]) [ (i2 = 0) -> <i2> comp I zero [  ] ] ], (i2 = 1) -> <i2> zero ], (i2 = 1) -> <i2> zero ], (i1 = 1) -> <i2> comp I (comp I (comp I zero [  ]) [  ]) [ (i2 = 0) -> <i2> comp I zero [ (i2 = 0) -> <i2> comp I zero [ (i2 = 0) -> <i2> zero, (i2 = 1) -> <i2> comp I (comp I zero [  ]) [ (i2 = 0) -> <i2> comp I zero [  ] ] ], (i2 = 1) -> <i2> zero ], (i2 = 1) -> <i2> zero ] ]) [ (i1 = 0) -> <i2> zero, (i1 = 1) -> <i2> zero ]) [ (i1 = 0) -> <i2> zero, (i1 = 1) -> <i2> zero ]
+
+-- test1 : T = <i1> comp I (comp I (comp I zero [ (i1 = 0) -> <i2> comp I (comp I (comp I zero [  ]) [  ]) [ (i2 = 0) -> <i2> comp I zero [ (i2 = 0) -> <i2> comp I zero [ (i2 = 0) -> <i2> zero, (i2 = 1) -> <i2> comp I (comp I zero [  ]) [ (i2 = 0) -> <i2> comp I zero [  ] ] ], (i2 = 1) -> <i2> zero ], (i2 = 1) -> <i2> zero ], (i1 = 1) -> <i2> comp I (comp I (comp I zero [  ]) [  ]) [ (i2 = 0) -> <i2> comp I zero [ (i2 = 0) -> <i2> comp I zero [ (i2 = 0) -> <i2> zero, (i2 = 1) -> <i2> comp I (comp I zero [  ]) [ (i2 = 0) -> <i2> comp I zero [  ] ] ], (i2 = 1) -> <i2> zero ], (i2 = 1) -> <i2> zero ] ]) [ (i1 = 0) -> <i2> zero, (i1 = 1) -> <i2> zero ]) [ (i1 = 0) -> <i2> zero, (i1 = 1) -> <i2> zero ]
+
+
+-- [ (i2 = 0) -> <i2> zero
+-- , (i2 = 1) -> <i2> comp (<_> I) (comp (<_> I) zero [])
+--                                 [ (i2 = 0) -> <i2> comp (<_> I) zero []]]
+
+-- with zero
+
+
+test : Unit = transport (<i> unitEqI @ -i) zero
+test' : IdP (<i> unitEqI @ -i) zero tt =
+  <i> genComp (<k> unitEqI @ -i \/ -k) zero [(i = 0) -> <_> zero]
+
+test'' : Id I zero zero = <i0> comp I
+             (comp I
+               (comp I zero [ (i0 = 0) -> <i1> zero ])
+                 [ (i0 = 0) -> <i1> zero ])
+             [ (i0 = 0) -> <i1> zero, (i0 = 1) -> <i1> comp I zero [ (i1 = 0) -> <i1> comp I zero [ (i1 = 0) -> <i1> zero, (i1 = 1) -> <i1> comp I (comp I zero [  ]) [ (i1 = 0) -> <i1> comp I zero [  ] ] ], (i1 = 1) -> <i1> zero ] ]
+
+-- -- <i0> glueElem
+--            (comp I
+--              (comp I
+--                (comp I zero [ (i0 = 0) -> <i1> zero ])
+--                  [ (i0 = 0) -> <i1> zero ])
+--              [ (i0 = 0) -> <i1> zero, (i0 = 1) -> <i1> comp I zero [ (i1 = 0) -> <i1> comp I zero [ (i1 = 0) -> <i1> zero, (i1 = 1) -> <i1> comp I (comp I zero [  ]) [ (i1 = 0) -> <i1> comp I zero [  ] ] ], (i1 = 1) -> <i1> zero ] ])
+--            [ (i0 = 1) -> tt ]
+
+-- test : I = transport unitEqI tt
+-- eqttzero : IdP unitEqI tt zero =
+--   <i> genComp (<j> unitEqI @ -i \/ -j) zero [(i=1) -> <_>zero]
+--  <i> transport (<j> unitEqI @ -i \/ -j) zero
+--  <i> genComp (<j> unitEqI @ i /\ j) tt [(i=0) -> tt]
+
+-- Type checking failed: path endpoints don't match for comp (<j> unitEqI @ (i /\ j)) tt [  ], got (tt,comp I (comp I (comp I zero [  ]) [  ]) [  ]), but expected (tt,zero)

@@ -333,10 +333,12 @@ fillLine :: Val -> Val -> System Val -> Val
 fillLine a u ts = VPath i $ fill i (a @@ i) u (Map.map (@@ i) ts)
   where i = fresh (a,u,ts)
 
-fill, fillNeg :: Name -> Val -> Val -> System Val -> Val
+fill :: Name -> Val -> Val -> System Val -> Val
 fill i a u ts =
   comp j (a `conj` (i,j)) u (insertSystem (i ~> 0) u (ts `conj` (i,j)))
   where j = fresh (Atom i,a,u,ts)
+
+fillNeg :: Name -> Val -> Val -> System Val -> Val
 fillNeg i a u ts = (fill i (a `sym` i) u (ts `sym` i)) `sym` i
 
 comps :: Name -> [(Ident,Ter)] -> Env -> [(System Val,Val)] -> [Val]

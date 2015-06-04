@@ -206,6 +206,9 @@ resolveExp e = case e of
   IdP x y z   -> CTT.IdP <$> resolveExp x <*> resolveExp y <*> resolveExp z
   Comp u v ts -> CTT.Comp <$> (CTT.Path (C.Name "_") <$> resolveExp u)
                    <*> resolveExp v <*> resolveSystem ts
+
+  GenComp u v ts -> CTT.Comp <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
+
   Glue u ts   -> do
     rs <- resolveSystem ts
     let isIso (CTT.Pair _ (CTT.Pair _ (CTT.Pair _ (CTT.Pair _ _)))) = True

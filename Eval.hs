@@ -76,6 +76,8 @@ instance Nominal Val where
     VGlue a ts              -> support (a,ts)
     VGlueElem a ts          -> support (a,ts)
     VCompU a ts             -> support (a,ts)
+    VUnGlueElem a hs        -> support (a,hs)
+    VUnGlueElemU a es       -> support (a,es)
     -- VGlueLine a phi psi     -> support (a,phi,psi)
     -- VGlueLineElem a phi psi -> support (a,phi,psi)
     -- VCompElem a es u us     -> support (a,es,u,us)
@@ -110,6 +112,8 @@ instance Nominal Val where
          VSplit u v              -> app (acti u) (acti v)
          VGlue a ts              -> glue (acti a) (acti ts)
          VGlueElem a ts          -> glueElem (acti a) (acti ts)
+         VUnGlueElem a hs        -> unGlue (acti a) (acti hs)
+         VUnGlueElemU a es       -> unGlueU (acti a) (acti es)
          VCompU a ts             -> compUniv (acti a) (acti ts)
          -- VGlueLine a phi psi     -> glueLine (acti a) (acti phi) (acti psi)
          -- VGlueLineElem a phi psi -> glueLineElem (acti a) (acti phi) (acti psi)
@@ -141,6 +145,8 @@ instance Nominal Val where
          VSplit u v              -> VSplit (sw u) (sw v)
          VGlue a ts              -> VGlue (sw a) (sw ts)
          VGlueElem a ts          -> VGlueElem (sw a) (sw ts)
+         VUnGlueElem a hs        -> VUnGlueElem (sw a) (sw hs)
+         VUnGlueElemU a es       -> VUnGlueElemU (sw a) (sw es)
          VCompU a ts             -> VCompU (sw a) (sw ts)
          -- VGlueLine a phi psi     -> VGlueLine (sw a) (sw phi) (sw psi)
          -- VGlueLineElem a phi psi -> VGlueLineElem (sw a) (sw phi) (sw psi)
@@ -436,8 +442,6 @@ comp i a u ts = case a of
   VPi{} -> VComp (VPath i a) u (Map.map (VPath i) ts)
   VU -> compUniv u (Map.map (VPath i) ts)
     -- VGlue u (Map.map (eqToIso i) ts)
-  _ | isNeutral w -> w
-    where w = VComp (VPath i a) u (Map.map (VPath i) ts)
   VCompU a es   -> compU i a es u ts
   VGlue b hisos -> compGlue i b hisos u ts
   -- VGlueLine b phi psi -> compGlueLine i b phi psi u ts
@@ -454,7 +458,8 @@ comp i a u ts = case a of
     -- VCompElem _ _ u1 _  -> comp i a u1 ts
     -- VElimComp _ _ u1    -> comp i a u1 ts
     _ -> error $ "comp ter sum" ++ show u
-  _ -> error $ "comp: case missing for " ++ show i ++ " " ++ show a ++ " " ++ show u ++ " " ++ showSystem ts
+  _ -> VComp (VPath i a) u (Map.map (VPath i) ts)
+  -- _ -> error $ "comp: case missing for " ++ show i ++ " " ++ show a ++ " " ++ show u ++ " " ++ showSystem ts
 
 compNeg :: Name -> Val -> Val -> System Val -> Val
 compNeg i a u ts = comp i (a `sym` i) u (ts `sym` i)
@@ -512,15 +517,15 @@ glueElem v us | Map.null us         = v
               | eps `Map.member` us = us ! eps
               | otherwise           = VGlueElem v us
 
-unGlue :: System Val -> Val -> Val
-unGlue hisos w
+unGlue :: Val -> System Val -> Val
+unGlue w hisos
     | Map.null hisos         = w
     | eps `Map.member` hisos = app (hisoFun (hisos ! eps)) w
     | otherwise              = case w of
        VGlueElem v us   -> v
        -- VElimComp _ _ v -> unGlue hisos v
        -- VCompElem a es v vs -> unGlue hisos v
-       _ -> error $ "unGlue: " ++ show w ++ " should be neutral!"
+       _ -> VUnGlueElem w hisos
 
 -- transGlue :: Name -> Val -> System Val -> Val -> Val
 -- transGlue i b hisos wi0 = glueElem vi1'' usi1
@@ -566,9 +571,9 @@ compGlue :: Name -> Val -> System Val -> Val -> System Val -> Val
 compGlue i b hisos wi0 ws = glueElem vi1'' usi1''
   where bi1 = b `face` (i ~> 1)
         vs   = mapWithKey
-                 (\alpha wAlpha -> unGlue (hisos `face` alpha) wAlpha) ws
+                 (\alpha wAlpha -> unGlue wAlpha (hisos `face` alpha)) ws
         vsi1 = vs `face` (i ~> 1) -- same as: border vi1 vs
-        vi0  = unGlue (hisos `face` (i ~> 0)) wi0 -- in b(i0)
+        vi0  = unGlue wi0 (hisos `face` (i ~> 0)) -- in b(i0)
 
         v    = fill i b vi0 vs           -- in b
         vi1  = comp i b vi0 vs           -- is v `face` (i ~> 1) in b(i1)
@@ -765,13 +770,13 @@ gradLemma b hiso@(VPair a (VPair f (VPair g (VPair s t)))) us v =
 -------------------------------------------------------------------------------
 -- | Composition in the Universe (to be replaced as glue)
 
-unGlueU :: System Val -> Val -> Val
-unGlueU es w
+unGlueU :: Val -> System Val -> Val
+unGlueU w es
     | Map.null es         = w
     | eps `Map.member` es = transNegLine (es ! eps) w
     | otherwise           = case w of
        VGlueElem v us   -> v
-       _ -> error $ "unGlueU: " ++ show w ++ " should be neutral!"
+       _ -> VUnGlueElemU w es
 
 compUniv :: Val -> System Val -> Val
 compUniv b es | Map.null es         = b
@@ -782,10 +787,9 @@ compUniv b es | Map.null es         = b
 compU :: Name -> Val -> System Val -> Val -> System Val -> Val
 compU i b es wi0 ws = glueElem vi1'' usi1''
   where bi1 = b `face` (i ~> 1)
-        vs   = mapWithKey
-                 (\alpha wAlpha -> unGlueU (es `face` alpha) wAlpha) ws
+        vs   = mapWithKey (\alpha wAlpha -> unGlueU wAlpha (es `face` alpha)) ws
         vsi1 = vs `face` (i ~> 1) -- same as: border vi1 vs
-        vi0  = unGlueU (es `face` (i ~> 0)) wi0 -- in b(i0)
+        vi0  = unGlueU wi0 (es `face` (i ~> 0)) -- in b(i0)
 
         v    = fill i b vi0 vs           -- in b
         vi1  = comp i b vi0 vs           -- is v `face` (i ~> 1) in b(i1)
@@ -1061,6 +1065,8 @@ instance Convertible Val where
       (VComp a u ts,VComp a' u' ts') -> conv ns (a,u,ts) (a',u',ts')
       (VGlue v hisos,VGlue v' hisos') -> conv ns (v,hisos) (v',hisos')
       (VGlueElem u us,VGlueElem u' us') -> conv ns (u,us) (u',us')
+      (VUnGlueElem _ u,VUnGlueElem _ u') -> conv ns u u'
+      (VUnGlueElemU _ u,VUnGlueElemU _ u') -> conv ns u u'
       -- (VCompElem a es u us,VCompElem a' es' u' us') ->
       --   conv ns (a,es,u,us) (a',es',u',us')
       -- (VElimComp a es u,VElimComp a' es' u') -> conv ns (a,es,u) (a',es',u')
@@ -1119,6 +1125,8 @@ instance Normal Val where
     -- VTrans u v          -> transLine (normal ns u) (normal ns v)
     VGlue u hisos       -> glue (normal ns u) (normal ns hisos)
     VGlueElem u us      -> glueElem (normal ns u) (normal ns us)
+    VUnGlueElem u hs    -> unGlue (normal ns u) (normal ns hs)
+    VUnGlueElemU u es   -> unGlueU (normal ns u) (normal ns es)
     VCompU u es         -> compUniv (normal ns u) (normal ns es)
     -- VCompElem a es u us -> compElem (normal ns a) (normal ns es) (normal ns u) (normal ns us)
     -- VElimComp a es u    -> elimComp (normal ns a) (normal ns es) (normal ns u)

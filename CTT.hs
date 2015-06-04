@@ -169,6 +169,8 @@ data Val = VU
          | VVar Ident Val
          | VFst Val
          | VSnd Val
+         | VUnGlueElem Val (System Val)
+         | VUnGlueElemU Val (System Val)
          | VSplit Val Val
          | VApp Val Val
          | VAppFormula Val Formula
@@ -186,26 +188,25 @@ data Val = VU
 
 isNeutral :: Val -> Bool
 isNeutral v = case v of
-  Ter Undef{} _     -> True
-  Ter Hole{} _      -> True
-  VVar _ _          -> True
-  VFst v            -> isNeutral v
-  VSnd v            -> isNeutral v
-  VSplit _ v        -> isNeutral v
-  VApp v _          -> isNeutral v
-  VAppFormula v _   -> isNeutral v
-  VComp a u ts      -> isNeutralComp a u ts
-  -- VTrans a u        -> isNeutralTrans a u
-  -- VCompElem _ _ u _ -> isNeutral u
-  -- VElimComp _ _ u   -> isNeutral u
-  _                 -> False
+  Ter Undef{} _  -> True
+  Ter Hole{} _   -> True
+  VVar{}         -> True
+  VComp{}        -> True
+  VFst{}         -> True
+  VSnd{}         -> True
+  VSplit{}       -> True
+  VApp{}         -> True
+  VAppFormula{}  -> True
+  VUnGlueElem{}  -> True
+  VUnGlueElemU{} -> True
+  _              -> False
 
-isNeutralSystem :: System Val -> Bool
-isNeutralSystem = any isNeutralPath . Map.elems
+-- isNeutralSystem :: System Val -> Bool
+-- isNeutralSystem = any isNeutralPath . Map.elems
 
-isNeutralPath :: Val -> Bool
-isNeutralPath (VPath _ v) = isNeutral v
-isNeutralPath _ = True
+-- isNeutralPath :: Val -> Bool
+-- isNeutralPath (VPath _ v) = isNeutral v
+-- isNeutralPath _ = True
 
 -- isNeutralTrans :: Val -> Val -> Bool
 -- isNeutralTrans (VPath i a) u = foo i a u
@@ -219,18 +220,18 @@ isNeutralPath _ = True
 -- -- TODO: case for VGLueLine
 -- isNeutralTrans u _ = isNeutral u
 
--- TODO: fix
-isNeutralComp :: Val -> Val -> System Val -> Bool
-isNeutralComp (VPath i a) u ts = isNeutralComp' i a u ts
-  where isNeutralComp' i a u ts | isNeutral a = True
-        isNeutralComp' i (Ter Sum{} _) u ts   = isNeutral u || isNeutralSystem ts
-        isNeutralComp' i (VGlue _ as) u ts    =
-          isNeutral u && isNeutralSystem (filterWithKey testFace ts)
-            where shas = shape as `face` (i ~> 0)
-                  testFace beta _ = let shasBeta = shas `face` beta
-                                    in shasBeta /= Map.empty && eps `Map.member` shasBeta
-        isNeutralComp' _ _ _ _ = False
-isNeutralComp _ u _ = isNeutral u
+-- -- TODO: fix
+-- isNeutralComp :: Val -> Val -> System Val -> Bool
+-- isNeutralComp (VPath i a) u ts = isNeutralComp' i a u ts
+--   where isNeutralComp' i a u ts | isNeutral a = True
+--         isNeutralComp' i (Ter Sum{} _) u ts   = isNeutral u || isNeutralSystem ts
+--         isNeutralComp' i (VGlue _ as) u ts    =
+--           isNeutral u && isNeutralSystem (filterWithKey testFace ts)
+--             where shas = shape as `face` (i ~> 0)
+--                   testFace beta _ = let shasBeta = shas `face` beta
+--                                     in shasBeta /= Map.empty && eps `Map.member` shasBeta
+--         isNeutralComp' _ _ _ _ = False
+-- isNeutralComp _ u _ = isNeutral u
 
 -- -- TODO: adapt for non-regular setting
 -- isNeutralComp :: Val -> Val -> System Val -> Bool
@@ -456,6 +457,8 @@ showVal v = case v of
   VVar x _          -> text x
   VFst u            -> showVal1 u <> text ".1"
   VSnd u            -> showVal1 u <> text ".2"
+  VUnGlueElem v hs  -> text "unGlueElem" <+> showVal1 v <+> text (showSystem hs)
+  VUnGlueElemU v es -> text "unGlueElemU" <+> showVal1 v <+> text (showSystem es)
   VIdP v0 v1 v2     -> text "IdP" <+> showVals [v0,v1,v2]
   VAppFormula v phi -> showVal v <+> char '@' <+> showFormula phi
   VComp v0 v1 vs    -> text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)

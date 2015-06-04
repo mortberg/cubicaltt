@@ -75,6 +75,7 @@ instance Nominal Val where
     VSplit u v              -> support (u,v)
     VGlue a ts              -> support (a,ts)
     VGlueElem a ts          -> support (a,ts)
+    VCompU a ts             -> support (a,ts)
     -- VGlueLine a phi psi     -> support (a,phi,psi)
     -- VGlueLineElem a phi psi -> support (a,phi,psi)
     -- VCompElem a es u us     -> support (a,es,u,us)
@@ -109,6 +110,7 @@ instance Nominal Val where
          VSplit u v              -> app (acti u) (acti v)
          VGlue a ts              -> glue (acti a) (acti ts)
          VGlueElem a ts          -> glueElem (acti a) (acti ts)
+         VCompU a ts             -> compUniv (acti a) (acti ts)
          -- VGlueLine a phi psi     -> glueLine (acti a) (acti phi) (acti psi)
          -- VGlueLineElem a phi psi -> glueLineElem (acti a) (acti phi) (acti psi)
          -- VCompElem a es u us     -> compElem (acti a) (acti es) (acti u) (acti us)
@@ -139,6 +141,7 @@ instance Nominal Val where
          VSplit u v              -> VSplit (sw u) (sw v)
          VGlue a ts              -> VGlue (sw a) (sw ts)
          VGlueElem a ts          -> VGlueElem (sw a) (sw ts)
+         VCompU a ts             -> VCompU (sw a) (sw ts)
          -- VGlueLine a phi psi     -> VGlueLine (sw a) (sw phi) (sw psi)
          -- VGlueLineElem a phi psi -> VGlueLineElem (sw a) (sw phi) (sw psi)
          -- VCompElem a es u us     -> VCompElem (sw a) (sw es) (sw u) (sw us)
@@ -431,11 +434,11 @@ comp i a u ts = case a of
           ui1        = comp i a u1 t1s
           comp_u2    = comp i (app f fill_u1) u2 t2s
   VPi{} -> VComp (VPath i a) u (Map.map (VPath i) ts)
-  VU -> VComp (VPath i VU) u (Map.map (VPath i) ts)
+  VU -> compUniv u (Map.map (VPath i) ts)
     -- VGlue u (Map.map (eqToIso i) ts)
   _ | isNeutral w -> w
     where w = VComp (VPath i a) u (Map.map (VPath i) ts)
-  VComp (VPath _ VU) a es -> compU i a es u ts
+  VCompU a es   -> compU i a es u ts
   VGlue b hisos -> compGlue i b hisos u ts
   -- VGlueLine b phi psi -> compGlueLine i b phi psi u ts
   Ter (Sum _ _ nass) env -> case u of
@@ -452,7 +455,7 @@ comp i a u ts = case a of
     -- VElimComp _ _ u1    -> comp i a u1 ts
     _ -> error $ "comp ter sum" ++ show u
   _ -> error $ "comp: case missing for " ++ show i ++ " " ++ show a ++ " " ++ show u ++ " " ++ showSystem ts
-  
+
 compNeg :: Name -> Val -> Val -> System Val -> Val
 compNeg i a u ts = comp i (a `sym` i) u (ts `sym` i)
 
@@ -760,8 +763,7 @@ gradLemma b hiso@(VPair a (VPair f (VPair g (VPair s t)))) us v =
 
 
 -------------------------------------------------------------------------------
--- | Composition in the Universe
-
+-- | Composition in the Universe (to be replaced as glue)
 
 unGlueU :: System Val -> Val -> Val
 unGlueU es w
@@ -770,6 +772,12 @@ unGlueU es w
     | otherwise           = case w of
        VGlueElem v us   -> v
        _ -> error $ "unGlueU: " ++ show w ++ " should be neutral!"
+
+compUniv :: Val -> System Val -> Val
+compUniv b es | Map.null es         = b
+              | eps `Map.member` es = (es ! eps) @@ One
+              | otherwise           = VCompU b es
+
 
 compU :: Name -> Val -> System Val -> Val -> System Val -> Val
 compU i b es wi0 ws = glueElem vi1'' usi1''
@@ -1111,6 +1119,7 @@ instance Normal Val where
     -- VTrans u v          -> transLine (normal ns u) (normal ns v)
     VGlue u hisos       -> glue (normal ns u) (normal ns hisos)
     VGlueElem u us      -> glueElem (normal ns u) (normal ns us)
+    VCompU u es         -> compUniv (normal ns u) (normal ns es)
     -- VCompElem a es u us -> compElem (normal ns a) (normal ns es) (normal ns u) (normal ns us)
     -- VElimComp a es u    -> elimComp (normal ns a) (normal ns es) (normal ns u)
     VVar x t            -> VVar x t -- (normal ns t)

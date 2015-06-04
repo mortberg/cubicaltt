@@ -154,6 +154,9 @@ data Val = VU
          | VGlue Val (System Val)
          | VGlueElem Val (System Val)
 
+           -- Composition in the universe (for now)
+         | VCompU Val (System Val)
+
            -- GlueLine values
          -- | VGlueLine Val Formula Formula
          -- | VGlueLineElem Val Formula Formula
@@ -216,6 +219,7 @@ isNeutralPath _ = True
 -- -- TODO: case for VGLueLine
 -- isNeutralTrans u _ = isNeutral u
 
+-- TODO: fix
 isNeutralComp :: Val -> Val -> System Val -> Bool
 isNeutralComp (VPath i a) u ts = isNeutralComp' i a u ts
   where isNeutralComp' i a u ts | isNeutral a = True
@@ -225,7 +229,7 @@ isNeutralComp (VPath i a) u ts = isNeutralComp' i a u ts
             where shas = shape as `face` (i ~> 0)
                   testFace beta _ = let shasBeta = shas `face` beta
                                     in shasBeta /= Map.empty && eps `Map.member` shasBeta
---        isNeutralComp' _ _ _ _ = isNeutral u
+        isNeutralComp' _ _ _ _ = False
 isNeutralComp _ u _ = isNeutral u
 
 -- -- TODO: adapt for non-regular setting
@@ -238,7 +242,7 @@ isNeutralComp _ u _ = isNeutral u
 --         testFace beta _ = let shasBeta = shas `face` beta
 --                           in not (Map.null shasBeta || eps `Map.member` shasBeta)
 
-        
+
 -- TODO
 -- isNeutralComp (VGlueLine _ phi psi) u ts =
 --   isNeutral u || isNeutralSystem (filterWithKey (not . test) ts) || and (elems ws)
@@ -458,6 +462,7 @@ showVal v = case v of
   -- VTrans v0 v1      -> text "trans" <+> showVals [v0,v1]
   VGlue a ts        -> text "glue" <+> showVal1 a <+> text (showSystem ts)
   VGlueElem a ts    -> text "glueElem" <+> showVal1 a <+> text (showSystem ts)
+  VCompU a ts       -> text "compU" <+> showVal1 a <+> text (showSystem ts)
   -- VGlueLine a phi psi     -> text "glueLine" <+> showFormula phi
   --                            <+> showFormula psi  <+> showVal1 a
   -- VGlueLineElem a phi psi -> text "glueLineElem" <+> showFormula phi

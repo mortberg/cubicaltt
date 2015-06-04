@@ -408,17 +408,21 @@ transpHIT i a u = squeezeHIT i a u `face` (i ~> 0)
 -- given u(i) of type a(i) "squeezeHIT i a u" connects in the direction i
 -- transHIT i a u(i=0) to u(i=1) in a(1)
 squeezeHIT :: Name -> Val -> Val -> Val
-squeezeHIT i a@(Ter (HSum _ _ nass) env) u = case u of
+squeezeHIT i a@(Ter (HSum _ _ nass) env) u =
+ let j = fresh (a,u)
+     aij = swap a (i,j)
+ in
+ case u of
   VCon n us -> case lookupLabel n nass of
     Just as -> VCon n (squeezes i as env us)
     Nothing -> error $ "squeezeHIT: missing constructor in labelled sum " ++ n
   VPCon c _ ws0 phis -> case lookupLabel c nass of
-    Just as -> pcon c (a `face` (i ~> 1)) (squeezes i as env ws0) (phis `face` (i ~> 1))
+    Just as -> pcon c (a `face` (i ~> 1)) (squeezes i as env ws0) phis
     Nothing -> error $ "squeezeHIT: missing path constructor " ++ c
   VHComp _ v vs ->
-    hComp (a `face` (i ~> 1)) (transpHIT i a v) $
+    hComp (a `face` (i ~> 1)) (squeezeHIT i a v) $
       mapWithKey (\alpha vAlpha ->
-                   VPath i $ squeezeHIT i (a `face` alpha) (vAlpha @@ i)) vs
+                   VPath j $ squeezeHIT j (aij `face` alpha) (vAlpha @@ j)) vs
   _ -> error $ "squeezeHIT: neutral " ++ show u
 
 hComp :: Val -> Val -> System Val -> Val

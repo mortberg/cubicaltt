@@ -94,7 +94,8 @@ data Ter = App Ter Ter
            -- branches c1 xs1  -> M1,..., cn xsn -> Mn
          | Split Ident Loc Ter [Branch]
            -- labelled sum c1 A1s,..., cn Ans (assumes terms are constructors)
-         | Sum Loc Ident [Label]
+         | Sum Loc Ident [Label] -- TODO: should only contain OLabels
+         | HSum Loc Ident [Label]
 
            -- undefined and holes
          | Undef Loc Ter -- Location and type
@@ -157,6 +158,9 @@ data Val = VU
            -- Composition in the universe (for now)
          | VCompU Val (System Val)
 
+           -- Composition for HITs; the type is constant
+         | VHComp Val Val (System Val)
+
            -- GlueLine values
          -- | VGlueLine Val Formula Formula
          -- | VGlueLineElem Val Formula Formula
@@ -169,9 +173,11 @@ data Val = VU
          | VVar Ident Val
          | VFst Val
          | VSnd Val
-         | VUnGlueElem Val (System Val)
-         | VUnGlueElemU Val (System Val)
+           -- VUnGlueElem val type hisos
+         | VUnGlueElem Val Val (System Val)
+         | VUnGlueElemU Val Val (System Val)
          | VSplit Val Val
+         | VSqueezeH Val Val
          | VApp Val Val
          | VAppFormula Val Formula
          | VLam Ident Val Val
@@ -395,6 +401,7 @@ showTer v = case v of
                         <+> hsep (map ((char '@' <+>) . showFormula) phis)
   Split f _ _ _      -> text f
   Sum _ n _          -> text n
+  HSum _ n _         -> text n
   Undef{}            -> text "undefined"
   Hole{}             -> text "?"
   IdP e0 e1 e2       -> text "IdP" <+> showTers [e0,e1,e2]
@@ -426,6 +433,7 @@ showTer1 t = case t of
   Hole{}   -> showTer t
   Split{}  -> showTer t
   Sum{}    -> showTer t
+  HSum{}   -> showTer t
   _        -> parens (showTer t)
 
 showDecls :: [Decl] -> Doc
@@ -439,11 +447,13 @@ showVal :: Val -> Doc
 showVal v = case v of
   VU                -> char 'U'
   Ter t@Sum{} rho   -> showTer t <+> showEnv False rho
+  Ter t@HSum{} rho  -> showTer t <+> showEnv False rho
   Ter t@Split{} rho -> showTer t <+> showEnv False rho
   Ter t rho         -> showTer1 t <+> showEnv True rho
   VCon c us         -> text c <+> showVals us
   VPCon c a us phis -> text c <+> braces (showVal a) <+> showVals us
                        <+> hsep (map ((char '@' <+>) . showFormula) phis)
+  VHComp v0 v1 vs   -> text "hComp" <+> showVals [v0,v1] <+> text (showSystem vs)
   VPi a l@(VLam x t b)
     | "_" `isPrefixOf` x -> showVal a <+> text "->" <+> showVal1 b
     | otherwise          -> char '(' <> showLam v
@@ -457,8 +467,10 @@ showVal v = case v of
   VVar x _          -> text x
   VFst u            -> showVal1 u <> text ".1"
   VSnd u            -> showVal1 u <> text ".2"
-  VUnGlueElem v hs  -> text "unGlueElem" <+> showVal1 v <+> text (showSystem hs)
-  VUnGlueElemU v es -> text "unGlueElemU" <+> showVal1 v <+> text (showSystem es)
+  VUnGlueElem v b hs  -> text "unGlueElem" <+> showVals [v,b]
+                         <+> text (showSystem hs)
+  VUnGlueElemU v b es -> text "unGlueElemU" <+> showVals [v,b]
+                         <+> text (showSystem es)
   VIdP v0 v1 v2     -> text "IdP" <+> showVals [v0,v1,v2]
   VAppFormula v phi -> showVal v <+> char '@' <+> showFormula phi
   VComp v0 v1 vs    -> text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)

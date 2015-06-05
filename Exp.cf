@@ -31,7 +31,6 @@ Sigma.        Exp1 ::= [PTele] "*" Exp1 ;
 AppFormula.   Exp2 ::= Exp2 "@" Formula ;
 App.          Exp2 ::= Exp2 Exp3 ;
 IdP.          Exp3 ::= "IdP" Exp4 Exp4 Exp4 ;
-Trans.        Exp3 ::= "transport" Exp4 Exp4 ;
 Comp.         Exp3 ::= "comp" Exp4 Exp4 System ;
 Fill.         Exp3 ::= "fill" Exp4 Exp4 System ;
 Glue.         Exp3 ::= "glue" Exp4 System ;

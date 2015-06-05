@@ -8,7 +8,7 @@ hedbergLemma (A: U) (a b:A) (f : (x : A) -> Id A a x -> Id A a x) (p : Id A a b)
     (<i>(f a (refl A a)))
 
 hedberg (A:U) (a b:A) (h: (x:A) -> stable (Id A a x)) (p q : Id A a b) : Id (Id A a b) p q =
- <j i>comp A a [(j=0) -> rem2 @ i, (j=1) -> rem3 @ i, (i=0) -> r, (i=1) -> rem4 @ j]
+ <j i>comp (<_> A) a [(j=0) -> rem2 @ i, (j=1) -> rem3 @ i, (i=0) -> r, (i=1) -> rem4 @ j]
  where 
    ra : Id A a a = refl A a 
    rem1 (x:A) : exConst (Id A a x) = stableConst (Id A a x) (h x)

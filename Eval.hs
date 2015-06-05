@@ -468,18 +468,15 @@ eqToIso e = VPair e1 (VPair f (VPair g (VPair s t)))
         t = Ter (Lam "x" ev1 $ Path j $ Comp ev (eminus x) tsys) eenv
 
 glue :: Val -> System Val -> Val
-glue b ts | Map.null ts         = b
-          | eps `Map.member` ts = hisoDom (ts ! eps)
+glue b ts | eps `Map.member` ts = hisoDom (ts ! eps)
           | otherwise           = VGlue b ts
 
 glueElem :: Val -> System Val -> Val
-glueElem v us | Map.null us         = v
-              | eps `Map.member` us = us ! eps
+glueElem v us | eps `Map.member` us = us ! eps
               | otherwise           = VGlueElem v us
 
 unGlue :: Val -> Val -> System Val -> Val
 unGlue w b hisos
-    | Map.null hisos         = w
     | eps `Map.member` hisos = app (hisoFun (hisos ! eps)) w
     | otherwise              = case w of
        VGlueElem v us   -> v

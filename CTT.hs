@@ -108,10 +108,6 @@ data Ter = App Ter Ter
            -- Kan composition and filling
          | Comp Ter Ter (System Ter)
          | Fill Ter Ter (System Ter)
-         -- | Trans Ter Ter
-           -- Composition in the Universe
-         -- | CompElem Ter (System Ter) Ter (System Ter)
-         -- | ElimComp Ter (System Ter) Ter
            -- Glue
          | Glue Ter (System Ter)
          | GlueElem Ter (System Ter)
@@ -156,9 +152,6 @@ data Val = VU
          | VGlue Val (System Val)
          | VGlueElem Val (System Val)
 
-           -- Composition in the universe (for now)
-         | VCompU Val (System Val)
-
            -- Composition for HITs; the type is constant
          | VHComp Val Val (System Val)
 
@@ -166,19 +159,13 @@ data Val = VU
          -- | VGlueLine Val Formula Formula
          -- | VGlueLineElem Val Formula Formula
 
-           -- Universe Composition Values
-         -- | VCompElem Val (System Val) Val (System Val)
-         -- | VElimComp Val (System Val) Val
-
            -- Neutral values:
          | VVar Ident Val
          | VFst Val
          | VSnd Val
            -- VUnGlueElem val type hisos
          | VUnGlueElem Val Val (System Val)
-         | VUnGlueElemU Val Val (System Val)
          | VSplit Val Val
-         -- | VHSqueeze Val Val Formula
          | VApp Val Val
          | VAppFormula Val Formula
          | VLam Ident Val Val
@@ -196,7 +183,6 @@ isNeutral v = case v of
   VApp{}         -> True
   VAppFormula{}  -> True
   VUnGlueElem{}  -> True
-  VUnGlueElemU{} -> True
   _              -> False
 
 isNeutralSystem :: System Val -> Bool
@@ -401,17 +387,12 @@ showTer v = case v of
   AppFormula e phi   -> showTer1 e <+> char '@' <+> showFormula phi
   Comp e t ts        -> text "comp" <+> showTers [e,t] <+> text (showSystem ts)
   Fill e t ts        -> text "fill" <+> showTers [e,t] <+> text (showSystem ts)
-  -- Trans e0 e1        -> text "transport" <+> showTers [e0,e1]
   Glue a ts          -> text "glue" <+> showTer1 a <+> text (showSystem ts)
   GlueElem a ts      -> text "glueElem" <+> showTer1 a <+> text (showSystem ts)
   -- GlueLine a phi psi -> text "glueLine" <+> showTer1 a <+>
   --                       showFormula phi <+> showFormula psi
   -- GlueLineElem a phi psi -> text "glueLineElem" <+> showTer1 a <+>
   --                           showFormula phi <+> showFormula psi
-  -- CompElem a es t ts -> text "compElem" <+> showTer1 a <+> text (showSystem es)
-  --                       <+> showTer1 t <+> text (showSystem ts)
-  -- ElimComp a es t    -> text "elimComp" <+> showTer1 a <+> text (showSystem es)
-  --                       <+> showTer1 t
 
 showTers :: [Ter] -> Doc
 showTers = hsep . map showTer1
@@ -446,7 +427,6 @@ showVal v = case v of
   VPCon c a us phis -> text c <+> braces (showVal a) <+> showVals us
                        <+> hsep (map ((char '@' <+>) . showFormula) phis)
   VHComp v0 v1 vs   -> text "hComp" <+> showVals [v0,v1] <+> text (showSystem vs)
-  -- VHSqueeze a u phi -> text "hSqueeze" <+> showVals [a,u] <+> showFormula phi
   VPi a l@(VLam x t b)
     | "_" `isPrefixOf` x -> showVal a <+> text "->" <+> showVal1 b
     | otherwise          -> char '(' <> showLam v
@@ -462,23 +442,15 @@ showVal v = case v of
   VSnd u            -> showVal1 u <> text ".2"
   VUnGlueElem v b hs  -> text "unGlueElem" <+> showVals [v,b]
                          <+> text (showSystem hs)
-  VUnGlueElemU v b es -> text "unGlueElemU" <+> showVals [v,b]
-                         <+> text (showSystem es)
   VIdP v0 v1 v2     -> text "IdP" <+> showVals [v0,v1,v2]
   VAppFormula v phi -> showVal v <+> char '@' <+> showFormula phi
   VComp v0 v1 vs    -> text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)
-  -- VTrans v0 v1      -> text "trans" <+> showVals [v0,v1]
   VGlue a ts        -> text "glue" <+> showVal1 a <+> text (showSystem ts)
   VGlueElem a ts    -> text "glueElem" <+> showVal1 a <+> text (showSystem ts)
-  VCompU a ts       -> text "compU" <+> showVal1 a <+> text (showSystem ts)
   -- VGlueLine a phi psi     -> text "glueLine" <+> showFormula phi
   --                            <+> showFormula psi  <+> showVal1 a
   -- VGlueLineElem a phi psi -> text "glueLineElem" <+> showFormula phi
   --                            <+> showFormula psi  <+> showVal1 a
-  -- VCompElem a es t ts -> text "compElem" <+> showVal1 a <+> text (showSystem es)
-  --                        <+> showVal1 t <+> text (showSystem ts)
-  -- VElimComp a es t    -> text "elimComp" <+> showVal1 a <+> text (showSystem es)
-  --                        <+> showVal1 t
 
 showPath :: Val -> Doc
 showPath e = case e of

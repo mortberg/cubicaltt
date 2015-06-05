@@ -191,7 +191,9 @@ check a t = case (a,t) of
     ns <- asks names
     rho <- asks env
     unlessM (a === eval rho a') $
-      throwError "check: lam types don't match"
+      throwError $ "check: lam types don't match"
+        ++ "\nlambda type annotation: " ++ show a'
+        ++ "\ndomain of Pi: " ++ show a
     let var = mkVarNice ns x a
     local (addTypeVal (x,a)) $ check (app f var) t
   (VSigma a f, Pair t1 t2) -> do

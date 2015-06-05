@@ -83,5 +83,5 @@ test8 : Id U F2 F2 =
 test9 : Id U F2 F2 =
   transport (<i> Id U (boolEqF2 @ i) (boolEqF2 @ i)) (refl U bool)
 
-p : Id U F2 bool = <i> comp U bool [ (i = 0) -> boolEqF2 ]
+p : Id U F2 bool = <i> comp (<_>U) bool [ (i = 0) -> boolEqF2 ]
 q : Id U F2 F2 = <i> p @ (i /\ - i)

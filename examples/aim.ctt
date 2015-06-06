@@ -116,7 +116,7 @@ funExt (A : U) (B : A -> U) (f g : (x : A) -> B x)
        (p : (x : A) -> Id (B x) (f x) (g x)) : Id ((y : A) -> B y) f g =
   <i> \(a : A) -> (p a) @ i
 
-{- 
+{-
 
 To see that the definition of funExt makes sense we can compute its
 faces:
@@ -637,14 +637,14 @@ intSet : set int = subst U set Z int isoIntZ ZSet
 --------------------------------------------------------------------------
 
   o Definitional equality for J? Problem pointed out by Dan Licata
-    with regularity for composition in the universe. However the
-    system seems to work without regularity (this is work in
-    progress).
+    with regularity for composition in the universe. However, the
+    system might still work without regularity (this is what is being
+    implemented in the no_regular branch).
 
   o Meta-theoretical properties of the system and correctness of the
     model. Formalization?
 
-  o Integration of ideas into other proof assistants (eg Agda)?
+  o Integration of ideas into other proof assistants (e.g. Agda)?
 
 -}
 
@@ -658,6 +658,7 @@ addZero : (a : nat) -> Id nat (add zero a) a = split
 
 addCom (a : nat) : (b : nat) -> Id nat (add a b) (add b a) = split
   zero   -> <i> addZero a @ -i
-  suc b' -> <i> comp nat (suc (addCom a b' @ i)) [ (i = 0) -> <j> suc (add a b')
-                                                 , (i = 1) -> <j> addSuc b' a @ -j ]
+  suc b' -> <i> comp (<_> nat) (suc (addCom a b' @ i)) [ (i = 0) -> <j> suc (add a b')
+                                                       , (i = 1) -> <j> addSuc b' a @ -j ]
+
 -}

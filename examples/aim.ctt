@@ -116,11 +116,18 @@ funExt (A : U) (B : A -> U) (f g : (x : A) -> B x)
        (p : (x : A) -> Id (B x) (f x) (g x)) : Id ((y : A) -> B y) f g =
   <i> \(a : A) -> (p a) @ i
 
--- To see the definition of funExt makes sense we can compute its faces:
---
--- funExt @ 0 = \(a : A) -> (p a) @ 0      (faces commute with operations)
---            = \(a : A) -> f a            (p a proves Id (B a) (f a) (g a))
---            = f                          (by eta)
+{- 
+
+To see that the definition of funExt makes sense we can compute its
+faces:
+
+funExt @ 0 = \(a : A) -> (p a) @ 0
+           = \(a : A) -> f a
+           = f
+
+The last equality holds because of eta.
+
+-}
 
 
 {-

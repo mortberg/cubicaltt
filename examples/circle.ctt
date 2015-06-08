@@ -20,7 +20,7 @@ helix : S1 -> U = split
   base -> Z
   loop @ i -> sucIdZ @ i
 
-winding (p : loopS1) : Z = transport rem zeroZ
+winding (p : loopS1) : Z = trans Z Z rem zeroZ
   where
     rem : Id U Z Z = <i> helix (p @ i)
 

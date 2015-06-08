@@ -13,9 +13,9 @@ negBoolK : (b : bool) -> Id bool (negBool (negBool b)) b = split
   true -> refl bool true
 
 negBoolEq : Id U bool bool =
-  <i> glue bool [ (i = 0) -> (bool,negBool,negBool,negBoolK,negBoolK) ]
+  isoId bool bool negBool negBool negBoolK negBoolK
 
-test : bool = transport negBoolEq true
+test : bool = trans bool bool negBoolEq true
 
 data F2 = zeroF2 | oneF2
 
@@ -53,12 +53,12 @@ negBool' : bool -> bool = subst U (\(X : U) -> (X -> X)) F2 bool F2EqBool negF2
 F2EqBoolComp : Id U F2 bool =
   compId U F2 bool bool F2EqBool negBoolEq
 
-test2 : bool = transport F2EqBoolComp oneF2
+test2 : bool = trans F2 bool F2EqBoolComp oneF2
 
 negNegEq : Id U bool bool =
   compId U bool bool bool negBoolEq negBoolEq
 
-test3 : bool = transport negNegEq true
+test3 : bool = trans bool bool negNegEq true
 test4 : Id U bool bool = <i> negNegEq @ i
 
 kanBool : Id U bool bool =
@@ -69,10 +69,10 @@ squareBoolF2 : Square U bool bool (refl U bool) bool F2
   <i j> boolEqF2 @ i /\ j
 
 test5 : IdP boolEqF2 true oneF2 = 
-  <i> transport (<j> boolEqF2 @ i /\ j) true
+  <i> comp (<j> boolEqF2 @ i /\ j) true []
 
 test6 : Id bool true true =
-  <i> transport (<j> F2EqBool @ i \/ j) (test5 @ - i)
+  <i> comp (<j> F2EqBool @ i \/ j) (test5 @ - i) []
 
 test7 : Id U F2 F2 =
   subst U (\(X:U) -> Id U X X) bool F2 boolEqF2 negNegEq
@@ -81,7 +81,7 @@ test8 : Id U F2 F2 =
   subst U (\(X:U) -> Id U X X) bool F2 boolEqF2 (refl U bool)
 
 test9 : Id U F2 F2 =
-  transport (<i> Id U (boolEqF2 @ i) (boolEqF2 @ i)) (refl U bool)
+  comp (<i> Id U (boolEqF2 @ i) (boolEqF2 @ i)) (refl U bool) []
 
-p : Id U F2 bool = <i> comp (<_>U) bool [ (i = 0) -> boolEqF2 ]
+p : Id U F2 bool = <i> comp (<_> U) bool [ (i = 0) -> boolEqF2, (i = 1) -> <_> bool]
 q : Id U F2 F2 = <i> p @ (i /\ - i)

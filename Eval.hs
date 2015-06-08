@@ -621,6 +621,7 @@ instance Convertible Val where
       (p,VPath i' a')            -> conv ns (p @@ j) (a' `swap` (i',j))
       (VAppFormula u x,VAppFormula u' x') -> conv ns (u,x) (u',x')
       (VComp a u ts,VComp a' u' ts') -> conv ns (a,u,ts) (a',u',ts')
+      (VHComp a u ts,VHComp a' u' ts') -> conv ns (a,u,ts) (a',u',ts')
       (VGlue v hisos,VGlue v' hisos') -> conv ns (v,hisos) (v',hisos')
       (VGlueElem u us,VGlueElem u' us') -> conv ns (u,us) (u',us')
       (VUnGlueElem u _ _,VUnGlueElem u' _ _) -> conv ns u u'

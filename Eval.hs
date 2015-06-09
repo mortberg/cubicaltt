@@ -361,14 +361,11 @@ comp i a u ts = case a of
   VU -> glue u (Map.map (eqToIso . VPath i) ts)
   VGlue b hisos -> compGlue i b hisos u ts
   Ter (Sum _ _ nass) env -> case u of
-    VCon n us -> case lookupLabel n nass of
-      Just as ->
-        if all isCon (elems ts)
-           then let tsus = transposeSystemAndList (Map.map unCon ts) us
-                in VCon n $ comps i as env tsus
-           else VComp (VPath i a) u (Map.map (VPath i) ts)
+    VCon n us | all isCon (elems ts) -> case lookupLabel n nass of
+      Just as -> let tsus = transposeSystemAndList (Map.map unCon ts) us
+                 in VCon n $ comps i as env tsus
       Nothing -> error $ "comp: missing constructor in labelled sum " ++ n
-    _ -> error $ "comp ter sum" ++ show u
+    _ -> VComp (VPath i a) u (Map.map (VPath i) ts)
   Ter (HSum _ _ nass) env -> compHIT i a u ts
   _ -> VComp (VPath i a) u (Map.map (VPath i) ts)
 
@@ -425,12 +422,20 @@ hComp a u us | eps `Map.member` us = (us ! eps) @@ One
 -------------------------------------------------------------------------------
 -- | Glue
 --
+-- OLD:
 -- An hiso for a type b is a five-tuple: (a,f,g,r,s)   where
 --  a : U
 --  f : a -> b
 --  g : b -> a
 --  s : forall (y : b), f (g y) = y
 --  t : forall (x : a), g (f x) = x
+
+-- An equivalence for a type b is a four-tuple (a,f,s,t) where
+-- a : U
+-- f : a -> b
+-- s : (y : b) -> fiber a b f y
+-- t : (y : b) (w : fiber a b f y) -> s y = w
+-- with fiber a b f y = (x : a) * (f x = y)
 
 hisoDom :: Val -> Val
 hisoDom (VPair a _) = a
@@ -544,28 +549,48 @@ pathComp i a u u' us = VPath j $ comp i a (u `face` (i ~> 0)) us'
 -- Grad Lemma, takes an iso f, a system us and a value v, s.t. f us =
 -- border v. Outputs (u,p) s.t. border u = us and a path p between v
 -- and f u.
-gradLemma :: Val -> Val -> System Val -> Val -> (Val, Val)
-gradLemma b hiso@(VPair a (VPair f (VPair g (VPair s t)))) us v =
-  (u, VPath i theta'')
-  where i:j:_   = freshs (b,hiso,us,v)
-        us'     = mapWithKey (\alpha uAlpha ->
-                                   app (t `face` alpha) uAlpha @@ i) us
-        gv      = app g v
-        theta   = fill i a gv us'
-        u       = comp i a gv us'  -- Same as "theta `face` (i ~> 1)"
-        ws      = insertSystem (i ~> 0) gv $
-                  insertSystem (i ~> 1) (app t u @@ j) $
-                  mapWithKey
-                    (\alpha uAlpha ->
-                      app (t `face` alpha) uAlpha @@ (Atom i :/\: Atom j)) us
-        theta'  = compNeg j a theta ws
-        xs      = insertSystem (i ~> 0) (app s v @@ j) $
-                  insertSystem (i ~> 1) (app s (app f u) @@ j) $
-                  mapWithKey
-                    (\alpha uAlpha ->
-                      app (s `face` alpha) (app (f `face` alpha) uAlpha) @@ j) us
-        theta'' = comp j b (app f theta') xs
+-- gradLemma :: Val -> Val -> System Val -> Val -> (Val, Val)
+-- gradLemma b hiso@(VPair a (VPair f (VPair g (VPair s t)))) us v =
+--   (u, VPath i theta'')
+--   where i:j:_   = freshs (b,hiso,us,v)
+--         us'     = mapWithKey (\alpha uAlpha ->
+--                                    app (t `face` alpha) uAlpha @@ i) us
+--         gv      = app g v
+--         theta   = fill i a gv us'
+--         u       = comp i a gv us'  -- Same as "theta `face` (i ~> 1)"
+--         ws      = insertSystem (i ~> 0) gv $
+--                   insertSystem (i ~> 1) (app t u @@ j) $
+--                   mapWithKey
+--                     (\alpha uAlpha ->
+--                       app (t `face` alpha) uAlpha @@ (Atom i :/\: Atom j)) us
+--         theta'  = compNeg j a theta ws
+--         xs      = insertSystem (i ~> 0) (app s v @@ j) $
+--                   insertSystem (i ~> 1) (app s (app f u) @@ j) $
+--                   mapWithKey
+--                     (\alpha uAlpha ->
+--                       app (s `face` alpha) (app (f `face` alpha) uAlpha) @@ j) us
+--         theta'' = comp j b (app f theta') xs
 
+-- Grad Lemma, takes an equivalence f, an L-system us and a value v,
+-- s.t. f us = border v. Outputs (u,p) s.t. border u = us and an
+-- L-path p between v and f u.
+gradLemma :: Val -> Val -> System Val -> Val -> (Val, Val)
+gradLemma b equiv@(VPair a (VPair f (VPair s t))) us v =
+  (u,VPath j $ tau `sym` j)
+  where i:j:_ = freshs (b,equiv,us,v)
+        g y = fstVal (app s y) -- g : b -> a
+        eta y = sndVal (app s y) -- eta b @ i : f (g b) --> b
+        us' = mapWithKey
+              (\alpha uAlpha ->
+                let fuAlpha = app (f `face` alpha) uAlpha
+                in app (app (t `face` alpha) fuAlpha)
+                       (VPair uAlpha (constPath fuAlpha))) us
+        theta = fill i a (g v) (Map.map (fstVal . (@@ i)) us')
+        u = theta `face` (i ~> 1)
+        vs = insertsSystem
+               [(j ~> 0, app f theta),(j ~> 1, v)]
+               (Map.map ((@@ j) . sndVal . (@@ i)) us')
+        tau = comp i b (eta v @@ j) vs
 
 -------------------------------------------------------------------------------
 -- | Conversion

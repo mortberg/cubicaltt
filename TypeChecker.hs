@@ -112,17 +112,34 @@ mkVars ns ((x,a):xas) nu =
   let w@(VVar n _) = mkVarNice ns x (eval nu a)
   in (x,w) : mkVars (n:ns) xas (upd (x,w) nu)
 
--- Construct a fuction "(_ : va) -> vb"
+-- Construct "(_ : va) -> vb"
 mkFun :: Val -> Val -> Val
 mkFun va vb = VPi va (eval rho (Lam "_" (Var "a") (Var "b")))
   where rho = upd ("b",vb) (upd ("a",va) empty)
 
--- Construct "(x : b) -> IdP (<_> b) (f (g x)) x"
-mkSection :: Val -> Val -> Val -> Val
-mkSection vb vf vg =
-  VPi vb (eval rho (Lam "x" b (IdP (Path (Name "_") b) (App f (App g x)) x)))
-  where [b,x,f,g] = map Var ["b","x","f","g"]
-        rho = upd ("g",vg) (upd ("f",vf) (upd ("b",vb) empty))
+-- -- Construct "(x : b) -> IdP (<_> b) (f (g x)) x"
+-- mkSection :: Val -> Val -> Val -> Val
+-- mkSection vb vf vg =
+--   VPi vb (eval rho (Lam "x" b (IdP (Path (Name "_") b) (App f (App g x)) x)))
+--   where [b,x,f,g] = map Var ["b","x","f","g"]
+--         rho = upd ("g",vg) (upd ("f",vf) (upd ("b",vb) empty))
+
+-- Construct "(y : b) -> (x : va) * Id vb (vf x) y"
+mkFiberCenter :: Val -> Val -> Val -> Val
+mkFiberCenter va vb vf =
+  eval rho $ Pi (Lam "y" b $
+    Sigma (Lam "x" a $ IdP (Path (Name "_") b) (App f x) y))
+  where [a,b,f,x,y] = map Var ["a","b","f","x","y"]
+        rho = upds (zip ["a","b","f"] [va,vb,vf]) empty
+
+-- Construct "(y : vb) (w : fiber va vb vf y) -> vs y = w
+mkFiberIsCenter :: Val -> Val -> Val -> Val -> Val
+mkFiberIsCenter va vb vf vs =
+  eval rho $ Pi (Lam "y" b $
+    Pi (Lam "w" fib $ IdP (Path (Name "_") fib) (App s y) w))
+  where [a,b,f,x,y,s,w] = map Var ["a","b","f","x","y","s","w"]
+        rho = upds (zip ["a","b","f","s"] [va,vb,vf,vs]) empty
+        fib = Sigma (Lam "x" a $ IdP (Path (Name "_") b) (App f x) y)
 
 -- Test if two values are convertible
 (===) :: Convertible a => a -> a -> Typing Bool
@@ -296,22 +313,38 @@ checkGlue va ts = do
   rho <- asks env
   checkCompSystem (evalSystem rho ts)
 
--- An iso for a type b is a five-tuple: (a,f,g,r,s)   where
---  a : U
---  f : a -> b
---  g : b -> a
---  s : forall (y : b), f (g y) = y
---  t : forall (x : a), g (f x) = x
+-- -- An iso for a type b is a five-tuple: (a,f,g,r,s)   where
+-- --  a : U
+-- --  f : a -> b
+-- --  g : b -> a
+-- --  s : forall (y : b), f (g y) = y
+-- --  t : forall (x : a), g (f x) = x
+-- checkIso :: Val -> Ter -> Typing ()
+-- checkIso vb (Pair a (Pair f (Pair g (Pair s t)))) = do
+--   check VU a
+--   va <- evalTyping a
+--   check (mkFun va vb) f
+--   check (mkFun vb va) g
+--   vf <- evalTyping f
+--   vg <- evalTyping g
+--   check (mkSection vb vf vg) s
+--   check (mkSection va vg vf) t
+
+-- An equivalence for a type b is a four-tuple (a,f,s,t) where
+-- a : U
+-- f : a -> b
+-- s : (y : b) -> fiber a b f y
+-- t : (y : b) (w : fiber a b f y) -> s y = w
+-- with fiber a b f y = (x : a) * (f x = y)
 checkIso :: Val -> Ter -> Typing ()
-checkIso vb (Pair a (Pair f (Pair g (Pair s t)))) = do
+checkIso vb (Pair a (Pair f (Pair s t))) = do
   check VU a
   va <- evalTyping a
   check (mkFun va vb) f
-  check (mkFun vb va) g
   vf <- evalTyping f
-  vg <- evalTyping g
-  check (mkSection vb vf vg) s
-  check (mkSection va vg vf) t
+  check (mkFiberCenter va vb vf) s
+  vs <- evalTyping s
+  check (mkFiberIsCenter va vb vf vs) t
 
 checkBranch :: (Label,Env) -> Val -> Branch -> Val -> Val -> Typing ()
 checkBranch (OLabel _ tele,nu) f (OBranch c ns e) _ _ = do

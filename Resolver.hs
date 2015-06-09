@@ -207,10 +207,10 @@ resolveExp e = case e of
   Fill u v ts -> CTT.Fill <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
   Glue u ts   -> do
     rs <- resolveSystem ts
-    let isIso (CTT.Pair _ (CTT.Pair _ (CTT.Pair _ (CTT.Pair _ _)))) = True
-        isIso _ = False
-    unless (all isIso $ Map.elems rs)
-      (throwError $ "Not a system of isomorphisms: " ++ show rs)
+    let isEquiv (CTT.Pair _ (CTT.Pair _ (CTT.Pair _ _))) = True
+        isEquiv _ = False
+    unless (all isEquiv $ Map.elems rs)
+      (throwError $ "Not a system of equivalences: " ++ show rs)
     CTT.Glue <$> resolveExp u <*> pure rs
   -- GlueElem u ts      -> CTT.GlueElem <$> resolveExp u <*> resolveSystem ts
   -- GlueLine phi psi u ->

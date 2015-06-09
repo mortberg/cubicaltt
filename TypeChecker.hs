@@ -299,36 +299,19 @@ checkGlueElem vu ts us = do
   unless (keys ts == keys us)
     (throwError ("Keys don't match in " ++ show ts ++ " and " ++ show us))
   rho <- asks env
-  checkSystemsWith ts us (\_ vt u -> check (hisoDom vt) u)
+  checkSystemsWith ts us (\_ vt u -> check (equivDom vt) u)
   let vus = evalSystem rho us
   checkSystemsWith ts vus (\alpha vt vAlpha ->
-    unlessM (app (hisoFun vt) vAlpha === (vu `face` alpha)) $
+    unlessM (app (equivFun vt) vAlpha === (vu `face` alpha)) $
       throwError $ "Image of glueElem component " ++ show vAlpha ++
                    " doesn't match " ++ show vu)
   checkCompSystem vus
 
 checkGlue :: Val -> System Ter -> Typing ()
 checkGlue va ts = do
-  checkSystemWith ts (\alpha tAlpha -> checkIso (va `face` alpha) tAlpha)
+  checkSystemWith ts (\alpha tAlpha -> checkEquiv (va `face` alpha) tAlpha)
   rho <- asks env
   checkCompSystem (evalSystem rho ts)
-
--- -- An iso for a type b is a five-tuple: (a,f,g,r,s)   where
--- --  a : U
--- --  f : a -> b
--- --  g : b -> a
--- --  s : forall (y : b), f (g y) = y
--- --  t : forall (x : a), g (f x) = x
--- checkIso :: Val -> Ter -> Typing ()
--- checkIso vb (Pair a (Pair f (Pair g (Pair s t)))) = do
---   check VU a
---   va <- evalTyping a
---   check (mkFun va vb) f
---   check (mkFun vb va) g
---   vf <- evalTyping f
---   vg <- evalTyping g
---   check (mkSection vb vf vg) s
---   check (mkSection va vg vf) t
 
 -- An equivalence for a type b is a four-tuple (a,f,s,t) where
 -- a : U
@@ -336,8 +319,8 @@ checkGlue va ts = do
 -- s : (y : b) -> fiber a b f y
 -- t : (y : b) (w : fiber a b f y) -> s y = w
 -- with fiber a b f y = (x : a) * (f x = y)
-checkIso :: Val -> Ter -> Typing ()
-checkIso vb (Pair a (Pair f (Pair s t))) = do
+checkEquiv :: Val -> Ter -> Typing ()
+checkEquiv vb (Pair a (Pair f (Pair s t))) = do
   check VU a
   va <- evalTyping a
   check (mkFun va vb) f

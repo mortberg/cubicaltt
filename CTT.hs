@@ -163,7 +163,7 @@ data Val = VU
          | VVar Ident Val
          | VFst Val
          | VSnd Val
-           -- VUnGlueElem val type hisos
+           -- VUnGlueElem val type equivs
          | VUnGlueElem Val Val (System Val)
          | VSplit Val Val
          | VApp Val Val

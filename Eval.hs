@@ -359,7 +359,7 @@ comp i a u ts = case a of
           comp_u2    = comp i (app f fill_u1) u2 t2s
   VPi{} -> VComp (VPath i a) u (Map.map (VPath i) ts)
   VU -> glue u (Map.map (eqToIso . VPath i) ts)
-  VGlue b hisos -> compGlue i b hisos u ts
+  VGlue b equivs -> compGlue i b equivs u ts
   Ter (Sum _ _ nass) env -> case u of
     VCon n us | all isCon (elems ts) -> case lookupLabel n nass of
       Just as -> let tsus = transposeSystemAndList (Map.map unCon ts) us
@@ -421,15 +421,6 @@ hComp a u us | eps `Map.member` us = (us ! eps) @@ One
 
 -------------------------------------------------------------------------------
 -- | Glue
---
--- OLD:
--- An hiso for a type b is a five-tuple: (a,f,g,r,s)   where
---  a : U
---  f : a -> b
---  g : b -> a
---  s : forall (y : b), f (g y) = y
---  t : forall (x : a), g (f x) = x
-
 -- An equivalence for a type b is a four-tuple (a,f,s,t) where
 -- a : U
 -- f : a -> b
@@ -437,15 +428,17 @@ hComp a u us | eps `Map.member` us = (us ! eps) @@ One
 -- t : (y : b) (w : fiber a b f y) -> s y = w
 -- with fiber a b f y = (x : a) * (f x = y)
 
-hisoDom :: Val -> Val
-hisoDom (VPair a _) = a
-hisoDom x           = error $ "HisoDom: Not an hiso: " ++ show x
+equivDom :: Val -> Val
+equivDom (VPair a _) = a
+equivDom x           = error $ "equivDom: Not an equivalence: " ++ show x
 
-hisoFun :: Val -> Val
-hisoFun (VPair _ (VPair f _)) = f
-hisoFun x                     = error $ "HisoFun: Not an hiso: " ++ show x
+equivFun :: Val -> Val
+equivFun (VPair _ (VPair f _)) = f
+equivFun x                     =
+  error $ "equivFun: Not an equivalence: " ++ show x
 
--- -- Every path in the universe induces an hiso
+-- TODO: adapt to equivs
+-- Every path in the universe induces an hiso
 eqToIso :: Val -> Val
 eqToIso e = VPair e1 (VPair f (VPair g (VPair s t)))
   where e1 = e @@ One
@@ -473,7 +466,7 @@ eqToIso e = VPair e1 (VPair f (VPair g (VPair s t)))
         t = Ter (Lam "x" ev1 $ Path j $ Comp ev (eminus x) tsys) eenv
 
 glue :: Val -> System Val -> Val
-glue b ts | eps `Map.member` ts = hisoDom (ts ! eps)
+glue b ts | eps `Map.member` ts = equivDom (ts ! eps)
           | otherwise           = VGlue b ts
 
 glueElem :: Val -> System Val -> Val
@@ -481,54 +474,54 @@ glueElem v us | eps `Map.member` us = us ! eps
               | otherwise           = VGlueElem v us
 
 unGlue :: Val -> Val -> System Val -> Val
-unGlue w b hisos
-    | eps `Map.member` hisos = app (hisoFun (hisos ! eps)) w
+unGlue w b equivs
+    | eps `Map.member` equivs = app (equivFun (equivs ! eps)) w
     | otherwise              = case w of
        VGlueElem v us   -> v
-       _ -> VUnGlueElem w b hisos
+       _ -> VUnGlueElem w b equivs
 
 compGlue :: Name -> Val -> System Val -> Val -> System Val -> Val
-compGlue i b hisos wi0 ws = glueElem vi1'' usi1''
+compGlue i b equivs wi0 ws = glueElem vi1'' usi1''
   where bi1 = b `face` (i ~> 1)
         vs   = mapWithKey
                  (\alpha wAlpha -> unGlue wAlpha
-                                     (b `face` alpha) (hisos `face` alpha)) ws
+                                     (b `face` alpha) (equivs `face` alpha)) ws
         vsi1 = vs `face` (i ~> 1) -- same as: border vi1 vs
-        vi0  = unGlue wi0 (b `face` (i ~> 0)) (hisos `face` (i ~> 0)) -- in b(i0)
+        vi0  = unGlue wi0 (b `face` (i ~> 0)) (equivs `face` (i ~> 0)) -- in b(i0)
 
         v    = fill i b vi0 vs           -- in b
         vi1  = comp i b vi0 vs           -- is v `face` (i ~> 1) in b(i1)
 
-        hisosI1 = hisos `face` (i ~> 1)
-        hisos'  = filterWithKey (\alpha _ -> i `Map.notMember` alpha) hisos
-        hisos'' = filterWithKey (\alpha _ -> alpha `Map.notMember` hisos') hisosI1
+        equivsI1 = equivs `face` (i ~> 1)
+        equivs'  = filterWithKey (\alpha _ -> i `Map.notMember` alpha) equivs
+        equivs'' = filterWithKey (\alpha _ -> alpha `Map.notMember` equivs') equivsI1
 
         us'    = mapWithKey (\gamma isoG ->
-                   fill i (hisoDom isoG) (wi0 `face` gamma) (ws `face` gamma))
-                 hisos'
+                   fill i (equivDom isoG) (wi0 `face` gamma) (ws `face` gamma))
+                 equivs'
         usi1'  = mapWithKey (\gamma isoG ->
-                   comp i (hisoDom isoG) (wi0 `face` gamma) (ws `face` gamma))
-                 hisos'
+                   comp i (equivDom isoG) (wi0 `face` gamma) (ws `face` gamma))
+                 equivs'
 
         ls'    = mapWithKey (\gamma isoG ->
                    pathComp i (b `face` gamma) (v `face` gamma)
-                     (hisoFun isoG `app` (us' ! gamma)) (vs `face` gamma))
-                 hisos'
+                     (equivFun isoG `app` (us' ! gamma)) (vs `face` gamma))
+                 equivs'
 
         vi1' = compLine (constPath bi1) vi1
                  (ls' `unionSystem` Map.map constPath vsi1)
 
         wsi1 = ws `face` (i ~> 1)
 
-        -- for gamma in hisos'', (i1) gamma is in hisos, so wsi1 gamma
+        -- for gamma in equivs'', (i1) gamma is in equivs, so wsi1 gamma
         -- is in the domain of isoGamma
         uls'' = mapWithKey (\gamma isoG ->
                   gradLemma (bi1 `face` gamma) isoG
                     ((usi1' `face` gamma) `unionSystem` (wsi1 `face` gamma))
                     (vi1' `face` gamma))
-                  hisos''
+                  equivs''
 
-        vsi1' = Map.map constPath $ border vi1' hisos' `unionSystem` vsi1
+        vsi1' = Map.map constPath $ border vi1' equivs' `unionSystem` vsi1
 
         vi1'' = compLine (constPath bi1) vi1'
                   (Map.map snd uls'' `unionSystem` vsi1')
@@ -536,7 +529,7 @@ compGlue i b hisos wi0 ws = glueElem vi1'' usi1''
         usi1'' = Map.mapWithKey (\gamma _ ->
                      if gamma `Map.member` usi1' then usi1' ! gamma
                      else fst (uls'' ! gamma))
-                   hisosI1
+                   equivsI1
 
 
 -- assumes u and u' : A are solutions of us + (i0 -> u(i0))
@@ -647,7 +640,7 @@ instance Convertible Val where
       (VAppFormula u x,VAppFormula u' x') -> conv ns (u,x) (u',x')
       (VComp a u ts,VComp a' u' ts') -> conv ns (a,u,ts) (a',u',ts')
       (VHComp a u ts,VHComp a' u' ts') -> conv ns (a,u,ts) (a',u',ts')
-      (VGlue v hisos,VGlue v' hisos') -> conv ns (v,hisos) (v',hisos')
+      (VGlue v equivs,VGlue v' equivs') -> conv ns (v,equivs) (v',equivs')
       (VGlueElem u us,VGlueElem u' us') -> conv ns (u,us) (u',us')
       (VUnGlueElem u _ _,VUnGlueElem u' _ _) -> conv ns u u'
       _                         -> False
@@ -702,7 +695,7 @@ instance Normal Val where
     VIdP a u0 u1        -> VIdP (normal ns a) (normal ns u0) (normal ns u1)
     VPath i u           -> VPath i (normal ns u)
     VComp u v vs        -> compLine (normal ns u) (normal ns v) (normal ns vs)
-    VGlue u hisos       -> glue (normal ns u) (normal ns hisos)
+    VGlue u equivs      -> glue (normal ns u) (normal ns equivs)
     VGlueElem u us      -> glueElem (normal ns u) (normal ns us)
     VUnGlueElem u b hs  -> unGlue (normal ns u) (normal ns b) (normal ns hs)
     VVar x t            -> VVar x t -- (normal ns t)

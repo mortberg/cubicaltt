@@ -496,7 +496,7 @@ compGlue i b hisos wi0 ws = glueElem vi1'' usi1''
 
         hisosI1 = hisos `face` (i ~> 1)
         hisos'  = filterWithKey (\alpha _ -> i `Map.notMember` alpha) hisos
-        hisos'' = filterWithKey (\alpha _ -> alpha `Map.notMember` hisos') hisosI1
+        hisos'' = filterWithKey (\alpha _ -> alpha `Map.notMember` hisos) hisosI1
 
         us'    = mapWithKey (\gamma isoG ->
                    fill i (hisoDom isoG) (wi0 `face` gamma) (ws `face` gamma))

@@ -358,7 +358,7 @@ comp i a u ts = case a of
           ui1        = comp i a u1 t1s
           comp_u2    = comp i (app f fill_u1) u2 t2s
   VPi{} -> VComp (VPath i a) u (Map.map (VPath i) ts)
-  VU -> glue u (Map.map (eqToIso . VPath i) ts)
+  VU -> glue u (Map.map (eqToEquiv . VPath i) ts)
   VGlue b equivs -> compGlue i b equivs u ts
   Ter (Sum _ _ nass) env -> case u of
     VCon n us | all isCon (elems ts) -> case lookupLabel n nass of
@@ -439,10 +439,45 @@ equivFun x                     =
 
 -- TODO: adapt to equivs
 -- Every path in the universe induces an hiso
-eqToIso :: Val -> Val
-eqToIso e = VPair e1 (VPair f (VPair g (VPair s t)))
+-- eqToIso :: Val -> Val
+-- eqToIso e = VPair e1 (VPair f (VPair g (VPair s t)))
+--   where e1 = e @@ One
+--         (i,j,x,y,ev) = (Name "i",Name "j",Var "x",Var "y",Var "E")
+--         inv t = Path i $ AppFormula t (NegAtom i)
+--         evinv = inv ev
+--         (ev0, ev1) = (AppFormula ev (Dir Zero),AppFormula ev (Dir One)) -- (b,a)
+--         eenv     = upd ("E",e) empty
+--         -- eplus : e0 -> e1
+--         eplus z  = Comp ev z Map.empty
+--         -- eminus : e1 -> e0
+--         eminus z = Comp evinv z Map.empty
+--         -- NB: edown is *not* transNegFill
+--         eup z   = Fill ev z Map.empty
+--         edown z = Fill evinv z Map.empty
+--         f = Ter (Lam "x" ev1 (eminus x)) eenv
+--         g = Ter (Lam "y" ev0 (eplus y)) eenv
+--         -- s : (y : e0) -> eminus (eplus y) = y
+--         ssys = mkSystem [(j ~> 1, inv (eup y))
+--                         ,(j ~> 0, edown (eplus y))]
+--         s = Ter (Lam "y" ev0 $ Path j $ Comp evinv (eplus y) ssys) eenv
+--         -- t : (x : e1) -> eplus (eminus x) = x
+--         tsys = mkSystem [(j ~> 0, eup (eminus x))
+--                         ,(j ~> 1, inv (edown x))]
+--         t = Ter (Lam "x" ev1 $ Path j $ Comp ev (eminus x) tsys) eenv
+
+-- An equivalence for a type b is a four-tuple (a,f,s,t) where
+-- a : U
+-- f : a -> b
+-- s : (y : b) -> fiber a b f y
+-- t : (y : b) (w : fiber a b f y) -> s y = w
+-- with fiber a b f y = (x : a) * (f x = y)
+
+
+-- Every path in the universe induces an equivalence
+eqToEquiv :: Val -> Val
+eqToEquiv e = VPair e1 (VPair f (VPair s t))
   where e1 = e @@ One
-        (i,j,x,y,ev) = (Name "i",Name "j",Var "x",Var "y",Var "E")
+        (i,j,k,x,y,w,ev) = (Name "i",Name "j",Name "k",Var "x",Var "y",Var "w",Var "E")
         inv t = Path i $ AppFormula t (NegAtom i)
         evinv = inv ev
         (ev0, ev1) = (AppFormula ev (Dir Zero),AppFormula ev (Dir One)) -- (b,a)
@@ -455,15 +490,33 @@ eqToIso e = VPair e1 (VPair f (VPair g (VPair s t)))
         eup z   = Fill ev z Map.empty
         edown z = Fill evinv z Map.empty
         f = Ter (Lam "x" ev1 (eminus x)) eenv
-        g = Ter (Lam "y" ev0 (eplus y)) eenv
-        -- s : (y : e0) -> eminus (eplus y) = y
-        ssys = mkSystem [(j ~> 1, inv (eup y))
-                        ,(j ~> 0, edown (eplus y))]
-        s = Ter (Lam "y" ev0 $ Path j $ Comp evinv (eplus y) ssys) eenv
-        -- t : (x : e1) -> eplus (eminus x) = x
-        tsys = mkSystem [(j ~> 0, eup (eminus x))
-                        ,(j ~> 1, inv (edown x))]
-        t = Ter (Lam "x" ev1 $ Path j $ Comp ev (eminus x) tsys) eenv
+        -- g = Ter (Lam "y" ev0 (eplus y)) eenv
+        etasys z0 = mkSystem [(j ~> 1, inv (eup z0))
+                             ,(j ~> 0, edown (eplus z0))]
+        -- eta : (y : e0) -> eminus (eplus y) = y
+        eta z0 = Path j $ Comp evinv (eplus z0) (etasys z0)
+        etaSquare z0 = Fill evinv (eplus z0) (etasys z0)
+        s = Ter (Lam "y" ev0 $ Pair (eplus y) (eta y)) eenv
+        (a,p) = (Fst w,Snd w) -- a : e1 and p : eminus a = y
+        phisys l = mkSystem [ (l ~> 0, inv (edown a))
+                            , (l ~> 1, eup y)]
+        psi l = Comp ev (AppFormula p (Atom l)) (phisys l)
+        phi l = Fill ev (AppFormula p (Atom l)) (phisys l)
+        tsys = mkSystem
+               [ (j ~> 0, edown (psi i))
+               , (j ~> 1, inv $ eup y)
+               , (i ~> 0, inv $ phi j)
+               , (i ~> 1, etaSquare y)
+               ]
+        -- encode act on terms using Path and AppFormula
+        psi' formula = AppFormula (Path j $ psi j) formula
+        tprinc = psi' (Atom i :\/: Atom j)
+        t2 = Comp evinv tprinc tsys
+        t2inv = AppFormula (inv (Path i t2)) (Atom i)
+        fibtype = Sigma (Lam "x" ev1 $ IdP (Path (Name "_") ev0) (eminus x) y)
+        t = Ter (Lam "y" ev0 $ Lam "w" fibtype $ Path i $
+                 Pair (psi' (NegAtom i)) (Path j t2inv)) eenv
+
 
 glue :: Val -> System Val -> Val
 glue b ts | eps `Map.member` ts = equivDom (ts ! eps)

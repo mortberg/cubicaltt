@@ -361,14 +361,11 @@ comp i a u ts = case a of
   VU -> glue u (Map.map (eqToIso . VPath i) ts)
   VGlue b hisos -> compGlue i b hisos u ts
   Ter (Sum _ _ nass) env -> case u of
-    VCon n us -> case lookupLabel n nass of
-      Just as ->
-        if all isCon (elems ts)
-           then let tsus = transposeSystemAndList (Map.map unCon ts) us
-                in VCon n $ comps i as env tsus
-           else VComp (VPath i a) u (Map.map (VPath i) ts)
+    VCon n us | all isCon (elems ts) -> case lookupLabel n nass of
+      Just as -> let tsus = transposeSystemAndList (Map.map unCon ts) us
+                 in VCon n $ comps i as env tsus
       Nothing -> error $ "comp: missing constructor in labelled sum " ++ n
-    _ -> error $ "comp ter sum" ++ show u
+    _ -> VComp (VPath i a) u (Map.map (VPath i) ts)
   Ter (HSum _ _ nass) env -> compHIT i a u ts
   _ -> VComp (VPath i a) u (Map.map (VPath i) ts)
 

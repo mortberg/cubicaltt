@@ -429,13 +429,10 @@ hComp a u us | eps `Map.member` us = (us ! eps) @@ One
 -- with fiber a b f y = (x : a) * (f x = y)
 
 equivDom :: Val -> Val
-equivDom (VPair a _) = a
-equivDom x           = error $ "equivDom: Not an equivalence: " ++ show x
+equivDom = fstVal
 
 equivFun :: Val -> Val
-equivFun (VPair _ (VPair f _)) = f
-equivFun x                     =
-  error $ "equivFun: Not an equivalence: " ++ show x
+equivFun = sndVal . fstVal
 
 -- TODO: adapt to equivs
 -- Every path in the universe induces an hiso
@@ -465,19 +462,11 @@ equivFun x                     =
 --                         ,(j ~> 1, inv (edown x))]
 --         t = Ter (Lam "x" ev1 $ Path j $ Comp ev (eminus x) tsys) eenv
 
--- An equivalence for a type b is a four-tuple (a,f,s,t) where
--- a : U
--- f : a -> b
--- s : (y : b) -> fiber a b f y
--- t : (y : b) (w : fiber a b f y) -> s y = w
--- with fiber a b f y = (x : a) * (f x = y)
-
-
 -- Every path in the universe induces an equivalence
 eqToEquiv :: Val -> Val
 eqToEquiv e = VPair e1 (VPair f (VPair s t))
   where e1 = e @@ One
-        (i,j,k,x,y,w,ev) = (Name "i",Name "j",Name "k",Var "x",Var "y",Var "w",Var "E")
+        (i,j,x,y,w,ev) = (Name "i",Name "j",Var "x",Var "y",Var "w",Var "E")
         inv t = Path i $ AppFormula t (NegAtom i)
         evinv = inv ev
         (ev0, ev1) = (AppFormula ev (Dir Zero),AppFormula ev (Dir One)) -- (b,a)

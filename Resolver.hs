@@ -205,13 +205,7 @@ resolveExp e = case e of
   IdP x y z   -> CTT.IdP <$> resolveExp x <*> resolveExp y <*> resolveExp z
   Comp u v ts -> CTT.Comp <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
   Fill u v ts -> CTT.Fill <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
-  Glue u ts   -> do
-    rs <- resolveSystem ts
-    let isEquiv (CTT.Pair _ (CTT.Pair _ (CTT.Pair _ _))) = True
-        isEquiv _ = False
-    unless (all isEquiv $ Map.elems rs)
-      (throwError $ "Not a system of equivalences: " ++ show rs)
-    CTT.Glue <$> resolveExp u <*> pure rs
+  Glue u ts   -> CTT.Glue <$> resolveExp u <*> resolveSystem ts
   -- GlueElem u ts      -> CTT.GlueElem <$> resolveExp u <*> resolveSystem ts
   -- GlueLine phi psi u ->
   --   CTT.GlueLine <$> resolveExp u <*> resolveFormula phi <*> resolveFormula psi

@@ -112,35 +112,6 @@ mkVars ns ((x,a):xas) nu =
   let w@(VVar n _) = mkVarNice ns x (eval nu a)
   in (x,w) : mkVars (n:ns) xas (upd (x,w) nu)
 
--- Construct "(_ : va) -> vb"
-mkFun :: Val -> Val -> Val
-mkFun va vb = VPi va (eval rho (Lam "_" (Var "a") (Var "b")))
-  where rho = upd ("b",vb) (upd ("a",va) empty)
-
--- -- Construct "(x : b) -> IdP (<_> b) (f (g x)) x"
--- mkSection :: Val -> Val -> Val -> Val
--- mkSection vb vf vg =
---   VPi vb (eval rho (Lam "x" b (IdP (Path (Name "_") b) (App f (App g x)) x)))
---   where [b,x,f,g] = map Var ["b","x","f","g"]
---         rho = upd ("g",vg) (upd ("f",vf) (upd ("b",vb) empty))
-
--- Construct "(y : b) -> (x : va) * Id vb (vf x) y"
-mkFiberCenter :: Val -> Val -> Val -> Val
-mkFiberCenter va vb vf =
-  eval rho $ Pi (Lam "y" b $
-    Sigma (Lam "x" a $ IdP (Path (Name "_") b) (App f x) y))
-  where [a,b,f,x,y] = map Var ["a","b","f","x","y"]
-        rho = upds (zip ["a","b","f"] [va,vb,vf]) empty
-
--- Construct "(y : vb) (w : fiber va vb vf y) -> vs y = w
-mkFiberIsCenter :: Val -> Val -> Val -> Val -> Val
-mkFiberIsCenter va vb vf vs =
-  eval rho $ Pi (Lam "y" b $
-    Pi (Lam "w" fib $ IdP (Path (Name "_") fib) (App s y) w))
-  where [a,b,f,x,y,s,w] = map Var ["a","b","f","x","y","s","w"]
-        rho = upds (zip ["a","b","f","s"] [va,vb,vf,vs]) empty
-        fib = Sigma (Lam "x" a $ IdP (Path (Name "_") b) (App f x) y)
-
 -- Test if two values are convertible
 (===) :: Convertible a => a -> a -> Typing Bool
 u === v = conv <$> asks names <*> pure u <*> pure v
@@ -319,15 +290,18 @@ checkGlue va ts = do
 -- s : (y : b) -> fiber a b f y
 -- t : (y : b) (w : fiber a b f y) -> s y = w
 -- with fiber a b f y = (x : a) * (f x = y)
+mkEquiv :: Val -> Val
+mkEquiv vb = eval rho $
+  Sigma $ Lam "a" U $
+  Sigma $ Lam "f" (Pi (Lam "_" a b)) $
+  Sigma $ Lam "s" (Pi (Lam "y" b $ fib)) $
+    Pi (Lam "y" b $ Pi (Lam "w" fib $ IdP (Path (Name "_") fib) (App s y) w))
+  where [a,b,f,x,y,s,w] = map Var ["a","b","f","x","y","s","w"]
+        rho = upd ("b",vb) empty
+        fib = Sigma (Lam "x" a $ IdP (Path (Name "_") b) (App f x) y)
+
 checkEquiv :: Val -> Ter -> Typing ()
-checkEquiv vb (Pair a (Pair f (Pair s t))) = do
-  check VU a
-  va <- evalTyping a
-  check (mkFun va vb) f
-  vf <- evalTyping f
-  check (mkFiberCenter va vb vf) s
-  vs <- evalTyping s
-  check (mkFiberIsCenter va vb vf vs) t
+checkEquiv vb equiv = check (mkEquiv vb) equiv
 
 checkBranch :: (Label,Env) -> Val -> Branch -> Val -> Val -> Typing ()
 checkBranch (OLabel _ tele,nu) f (OBranch c ns e) _ _ = do
@@ -390,7 +364,9 @@ checkPathSystem t0 va ps = do
       rhoAlpha <- asks env
       (a0,a1)  <- checkPath (va `face` alpha) pAlpha
       unlessM (a0 === eval rhoAlpha t0) $
-        throwError $ "Incompatible system " ++ showSystem ps ++ " with " ++ show t0
+        throwError $ "Incompatible system " ++ showSystem ps ++
+                     ", component\n " ++ show pAlpha ++
+                     "\nincompatible  with\n " ++ show t0
       return a1) ps
   checkCompSystem (evalSystem rho ps)
   return v

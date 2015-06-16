@@ -10,6 +10,7 @@ import qualified Data.Map as Map
 import Connections
 import CTT
 
+
 look :: String -> Env -> Val
 look x (Upd y rho,v:vs,fs) | x == y = v
                            | otherwise = look x (rho,vs,fs)
@@ -434,6 +435,12 @@ equivDom = fstVal
 equivFun :: Val -> Val
 equivFun = fstVal . sndVal
 
+equivCenter :: Val -> Val
+equivCenter = fstVal . sndVal . sndVal
+
+equivIsCenter :: Val -> Val
+equivIsCenter = sndVal . sndVal . sndVal
+
 -- TODO: adapt to equivs
 -- Every path in the universe induces an hiso
 -- eqToIso :: Val -> Val
@@ -610,9 +617,9 @@ pathComp i a u u' us = VPath j $ comp i a (u `face` (i ~> 0)) us'
 -- s.t. f us = border v. Outputs (u,p) s.t. border u = us and an
 -- L-path p between v and f u.
 gradLemma :: Val -> Val -> System Val -> Val -> (Val, Val)
-gradLemma b equiv@(VPair a (VPair f (VPair s t))) us v =
-  (u,VPath j $ tau `sym` j)
-  where i:j:_ = freshs (b,equiv,us,v)
+gradLemma b e us v = (u,VPath j $ tau `sym` j)
+  where i:j:_ = freshs (b,e,us,v)
+        (a,f,s,t) = (equivDom e,equivFun e,equivCenter e,equivIsCenter e)
         g y = fstVal (app s y) -- g : b -> a
         eta y = sndVal (app s y) -- eta b @ i : f (g b) --> b
         us' = mapWithKey

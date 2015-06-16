@@ -432,7 +432,7 @@ equivDom :: Val -> Val
 equivDom = fstVal
 
 equivFun :: Val -> Val
-equivFun = sndVal . fstVal
+equivFun = fstVal . sndVal
 
 -- TODO: adapt to equivs
 -- Every path in the universe induces an hiso

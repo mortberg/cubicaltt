@@ -1,6 +1,5 @@
 module univ where
 
-
 -- Some things from the prelude
 
 Id (A : U) (a0 a1 : A) : U = IdP (<i> A) a0 a1
@@ -27,7 +26,6 @@ J (A : U) (a : A) (C : (x : A) -> Id A a x -> U)
     subst (singl A a) T (a, refl A a) (x, p) (contrSingl A a x p) d
       where T (z : singl A a) : U = C (z.1) (z.2)
 
-
 compId (A : U) (a b c : A) (p : Id A a b) (q : Id A b c) : Id A a c =
   <i> comp (<_>A) (p @ i) [ (i = 1) -> q, (i=0) -> <_> a ]
 
@@ -44,34 +42,32 @@ propPi (A : U) (B : A -> U) (h : (x : A) -> prop (B x))
        (f0 f1 : (x : A) -> B x) : Id ((x : A) -> B x) f0 f1
   = <i> \ (x:A) -> (h x (f0 x) (f1 x)) @ i
 
-lemSig (A : U) (B : A->U) (pB : (x : A) -> prop (B x)) (u v : (x:A) * B x) (p : Id A u.1 v.1) :
- Id ((x:A) * B x) u v = <i> (p@i,(lemPropF A B pB u.1 v.1 p u.2 v.2)@i)
+lemSig (A : U) (B : A -> U) (pB : (x : A) -> prop (B x))
+       (u v : (x:A) * B x) (p : Id A u.1 v.1) :
+       Id ((x:A) * B x) u v =
+  <i> (p@i,(lemPropF A B pB u.1 v.1 p u.2 v.2)@i)
 
-propSig (A : U) (B : A-> U) (pA : prop A) (pB : (x : A) -> prop (B x)) (t u : (x:A) * B x)
-  : Id ((x:A) * B x) t u
-  = lemSig A B pB t u (pA t.1 u.1)
-
+propSig (A : U) (B : A -> U) (pA : prop A)
+        (pB : (x : A) -> prop (B x)) (t u : (x:A) * B x) :
+        Id ((x:A) * B x) t u =
+  lemSig A B pB t u (pA t.1 u.1)
 
 propSet (A : U) (h : prop A) (a b : A) (p q : Id A a b) : Id (Id A a b) p q =
- <j i> comp (<_>A) a [ (i=0) -> h a a
-                , (i=1) -> h a b
-                , (j=0) -> h a (p @ i)
-                , (j=1) -> h a (q @ i)]
-
+ <j i> comp (<_> A) a [ (i = 0) -> h a a
+                      , (i = 1) -> h a b
+                      , (j = 0) -> h a (p @ i)
+                      , (j = 1) -> h a (q @ i)]
 
 isContr (A : U) : U = (x : A) * ((y : A) -> Id A x y)
 
 propIsContr (A : U) : prop (isContr A) = lemProp (isContr A) rem
   where
-    rem (t : isContr A) : prop (isContr A) =
-      propSig A T pA pB
-        where
-          T (x : A) : U = (y : A) -> Id A x y
-          pA (x y : A) : Id A x y = compId A x t.1 y (<i> t.2 x @ -i) (t.2 y)
-          pB (x : A) : prop (T x) =
-            propPi A (\ (y : A) -> Id A x y) (propSet A pA x)
-
-
+    rem (t : isContr A) : prop (isContr A) = propSig A T pA pB
+      where
+        T (x : A) : U = (y : A) -> Id A x y
+        pA (x y : A) : Id A x y = compId A x t.1 y (<i> t.2 x @ -i) (t.2 y)
+        pB (x : A) : prop (T x) =
+          propPi A (\ (y : A) -> Id A x y) (propSet A pA x)
 
 ----------------------------------------------------------------------
 
@@ -82,44 +78,72 @@ isEquiv (A B : U) (f : A -> B) : U =
   (s : (y : B) -> fiber A B f y)
   * ((y : B) (w : fiber A B f y) -> Id (fiber A B f y) (s y) w)
 
-equiv (A B : U) : U =
-  (f : A -> B)
-  * isEquiv A B f
-
+equiv (A B : U) : U = (f : A -> B) * isEquiv A B f
 
 -- Gradlemma:
-Square (A : U) (a0 a1 : A) (u : Id A a0 a1)
-               (b0 b1 : A) (v : Id A b0 b1)
+
+--         u
+--    a0 -----> a1
+--    |         |
+-- r0 |         | r1
+--    |         |
+--    V         V
+--    b0 -----> b1
+--         v
+Square (A : U) (a0 a1 b0 b1 : A)
+               (u : Id A a0 a1) (v : Id A b0 b1)
                (r0 : Id A a0 b0) (r1 : Id A a1 b1) : U
   = IdP (<i> (IdP (<j> A) (u @ i) (v @ i))) r0 r1
 
 lemIso (A B : U) (f : A -> B) (g : B -> A)
-       (s : (y:B) -> Id B (f (g y)) y)
-       (t : (x:A) -> Id A (g (f x)) x)
-       (y:B) (x0 x1:A) (p0 : Id B y (f x0)) (p1 : Id B y (f x1)) :
-       Id ((x:A) * Id B y (f x)) (x0,p0) (x1,p1) = <i> (p @ i, sq1 @ i)
-    where
- rem0 : Id A (g y) x0 = <i> comp (<_> A) (g (p0 @ i)) [(i=0) -> <_> g y,(i=1) -> t x0]
- rem1 : Id A (g y) x1 = <i> comp (<_> A) (g (p1 @ i)) [(i=0) -> <_> g y,(i=1) -> t x1]
- fill0 : Square A (g y) (g (f x0)) (<i>g (p0 @ i)) (g y) x0 rem0 (<i>(g y)) (t x0) = undefined
-    -- <i j> comp (<_> A) (g (p0@i)) [(i=1) -> <k>(t x0)@k/\j ]
- fill1 : Square A (g y) (g (f x1)) (<i>g (p1 @ i)) (g y) x1 rem1 (<i>(g y)) (t x1) = undefined
---    <i j>comp (<_> A) (g (p1@i)) [(i=1) -> <k>(t x1)@k/\j ]
- p : Id A x0 x1 = <i> comp (<_> A) (g y) [(i=0) -> rem0, (i=1) -> rem1]
- fill2 : Square A (g y) (g y) (refl A (g y)) x0 x1 p rem0 rem1 = undefined
---    <i j> comp (<_> A) (g y) [(i=0) -> <k>(rem0@j/\k), (i=1) -> <k>(rem1@j/\k)]
- sq : Square A (g y) (g y) (refl A (g y)) (g (f x0)) (g (f x1)) (<i>(g (f (p@i))))
-                 (<i>g (p0@i)) (<i>g (p1@i)) = undefined
---  <i j>comp (<_> A) ((fill2@i)@j) [(i=0) -> <k>((fill0@j)@-k), (i=1)-><k>((fill1@j)@-k),(j=1) -> <k>(t (p@i))@-k]
- sq1 : Square B y y (refl B y) (f x0) (f x1) (<i>f (p@i)) p0 p1 =
-  <i j>comp (<_>B) (f ((sq@i)@j)) [(i=0) -> s (p0@j),(i=1) -> s (p1@j),(j=0) -> s y,(j=1)-> s (f (p@i))]
+       (s : (y : B) -> Id B (f (g y)) y)
+       (t : (x : A) -> Id A (g (f x)) x)
+       (y : B) (x0 x1 : A) (p0 : Id B (f x0) y) (p1 : Id B (f x1) y) :
+       Id (fiber A B f y) (x0,p0) (x1,p1) = <i> (p @ i,sq1 @ i)
+  where
+    rem0 : Id A x0 (g y) =
+      <i> comp (<_> A) (g (p0 @ i)) [ (i = 0) -> t x0, (i = 1) -> <_> g y ]
 
--- lemIso is stated the wrong way around for our definition of fiber
-lemIso' (A B : U) (f : A -> B) (g : B -> A)
-        (s : (y : B) -> Id B (f (g y)) y)
-        (t : (x : A) -> Id A (g (f x)) x)
-        (y : B) (x0 x1 : A) (p0 : Id B (f x0) y) (p1 : Id B (f x1) y) :
-        Id (fiber A B f y) (x0,p0) (x1,p1) = undefined
+    rem1 : Id A x1 (g y) =
+      <i> comp (<_> A) (g (p1 @ i)) [ (i = 0) -> t x1, (i = 1) -> <_> g y ]
+
+    p : Id A x0 x1 =
+     <i> comp (<_> A) (g y) [ (i = 0) -> <j> rem0 @ -j
+                            , (i = 1) -> <j> rem1 @ -j ]
+
+
+    fill0 : Square A (g (f x0)) (g y) x0 (g y)
+                     (<i> g (p0 @ i)) rem0 (t x0) (<i> g y) =
+      <i j> comp (<_> A) (g (p0 @ i)) [ (i = 0) -> <k> t x0 @ j /\ k
+                                      , (i = 1) -> <_> g y
+                                      , (j = 0) -> <_> g (p0 @ i) ]
+
+    fill1 : Square A (g (f x1)) (g y) x1 (g y)
+                     (<i> g (p1 @ i)) rem1 (t x1) (<i> g y) =
+      <i j> comp (<_> A) (g (p1 @ i)) [ (i = 0) -> <k> t x1 @ j /\ k
+                                      , (i = 1) -> <_> g y
+                                      , (j = 0) -> <_> g (p1 @ i) ]
+
+    fill2 : Square A x0 x1 (g y) (g y)
+                     p (<_> g y) rem0 rem1 =
+      <i j> comp (<_> A) (g y) [ (i = 0) -> <k> rem0 @ j \/ -k
+                               , (i = 1) -> <k> rem1 @ j \/ -k
+                               , (j = 1) -> <_> g y ]
+
+    sq : Square A (g (f x0)) (g (f x1)) (g y) (g y)
+                  (<i> g (f (p @ i))) (<i> g y)
+                  (<j> g (p0 @ j)) (<j> g (p1 @ j)) =
+      <i j> comp (<_> A) (fill2 @ i @ j) [ (i = 0) -> <k> fill0 @ j @ -k
+                                         , (i = 1) -> <k> fill1 @ j @ -k
+                                         , (j = 1) -> <_> g y
+                                         , (j = 0) -> <k> t (p @ i) @ -k ]
+
+    sq1 : Square B (f x0) (f x1) y y
+                   (<i> f (p @ i)) (<_> y) p0 p1 =
+      <i j> comp (<_> B) (f (sq @ i @j)) [ (i = 0) -> s (p0 @ j)
+                                         , (i = 1) -> s (p1 @ j)
+                                         , (j = 0) -> s (f (p @ i))
+                                         , (j = 1) -> s y ]
 
 gradLemma (A B : U) (f : A -> B) (g : B -> A)
           (s : (y : B) -> Id B (f (g y)) y)
@@ -127,17 +151,16 @@ gradLemma (A B : U) (f : A -> B) (g : B -> A)
   where
     fCenter (y : B) : fiber A B f y = (g y,s y)
     fIsCenter (y : B) (w : fiber A B f y) : Id (fiber A B f y) (fCenter y) w =
-      lemIso' A B f g s t y (fCenter y).1 w.1 (fCenter y).2 w.2
+      lemIso A B f g s t y (fCenter y).1 w.1 (fCenter y).2 w.2
 
 
 -- The identity function is an equivalence
 idFun (A : U) (a : A) : A = a
 
-idCenter (A : U) (y : A) : fiber A A (idFun A) y =
-  (y, refl A y)
+idCenter (A : U) (y : A) : fiber A A (idFun A) y = (y, refl A y)
 
 -- TODO: redifine fiber so this gets nicer?
-idIsCenter  (A : U) (y : A) (w : fiber A A (idFun A) y)
+idIsCenter (A : U) (y : A) (w : fiber A A (idFun A) y)
   : Id (fiber A A (idFun A) y) (idCenter A y) w =
   <i> (w.2 @ -i, <j> w.2 @ j \/ -i)
 

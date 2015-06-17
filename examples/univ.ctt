@@ -33,7 +33,7 @@ compId (A : U) (a b c : A) (p : Id A a b) (q : Id A b c) : Id A a c =
 
 prop (A : U) : U = (a b : A) -> Id A a b
 
-lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a :A) : 
+lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a :A) :
           (a1 : A) (p : Id A a a1) (b0 : P a) (b1 : P a1) -> IdP (<i>P (p@i)) b0 b1 =
  J A a (\ (a1 : A) (p : Id A a a1) -> (b0 : P a) (b1 : P a1) -> IdP (<i>P (p@i)) b0 b1) rem
  where rem : (b0 b1:P a) -> Id (P a) b0 b1 = pP a
@@ -85,6 +85,50 @@ isEquiv (A B : U) (f : A -> B) : U =
 equiv (A B : U) : U =
   (f : A -> B)
   * isEquiv A B f
+
+
+-- Gradlemma:
+Square (A : U) (a0 a1 : A) (u : Id A a0 a1)
+               (b0 b1 : A) (v : Id A b0 b1)
+               (r0 : Id A a0 b0) (r1 : Id A a1 b1) : U
+  = IdP (<i> (IdP (<j> A) (u @ i) (v @ i))) r0 r1
+
+lemIso (A B : U) (f : A -> B) (g : B -> A)
+       (s : (y:B) -> Id B (f (g y)) y)
+       (t : (x:A) -> Id A (g (f x)) x)
+       (y:B) (x0 x1:A) (p0 : Id B y (f x0)) (p1 : Id B y (f x1)) :
+       Id ((x:A) * Id B y (f x)) (x0,p0) (x1,p1) = <i> (p @ i, sq1 @ i)
+    where
+ rem0 : Id A (g y) x0 = <i> comp (<_> A) (g (p0 @ i)) [(i=0) -> <_> g y,(i=1) -> t x0]
+ rem1 : Id A (g y) x1 = <i> comp (<_> A) (g (p1 @ i)) [(i=0) -> <_> g y,(i=1) -> t x1]
+ fill0 : Square A (g y) (g (f x0)) (<i>g (p0 @ i)) (g y) x0 rem0 (<i>(g y)) (t x0) = undefined
+    -- <i j> comp (<_> A) (g (p0@i)) [(i=1) -> <k>(t x0)@k/\j ]
+ fill1 : Square A (g y) (g (f x1)) (<i>g (p1 @ i)) (g y) x1 rem1 (<i>(g y)) (t x1) = undefined
+--    <i j>comp (<_> A) (g (p1@i)) [(i=1) -> <k>(t x1)@k/\j ]
+ p : Id A x0 x1 = <i> comp (<_> A) (g y) [(i=0) -> rem0, (i=1) -> rem1]
+ fill2 : Square A (g y) (g y) (refl A (g y)) x0 x1 p rem0 rem1 = undefined
+--    <i j> comp (<_> A) (g y) [(i=0) -> <k>(rem0@j/\k), (i=1) -> <k>(rem1@j/\k)]
+ sq : Square A (g y) (g y) (refl A (g y)) (g (f x0)) (g (f x1)) (<i>(g (f (p@i))))
+                 (<i>g (p0@i)) (<i>g (p1@i)) = undefined
+--  <i j>comp (<_> A) ((fill2@i)@j) [(i=0) -> <k>((fill0@j)@-k), (i=1)-><k>((fill1@j)@-k),(j=1) -> <k>(t (p@i))@-k]
+ sq1 : Square B y y (refl B y) (f x0) (f x1) (<i>f (p@i)) p0 p1 =
+  <i j>comp (<_>B) (f ((sq@i)@j)) [(i=0) -> s (p0@j),(i=1) -> s (p1@j),(j=0) -> s y,(j=1)-> s (f (p@i))]
+
+-- lemIso is stated the wrong way around for our definition of fiber
+lemIso' (A B : U) (f : A -> B) (g : B -> A)
+        (s : (y : B) -> Id B (f (g y)) y)
+        (t : (x : A) -> Id A (g (f x)) x)
+        (y : B) (x0 x1 : A) (p0 : Id B (f x0) y) (p1 : Id B (f x1) y) :
+        Id (fiber A B f y) (x0,p0) (x1,p1) = undefined
+
+gradLemma (A B : U) (f : A -> B) (g : B -> A)
+          (s : (y : B) -> Id B (f (g y)) y)
+          (t : (x : A) -> Id A (g (f x)) x) : isEquiv A B f = (fCenter,fIsCenter)
+  where
+    fCenter (y : B) : fiber A B f y = (g y,s y)
+    fIsCenter (y : B) (w : fiber A B f y) : Id (fiber A B f y) (fCenter y) w =
+      lemIso' A B f g s t y (fCenter y).1 w.1 (fCenter y).2 w.2
+
 
 -- The identity function is an equivalence
 idFun (A : U) (a : A) : A = a
@@ -225,10 +269,13 @@ propIsEquiv (A B : U) (f : A -> B)
 
 idToId (A B : U) (w : equiv A B)
   : Id (equiv A B) (transEquiv A B (transEquivToId A B w)) w
-  = lemSig (A -> B) (isEquiv A B) (propIsEquiv A B) 
+  = lemSig (A -> B) (isEquiv A B) (propIsEquiv A B)
       (transEquiv A B (transEquivToId A B w)) w
       (transIdFun A B w)
 
+univAx (A B : U) : isEquiv (Id U A B) (equiv A B) (transEquiv A B) =
+  gradLemma (Id U A B) (equiv A B) (transEquiv A B) (transEquivToId A B)
+            (idToId A B) (eqToEq A B)
 
 
 -- Any equality defines an equivalence
@@ -263,7 +310,7 @@ testfun (A B : U) (w : equiv A B)
           compId B (f b) b b' (trf b)
 
 test (A B : U) (w : equiv A B) : Id (equiv A B) (idToEquiv A B (equivToId A B w)) w =
-  lemSig (A -> B) (isEquiv A B) (propIsEquiv A B) 
+  lemSig (A -> B) (isEquiv A B) (propIsEquiv A B)
     (idToEquiv A B (equivToId A B w)) w
     (testfun A B w)
 
@@ -303,7 +350,7 @@ ormaybe (A A : U) : Id (equiv A A) (idEquiv A) (idToEquiv A A (refl U A)) =
 --     --        [ (i=0) -> (A,idFun A,idCenter A,idIsCenter A)
 --     --        , (i=1) -> (A,idFun A,idCenter A,idIsCenter A)
 --     --        , (j=1) -> (A,idFun A,idCenter A,idIsCenter A)])
-  
-  
+
+
 
 -}

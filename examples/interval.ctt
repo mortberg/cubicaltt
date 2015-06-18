@@ -1,6 +1,6 @@
 module interval where
 
-import prelude
+import gradLemma
 
 data I = zero | one | seg <i> [(i = 0) -> zero, (i = 1) -> one]
 

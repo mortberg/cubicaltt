@@ -2,67 +2,188 @@ module equiv where
 
 import prelude
 
-isContr (A : U) : U = and (prop A) A
+fiber (A B : U) (f : A -> B) (y : B) : U =
+  (x : A) * Id B (f x) y
 
-fiber (A B:U) (f:A->B) (b:B) : U = (x:A) * Id B b (f x)
+isEquiv (A B : U) (f : A -> B) : U =
+    (s : (y : B) -> fiber A B f y)
+  * ((y : B) (w : fiber A B f y) -> Id (fiber A B f y) (s y) w)
 
-lemIdFib (A:U) (a:A) : prop (fiber A A (\ (x:A) -> x) a) = rem
- where F : U = fiber A A (\ (x:A) -> x) a
-       rem (u v:F) : Id F u v = <i>(rem1 @ i,rem2 @ i)
-         where x : A = u.1
-               p : Id A a x = u.2
-               y : A = v.1
-               q : Id A a y = v.2
-               rem1 : Id A x y = <i>comp A a [(i=0) -> p,(i=1) -> q]
-               rem2 : IdP (<i>Id A a (rem1@i)) p q = <i j>comp A a [(i=0) -> <l>p@(j/\l),(i=1) -> <l>q@(j/\l)]
+equiv (A B : U) : U = (f : A -> B) * isEquiv A B f
 
-lemPropAnd (A B :U) (pA: prop A) (pB: A -> prop B) : prop (and A B) = 
- \ (u v:and A B) -> <i>((pA u.1 v.1)@i, (pB u.1 u.2 v.2)@i)
+propIsEquiv (A B : U) (f : A -> B)
+  : prop (isEquiv A B f) = lemProp (isEquiv A B f) lem
+  where
+    isEqf : U = isEquiv A B f
+    fibf : (y : B) -> U = fiber A B f
+    center : U = (y : B) -> fibf y
+    isCenter (s : center) : U = (y : B) (w : fibf y) -> Id (fibf y) (s y) w
+    lem (fe : isEqf) : prop isEqf = propSig center isCenter pc pisc
+      where
+        fibprop (y : B) (u v : fibf y) : Id (fibf y) u v =
+          compId (fibf y) u (fe.1 y) v (<i> fe.2 y u @ -i) (fe.2 y v)
+        pc : prop center = propPi B fibf fibprop
+        pisc (s : center) (g h : isCenter s) : Id (isCenter s) g h =
+          <i> \ (y : B) (w : fibf y) ->
+                 propSet (fibf y) (fibprop y) (s y) w (g y w) (h y w) @ i
 
-isContrProp (A:U) : prop (isContr A) = 
- lemPropAnd (prop A) A (propIsProp A) (\ (h:prop A) -> h)
 
-isEquiv (A B:U) (f:A->B) : U = (y:B) -> isContr (fiber A B f y)
+-- The identity function is an equivalence
+idCenter (A : U) (y : A) : fiber A A (idfun A) y = (y, refl A y)
 
-idIsEquiv (A:U) : isEquiv A A (idfun A) = \ (a:A) -> (lemIdFib A a,(a,refl A a))
+-- TODO: redifine fiber so this gets nicer?
+idIsCenter (A : U) (y : A) (w : fiber A A (idfun A) y)
+  : Id (fiber A A (idfun A) y) (idCenter A y) w =
+  <i> (w.2 @ -i, <j> w.2 @ j \/ -i)
 
-propIsEquiv (A B : U) (f : A -> B) : prop (isEquiv A B f)
- = propPi B (\ (y:B) -> isContr (fiber A B f y)) (\ (y:B) -> isContrProp (fiber A B f y))
+idIsEquiv (A : U) : isEquiv A A (idfun A) = (idCenter A,idIsCenter A)
 
-isEquivEq (A B : U) (f : A -> B) (is:isEquiv A B f) : Id U A B = 
- isoId A B f g (\ (y:B) -> <i>(s y)@-i) t
- where
-   rem1 (y:B) : prop (fiber A B f y) =  (is y).1
-   rem2 (y:B) : fiber A B f y        =  (is y).2
-   g (y:B) : A = (rem2 y).1
-   s (y:B) : Id B y (f (g y)) = (rem2 y).2
-   rem3 (x:A) : Id B (f x) (f (g (f x))) = s (f x)
-   rem4 (x:A) : Id (fiber A B f (f x)) (g (f x),rem3 x) (x,refl B (f x)) = 
-     rem1 (f x) (g (f x),rem3 x) (x,refl B (f x))
-   t (x:A) : Id A (g (f x)) x = <i> ((rem4 x)@i).1
+idEquiv (A : U) : equiv A A = (idfun A, idIsEquiv A)
+
+-- Transport is an equivalence
+-- NB: The proof is taken from the output of a comp U
+trans (A B : U) (p : Id U A B) (a : A) : B = transport p a
+
+transCenter (A B : U) (p : Id U A B) (y : B) : fiber A B (trans A B p) y =
+  (comp (<i0> p @ -i0) y []
+  ,<i0> comp p (comp (<i0> p @ -i0) y [])
+          [ (i0 = 0) -> <i1> comp (<i2> p @ (i1 /\ i2)) (comp (<i0> p @ -i0) y [])
+                               [ (i1 = 0) -> <i2> comp (<i0> p @ -i0) y [] ]
+          , (i0 = 1) -> <i1> comp (<i2> p @ (i1 \/ -i2)) y [ (i1 = 1) -> <i2> y ] ])
+
+transIsCenter (A B : U) (p : Id U A B) (y : B) (w : fiber A B (trans A B p) y)
+  : Id (fiber A B (trans A B p) y) (transCenter A B p y) w
+  = <i0>
+    ( comp (<i1> p @ -i1) (w.2 @ -i0)
+           [ (i0 = 0) -> <i1> comp (<i2> p @ (-i1 \/ -i2)) y [ (i1 = 0) -> <i2> y ]
+           , (i0 = 1) -> <i1> comp (<i2> p @ (-i1 /\ i2)) (w.1) [ (i1 = 1) -> <i2> w.1 ] ]
+    , <i1> comp (<i2> p @ i2)
+             (comp (<i2> p @ -i2) (w.2 @ (-i0 \/ i1))
+               [ (i0 = 0) -> <i2> comp (<i3> p @ (-i2 \/ -i3)) y [ (i2 = 0) -> <i3> y ]
+               , (i0 = 1)(i1 = 0) ->
+                    <i2> comp (<i3> p @ (-i2 /\ i3)) (w.1)
+                           [ (i2 = 1) -> <i3> w.1 ]
+               , (i1 = 1) -> <i2> comp (<i3> p @ (-i2 \/ -i3)) y [ (i2 = 0) -> <i3> y ] ])
+             [ (i0 = 0) -> <i2> comp (<i3> p @ (i2 /\ i3))
+                                  (comp (<i0> p @ -i0) y [  ])
+                                  [ (i1 = 0) ->
+                                      <i3> comp (<i4> p @ (i2 /\ i3 /\ i4))
+                                             (comp (<i0> p @ -i0) y [  ])
+                                             [ (i2 = 0) -> <i4> comp (<i0> p @ -i0) y [  ]
+                                             , (i3 = 0) -> <i4> comp (<i0> p @ -i0) y [  ] ]
+                                  , (i1 = 1) ->
+                                      <i3> comp (<i4> p @ ((i2 /\ i3) \/ -i4)) y
+                                             [ (i2 = 1)(i3 = 1) -> <i4> y ]
+                                  , (i2 = 0) -> <i3> comp (<i0> p @ -i0) y [  ] ]
+             , (i0 = 1) ->
+                  <i2> comp (<i3> p @ (i2 \/ -i3)) (w.2 @ i1)
+                         [ (i1 = 0) ->
+                              <i3> comp (<i4> p @ ((i2 /\ i4) \/ (-i3 /\ i4))) (w.1)
+                                     [ (i2 = 0)(i3 = 1) -> <i4> w.1 ]
+                         , (i1 = 1) ->
+                              <i3> comp (<i4> p @ (i2 \/ -i3 \/ -i4)) y
+                                     [ (i2 = 1) -> <i4> y, (i3 = 0) -> <i4> y ]
+                         , (i2 = 1) -> <i3> w.2 @ i1 ]
+             , (i1 = 0) ->
+                 <i2> comp (<i3> p @ (i2 /\ i3))
+                        (comp (<i1> p @ -i1) (w.2 @ -i0)
+                           [ (i0 = 0) ->
+                               <i1> comp (<i2> p @ (-i1 \/ -i2)) y [ (i1 = 0) -> <i2> y ]
+                           , (i0 = 1) ->
+                                <i1> comp (<i2> p @ (-i1 /\ i2)) (w.1)
+                                       [ (i1 = 1) -> <i2> w.1 ]
+                           ])
+                        [ (i2 = 0) ->
+                             <i3> comp (<i1> p @ -i1) (w.2 @ -i0)
+                                    [ (i0 = 0) ->
+                                         <i1> comp (<i2> p @ (-i1 \/ -i2)) y
+                                                [ (i1 = 0) -> <i2> y ]
+                                    , (i0 = 1) ->
+                                        <i1> comp (<i2> p @ (-i1 /\ i2)) (w.1)
+                                               [ (i1 = 1) -> <i2> w.1 ]
+                                    ]
+                        ]
+             , (i1 = 1) -> <i2> comp (<i3> p @ (i2 \/ -i3)) y [ (i2 = 1) -> <i3> y ] ]
+    )
+
+transIsEquiv (A B : U) (p : Id U A B) : isEquiv A B (trans A B p) =
+  (transCenter A B p,transIsCenter A B p)
+
+transEquiv (A B : U) (p : Id U A B) : equiv A B =
+  (trans A B p,transIsEquiv A B p)
+
+transDelta (A : U) : equiv A A = transEquiv A A (<_> A)
+
+
+
+
+
+
+
+
+-- Alternative definitions:
+
+-- isContr (A : U) : U = and (prop A) A
+
+-- fiber (A B:U) (f:A->B) (b:B) : U = (x:A) * Id B b (f x)
+
+-- lemIdFib (A:U) (a:A) : prop (fiber A A (\ (x:A) -> x) a) = rem
+--  where F : U = fiber A A (\ (x:A) -> x) a
+--        rem (u v:F) : Id F u v = <i>(rem1 @ i,rem2 @ i)
+--          where x : A = u.1
+--                p : Id A a x = u.2
+--                y : A = v.1
+--                q : Id A a y = v.2
+--                rem1 : Id A x y = <i>comp A a [(i=0) -> p,(i=1) -> q]
+--                rem2 : IdP (<i>Id A a (rem1@i)) p q = <i j>comp A a [(i=0) -> <l>p@(j/\l),(i=1) -> <l>q@(j/\l)]
+
+-- lemPropAnd (A B :U) (pA: prop A) (pB: A -> prop B) : prop (and A B) = 
+--  \ (u v:and A B) -> <i>((pA u.1 v.1)@i, (pB u.1 u.2 v.2)@i)
+
+-- isContrProp (A:U) : prop (isContr A) = 
+--  lemPropAnd (prop A) A (propIsProp A) (\ (h:prop A) -> h)
+
+-- isEquiv (A B:U) (f:A->B) : U = (y:B) -> isContr (fiber A B f y)
+
+-- idIsEquiv (A:U) : isEquiv A A (idfun A) = \ (a:A) -> (lemIdFib A a,(a,refl A a))
+
+-- propIsEquiv (A B : U) (f : A -> B) : prop (isEquiv A B f)
+--  = propPi B (\ (y:B) -> isContr (fiber A B f y)) (\ (y:B) -> isContrProp (fiber A B f y))
+
+-- isEquivEq (A B : U) (f : A -> B) (is:isEquiv A B f) : Id U A B = 
+--  isoId A B f g (\ (y:B) -> <i>(s y)@-i) t
+--  where
+--    rem1 (y:B) : prop (fiber A B f y) =  (is y).1
+--    rem2 (y:B) : fiber A B f y        =  (is y).2
+--    g (y:B) : A = (rem2 y).1
+--    s (y:B) : Id B y (f (g y)) = (rem2 y).2
+--    rem3 (x:A) : Id B (f x) (f (g (f x))) = s (f x)
+--    rem4 (x:A) : Id (fiber A B f (f x)) (g (f x),rem3 x) (x,refl B (f x)) = 
+--      rem1 (f x) (g (f x),rem3 x) (x,refl B (f x))
+--    t (x:A) : Id A (g (f x)) x = <i> ((rem4 x)@i).1
     
-Equiv (A B : U) : U = (f : A -> B) * isEquiv A B f
+-- Equiv (A B : U) : U = (f : A -> B) * isEquiv A B f
 
-lemIdEquiv (A B:U) (f g : Equiv A B) (h:Id (A->B) f.1 g.1) : Id (Equiv A B) f g
- = <i>(h@i,(lemPropF (A->B) (isEquiv A B) (propIsEquiv A B) f.1 g.1 h f.2 g.2)@i)
+-- lemIdEquiv (A B:U) (f g : Equiv A B) (h:Id (A->B) f.1 g.1) : Id (Equiv A B) f g
+--  = <i>(h@i,(lemPropF (A->B) (isEquiv A B) (propIsEquiv A B) f.1 g.1 h f.2 g.2)@i)
 
--- a general lemma about equivalence and fibrations
+-- -- a general lemma about equivalence and fibrations
 
-Sigma (A:U) (F:A->U) : U = (x:A) * F x
+-- Sigma (A:U) (F:A->U) : U = (x:A) * F x
 
-lemEquivFib (A:U) (F G :A -> U) (f:(x:A) -> F x -> G x)
-   (h : isEquiv (Sigma A F) (Sigma A G) (\ (xp : Sigma A F) -> (xp.1,f xp.1 xp.2))) (x:A) (v:G x) : 
-    isContr (fiber (F x) (G x) (f x) v) = (rem7,psi (rem1.2))
- where
-   AF : U = Sigma A F
-   AG : U = Sigma A G
-   g (xp : AF) : AG = (xp.1,f xp.1 xp.2)
-   rem1 : isContr (fiber AF AG g (x,v)) = h (x,v)
-   phi (z:fiber (F x) (G x) (f x) v) : fiber AF AG g (x,v) = ((x,z.1),<i>(x,(z.2)@ i))
-   psi (z:fiber AF AG g (x,v)) : fiber (F x) (G x) (f x) v = transport (<i> (u : F (p@-i)) * IdP (<j>G (p@-i /\ j)) v (f (p@-i) u)) (w,q)
-      where yu : AF = z.1
-            y : A = yu.1
-            w : F y = yu.2
-            p : Id A x y = <i>(z.2 @ i).1
-            q : IdP (<j>G (p@j)) v (f y w) = <i>((z.2) @ i).2
-   rem7 (z0 z1 : fiber (F x) (G x) (f x) v) : Id (fiber (F x) (G x) (f x) v) z0 z1 = <i>psi ((rem1.1 (phi z0) (phi z1))@i)
+-- lemEquivFib (A:U) (F G :A -> U) (f:(x:A) -> F x -> G x)
+--    (h : isEquiv (Sigma A F) (Sigma A G) (\ (xp : Sigma A F) -> (xp.1,f xp.1 xp.2))) (x:A) (v:G x) : 
+--     isContr (fiber (F x) (G x) (f x) v) = (rem7,psi (rem1.2))
+--  where
+--    AF : U = Sigma A F
+--    AG : U = Sigma A G
+--    g (xp : AF) : AG = (xp.1,f xp.1 xp.2)
+--    rem1 : isContr (fiber AF AG g (x,v)) = h (x,v)
+--    phi (z:fiber (F x) (G x) (f x) v) : fiber AF AG g (x,v) = ((x,z.1),<i>(x,(z.2)@ i))
+--    psi (z:fiber AF AG g (x,v)) : fiber (F x) (G x) (f x) v = transport (<i> (u : F (p@-i)) * IdP (<j>G (p@-i /\ j)) v (f (p@-i) u)) (w,q)
+--       where yu : AF = z.1
+--             y : A = yu.1
+--             w : F y = yu.2
+--             p : Id A x y = <i>(z.2 @ i).1
+--             q : IdP (<j>G (p@j)) v (f y w) = <i>((z.2) @ i).2
+--    rem7 (z0 z1 : fiber (F x) (G x) (f x) v) : Id (fiber (F x) (G x) (f x) v) z0 z1 = <i>psi ((rem1.1 (phi z0) (phi z1))@i)

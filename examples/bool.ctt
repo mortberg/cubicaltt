@@ -1,6 +1,6 @@
 module bool where
 
-import prelude
+import gradLemma
 
 data bool = false | true
 
@@ -15,7 +15,7 @@ negBoolK : (b : bool) -> Id bool (negBool (negBool b)) b = split
 negBoolEq : Id U bool bool =
   isoId bool bool negBool negBool negBoolK negBoolK
 
-test : bool = trans bool bool negBoolEq true
+testFalse : bool = transport negBoolEq true
 
 data F2 = zeroF2 | oneF2
 
@@ -64,8 +64,8 @@ test4 : Id U bool bool = <i> negNegEq @ i
 kanBool : Id U bool bool =
   kan U bool bool bool bool negBoolEq negBoolEq negBoolEq
 
-squareBoolF2 : Square U bool bool (refl U bool) bool F2
-                  boolEqF2 (refl U bool)  boolEqF2 =
+squareBoolF2 : Square U bool bool bool F2 (refl U bool)
+                  boolEqF2 (refl U bool) boolEqF2 =
   <i j> boolEqF2 @ i /\ j
 
 test5 : IdP boolEqF2 true oneF2 = 

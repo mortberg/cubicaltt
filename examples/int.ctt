@@ -2,6 +2,7 @@ module int where
 
 import nat
 import discor
+import gradLemma
 
 -- inl = neg, inr = pos
 Z : U = or nat nat
@@ -42,4 +43,4 @@ predsucZ : (x : Z) -> Id Z (predZ (sucZ x)) x = split
 
 sucIdZ : Id U Z Z = isoId Z Z sucZ predZ sucpredZ predsucZ
 
-ZSet : set Z = corrhedberg Z (orDisc nat nat natDec natDec)
+ZSet : set Z = hedberg Z (orDisc nat nat natDec natDec)

@@ -1,18 +1,98 @@
 module univalence where
 
-import retract
-import equiv
+import gradLemma
 
--- we do something simpler than univalence
+transEquivToId (A B : U) (w : equiv A B) : Id U A B =
+  <i> glue B [ (i=1) -> (B,transDelta B), (i=0) -> (A,w) ]
 
-transpIsEquiv (A B:U) (p:Id U A B) : isEquiv A B (\ (x:A) -> transport p x) =
- transport (<i>isEquiv A (p@i) (\ (x:A) -> transport (<j>p@i/\j) x)) (idIsEquiv A)
+eqToEq (A B : U) (p : Id U A B)
+  : Id (Id U A B) (transEquivToId A B (transEquiv A B p)) p
+  = <j i> glue B
+           [ (i=0) -> (A,transEquiv A B p)
+           , (i=1) -> (B,transDelta B)
+           , (j=1) -> (p@i,transEquiv (p@i) B (<k> p @ (i \/ k)))]
 
-IdToEquiv (A B:U) (p: Id U A B) : Equiv A B = (\ (x:A) -> transport p x, transpIsEquiv A B p)
+-- The normal form of this is much bigger than the normal form of eqToEq
+eqToEq' (A : U) : (B : U) (p : Id U A B)
+  -> Id (Id U A B) (transEquivToId A B (transEquiv A B p)) p
+  = J U A
+      (\ (B : U) (p : Id U A B) ->
+         Id (Id U A B) (transEquivToId A B (transEquiv A B p)) p)
+      (<j i> glue A
+           [ (i=0) -> (A,transDelta A)
+           , (i=1) -> (A,transDelta A)
+           , (j=1) -> (A,transDelta A)])
 
-EquivToId (A B:U) (z:Equiv A B) : Id U A B = isEquivEq A B z.1 z.2
+transIdFun (A B : U) (w : equiv A B)
+  : Id (A -> B) (trans A B (transEquivToId A B w)) w.1 =
+  <i> \(a : A) -> let b : B = w.1 a
+                  in addf (f (f (f b))) b (addf (f (f b)) b (addf (f b) b (trf b))) @ i
+  where f (b : B) : B = comp (<_> B) b []
+        trf (b : B) : Id B (f b) b =
+          <i> fill (<_> B) b [] @ -i
+        addf (b b' : B) : Id B b b' -> Id B (f b) b' =
+          compId B (f b) b b' (trf b)
 
-secIdEquiv (A B :U) (p : Id U A B) : Id (Id U A B) (EquivToId A B (IdToEquiv A B p)) p =
- transport (<i>Id (Id U A (p@i)) (EquivToId A (p@i) (IdToEquiv A (p@i) (<j>p@i/\j))) (<j>p@i/\j))
-           (<i>isoIdRef A@-i)
+idToId (A B : U) (w : equiv A B)
+  : Id (equiv A B) (transEquiv A B (transEquivToId A B w)) w
+  = lemSig (A -> B) (isEquiv A B) (propIsEquiv A B)
+      (transEquiv A B (transEquivToId A B w)) w
+      (transIdFun A B w)
+
+univAx (A B : U) : isEquiv (Id U A B) (equiv A B) (transEquiv A B) =
+  gradLemma (Id U A B) (equiv A B) (transEquiv A B) (transEquivToId A B)
+            (idToId A B) (eqToEq A B)
+
+
+-- Alternative definition:
+
+-- Any equality defines an equivalence
+idToEquiv (A : U) : (B : U) -> Id U A B -> equiv A B =
+  J U A (\ (B : U) (_ : Id U A B) -> equiv A B) (idEquiv A)
+
+equivId (A B : U) (f : A -> B) (s : (y : B) -> fiber A B f y)
+        (t : (y : B) (w : fiber A B f y) -> Id (fiber A B f y) (s y) w)
+  : Id U A B = <i> glue B [ (i = 1) -> (B,idEquiv B), (i = 0) -> (A,f,s,t)]
+
+equivToId (A B : U) (w : equiv A B) : Id U A B =
+  <i> glue B [ (i = 1) -> (B,idEquiv B), (i = 0) -> (A,w) ]
+
+idToEquivIdFun (A B : U) (w : equiv A B)
+  : Id (A -> B) (idToEquiv A B (equivToId A B w)).1 w.1 =
+  <i> \(a : A) -> let b : B = w.1 (fill (<_> A) a [] @ -i)
+                  in (addf (f (f b)) b (addf (f b) b (trf b))) @ i
+  where p : A -> B = (idToEquiv A B (equivToId A B w)).1
+        f (b : B) : B = comp (<_> B) b []
+        trf (b : B) : Id B (f b) b =
+          <i> fill (<_> B) b [] @ -i
+        addf (b b' : B) : Id B b b' -> Id B (f b) b' =
+          compId B (f b) b b' (trf b)
+
+idToEquivK (A B : U) (w : equiv A B) : Id (equiv A B) (idToEquiv A B (equivToId A B w)) w =
+  lemSig (A -> B) (isEquiv A B) (propIsEquiv A B)
+    (idToEquiv A B (equivToId A B w)) w (idToEquivIdFun A B w)
+
+-- This takes too long to normalize:
+test (A : U) : Id (equiv A A) (idToEquiv A A (equivToId A A (idEquiv A))) (idEquiv A) =
+  idToEquivK A A (idEquiv A)
+
+
+
+
+
+
+
+-- Old code:
+-- -- we do something simpler than univalence
+
+-- transpIsEquiv (A B:U) (p:Id U A B) : isEquiv A B (\ (x:A) -> transport p x) =
+--  transport (<i>isEquiv A (p@i) (\ (x:A) -> transport (<j>p@i/\j) x)) (idIsEquiv A)
+
+-- IdToEquiv (A B:U) (p: Id U A B) : Equiv A B = (\ (x:A) -> transport p x, transpIsEquiv A B p)
+
+-- EquivToId (A B:U) (z:Equiv A B) : Id U A B = isEquivEq A B z.1 z.2
+
+-- secIdEquiv (A B :U) (p : Id U A B) : Id (Id U A B) (EquivToId A B (IdToEquiv A B p)) p =
+--  transport (<i>Id (Id U A (p@i)) (EquivToId A (p@i) (IdToEquiv A (p@i) (<j>p@i/\j))) (<j>p@i/\j))
+--            (<i>isoIdRef A@-i)
 

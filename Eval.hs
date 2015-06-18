@@ -159,8 +159,10 @@ eval rho v = case v of
   Path i t            -> let j = fresh rho
                          in VPath j (eval (sub (i,Atom j) rho) t)
   AppFormula e phi    -> eval rho e @@ evalFormula rho phi
-  Comp a t0 ts        -> compLine (eval rho a) (eval rho t0) (evalSystem rho ts)
-  Fill a t0 ts        -> fillLine (eval rho a) (eval rho t0) (evalSystem rho ts)
+  Comp a t0 ts        ->
+    compLine (eval rho a) (eval rho t0) (evalSystem rho ts)
+  Fill a t0 ts        ->
+    fillLine (eval rho a) (eval rho t0) (evalSystem rho ts)
   Glue a ts           -> glue (eval rho a) (evalSystem rho ts)
   GlueElem a ts       -> glueElem (eval rho a) (evalSystem rho ts)
   _                   -> error $ "Cannot evaluate " ++ show v
@@ -256,7 +258,7 @@ v@(Ter Hole{} _) @@ phi    = VAppFormula v (toFormula phi)
 v @@ phi | isNeutral v     = case (inferType v,toFormula phi) of
   (VIdP  _ a0 _,Dir 0) -> a0
   (VIdP  _ _ a1,Dir 1) -> a1
-  _  -> VAppFormula v (toFormula phi)
+  _                    -> VAppFormula v (toFormula phi)
 v @@ phi                   = error $ "(@@): " ++ show v ++ " should be neutral."
 
 
@@ -276,7 +278,7 @@ comp i a u ts = case a of
           ui1        = comp i a u1 t1s
           comp_u2    = comp i (app f fill_u1) u2 t2s
   VPi{} -> VComp (VPath i a) u (Map.map (VPath i) ts)
-  VU -> glue u (Map.map (eqToEquiv . VPath i) ts)
+  VU    -> glue u (Map.map (eqToEquiv . VPath i) ts)
   VGlue b equivs -> compGlue i b equivs u ts
   Ter (Sum _ _ nass) env -> case u of
     VCon n us | all isCon (elems ts) -> case lookupLabel n nass of
@@ -432,7 +434,8 @@ hComp a u us | eps `member` us = (us ! eps) @@ One
 
 
 -------------------------------------------------------------------------------
--- | Glue
+-- | Glueing
+
 -- An equivalence for a type b is a four-tuple (a,f,s,t) where
 -- a : U
 -- f : a -> b
@@ -590,6 +593,7 @@ eqToEquiv e = VPair e1 (VPair f (VPair s t))
         t = Ter (Lam "y" ev0 $ Lam "w" fibtype $ Path i $
                  Pair (psi' (NegAtom i)) (Path j t2inv)) eenv
 
+
 -------------------------------------------------------------------------------
 -- | Conversion
 
@@ -685,13 +689,13 @@ instance Convertible Formula where
 class Normal a where
   normal :: [String] -> a -> a
 
--- Does neither normalize formulas nor environments.
 instance Normal Val where
   normal ns v = case v of
     VU                  -> VU
-    Ter (Lam x t u) e   -> let w = eval e t
-                               v@(VVar n _) = mkVarNice ns x w
-                           in VLam n (normal ns w) $ normal (n:ns) (eval (upd (x,v) e) u)
+    Ter (Lam x t u) e   ->
+      let w = eval e t
+          v@(VVar n _) = mkVarNice ns x w
+      in VLam n (normal ns w) $ normal (n:ns) (eval (upd (x,v) e) u)
     Ter t e             -> Ter t (normal ns e)
     VPi u v             -> VPi (normal ns u) (normal ns v)
     VSigma u v          -> VSigma (normal ns u) (normal ns v)
@@ -701,6 +705,7 @@ instance Normal Val where
     VIdP a u0 u1        -> VIdP (normal ns a) (normal ns u0) (normal ns u1)
     VPath i u           -> VPath i (normal ns u)
     VComp u v vs        -> compLine (normal ns u) (normal ns v) (normal ns vs)
+    VHComp u v vs       -> hComp (normal ns u) (normal ns v) (normal ns vs)
     VGlue u equivs      -> glue (normal ns u) (normal ns equivs)
     VGlueElem u us      -> glueElem (normal ns u) (normal ns us)
     VUnGlueElem u b hs  -> unGlue (normal ns u) (normal ns b) (normal ns hs)

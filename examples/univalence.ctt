@@ -39,9 +39,9 @@ idToId (A B : U) (w : equiv A B)
       (transEquiv A B (transEquivToId A B w)) w
       (transIdFun A B w)
 
-univAx (A B : U) : isEquiv (Id U A B) (equiv A B) (transEquiv A B) =
-  gradLemma (Id U A B) (equiv A B) (transEquiv A B) (transEquivToId A B)
-            (idToId A B) (eqToEq A B)
+univalence (A B : U) : equiv (Id U A B) (equiv A B) =
+  (transEquiv A B,gradLemma (Id U A B) (equiv A B) (transEquiv A B)
+                            (transEquivToId A B) (idToId A B) (eqToEq A B))
 
 
 -- Alternative definition:

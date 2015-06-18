@@ -453,34 +453,6 @@ equivCenter = fstVal . sndVal . sndVal
 equivIsCenter :: Val -> Val
 equivIsCenter = sndVal . sndVal . sndVal
 
--- TODO: adapt to equivs
--- Every path in the universe induces an hiso
--- eqToIso :: Val -> Val
--- eqToIso e = VPair e1 (VPair f (VPair g (VPair s t)))
---   where e1 = e @@ One
---         (i,j,x,y,ev) = (Name "i",Name "j",Var "x",Var "y",Var "E")
---         inv t = Path i $ AppFormula t (NegAtom i)
---         evinv = inv ev
---         (ev0, ev1) = (AppFormula ev (Dir Zero),AppFormula ev (Dir One)) -- (b,a)
---         eenv     = upd ("E",e) empty
---         -- eplus : e0 -> e1
---         eplus z  = Comp ev z Map.empty
---         -- eminus : e1 -> e0
---         eminus z = Comp evinv z Map.empty
---         -- NB: edown is *not* transNegFill
---         eup z   = Fill ev z Map.empty
---         edown z = Fill evinv z Map.empty
---         f = Ter (Lam "x" ev1 (eminus x)) eenv
---         g = Ter (Lam "y" ev0 (eplus y)) eenv
---         -- s : (y : e0) -> eminus (eplus y) = y
---         ssys = mkSystem [(j ~> 1, inv (eup y))
---                         ,(j ~> 0, edown (eplus y))]
---         s = Ter (Lam "y" ev0 $ Path j $ Comp evinv (eplus y) ssys) eenv
---         -- t : (x : e1) -> eplus (eminus x) = x
---         tsys = mkSystem [(j ~> 0, eup (eminus x))
---                         ,(j ~> 1, inv (edown x))]
---         t = Ter (Lam "x" ev1 $ Path j $ Comp ev (eminus x) tsys) eenv
-
 glue :: Val -> System Val -> Val
 glue b ts | eps `member` ts = equivDom (ts ! eps)
           | otherwise       = VGlue b ts
@@ -554,31 +526,6 @@ pathComp :: Name -> Val -> Val -> Val -> System Val -> Val
 pathComp i a u u' us = VPath j $ comp i a (u `face` (i ~> 0)) us'
   where j   = fresh (Atom i,a,us,u,u')
         us' = insertsSystem [(j ~> 0, u), (j ~> 1, u')] us
-
--- Grad Lemma, takes an iso f, a system us and a value v, s.t. f us =
--- border v. Outputs (u,p) s.t. border u = us and a path p between v
--- and f u.
--- gradLemma :: Val -> Val -> System Val -> Val -> (Val, Val)
--- gradLemma b hiso@(VPair a (VPair f (VPair g (VPair s t)))) us v =
---   (u, VPath i theta'')
---   where i:j:_   = freshs (b,hiso,us,v)
---         us'     = mapWithKey (\alpha uAlpha ->
---                                    app (t `face` alpha) uAlpha @@ i) us
---         gv      = app g v
---         theta   = fill i a gv us'
---         u       = comp i a gv us'  -- Same as "theta `face` (i ~> 1)"
---         ws      = insertSystem (i ~> 0) gv $
---                   insertSystem (i ~> 1) (app t u @@ j) $
---                   mapWithKey
---                     (\alpha uAlpha ->
---                       app (t `face` alpha) uAlpha @@ (Atom i :/\: Atom j)) us
---         theta'  = compNeg j a theta ws
---         xs      = insertSystem (i ~> 0) (app s v @@ j) $
---                   insertSystem (i ~> 1) (app s (app f u) @@ j) $
---                   mapWithKey
---                     (\alpha uAlpha ->
---                       app (s `face` alpha) (app (f `face` alpha) uAlpha) @@ j) us
---         theta'' = comp j b (app f theta') xs
 
 -- Grad Lemma, takes an equivalence f, an L-system us and a value v,
 -- s.t. f us = border v. Outputs (u,p) s.t. border u = us and an

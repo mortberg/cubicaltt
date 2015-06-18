@@ -15,6 +15,7 @@ funExt (A : U) (B : A -> U) (f g : (x : A) -> B x)
        (p : (x : A) -> Id (B x) (f x) (g x)) :
        Id ((y : A) -> B y) f g = <i> \(a : A) -> (p a) @ i
 
+-- Transport can be defined using comp
 trans (A B : U) (p : Id U A B) (a : A) : B = comp p a []
 
 -- subst can be defined using trans:
@@ -22,7 +23,7 @@ substTrans (A : U) (P : A -> U) (a b : A) (p : Id A a b) (e : P a) : P b =
   trans (P a) (P b) (mapOnPath A U P a b p) e
 
 subst (A : U) (P : A -> U) (a b : A) (p : Id A a b) (e : P a) : P b =
-  comp (mapOnPath A U P a b p) e []
+  transport (mapOnPath A U P a b p) e
 
 -- substRefl (A : U) (P : A -> U) (a : A) (e : P a) :
 --   Id (P a) (subst A P a a (refl A a) e) e = refl (P a) e

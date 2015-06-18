@@ -202,9 +202,10 @@ resolveExp e = case e of
         CTT.PCon (unAIdent n) <$> resolveExp a <*> mapM resolveExp xs
                               <*> mapM resolveFormula phis
       _ -> CTT.AppFormula <$> resolveExp t <*> resolveFormula phi
-  IdP x y z     -> CTT.IdP <$> resolveExp x <*> resolveExp y <*> resolveExp z
+  IdP a u v     -> CTT.IdP <$> resolveExp a <*> resolveExp u <*> resolveExp v
   Comp u v ts   -> CTT.Comp <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
   Fill u v ts   -> CTT.Fill <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
+  Trans u v     -> CTT.Comp <$> resolveExp u <*> resolveExp v <*> pure Map.empty
   Glue u ts     -> CTT.Glue <$> resolveExp u <*> resolveSystem ts
   GlueElem u ts -> CTT.GlueElem <$> resolveExp u <*> resolveSystem ts
   -- GlueLine phi psi u ->

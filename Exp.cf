@@ -32,6 +32,7 @@ AppFormula.   Exp2 ::= Exp2 "@" Formula ;
 App.          Exp2 ::= Exp2 Exp3 ;
 IdP.          Exp3 ::= "IdP" Exp4 Exp4 Exp4 ;
 Comp.         Exp3 ::= "comp" Exp4 Exp4 System ;
+Trans.        Exp3 ::= "transport" Exp4 Exp4 ;
 Fill.         Exp3 ::= "fill" Exp4 Exp4 System ;
 Glue.         Exp3 ::= "glue" Exp4 System ;
 GlueElem.     Exp3 ::= "glueElem" Exp4 System ;

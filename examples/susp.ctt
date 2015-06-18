@@ -36,18 +36,14 @@ circleToS1 : S1 -> sone = split
 
 merid1 (b:bool) : Id sone north south = <i> merid{sone} b @ i
 
-oc (x:S1) : S1 = s1ToCircle (circleToS1 x)
-
-ocid : (x : S1) -> Id S1 (oc x) x = split
-    base -> refl S1 base
-    loop @ i -> <j> oc (loop1 @ i)
-
 co (x: sone) : sone = circleToS1 (s1ToCircle x)
 
 lemSquare (A:U) (a b : A) (m0 m1 : Id A a b) :
-  Square A a a (compId A a b a m0 (inv A a b m1)) a b m0 (refl A a) m1 =
- <j i> comp A (m0 @ j) [(j=1) -> <k> m1 @ (i \/ -k)
-                       ,(i=0) -> <k> comp A (m0 @ j) [(j=1) -> <l> m1 @ (-k \/ -l)]]
+  Square A a a a b (compId A a b a m0 (inv A a b m1)) m0 (refl A a) m1 =
+ <i j> comp (<_>A) (m0 @ i) [(i=1) -> <k> m1 @ (j \/ -k),
+                        (i=0) -> <_>a,
+                        (j=1) -> <_>m0@i,
+                        (j=0) -> <k> comp (<_>A) (m0 @ i) [(k=0) -> <_>m0@i, (i=0) -> <_>a, (i=1) -> <l> m1 @ (-k \/ -l)]]
 
 coid : (x : sone) -> Id sone (co x) x = split
  north -> refl sone north
@@ -60,44 +56,61 @@ coid : (x : sone) -> Id sone (co x) x = split
       false -> lemSquare sone north south m0 m1
       true -> <j k> m1 @ (j /\ k)
 
+oc (x:S1) : S1 = s1ToCircle (circleToS1 x)
+
+ocid : (x : S1) -> Id S1 (oc x) x = 
+ split
+    base -> refl S1 base
+    loop @ i -> <j>comp (<_>S1) (loop1@i) [(i=0) -> <_>base,(i=1) -> <_>base,(j=1) -> <_>loop1@i, 
+                                      (j=0) ->  <k>comp (<_>S1) (loop1 @ i)[(k=0) -> <_>loop1@i,(i=0) -> <_>base,(i=1)-><_>base]]
+
+
+
 s1EqCircle : Id U sone S1 = isoId sone S1 s1ToCircle circleToS1 ocid coid
 
 s1EqS1 : Id U S1 S1 = compId U S1 sone S1 (inv U sone S1 s1EqCircle) s1EqCircle
+
+lem (A:U) (a:A) : Id A (comp (<_>A) (comp (<_>A) (comp (<_>A) a []) []) []) a = 
+ <i>comp (<_>A) (comp (<_>A) (comp (<_>A) a [(i=1) -> <_>a]) [(i=1) -> <_>a]) [(i=1) -> <_>a]
+
+
 
 -- pointed sets
 
 ptU : U = (X : U) * X
 
 lemPt (A :U) (B:U) (p:Id U A B) (a:A) : Id ptU (A,a) (B,transport p a) =
- <i> (p @ i,transport (<j> p @ (i/\j)) a)
+ <i> (p @ i,comp (<j> p @ (i/\j)) a [(i=0) -> <_>a])
 
 Omega (X:ptU) : ptU = (Id X.1 X.2 X.2,refl X.1 X.2)
 
-s1PtCircle : Id ptU (sone,north) (S1,base) = lemPt sone S1 s1EqCircle north
+lem (A:U) (a:A) : Id A (comp (<_>A) (comp (<_>A) (comp (<_>A) a []) []) []) a = 
+ <i>comp (<_>A) (comp (<_>A) (comp (<_>A) a [(i=1) -> <_>a]) [(i=1) -> <_>a]) [(i=1) -> <_>a]
 
-s1PtS1 : Id ptU (S1,base) (S1,base) = lemPt S1 S1 s1EqS1 base
+lem1 (A:U) (a:A) : Id ptU (A,comp (<_>A) (comp (<_>A) (comp (<_>A) a []) []) []) (A,a) = 
+ <i>(A,lem A a@i)
 
-windingS : Id sone north north -> Z = rem1
- where
-  G (X:ptU) : U = (Omega X).1 -> Z
-  rem : G (S1,base) = winding
-  rem1 : G (sone,north) = subst ptU G (S1,base) (sone,north) (<i> s1PtCircle @ -i) rem
+-- s1PtCircle : Id ptU (sone,north) (S1,base) = 
+--  compId ptU (sone,north) (S1,comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) []) (S1,base) (lemPt sone S1 s1EqCircle north) (lem1 S1 base) 
 
-s1ToCId (p: Id sone north north) : Id S1 base base
- = <i> transport s1EqCircle (p @ i)
+-- windingS : Id sone north north -> Z = rem1
+--  where
+--   G (X:ptU) : U = (Omega X).1 -> Z
+--   rem : G (S1,base) = winding
+--   rem1 : G (sone,north) = subst ptU G (S1,base) (sone,north) (<i> s1PtCircle @ -i) rem
 
-s1ToCIdInv (p : Id S1 base base) : Id sone north north
- = <i> (transport (<j> s1EqCircle @ -j) (p @ i))
+-- s1ToCId (p: Id sone north north) : Id S1 base base  = <i> transport s1EqCircle (p @ i)
 
-loop1S :  Id sone north north = s1ToCIdInv loop1
+-- s1ToCIdInv (p : Id S1 base base) : Id sone north north  = <i> (transport (<j> s1EqCircle @ -j) (p @ i))
+
+loop1S :  Id sone north north = compId sone north south north m0 invm1
 
 loop2S : Id sone north north = compId sone north north north loop1S loop1S
 
-test0S : Z = windingS (refl sone north)
+-- test0S : Z = windingS (refl sone north)
 
-test2S : Z = windingS loop2S
+-- test2S : Z = windingS loop2S
 
--- The sphere is the suspension of the circle:
-S2 : U = susp S1
+-- test4S : Z = windingS (compId sone north north north loop2S loop2S)
 
-loopS2 : U = Id S2 north north
+

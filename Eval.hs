@@ -4,12 +4,15 @@ module Eval where
 import Data.List
 import Data.Maybe (fromMaybe)
 import Data.Map (Map,(!),mapWithKey,assocs,filterWithKey
-                ,elems,intersectionWith,intersection,keys)
+                ,elems,intersectionWith,intersection,keys
+                ,member,notMember,empty)
 import qualified Data.Map as Map
 
 import Connections
 import CTT
 
+-----------------------------------------------------------------------
+-- Lookup functions
 
 look :: String -> Env -> Val
 look x (Upd y rho,v:vs,fs) | x == y = v
@@ -18,6 +21,7 @@ look x r@(Def decls rho,vs,fs) = case lookup x decls of
   Just (_,t) -> eval r t
   Nothing    -> look x (rho,vs,fs)
 look x (Sub _ rho,vs,_:fs) = look x (rho,vs,fs)
+look x _ = error $ "look: not found " ++ show x
 
 lookType :: String -> Env -> Val
 lookType x (Upd y rho,VVar _ a:vs,fs)
@@ -27,13 +31,15 @@ lookType x r@(Def decls rho,vs,fs) = case lookup x decls of
   Just (a,_) -> eval r a
   Nothing -> lookType x (rho,vs,fs)
 lookType x (Sub _ rho,vs,_:fs) = lookType x (rho,vs,fs)
+lookType x _                   = error $ "lookType: not found " ++ show x
 
 lookName :: Name -> Env -> Formula
--- lookName i Empty       = error $ "lookName: not found " ++ show i
 lookName i (Upd _ rho,v:vs,fs) = lookName i (rho,vs,fs)
-lookName i (Def _ rho,vs,fs) = lookName i (rho,vs,fs)
+lookName i (Def _ rho,vs,fs)   = lookName i (rho,vs,fs)
 lookName i (Sub j rho,vs,phi:fs) | i == j    = phi
                                  | otherwise = lookName i (rho,vs,fs)
+lookName i _ = error $ "lookName: not found " ++ show i
+
 
 -----------------------------------------------------------------------
 -- Nominal instances
@@ -150,15 +156,17 @@ eval rho v = case v of
   Undef{}             -> Ter v rho
   Hole{}              -> Ter v rho
   IdP a e0 e1         -> VIdP (eval rho a) (eval rho e0) (eval rho e1)
-  Path i t            ->
-    let j = fresh rho
-    in VPath j (eval (sub (i,Atom j) rho) t)
+  Path i t            -> let j = fresh rho
+                         in VPath j (eval (sub (i,Atom j) rho) t)
   AppFormula e phi    -> eval rho e @@ evalFormula rho phi
   Comp a t0 ts        -> compLine (eval rho a) (eval rho t0) (evalSystem rho ts)
   Fill a t0 ts        -> fillLine (eval rho a) (eval rho t0) (evalSystem rho ts)
   Glue a ts           -> glue (eval rho a) (evalSystem rho ts)
   GlueElem a ts       -> glueElem (eval rho a) (evalSystem rho ts)
   _                   -> error $ "Cannot evaluate " ++ show v
+
+evals :: Env -> [(Ident,Ter)] -> [(Ident,Val)]
+evals env bts = [ (b,eval env t) | (b,t) <- bts ]
 
 evalFormula :: Env -> Formula -> Formula
 evalFormula rho phi = case phi of
@@ -167,9 +175,6 @@ evalFormula rho phi = case phi of
   phi1 :/\: phi2 -> evalFormula rho phi1 `andFormula` evalFormula rho phi2
   phi1 :\/: phi2 -> evalFormula rho phi1 `orFormula` evalFormula rho phi2
   _              -> phi
-
-evals :: Env -> [(Ident,Ter)] -> [(Ident,Val)]
-evals env bts = [ (b,eval env t) | (b,t) <- bts ]
 
 evalSystem :: Env -> System Ter -> System Val
 evalSystem rho ts =
@@ -254,100 +259,12 @@ v @@ phi | isNeutral v     = case (inferType v,toFormula phi) of
   _  -> VAppFormula v (toFormula phi)
 v @@ phi                   = error $ "(@@): " ++ show v ++ " should be neutral."
 
-pcon :: LIdent -> Val -> [Val] -> [Formula] -> Val
-pcon c a@(Ter (HSum _ _ lbls) rho) us phis = case lookupPLabel c lbls of
-  Just (tele,is,ts) | eps `Map.member` vs -> vs ! eps
-                    | otherwise -> VPCon c a us phis
-    where rho' = subs (zip is phis) (updsTele tele us rho)
-          vs   = evalSystem rho' ts
-  Nothing           -> error "pcon"
-pcon c a us phi     = VPCon c a us phi
-
------------------------------------------------------------
--- Transport
-
-transLine :: Val -> Val -> Val
-transLine u v = trans i (u @@ i) v
-  where i = fresh (u,v)
-
-transNegLine :: Val -> Val -> Val
-transNegLine u v = transNeg i (u @@ i) v
-  where i = fresh (u,v)
-
-trans :: Name -> Val -> Val -> Val
-trans i v0 v1 = comp i v0 v1 Map.empty
-
-transNeg :: Name -> Val -> Val -> Val
-transNeg i a u = trans i (a `sym` i) u
-
-transFill, transFillNeg :: Name -> Val -> Val -> Val
-transFill i a u = fill i a u Map.empty
-transFillNeg i a u = (transFill i (a `sym` i) u) `sym` i
-
-transps :: Name -> [(Ident,Ter)] -> Env -> [Val] -> [Val]
-transps i []         _ []     = []
-transps i ((x,a):as) e (u:us) =
-  let v   = transFill i (eval e a) u
-      vi1 = trans i (eval e a) u
-      vs  = transps i as (upd (x,v) e) us
-  in vi1 : vs
-transps _ _ _ _ = error "transps: different lengths of types and values"
-
--- Given u of type a "squeeze i a u" connects in the direction i
--- trans i a u(i=0) to u(i=1)
-squeeze :: Name -> Val -> Val -> Val
-squeeze i a u = comp i (a `disj` (i,j)) u $ mkSystem [ (j ~> 1, ui1) ]
-  where j = fresh (Atom i,a,u)
-        ui1 = u `face` (i ~> 1)
-
-squeezeFill :: Name -> Val -> Val -> Val
-squeezeFill i a u = fill i (a `disj` (i,j)) u $ mkSystem [ (j ~> 1, ui1) ]
-  where j = fresh (Atom i,a,u)
-        ui1 = u `face` (i ~> 1)
-
-squeezes :: Name -> [(Ident,Ter)] -> Env -> [Val] -> [Val]
-squeezes i []         _ []     = []
-squeezes i ((x,a):as) e (u:us) =
-  let v   = squeezeFill i (eval e a) u
-      vi1 = squeeze i (eval e a) u
-      vs  = squeezes i as (upd (x,v) e) us
-  in vi1 : vs
-squeezes _ _ _ _ = error "squeezes: different lengths of types and values"
-
--- squeezeNeg :: Name -> Val -> Val -> Val
--- squeezeNeg i a u = transNeg j (a `conj` (i,j)) u
---   where j = fresh (Atom i,a,u)
 
 -------------------------------------------------------------------------------
--- Composition
-
-compLine :: Val -> Val -> System Val -> Val
-compLine a u ts = comp i (a @@ i) u (Map.map (@@ i) ts)
-  where i = fresh (a,u,ts)
-
-fillLine :: Val -> Val -> System Val -> Val
-fillLine a u ts = VPath i $ fill i (a @@ i) u (Map.map (@@ i) ts)
-  where i = fresh (a,u,ts)
-
-fill :: Name -> Val -> Val -> System Val -> Val
-fill i a u ts =
-  comp j (a `conj` (i,j)) u (insertSystem (i ~> 0) u (ts `conj` (i,j)))
-  where j = fresh (Atom i,a,u,ts)
-
-fillNeg :: Name -> Val -> Val -> System Val -> Val
-fillNeg i a u ts = (fill i (a `sym` i) u (ts `sym` i)) `sym` i
-
-comps :: Name -> [(Ident,Ter)] -> Env -> [(System Val,Val)] -> [Val]
-comps i []         _ []         = []
-comps i ((x,a):as) e ((ts,u):tsus) =
-  let v   = fill i (eval e a) u ts
-      vi1 = comp i (eval e a) u ts
-      vs  = comps i as (upd (x,v) e) tsus
-  in vi1 : vs
-comps _ _ _ _ = error "comps: different lengths of types and values"
+-- Composition and filling
 
 comp :: Name -> Val -> Val -> System Val -> Val
-comp i a u ts | eps `Map.member` ts    = (ts ! eps) `face` (i ~> 1)
+comp i a u ts | eps `member` ts = (ts ! eps) `face` (i ~> 1)
 comp i a u ts = case a of
   VIdP p v0 v1 -> let j = fresh (Atom i,a,u,ts)
                   in VPath j $ comp i (p @@ j) (u @@ j) $
@@ -373,6 +290,31 @@ comp i a u ts = case a of
 compNeg :: Name -> Val -> Val -> System Val -> Val
 compNeg i a u ts = comp i (a `sym` i) u (ts `sym` i)
 
+compLine :: Val -> Val -> System Val -> Val
+compLine a u ts = comp i (a @@ i) u (Map.map (@@ i) ts)
+  where i = fresh (a,u,ts)
+
+comps :: Name -> [(Ident,Ter)] -> Env -> [(System Val,Val)] -> [Val]
+comps i []         _ []         = []
+comps i ((x,a):as) e ((ts,u):tsus) =
+  let v   = fill i (eval e a) u ts
+      vi1 = comp i (eval e a) u ts
+      vs  = comps i as (upd (x,v) e) tsus
+  in vi1 : vs
+comps _ _ _ _ = error "comps: different lengths of types and values"
+
+fill :: Name -> Val -> Val -> System Val -> Val
+fill i a u ts =
+  comp j (a `conj` (i,j)) u (insertSystem (i ~> 0) u (ts `conj` (i,j)))
+  where j = fresh (Atom i,a,u,ts)
+
+fillNeg :: Name -> Val -> Val -> System Val -> Val
+fillNeg i a u ts = (fill i (a `sym` i) u (ts `sym` i)) `sym` i
+
+fillLine :: Val -> Val -> System Val -> Val
+fillLine a u ts = VPath i $ fill i (a @@ i) u (Map.map (@@ i) ts)
+  where i = fresh (a,u,ts)
+
 -- fills :: Name -> [(Ident,Ter)] -> Env -> [(System Val,Val)] -> [Val]
 -- fills i []         _ []         = []
 -- fills i ((x,a):as) e ((ts,u):tsus) =
@@ -381,8 +323,76 @@ compNeg i a u ts = comp i (a `sym` i) u (ts `sym` i)
 --   in v : vs
 -- fills _ _ _ _ = error "fills: different lengths of types and values"
 
+
+-----------------------------------------------------------
+-- Transport and squeeze (defined using comp)
+
+trans :: Name -> Val -> Val -> Val
+trans i v0 v1 = comp i v0 v1 empty
+
+transNeg :: Name -> Val -> Val -> Val
+transNeg i a u = trans i (a `sym` i) u
+
+transLine :: Val -> Val -> Val
+transLine u v = trans i (u @@ i) v
+  where i = fresh (u,v)
+
+transNegLine :: Val -> Val -> Val
+transNegLine u v = transNeg i (u @@ i) v
+  where i = fresh (u,v)
+
+transps :: Name -> [(Ident,Ter)] -> Env -> [Val] -> [Val]
+transps i []         _ []     = []
+transps i ((x,a):as) e (u:us) =
+  let v   = transFill i (eval e a) u
+      vi1 = trans i (eval e a) u
+      vs  = transps i as (upd (x,v) e) us
+  in vi1 : vs
+transps _ _ _ _ = error "transps: different lengths of types and values"
+
+transFill :: Name -> Val -> Val -> Val
+transFill i a u = fill i a u empty
+
+transFillNeg :: Name -> Val -> Val -> Val
+transFillNeg i a u = (transFill i (a `sym` i) u) `sym` i
+
+-- Given u of type a "squeeze i a u" connects in the direction i
+-- trans i a u(i=0) to u(i=1)
+squeeze :: Name -> Val -> Val -> Val
+squeeze i a u = comp i (a `disj` (i,j)) u $ mkSystem [ (j ~> 1, ui1) ]
+  where j   = fresh (Atom i,a,u)
+        ui1 = u `face` (i ~> 1)
+
+squeezeFill :: Name -> Val -> Val -> Val
+squeezeFill i a u = fill i (a `disj` (i,j)) u $ mkSystem [ (j ~> 1, ui1) ]
+  where j   = fresh (Atom i,a,u)
+        ui1 = u `face` (i ~> 1)
+
+squeezes :: Name -> [(Ident,Ter)] -> Env -> [Val] -> [Val]
+squeezes i []         _ []     = []
+squeezes i ((x,a):as) e (u:us) =
+  let v   = squeezeFill i (eval e a) u
+      vi1 = squeeze i (eval e a) u
+      vs  = squeezes i as (upd (x,v) e) us
+  in vi1 : vs
+squeezes _ _ _ _ = error "squeezes: different lengths of types and values"
+
+-- squeezeNeg :: Name -> Val -> Val -> Val
+-- squeezeNeg i a u = transNeg j (a `conj` (i,j)) u
+--   where j = fresh (Atom i,a,u)
+
+
 -------------------------------------------------------------------------------
--- | HIT
+-- | HITs
+
+pcon :: LIdent -> Val -> [Val] -> [Formula] -> Val
+pcon c a@(Ter (HSum _ _ lbls) rho) us phis = case lookupPLabel c lbls of
+  Just (tele,is,ts) | eps `member` vs -> vs ! eps
+                    | otherwise       -> VPCon c a us phis
+    where rho' = subs (zip is phis) (updsTele tele us rho)
+          vs   = evalSystem rho' ts
+  Nothing           -> error "pcon"
+pcon c a us phi     = VPCon c a us phi
 
 compHIT :: Name -> Val -> Val -> System Val -> Val
 compHIT i a u us
@@ -417,8 +427,9 @@ squeezeHIT i a@(Ter (HSum _ _ nass) env) u =
   _ -> error $ "squeezeHIT: neutral " ++ show u
 
 hComp :: Val -> Val -> System Val -> Val
-hComp a u us | eps `Map.member` us = (us ! eps) @@ One
-             | otherwise           = VHComp a u us
+hComp a u us | eps `member` us = (us ! eps) @@ One
+             | otherwise       = VHComp a u us
+
 
 -------------------------------------------------------------------------------
 -- | Glue
@@ -429,6 +440,7 @@ hComp a u us | eps `Map.member` us = (us ! eps) @@ One
 -- t : (y : b) (w : fiber a b f y) -> s y = w
 -- with fiber a b f y = (x : a) * (f x = y)
 
+-- Extraction functions for getting a, f, s and t:
 equivDom :: Val -> Val
 equivDom = fstVal
 
@@ -469,72 +481,27 @@ equivIsCenter = sndVal . sndVal . sndVal
 --                         ,(j ~> 1, inv (edown x))]
 --         t = Ter (Lam "x" ev1 $ Path j $ Comp ev (eminus x) tsys) eenv
 
--- Every path in the universe induces an equivalence
-eqToEquiv :: Val -> Val
-eqToEquiv e = VPair e1 (VPair f (VPair s t))
-  where e1 = e @@ One
-        (i,j,x,y,w,ev) = (Name "i",Name "j",Var "x",Var "y",Var "w",Var "E")
-        inv t = Path i $ AppFormula t (NegAtom i)
-        evinv = inv ev
-        (ev0, ev1) = (AppFormula ev (Dir Zero),AppFormula ev (Dir One)) -- (b,a)
-        eenv     = upd ("E",e) empty
-        -- eplus : e0 -> e1
-        eplus z  = Comp ev z Map.empty
-        -- eminus : e1 -> e0
-        eminus z = Comp evinv z Map.empty
-        -- NB: edown is *not* transNegFill
-        eup z   = Fill ev z Map.empty
-        edown z = Fill evinv z Map.empty
-        f = Ter (Lam "x" ev1 (eminus x)) eenv
-        -- g = Ter (Lam "y" ev0 (eplus y)) eenv
-        etasys z0 = mkSystem [(j ~> 1, inv (eup z0))
-                             ,(j ~> 0, edown (eplus z0))]
-        -- eta : (y : e0) -> eminus (eplus y) = y
-        eta z0 = Path j $ Comp evinv (eplus z0) (etasys z0)
-        etaSquare z0 = Fill evinv (eplus z0) (etasys z0)
-        s = Ter (Lam "y" ev0 $ Pair (eplus y) (eta y)) eenv
-        (a,p) = (Fst w,Snd w) -- a : e1 and p : eminus a = y
-        phisys l = mkSystem [ (l ~> 0, inv (edown a))
-                            , (l ~> 1, eup y)]
-        psi l = Comp ev (AppFormula p (Atom l)) (phisys l)
-        phi l = Fill ev (AppFormula p (Atom l)) (phisys l)
-        tsys = mkSystem
-               [ (j ~> 0, edown (psi i))
-               , (j ~> 1, inv $ eup y)
-               , (i ~> 0, inv $ phi j)
-               , (i ~> 1, etaSquare y)
-               ]
-        -- encode act on terms using Path and AppFormula
-        psi' formula = AppFormula (Path j $ psi j) formula
-        tprinc = psi' (Atom i :\/: Atom j)
-        t2 = Comp evinv tprinc tsys
-        t2inv = AppFormula (inv (Path i t2)) (Atom i)
-        fibtype = Sigma (Lam "x" ev1 $ IdP (Path (Name "_") ev0) (eminus x) y)
-        t = Ter (Lam "y" ev0 $ Lam "w" fibtype $ Path i $
-                 Pair (psi' (NegAtom i)) (Path j t2inv)) eenv
-
-
 glue :: Val -> System Val -> Val
-glue b ts | eps `Map.member` ts = equivDom (ts ! eps)
-          | otherwise           = VGlue b ts
+glue b ts | eps `member` ts = equivDom (ts ! eps)
+          | otherwise       = VGlue b ts
 
 glueElem :: Val -> System Val -> Val
-glueElem v us | eps `Map.member` us = us ! eps
-              | otherwise           = VGlueElem v us
+glueElem v us | eps `member` us = us ! eps
+              | otherwise       = VGlueElem v us
 
 unGlue :: Val -> Val -> System Val -> Val
 unGlue w b equivs
-    | eps `Map.member` equivs = app (equivFun (equivs ! eps)) w
-    | otherwise              = case w of
-       VGlueElem v us   -> v
-       _ -> VUnGlueElem w b equivs
+  | eps `member` equivs = app (equivFun (equivs ! eps)) w
+  | otherwise           = case w of
+    VGlueElem v us -> v
+    _ -> VUnGlueElem w b equivs
 
 compGlue :: Name -> Val -> System Val -> Val -> System Val -> Val
 compGlue i b equivs wi0 ws = glueElem vi1'' usi1''
   where bi1 = b `face` (i ~> 1)
-        vs   = mapWithKey
-                 (\alpha wAlpha -> unGlue wAlpha
-                                     (b `face` alpha) (equivs `face` alpha)) ws
+        vs   = mapWithKey (\alpha wAlpha ->
+                 unGlue wAlpha (b `face` alpha) (equivs `face` alpha))
+               ws
         vsi1 = vs `face` (i ~> 1) -- same as: border vi1 vs
         vi0  = unGlue wi0 (b `face` (i ~> 0)) (equivs `face` (i ~> 0)) -- in b(i0)
 
@@ -542,8 +509,8 @@ compGlue i b equivs wi0 ws = glueElem vi1'' usi1''
         vi1  = comp i b vi0 vs           -- is v `face` (i ~> 1) in b(i1)
 
         equivsI1 = equivs `face` (i ~> 1)
-        equivs'  = filterWithKey (\alpha _ -> i `Map.notMember` alpha) equivs
-        equivs'' = filterWithKey (\alpha _ -> alpha `Map.notMember` equivs') equivsI1
+        equivs'  = filterWithKey (\alpha _ -> i `notMember` alpha) equivs
+        equivs'' = filterWithKey (\alpha _ -> alpha `notMember` equivs') equivsI1
 
         us'    = mapWithKey (\gamma isoG ->
                    fill i (equivDom isoG) (wi0 `face` gamma) (ws `face` gamma))
@@ -568,18 +535,18 @@ compGlue i b equivs wi0 ws = glueElem vi1'' usi1''
                   gradLemma (bi1 `face` gamma) isoG
                     ((usi1' `face` gamma) `unionSystem` (wsi1 `face` gamma))
                     (vi1' `face` gamma))
-                  equivs''
+                equivs''
 
         vsi1' = Map.map constPath $ border vi1' equivs' `unionSystem` vsi1
 
         vi1'' = compLine (constPath bi1) vi1'
                   (Map.map snd uls'' `unionSystem` vsi1')
 
-        usi1'' = Map.mapWithKey (\gamma _ ->
-                     if gamma `Map.member` usi1' then usi1' ! gamma
-                     else fst (uls'' ! gamma))
-                   equivsI1
-
+        usi1'' = mapWithKey (\gamma _ ->
+                     if gamma `member` usi1'
+                        then usi1' ! gamma
+                        else fst (uls'' ! gamma))
+                 equivsI1
 
 -- assumes u and u' : A are solutions of us + (i0 -> u(i0))
 -- The output is an L-path in A(i1) between u(i1) and u'(i1)
@@ -618,21 +585,63 @@ pathComp i a u u' us = VPath j $ comp i a (u `face` (i ~> 0)) us'
 -- L-path p between v and f u.
 gradLemma :: Val -> Val -> System Val -> Val -> (Val, Val)
 gradLemma b e us v = (u,VPath j $ tau `sym` j)
-  where i:j:_ = freshs (b,e,us,v)
+  where i:j:_     = freshs (b,e,us,v)
         (a,f,s,t) = (equivDom e,equivFun e,equivCenter e,equivIsCenter e)
-        g y = fstVal (app s y) -- g : b -> a
-        eta y = sndVal (app s y) -- eta b @ i : f (g b) --> b
-        us' = mapWithKey
-              (\alpha uAlpha ->
-                let fuAlpha = app (f `face` alpha) uAlpha
-                in app (app (t `face` alpha) fuAlpha)
-                       (VPair uAlpha (constPath fuAlpha))) us
+        g y       = fstVal (app s y) -- g : b -> a
+        eta y     = sndVal (app s y) -- eta b @ i : f (g b) --> b
+        us'       = mapWithKey (\alpha uAlpha ->
+                      let fuAlpha = app (f `face` alpha) uAlpha
+                      in app (app (t `face` alpha) fuAlpha)
+                           (VPair uAlpha (constPath fuAlpha)))
+                    us
         theta = fill i a (g v) (Map.map (fstVal . (@@ i)) us')
-        u = theta `face` (i ~> 1)
-        vs = insertsSystem
-               [(j ~> 0, app f theta),(j ~> 1, v)]
-               (Map.map ((@@ j) . sndVal . (@@ i)) us')
-        tau = comp i b (eta v @@ j) vs
+        u     = theta `face` (i ~> 1)
+        vs    = insertsSystem [(j ~> 0, app f theta),(j ~> 1, v)]
+                              (Map.map ((@@ j) . sndVal . (@@ i)) us')
+        tau   = comp i b (eta v @@ j) vs
+
+-- Every path in the universe induces an equivalence
+eqToEquiv :: Val -> Val
+eqToEquiv e = VPair e1 (VPair f (VPair s t))
+  where (i,j,x,y,w,ev) = (Name "i",Name "j",Var "x",Var "y",Var "w",Var "E")
+        e1    = e @@ One
+        inv t = Path i $ AppFormula t (NegAtom i)
+        evinv = inv ev
+        (ev0,ev1) = (AppFormula ev (Dir Zero),AppFormula ev (Dir One)) -- (b,a)
+        eenv     = upd ("E",e) emptyEnv
+        -- eplus : e0 -> e1
+        eplus z  = Comp ev z empty
+        -- eminus : e1 -> e0
+        eminus z = Comp evinv z empty
+        -- NB: edown is *not* transNegFill
+        eup z   = Fill ev z empty
+        edown z = Fill evinv z empty
+        f = Ter (Lam "x" ev1 (eminus x)) eenv
+        -- g = Ter (Lam "y" ev0 (eplus y)) eenv
+        etasys z0 = mkSystem [(j ~> 1, inv (eup z0))
+                             ,(j ~> 0, edown (eplus z0))]
+        -- eta : (y : e0) -> eminus (eplus y) = y
+        eta z0 = Path j $ Comp evinv (eplus z0) (etasys z0)
+        etaSquare z0 = Fill evinv (eplus z0) (etasys z0)
+        s = Ter (Lam "y" ev0 $ Pair (eplus y) (eta y)) eenv
+        (a,p) = (Fst w,Snd w) -- a : e1 and p : eminus a = y
+        phisys l = mkSystem [ (l ~> 0, inv (edown a))
+                            , (l ~> 1, eup y)]
+        psi l = Comp ev (AppFormula p (Atom l)) (phisys l)
+        phi l = Fill ev (AppFormula p (Atom l)) (phisys l)
+        tsys = mkSystem
+                 [ (j ~> 0, edown (psi i))
+                 , (j ~> 1, inv $ eup y)
+                 , (i ~> 0, inv $ phi j)
+                 , (i ~> 1, etaSquare y) ]
+        -- encode act on terms using Path and AppFormula
+        psi' formula = AppFormula (Path j $ psi j) formula
+        tprinc = psi' (Atom i :\/: Atom j)
+        t2 = Comp evinv tprinc tsys
+        t2inv = AppFormula (inv (Path i t2)) (Atom i)
+        fibtype = Sigma (Lam "x" ev1 $ IdP (Path (Name "_") ev0) (eminus x) y)
+        t = Ter (Lam "y" ev0 $ Lam "w" fibtype $ Path i $
+                 Pair (psi' (NegAtom i)) (Path j t2inv)) eenv
 
 -------------------------------------------------------------------------------
 -- | Conversion
@@ -721,6 +730,7 @@ instance Convertible a => Convertible (System a) where
 
 instance Convertible Formula where
   conv _ phi psi = dnf phi == dnf psi
+
 
 -------------------------------------------------------------------------------
 -- | Normalization

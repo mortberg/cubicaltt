@@ -4,7 +4,7 @@ module CTT where
 import Control.Applicative
 import Data.List
 import Data.Maybe
-import Data.Map (Map,(!),filterWithKey)
+import Data.Map (Map,(!),filterWithKey,elems)
 import qualified Data.Map as Map
 import Text.PrettyPrint as PP
 
@@ -175,7 +175,7 @@ isNeutral v = case v of
   _              -> False
 
 isNeutralSystem :: System Val -> Bool
-isNeutralSystem = any isNeutral . Map.elems
+isNeutralSystem = any isNeutral . elems
 
 -- isNeutralPath :: Val -> Bool
 -- isNeutralPath (VPath _ v) = isNeutral v
@@ -215,8 +215,8 @@ data Ctxt = Empty
 -- only need to affect the lists and not the whole context.
 type Env = (Ctxt,[Val],[Formula])
 
-empty :: Env
-empty = (Empty,[],[])
+emptyEnv :: Env
+emptyEnv = (Empty,[],[])
 
 def :: [Decl] -> Env -> Env
 def ds (rho,vs,fs) = (Def ds rho,vs,fs)

@@ -4,7 +4,9 @@ module Connections where
 
 import Control.Applicative
 import Data.List
-import Data.Map (Map,(!),keys)
+import Data.Map (Map,(!),keys,fromList,toList,mapKeys,elems,intersectionWith
+                ,unionWith,singleton,foldWithKey,assocs,mapWithKey
+                ,filterWithKey,member)
 import Data.Set (Set,isProperSubsetOf)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -58,18 +60,18 @@ instance Arbitrary Dir where
 type Face = Map Name Dir
 
 instance Arbitrary Face where
-  arbitrary = Map.fromList <$> arbitrary
+  arbitrary = fromList <$> arbitrary
 
 showFace :: Face -> String
 showFace alpha = concat [ "(" ++ show i ++ " = " ++ show d ++ ")"
-                        | (i,d) <- Map.toList alpha ]
+                        | (i,d) <- toList alpha ]
 
 swapFace :: Face -> (Name,Name) -> Face
-swapFace alpha ij = Map.mapKeys (`swapName` ij) alpha
+swapFace alpha ij = mapKeys (`swapName` ij) alpha
 
 -- Check if two faces are compatible
 compatible :: Face -> Face -> Bool
-compatible xs ys = and (Map.elems (Map.intersectionWith (==) xs ys))
+compatible xs ys = and (elems (intersectionWith (==) xs ys))
 
 compatibles :: [Face] -> Bool
 compatibles []     = True
@@ -81,7 +83,7 @@ allCompatible (f:fs) = map (f,) (filter (compatible f) fs) ++ allCompatible fs
 
 -- Partial composition operation
 meet :: Face -> Face -> Face
-meet = Map.unionWith f
+meet = unionWith f
   where f d1 d2 = if d1 == d2 then d1 else error "meet: incompatible faces"
 
 meetMaybe :: Face -> Face -> Maybe Face
@@ -114,7 +116,7 @@ incomparables []     = True
 incomparables (x:xs) = all (not . (x `comparable`)) xs && incomparables xs
 
 (~>) :: Name -> Dir -> Face
-i ~> d = Map.singleton i d
+i ~> d = singleton i d
 
 eps :: Face
 eps = Map.empty
@@ -235,8 +237,8 @@ merge a b =
 -- phi b = max {alpha : Face | phi alpha = b}
 invFormula :: Formula -> Dir -> [Face]
 invFormula (Dir b') b          = [ eps | b == b' ]
-invFormula (Atom i) b          = [ Map.singleton i b ]
-invFormula (NegAtom i) b       = [ Map.singleton i (- b) ]
+invFormula (Atom i) b          = [ singleton i b ]
+invFormula (NegAtom i) b       = [ singleton i (- b) ]
 invFormula (phi :/\: psi) Zero = invFormula phi 0 `union` invFormula psi 0
 invFormula (phi :/\: psi) One  = meets (invFormula phi 1) (invFormula psi 1)
 invFormula (phi :\/: psi) b    = invFormula (negFormula phi :/\: negFormula psi) (- b)
@@ -362,7 +364,7 @@ instance Nominal Formula where
   swap (psi1 :\/: psi2) (i,j) = swap psi1 (i,j) :\/: swap psi2 (i,j)
 
 face :: Nominal a => a -> Face -> a
-face = Map.foldWithKey (\i d a -> act a (i,Dir d))
+face = foldWithKey (\i d a -> act a (i,Dir d))
 
 -- the faces should be incomparable
 type System a = Map Face a
@@ -374,10 +376,10 @@ showListSystem ts =
                            | (alpha,u) <- ts ] ++ " ]"
 
 showSystem :: Show a => System a -> String
-showSystem = showListSystem . Map.toList
+showSystem = showListSystem . toList
 
 insertSystem :: Face -> a -> System a -> System a
-insertSystem alpha v ts = case find (comparable alpha) (Map.keys ts) of
+insertSystem alpha v ts = case find (comparable alpha) (keys ts) of
   Just beta | alpha `leq` beta -> ts
             | otherwise        -> Map.insert alpha v (Map.delete beta ts)
   Nothing -> Map.insert alpha v ts
@@ -389,7 +391,7 @@ mkSystem :: [(Face, a)] -> System a
 mkSystem = flip insertsSystem Map.empty
 
 unionSystem :: System a -> System a -> System a
-unionSystem us vs = insertsSystem (Map.assocs us) vs
+unionSystem us vs = insertsSystem (assocs us) vs
 
 
 -- TODO: add some checks
@@ -403,10 +405,10 @@ transposeSystemAndList tss (u:us) =
 
 -- Now we ensure that the keys are incomparable
 instance Nominal a => Nominal (System a) where
-  support s = unions (map Map.keys $ Map.keys s)
-              `union` support (Map.elems s)
+  support s = unions (map keys $ keys s)
+              `union` support (elems s)
 
-  act s (i, phi) = addAssocs (Map.assocs s)
+  act s (i, phi) = addAssocs (assocs s)
     where
     addAssocs [] = Map.empty
     addAssocs ((alpha,u):alphaus) =
@@ -418,11 +420,11 @@ instance Nominal a => Nominal (System a) where
                                             s' (invFormula (face phi beta) d)
         Nothing -> insertSystem alpha (act u (i,face phi alpha)) s'
 
-  swap s ij = Map.mapKeys (`swapFace` ij) (Map.map (`swap` ij) s)
+  swap s ij = mapKeys (`swapFace` ij) (Map.map (`swap` ij) s)
 
 -- carve a using the same shape as the system b
 border :: Nominal a => a -> System b -> System a
-border v = Map.mapWithKey (const . face v)
+border v = mapWithKey (const . face v)
 
 shape :: System a -> System ()
 shape = border ()
@@ -435,7 +437,7 @@ instance (Nominal a, Arbitrary a) => Arbitrary (System a) where
       arbitraryShape :: [Name] -> Gen (System ())
       arbitraryShape supp = do
         phi <- sized $ arbFormula supp
-        return $ Map.fromList [(face,()) | face <- invFormula phi 0]
+        return $ fromList [(face,()) | face <- invFormula phi 0]
 
 sym :: Nominal a => a -> Name -> a
 sym a i = a `act` (i, NegAtom i)
@@ -449,12 +451,12 @@ disj a (i, j) = a `act` (i, Atom i :\/: Atom j)
 
 leqSystem :: Face -> System a -> Bool
 alpha `leqSystem` us =
-  not $ Map.null $ Map.filterWithKey (\beta _ -> alpha `leq` beta) us
+  not $ Map.null $ filterWithKey (\beta _ -> alpha `leq` beta) us
 
 -- assumes alpha <= shape us
 proj :: (Nominal a, Show a) => System a -> Face -> a
-proj us alpha | eps `Map.member` usalpha = usalpha ! eps
-              | otherwise                =
+proj us alpha | eps `member` usalpha = usalpha ! eps
+              | otherwise            =
   error $ "proj: eps not in " ++ show usalpha ++ "\nwhich  is the "
     ++ show alpha ++ "\nface of " ++ show us
   where usalpha = us `face` alpha

@@ -27,8 +27,8 @@ data TEnv =
        } deriving (Eq)
 
 verboseEnv, silentEnv :: TEnv
-verboseEnv = TEnv [] 0 empty True
-silentEnv  = TEnv [] 0 empty False
+verboseEnv = TEnv [] 0 emptyEnv True
+silentEnv  = TEnv [] 0 emptyEnv False
 
 -- Trace function that depends on the verbosity flag
 trace :: String -> Typing ()
@@ -289,7 +289,7 @@ mkEquiv vb = eval rho $
   Sigma $ Lam "s" (Pi (Lam "y" b $ fib)) $
     Pi (Lam "y" b $ Pi (Lam "w" fib $ IdP (Path (Name "_") fib) (App s y) w))
   where [a,b,f,x,y,s,w] = map Var ["a","b","f","x","y","s","w"]
-        rho = upd ("b",vb) empty
+        rho = upd ("b",vb) emptyEnv
         fib = Sigma (Lam "x" a $ IdP (Path (Name "_") b) (App f x) y)
 
 checkEquiv :: Val -> Ter -> Typing ()

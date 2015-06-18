@@ -205,10 +205,10 @@ check a t = case (a,t) of
     check VU a
     rho <- asks env
     checkGlue (eval rho a) ts
-  -- (VGlue va ts,GlueElem u us) -> do
-  --   check va u
-  --   vu <- evalTyping u
-  --   checkGlueElem vu ts us
+  (VGlue va ts,GlueElem u us) -> do
+    check va u
+    vu <- evalTyping u
+    checkGlueElem vu ts us
   _ -> do
     v <- infer t
     unlessM (v === a) $

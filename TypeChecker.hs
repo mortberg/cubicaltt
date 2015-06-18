@@ -20,7 +20,7 @@ type Typing a = ReaderT TEnv (ExceptT String IO) a
 
 -- Environment for type checker
 data TEnv =
-  TEnv { names   :: [String]  -- generated names
+  TEnv { names   :: [String] -- generated names
        , indent  :: Int
        , env     :: Env
        , verbose :: Bool  -- Should it be verbose and print what it typechecks?

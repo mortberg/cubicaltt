@@ -368,6 +368,7 @@ face = Map.foldWithKey (\i d a -> act a (i,Dir d))
 type System a = Map Face a
 
 showListSystem :: Show a => [(Face,a)] -> String
+showListSystem [] = "[]"
 showListSystem ts =
   "[ " ++ intercalate ", " [ showFace alpha ++ " -> " ++ show u
                            | (alpha,u) <- ts ] ++ " ]"

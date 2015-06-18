@@ -277,14 +277,18 @@ showEnv b e =
       names x = if b then text x <+> equals else PP.empty
 
       showEnv1 e = case e of
-        (Upd x env,u:us,fs)   -> showEnv1 (env,us,fs) <> names x <+> showVal u <> comma
-        (Sub i env,us,phi:fs) -> showEnv1 (env,us,fs) <> names (show i) <+> text (show phi) <> comma
+        (Upd x env,u:us,fs)   ->
+          showEnv1 (env,us,fs) <> names x <+> showVal u <> comma
+        (Sub i env,us,phi:fs) ->
+          showEnv1 (env,us,fs) <> names (show i) <+> text (show phi) <> comma
         _                     -> showEnv b e
   in case e of
     (Empty,_,_)           -> PP.empty
     (Def _ env,vs,fs)     -> showEnv b (env,vs,fs)
-    (Upd x env,u:us,fs)   -> parens (showEnv1 (env,us,fs) <+> names x <+> showVal u)
-    (Sub i env,us,phi:fs) -> parens (showEnv1 (env,us,fs) <+> names (show i) <+> text (show phi))
+    (Upd x env,u:us,fs)   ->
+      parens (showEnv1 (env,us,fs) <+> names x <+> showVal u)
+    (Sub i env,us,phi:fs) ->
+      parens (showEnv1 (env,us,fs) <+> names (show i) <+> text (show phi))
 
 instance Show Loc where
   show = render . showLoc
@@ -343,6 +347,8 @@ showTer1 t = case t of
   Split{}  -> showTer t
   Sum{}    -> showTer t
   HSum{}   -> showTer t
+  Fst{}    -> showTer t
+  Snd{}    -> showTer t
   _        -> parens (showTer t)
 
 showDecls :: [Decl] -> Doc
@@ -380,7 +386,8 @@ showVal v = case v of
                          <+> text (showSystem hs)
   VIdP v0 v1 v2     -> text "IdP" <+> showVals [v0,v1,v2]
   VAppFormula v phi -> showVal v <+> char '@' <+> showFormula phi
-  VComp v0 v1 vs    -> text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)
+  VComp v0 v1 vs    ->
+    text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)
   VGlue a ts        -> text "glue" <+> showVal1 a <+> text (showSystem ts)
   VGlueElem a ts    -> text "glueElem" <+> showVal1 a <+> text (showSystem ts)
 
@@ -395,10 +402,12 @@ showLam :: Val -> Doc
 showLam e = case e of
   VLam x t a@(VLam _ t' _)
     | t == t'   -> text x <+> showLam a
-    | otherwise -> text x <+> colon <+> showVal t <> char ')' <+> text "->" <+> showVal a
+    | otherwise ->
+      text x <+> colon <+> showVal t <> char ')' <+> text "->" <+> showVal a
   VPi _ (VLam x t a@(VPi _ (VLam _ t' _)))
     | t == t'   -> text x <+> showLam a
-    | otherwise -> text x <+> colon <+> showVal t <> char ')' <+> text "->" <+> showVal a
+    | otherwise ->
+      text x <+> colon <+> showVal t <> char ')' <+> text "->" <+> showVal a
   VLam x t e         ->
     text x <+> colon <+> showVal t <> char ')' <+> text "->" <+> showVal e
   VPi _ (VLam x t e) ->
@@ -410,6 +419,8 @@ showVal1 v = case v of
   VU        -> showVal v
   VCon c [] -> showVal v
   VVar{}    -> showVal v
+  VFst{}    -> showVal v
+  VSnd{}    -> showVal v
   _         -> parens (showVal v)
 
 showVals :: [Val] -> Doc

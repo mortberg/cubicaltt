@@ -156,7 +156,7 @@ path :: AIdent -> Resolver Ter -> Resolver Ter
 path i e = CTT.Path (C.Name (unAIdent i)) <$> local (insertName i) e
 
 paths :: [AIdent] -> Resolver Ter -> Resolver Ter
-paths [] _ = throwError "Empty path lambda"
+paths [] _ = throwError "Empty path abstraction"
 paths xs e = foldr path e xs
 
 bind :: (Ter -> Ter) -> (Ident,Exp) -> Resolver Ter -> Resolver Ter

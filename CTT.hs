@@ -96,11 +96,9 @@ data Ter = App Ter Ter
            -- labelled sum c1 A1s,..., cn Ans (assumes terms are constructors)
          | Sum Loc Ident [Label] -- TODO: should only contain OLabels
          | HSum Loc Ident [Label]
-
            -- undefined and holes
          | Undef Loc Ter -- Location and type
          | Hole Loc
-
            -- Id type
          | IdP Ter Ter Ter
          | Path Name Ter
@@ -111,9 +109,6 @@ data Ter = App Ter Ter
            -- Glue
          | Glue Ter (System Ter)
          | GlueElem Ter (System Ter)
-           -- GlueLine: connecting any type to its glue with identities
-         -- | GlueLine Ter Formula Formula
-         -- | GlueLineElem Ter Formula Formula
   deriving Eq
 
 -- For an expression t, returns (u,ts) where u is no application and t = u ts
@@ -146,7 +141,6 @@ data Val = VU
          | VIdP Val Val Val
          | VPath Name Val
          | VComp Val Val (System Val)
-         -- | VTrans Val Val
 
            -- Glue values
          | VGlue Val (System Val)
@@ -155,15 +149,10 @@ data Val = VU
            -- Composition for HITs; the type is constant
          | VHComp Val Val (System Val)
 
-           -- GlueLine values
-         -- | VGlueLine Val Formula Formula
-         -- | VGlueLineElem Val Formula Formula
-
            -- Neutral values:
          | VVar Ident Val
          | VFst Val
          | VSnd Val
-           -- VUnGlueElem val type equivs
          | VUnGlueElem Val Val (System Val)
          | VSplit Val Val
          | VApp Val Val
@@ -191,55 +180,6 @@ isNeutralSystem = any isNeutral . Map.elems
 -- isNeutralPath :: Val -> Bool
 -- isNeutralPath (VPath _ v) = isNeutral v
 -- isNeutralPath _ = True
-
--- isNeutralTrans :: Val -> Val -> Bool
--- isNeutralTrans (VPath i a) u = foo i a u
---   where foo :: Name -> Val -> Val -> Bool
---         foo i a u | isNeutral a = True
---         foo i (Ter Sum{} _) u   = isNeutral u
---         foo i (VGlue _ as) u    =
---           let shasBeta = shape as `face` (i ~> 0)
---           in shasBeta /= Map.empty && eps `Map.notMember` shasBeta && isNeutral u
---         foo _ _ _ = False
--- -- TODO: case for VGLueLine
--- isNeutralTrans u _ = isNeutral u
-
--- -- TODO: fix
--- isNeutralComp :: Val -> Val -> System Val -> Bool
--- isNeutralComp (VPath i a) u ts = isNeutralComp' i a u ts
---   where isNeutralComp' i a u ts | isNeutral a = True
---         isNeutralComp' i (Ter Sum{} _) u ts   = isNeutral u || isNeutralSystem ts
---         isNeutralComp' i (VGlue _ as) u ts    =
---           isNeutral u && isNeutralSystem (filterWithKey testFace ts)
---             where shas = shape as `face` (i ~> 0)
---                   testFace beta _ = let shasBeta = shas `face` beta
---                                     in shasBeta /= Map.empty && eps `Map.member` shasBeta
---         isNeutralComp' _ _ _ _ = False
--- isNeutralComp _ u _ = isNeutral u
-
--- -- TODO: adapt for non-regular setting
--- isNeutralComp :: Val -> Val -> System Val -> Bool
--- isNeutralComp a _ _ | isNeutral a = True
--- isNeutralComp (Ter Sum{} _) u ts  = isNeutral u || isNeutralSystem ts
--- isNeutralComp (VGlue _ as) u ts =
---   isNeutral u || isNeutralSystem (filterWithKey testFace ts)
---   where shas = shape as
---         testFace beta _ = let shasBeta = shas `face` beta
---                           in not (Map.null shasBeta || eps `Map.member` shasBeta)
-
-
--- TODO
--- isNeutralComp (VGlueLine _ phi psi) u ts =
---   isNeutral u || isNeutralSystem (filterWithKey (not . test) ts) || and (elems ws)
---   where fs = invFormula psi One
---         test alpha _ = phi `face` alpha `elem` [Dir Zero, Dir One] ||
---                        psi `face` alpha == Dir One
---         ws = mapWithKey
---                (\alpha -> let phiAlpha0 = invFormula (phi `face` alpha) Zero
---                           in isNeutral (u `face` alpha) || isNeutralSystem )
---                  fs
--- isNeutralComp _ _ _ = False
-
 
 mkVar :: Int -> String -> Val -> Val
 mkVar k x = VVar (x ++ show k)
@@ -389,10 +329,6 @@ showTer v = case v of
   Fill e t ts        -> text "fill" <+> showTers [e,t] <+> text (showSystem ts)
   Glue a ts          -> text "glue" <+> showTer1 a <+> text (showSystem ts)
   GlueElem a ts      -> text "glueElem" <+> showTer1 a <+> text (showSystem ts)
-  -- GlueLine a phi psi -> text "glueLine" <+> showTer1 a <+>
-  --                       showFormula phi <+> showFormula psi
-  -- GlueLineElem a phi psi -> text "glueLineElem" <+> showTer1 a <+>
-  --                           showFormula phi <+> showFormula psi
 
 showTers :: [Ter] -> Doc
 showTers = hsep . map showTer1
@@ -447,10 +383,6 @@ showVal v = case v of
   VComp v0 v1 vs    -> text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)
   VGlue a ts        -> text "glue" <+> showVal1 a <+> text (showSystem ts)
   VGlueElem a ts    -> text "glueElem" <+> showVal1 a <+> text (showSystem ts)
-  -- VGlueLine a phi psi     -> text "glueLine" <+> showFormula phi
-  --                            <+> showFormula psi  <+> showVal1 a
-  -- VGlueLineElem a phi psi -> text "glueLineElem" <+> showFormula phi
-  --                            <+> showFormula psi  <+> showVal1 a
 
 showPath :: Val -> Doc
 showPath e = case e of

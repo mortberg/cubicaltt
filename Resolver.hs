@@ -208,14 +208,6 @@ resolveExp e = case e of
   Trans u v     -> CTT.Comp <$> resolveExp u <*> resolveExp v <*> pure Map.empty
   Glue u ts     -> CTT.Glue <$> resolveExp u <*> resolveSystem ts
   GlueElem u ts -> CTT.GlueElem <$> resolveExp u <*> resolveSystem ts
-  -- GlueLine phi psi u ->
-  --   CTT.GlueLine <$> resolveExp u <*> resolveFormula phi <*> resolveFormula psi
-  -- GlueLineElem phi psi u ->
-  --   CTT.GlueLineElem <$> resolveExp u <*> resolveFormula phi
-  --     <*> resolveFormula psi
-  -- CompElem a es t ts -> CTT.CompElem <$> resolveExp a <*> resolveSystem es
-  --                                    <*> resolveExp t <*> resolveSystem ts
-  -- ElimComp a es t    -> CTT.ElimComp <$> resolveExp a <*> resolveSystem es <*> resolveExp t
   _ -> do
     modName <- asks envModule
     throwError ("Could not resolve " ++ show e ++ " in module " ++ modName)

@@ -2,11 +2,16 @@ module integer where
 
 import int
 
+           ------------------------------------
+           -- Example: The integers as a HIT --
+           ------------------------------------
+
 data int = pos (n : nat)
          | neg (n : nat)
          | zeroP <i> [(i=0) -> pos zero, (i=1) -> neg zero]
 
-zeroP' : Id int (pos zero) (neg zero) = <i> zeroP {int} @ i
+-- Nice version of the zero constructor:
+zeroZ : Id int (pos zero) (neg zero) = <i> zeroP {int} @ i
 
 sucInt : int -> int = split
   pos n -> pos (suc n)
@@ -30,7 +35,7 @@ toZ : int -> Z = split
     where auxToZ : nat -> Z = split
       zero -> inr zero
       suc n -> inl n
-  zeroP @ i -> zeroZ
+  zeroP @ i -> inr zero
 
 fromZ : Z -> int = split
   inl n -> neg (suc n)
@@ -44,9 +49,9 @@ fromZK : (a : int) -> Id int (fromZ (toZ a)) a = split
   pos n -> refl int (pos n)
   neg n -> rem n
     where rem : (n : nat) -> Id int (fromZ (toZ (neg n))) (neg n) = split
-      zero -> zeroP'
+      zero -> zeroZ
       suc m -> refl int (neg (suc m))
-  zeroP @ i -> <j> zeroP' @ i /\ j
+  zeroP @ i -> <j> zeroZ @ i /\ j
 
 isoIntZ : Id U Z int = isoId Z int fromZ toZ fromZK toZK
 
@@ -56,7 +61,7 @@ intSet : set int = subst U set Z int isoIntZ ZSet
 
 T : U = Id int (pos zero) (pos zero)
 p0 : T = refl int (pos zero)
-p1 : T = compId int (pos zero) (neg zero) (pos zero) zeroP' (<i>zeroP'@-i)
+p1 : T = compId int (pos zero) (neg zero) (pos zero) zeroZ (<i>zeroZ@-i)
 
 test0 : Id (Id Z (inr zero) (inr zero)) (refl Z (inr zero)) (refl Z (inr zero)) =
   ZSet (inr zero) (inr zero) (refl Z (inr zero)) (refl Z (inr zero))

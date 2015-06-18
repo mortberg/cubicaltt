@@ -4,8 +4,21 @@ import nat
 import discor
 import gradLemma
 
--- inl = neg, inr = pos
+       ---------------------------------------------------
+       -- Example: Non-trivial equality between Z and Z --
+       ---------------------------------------------------
+
 Z : U = or nat nat
+
+{- Z represents:
+
+  +2 = inr (suc (suc zero))
+  +1 = inr (suc zero)
+   0 = inr zero
+  -1 = inl zero
+  -2 = inl (suc zero)
+
+-}
 
 zeroZ : Z = inr zero
 
@@ -41,6 +54,11 @@ predsucZ : (x : Z) -> Id Z (predZ (sucZ x)) x = split
       suc n -> refl Z (inl (suc n))
   inr v -> refl Z (inr v)
 
+
 sucIdZ : Id U Z Z = isoId Z Z sucZ predZ sucpredZ predsucZ
+
+-- We can transport along the proof forward and backwards:
+testOneZ : Z = transport sucIdZ zeroZ
+testNOneZ : Z = transport (<i> sucIdZ @ - i) zeroZ
 
 ZSet : set Z = hedberg Z (orDisc nat nat natDec natDec)

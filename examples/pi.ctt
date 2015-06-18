@@ -1,6 +1,10 @@
 module pi where
 
-import prelude
+import gradLemma
+
+              -----------------------------------
+              -- Example: Equality in pi types --
+              -----------------------------------
 
 pi (A:U) (P:A->U) : U = (x:A) -> P x
 

@@ -4,18 +4,30 @@ import gradLemma
 
 data bool = false | true
 
+      ---------------------------------------------------------
+      -- Example: Non-trivial equality between bool and bool --
+      ---------------------------------------------------------
+
 negBool : bool -> bool = split
   false -> true
   true  -> false
 
+-- negBool is involutive:
 negBoolK : (b : bool) -> Id bool (negBool (negBool b)) b = split
   false -> refl bool false
   true -> refl bool true
 
+-- This defines a non-trivial equality between bool and bool:
 negBoolEq : Id U bool bool =
   isoId bool bool negBool negBool negBoolK negBoolK
 
+-- We can transport true along this non-trivial equality:
 testFalse : bool = transport negBoolEq true
+
+
+
+
+-- An isomorphic representation to bool:
 
 data F2 = zeroF2 | oneF2
 

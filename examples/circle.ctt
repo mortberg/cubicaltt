@@ -3,6 +3,10 @@ module circle where
 import bool
 import int
 
+              ----------------------------------
+              -- Example: The circle as a HIT --
+              ----------------------------------
+
 data S1 = base
         | loop <i> [(i=0) -> base, (i=1) -> base]
 
@@ -31,6 +35,13 @@ loop2 : loopS1 = compS1 loop1 loop1
 loop2' : loopS1 = compId' S1 base base base loop1 loop1
 loop2'' : loopS1 = compId'' S1 base base loop1 base loop1
 
+-- More examples:
+loopZ1  : Z = winding loop1
+loopZ2  : Z = winding (compS1 loop1 loop1)
+loopZ3  : Z = winding (compS1 loop1 (compS1 loop1 loop1))
+loopZN1 : Z = winding invLoop
+loopZ0  : Z = winding (compS1 loop1 invLoop)
+
 mLoop : (x : S1) -> Id S1 x x = split
   base -> loop1
   loop @ i -> constSquare S1 base loop1 @ i
@@ -44,7 +55,12 @@ square (x : S1) : S1 = mult x x
 doubleLoop (l : loopS1) : loopS1 = <i> square (l @ i)
 tripleLoop (l : loopS1) : loopS1 = <i> mult (l @ i) (square (l @ i))
 
+loopZ4 : Z = winding (doubleLoop (compS1 loop1 loop1))
+loopZ8 : Z = winding (doubleLoop (doubleLoop (compS1 loop1 loop1)))
+
 triv : loopS1 = <i> base
 
--- A nice example
-hmtpy : Id loopS1 triv (<i> loop{S1} @ (i /\ -i)) = <j i> loop{S1} @ j /\ i /\ -i
+-- A nice example of a homotopy on the circle. The path going halfway
+-- around the circle and then back is contractible:
+hmtpy : Id loopS1 (<i> base) (<i> loop{S1} @ (i /\ -i)) =
+  <j i> loop{S1} @ j /\ i /\ -i

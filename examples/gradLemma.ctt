@@ -70,10 +70,6 @@ isoId (A B : U) (f : A -> B) (g : B -> A)
                  , (i = 1) -> (B,transDelta B) ]
 
 
-
-
-
-
 -- OLD CODE:
 -- lemIso with equalities on other direction:
 -- lemIso (A B : U) (f : A -> B) (g : B -> A)

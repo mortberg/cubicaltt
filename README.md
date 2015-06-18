@@ -7,9 +7,10 @@ theory with:
 
 * Path abstraction and application
 * Composition and transport
-* Isomorphisms can be transformed into equalities
+* Equivalences can be transformed into equalities (and univalence can
+  be proved, see "examples/univalence.ctt")
 * Some higher inductive types (see "examples/circle.ctt" and
-  "examples/susp.ctt")
+  "examples/integer.ctt")
 
 Because of this it is not necessary to have a special file of
 primitives (like in [cubical](https://github.com/simhu/cubical)), for
@@ -20,10 +21,6 @@ funExt (A : U) (B : A -> U) (f g : (x : A) -> B x)
        (p : (x : A) -> Id (B x) (f x) (g x)) :
        Id ((y : A) -> B y) f g = <i> \(a : A) -> (p a) @ i
 ```
-
-This proof can be compared with the one in "examples/uafunext1.ctt"
-which proves that univalence implies function extensionality (the
-normal form of these proofs are almost the same).
 
 For more examples, see "examples/demo.ctt".
 

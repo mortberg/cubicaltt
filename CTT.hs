@@ -278,9 +278,10 @@ showEnv b e =
 
       showEnv1 e = case e of
         (Upd x env,u:us,fs)   ->
-          showEnv1 (env,us,fs) <> names x <+> showVal u <> comma
+          showEnv1 (env,us,fs) <+> names x <+> showVal u <> comma
         (Sub i env,us,phi:fs) ->
-          showEnv1 (env,us,fs) <> names (show i) <+> text (show phi) <> comma
+          showEnv1 (env,us,fs) <+> names (show i) <+> text (show phi) <> comma
+        (Def _ env,vs,fs)     -> showEnv1 (env,vs,fs)
         _                     -> showEnv b e
   in case e of
     (Empty,_,_)           -> PP.empty

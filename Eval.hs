@@ -621,6 +621,7 @@ instance Convertible Val where
         in conv (n:ns) (app u' v) (eval (upd (x,v) e) u)
       (Ter (Split _ p _ _) e,Ter (Split _ p' _ _) e') -> (p == p') && conv ns e e'
       (Ter (Sum p _ _) e,Ter (Sum p' _ _) e')         -> (p == p') && conv ns e e'
+      (Ter (HSum p _ _) e,Ter (HSum p' _ _) e')       -> (p == p') && conv ns e e'
       (Ter (Undef p _) e,Ter (Undef p' _) e') -> p == p' && conv ns e e'
       (Ter (Hole p) e,Ter (Hole p') e') -> p == p' && conv ns e e'
       -- (Ter Hole{} e,_) -> True

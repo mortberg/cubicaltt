@@ -25,8 +25,9 @@ substTrans (A : U) (P : A -> U) (a b : A) (p : Id A a b) (e : P a) : P b =
 subst (A : U) (P : A -> U) (a b : A) (p : Id A a b) (e : P a) : P b =
   transport (mapOnPath A U P a b p) e
 
--- substRefl (A : U) (P : A -> U) (a : A) (e : P a) :
---   Id (P a) (subst A P a a (refl A a) e) e = refl (P a) e
+substEq (A : U) (P : A -> U) (a : A) (e : P a)
+  : Id (P a) e (subst A P a a (refl A a) e) =
+  fill (<_> P a) e []
 
 substInv (A : U) (P : A -> U) (a b : A) (p : Id A a b) : P b -> P a =
  subst A P b a (<i> p @ -i)
@@ -41,8 +42,11 @@ J (A : U) (a : A) (C : (x : A) -> Id A a x -> U)
     subst (singl A a) T (a, refl A a) (x, p) (contrSingl A a x p) d
       where T (z : singl A a) : U = C (z.1) (z.2)
 
--- defEqJ (A : U) (a : A) (C : (x : A) -> Id A a x -> U) (d : C a (refl A a)) :
---        Id (C a (refl A a)) (J A a C d a (refl A a)) d = refl (C a (refl A a)) d
+JEq (A : U) (a : A) (C : (x : A) -> Id A a x -> U) (d : C a (refl A a))
+  : Id (C a (refl A a)) d (J A a C d a (refl A a)) =
+  substEq (singl A a) T (a, refl A a) d
+    where T (z : singl A a) : U = C (z.1) (z.2)
+
 
 inv (A : U) (a b : A) (p : Id A a b) : Id A b a = <i> p @ -i
 
@@ -144,7 +148,9 @@ propPi (A : U) (B : A -> U) (h : (x : A) -> prop (B x))
 
 lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a :A) : 
           (a1 : A) (p : Id A a a1) (b0 : P a) (b1 : P a1) -> IdP (<i>P (p@i)) b0 b1 =
- J A a (\ (a1 : A) (p : Id A a a1) -> (b0 : P a) (b1 : P a1) -> IdP (<i>P (p@i)) b0 b1) rem
+ J A a (\ (a1 : A) (p : Id A a a1) ->
+          (b0 : P a) (b1 : P a1) -> IdP (<i>P (p@i)) b0 b1)
+   rem
  where rem : (b0 b1:P a) -> Id (P a) b0 b1 = pP a
 
 lemSig (A : U) (B : A -> U) (pB : (x : A) -> prop (B x))

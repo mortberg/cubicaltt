@@ -68,8 +68,16 @@ compDown (A : U) (a a' b b' : A)
          (p : Id A a a') (q: Id A b b') : Id A a' b' -> Id A a b =
  compUp A a' a b' b (inv A a a' p) (inv A b b' q)
 
--- lemCompInv (A:U) (a b c:A) (p:Id A a b) (q:Id A b c) : Id (Id A a b) (compId A a c b (compId A a b c p q) (inv A b c q)) p =
---  <j i> comp A (comp A (p @ i) [(i=1) -> <k> q @ (-j /\ k)]) [(i=1) -> <k> q @ (-j /\ - k)]
+lemCompInv (A:U) (a b c:A) (p:Id A a b) (q:Id A b c)
+  : Id (Id A a b) (compId A a c b (compId A a b c p q) (inv A b c q)) p =
+  <j i> comp (<_>A)
+          ((fill (<_>A) (p @ i) [(i=0) -> <_>a, (i=1) -> q]) @ -j)
+          [ (i=0) -> <_> a
+          , (i=1) -> <k> q @ - (j \/  k)
+          , (j=0) -> fill (<_>A) ((compId A a b c p q @ i))
+                       [(i=0) -> <_>a, (i=1) -> <k> q @ -k ]
+          , (j=1) -> <_> p @ i
+          ]
 
 lemInv (A:U) (a b:A) (p:Id A a b) : Id (Id A b b) (compId A b a b (inv A a b p) p)  (refl A b) =
    <j i> comp (<_>A) (p @ (-i \/ j)) [(i=0) -> <l>b, (j=1) -> <l>b, (i=1) -> <k> p @ (j \/ k)]

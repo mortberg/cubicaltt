@@ -116,7 +116,13 @@ transDelta (A : U) : equiv A A = transEquiv A A (<_> A)
 
 
 
+invEquiv (A B : U) (f : A -> B) (is : isEquiv A B f) (y : B) : A = (is.1 y).1
 
+retEquiv (A B : U) (f : A -> B) (is : isEquiv A B f) (y : B) :
+  Id B (f (invEquiv A B f is y)) y = (is.1 y).2
+
+secEquiv (A B : U) (f : A -> B) (is : isEquiv A B f) (x : A) :
+  Id A (invEquiv A B f is (f x)) x = <i> (is.2 (f x) (x, <_> f x) @ i).1
 
 
 

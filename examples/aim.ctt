@@ -1,3 +1,5 @@
+-- Talk given by Anders Mörtberg at AIMXXI:
+--   http://wiki.portal.chalmers.se/agda/pmwiki.php?n=Main.AIMXXI
 module aim where
 
 {-
@@ -345,15 +347,13 @@ function from A to B:
 
   transport : Id U A B -> A -> B
 
-It can be defined as a composition with an empty cube/system.
+It is defined internally as a composition with an empty cube/system.
 
 -}
 
-transport (A B : U) (p : Id U A B) (a : A) : B = comp p a []
-
 -- This gives a simple proof of subst:
 subst (A : U) (P : A -> U) (a b : A) (p : Id A a b) (e : P a) : P b =
-  transport (P a) (P b) (cong A U P a b p) e
+  transport (cong A U P a b p) e
 
 -- Combined with the fact that singletons are contractible this gives
 -- the J eliminator:
@@ -415,7 +415,7 @@ notK : (b : bool) -> Id bool (not (not b)) b = split
 notEq : Id U bool bool = isoId bool bool not not notK notK
 
 -- We can transport true along this non-trivial equality:
-testFalse : bool = transport bool bool notEq true
+testFalse : bool = transport notEq true
 
 
        ---------------------------------------------------
@@ -475,8 +475,8 @@ predsucZ : (x : Z) -> Id Z (predZ (sucZ x)) x = split
 sucIdZ : Id U Z Z = isoId Z Z sucZ predZ sucpredZ predsucZ
 
 -- We can transport along the proof forward and backwards:
-testOneZ : Z = transport Z Z sucIdZ zeroZ
-testNOneZ : Z = transport Z Z (<i> sucIdZ @ - i) zeroZ
+testOneZ : Z = transport sucIdZ zeroZ
+testNOneZ : Z = transport (<i> sucIdZ @ - i) zeroZ
 
 
               -----------------------------------
@@ -535,7 +535,7 @@ helix : S1 -> U = split
   loop @ i -> sucIdZ @ i
 
 -- The winding number:
-winding (p : loopS1) : Z = transport Z Z (<i> helix (p @ i)) zeroZ
+winding (p : loopS1) : Z = transport (<i> helix (p @ i)) zeroZ
 
 -- Loop composition:
 compS1 : loopS1 -> loopS1 -> loopS1 = trans S1 base base base

@@ -262,39 +262,39 @@ checkGlueElem vu ts us = do
   unless (keys ts == keys us)
     (throwError ("Keys don't match in " ++ show ts ++ " and " ++ show us))
   rho <- asks env
-  checkSystemsWith ts us (\_ vt u -> check (equivDom vt) u)
+  checkSystemsWith ts us (\_ vt u -> check (isoDom vt) u)
   let vus = evalSystem rho us
   checkSystemsWith ts vus (\alpha vt vAlpha ->
-    unlessM (app (equivFun vt) vAlpha === (vu `face` alpha)) $
+    unlessM (app (isoFun vt) vAlpha === (vu `face` alpha)) $
       throwError $ "Image of glueElem component " ++ show vAlpha ++
                    " doesn't match " ++ show vu)
   checkCompSystem vus
 
 checkGlue :: Val -> System Ter -> Typing ()
 checkGlue va ts = do
-  checkSystemWith ts (\alpha tAlpha -> checkEquiv (va `face` alpha) tAlpha)
+  checkSystemWith ts (\alpha tAlpha -> checkIso (va `face` alpha) tAlpha)
   rho <- asks env
   checkCompSystem (evalSystem rho ts)
 
--- An equivalence for a type b is a four-tuple (a,f,s,t) where
--- a : U
--- f : a -> b
--- s : (y : b) -> fiber a b f y
--- t : (y : b) (w : fiber a b f y) -> s y = w
--- with fiber a b f y = (x : a) * (f x = y)
-mkEquiv :: Val -> Val
-mkEquiv vb = eval rho $
+-- An iso for a type b is a five-tuple: (a,f,g,s,t)   where
+--  a : U
+--  f : a -> b
+--  g : b -> a
+--  s : forall (y : b), f (g y) = y
+--  t : forall (x : a), g (f x) = x
+mkIso :: Val -> Val
+mkIso vb = eval rho $
   Sigma $ Lam "a" U $
   Sigma $ Lam "f" (Pi (Lam "_" a b)) $
-  Sigma $ Lam "s" (Pi (Lam "y" b $ fib)) $
-    Pi (Lam "y" b $ Pi (Lam "w" fib $ IdP (Path (Name "_") fib) (App s y) w))
-  where [a,b,f,x,y,s,w] = map Var ["a","b","f","x","y","s","w"]
+  Sigma $ Lam "b" (Pi (Lam "_" b a)) $
+  Sigma $ Lam "s" (Pi (Lam "y" b $ IdP (Path (Name "_") b) (App f (App g y)) y)) $
+    Pi (Lam "x" a $ IdP (Path (Name "_") a) (App g (App f x)) x)
+  where [a,b,f,g,x,y] = map Var ["a","b","f","g","x","y"]
         rho = upd ("b",vb) emptyEnv
-        fib = Sigma (Lam "x" a $ IdP (Path (Name "_") b) (App f x) y)
-
-checkEquiv :: Val -> Ter -> Typing ()
-checkEquiv vb equiv = check (mkEquiv vb) equiv
-
+        
+checkIso :: Val -> Ter -> Typing ()
+checkIso vb iso = check (mkIso vb) iso
+        
 checkBranch :: (Label,Env) -> Val -> Branch -> Val -> Val -> Typing ()
 checkBranch (OLabel _ tele,nu) f (OBranch c ns e) _ _ = do
   ns' <- asks names

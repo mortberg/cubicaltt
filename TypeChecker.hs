@@ -286,7 +286,7 @@ mkIso :: Val -> Val
 mkIso vb = eval rho $
   Sigma $ Lam "a" U $
   Sigma $ Lam "f" (Pi (Lam "_" a b)) $
-  Sigma $ Lam "b" (Pi (Lam "_" b a)) $
+  Sigma $ Lam "g" (Pi (Lam "_" b a)) $
   Sigma $ Lam "s" (Pi (Lam "y" b $ IdP (Path (Name "_") b) (App f (App g y)) y)) $
     Pi (Lam "x" a $ IdP (Path (Name "_") a) (App g (App f x)) x)
   where [a,b,f,g,x,y] = map Var ["a","b","f","g","x","y"]

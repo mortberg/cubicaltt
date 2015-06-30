@@ -62,13 +62,6 @@ gradLemma (A B : U) (f : A -> B) (g : B -> A)
     fIsCenter (y : B) (w : fiber A B f y) : Id (fiber A B f y) (fCenter y) w =
       lemIso A B f g s t y (fCenter y).1 w.1 (fCenter y).2 w.2
 
--- Using gradLemma we get that any isomorphism gives a line in the universe
-isoId (A B : U) (f : A -> B) (g : B -> A)
-      (s : (y : B) -> Id B (f (g y)) y)
-      (t : (x : A) -> Id A (g (f x)) x) : Id U A B =
-      <i> glue B [ (i = 0) -> (A,f,gradLemma A B f g s t)
-                 , (i = 1) -> (B,transDelta B) ]
-
 
 -- OLD CODE:
 -- lemIso with equalities on other direction:

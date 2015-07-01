@@ -1,6 +1,6 @@
 module pi where
 
-import gradLemma
+import prelude
 
               -----------------------------------
               -- Example: Equality in pi types --

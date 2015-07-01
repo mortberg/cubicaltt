@@ -2,7 +2,6 @@ module int where
 
 import nat
 import discor
-import gradLemma
 
        ---------------------------------------------------
        -- Example: Non-trivial equality between Z and Z --

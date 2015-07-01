@@ -1,6 +1,6 @@
 module bool where
 
-import gradLemma
+import prelude
 
 data bool = false | true
 

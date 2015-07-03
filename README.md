@@ -69,9 +69,6 @@ References and notes
    sets](http://www.cse.chalmers.se/~coquand/vv.pdf) - main
    definitions towards a formalization
 
- * [Lecture Notes on Cubical
-   sets](http://www.cse.chalmers.se/~coquand/course3.pdf)
-
  * [A Cubical Approach to Synthetic Homotopy
    Theory](http://dlicata.web.wesleyan.edu/pubs/lb15cubicalsynth/lb15cubicalsynth.pdf),
    Dan Licata, Guillaume Brunerie.

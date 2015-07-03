@@ -9,17 +9,17 @@ setFun (A B:U) (sB: set B) : set (A -> B) = setPi A (\ (x:A) -> B) (\ (x:A) -> s
 
 groupoidFun (A B : U) (gB:groupoid B) : groupoid (A -> B) = groupoidPi A (\ (x:A) -> B) (\ (x:A) -> gB)
 
-lem3 (A B : U) (t u : Equiv A B) : Id U (Id (Equiv A B) t u) (Id (A -> B) t.1 u.1)
+lem3 (A B : U) (t u : equiv A B) : Id U (Id (equiv A B) t u) (Id (A -> B) t.1 u.1)
  = lemSigProp (A->B) (isEquiv A B) (propIsEquiv A B) t u 
 
-lem4 (A B : U) (sB:set B) (t u:Equiv A B) : prop (Id  (Equiv A B) t u)
- = substInv U prop (Id (Equiv A B) t u) (Id (A -> B) t.1 u.1) (lem3 A B t u) (setFun A B sB t.1 u.1)
+lem4 (A B : U) (sB:set B) (t u:equiv A B) : prop (Id  (equiv A B) t u)
+ = substInv U prop (Id (equiv A B) t u) (Id (A -> B) t.1 u.1) (lem3 A B t u) (setFun A B sB t.1 u.1)
 
-lem5 (A B : U) (gB:groupoid B) (t u:Equiv A B) : set (Id (Equiv A B) t u)
- = substInv U set  (Id (Equiv A B) t u) (Id (A -> B) t.1 u.1) (lem3 A B t u) (groupoidFun A B gB t.1 u.1)
+lem5 (A B : U) (gB:groupoid B) (t u:equiv A B) : set (Id (equiv A B) t u)
+ = substInv U set  (Id (equiv A B) t u) (Id (A -> B) t.1 u.1) (lem3 A B t u) (groupoidFun A B gB t.1 u.1)
 
 lem6 (A B : U) (sB : set B) : set (Id U A B) = 
- retractSet (Id U A B) (Equiv A B) (IdToEquiv A B) (EquivToId A B) (secIdEquiv A B) (lem4 A B sB)
+ substInv U set (Id U A B)  (equiv A B) (univalence1 A B) (lem4 A B sB)
 
 -- the collection of all sets
 

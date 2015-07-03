@@ -3,7 +3,8 @@ module univalence where
 import gradLemma
 
 transEquivToId (A B : U) (w : equiv A B) : Id U A B =
-  <i> glue B [ (i=1) -> (B,eB.1,invEq B B eB,retEq B B eB,secEq B B eB), (i=0) -> (A,w.1,invEq A B w,retEq A B w,secEq A B w) ]
+  <i> glue B [ (i = 1) -> (B,eB.1,invEq B B eB,retEq B B eB,secEq B B eB)
+             , (i = 0) -> (A,w.1,invEq A B w,retEq A B w,secEq A B w) ]
  where eB : equiv B B = transDelta B
 
 eqToEq (A B : U) (p : Id U A B)
@@ -13,9 +14,9 @@ eqToEq (A B : U) (p : Id U A B)
               Ai : U = p@i
               g : equiv Ai B = transEquiv Ai B (<k> p @ (i \/ k))
           in glue B
-           [ (i=0) -> (A,e.1,invEq A B e,retEq A B e,secEq A B e)
-           , (i=1) -> (B,f.1,invEq B B f,retEq B B f,secEq B B f)
-           , (j=1) -> (p@i,g.1,invEq Ai B g,retEq Ai B g,secEq Ai B g)]
+           [ (i = 0) -> (A,e.1,invEq A B e,retEq A B e,secEq A B e)
+           , (i = 1) -> (B,f.1,invEq B B f,retEq B B f,secEq B B f)
+           , (j = 1) -> (p@i,g.1,invEq Ai B g,retEq Ai B g,secEq Ai B g) ]
 
 transIdFun (A B : U) (w : equiv A B)
   : Id (A -> B) (trans A B (transEquivToId A B w)) w.1 =

@@ -22,7 +22,7 @@ funExt (A : U) (B : A -> U) (f g : (x : A) -> B x)
        Id ((y : A) -> B y) f g = <i> \(a : A) -> (p a) @ i
 ```
 
-For more examples, see "examples/demo.ctt".
+For more examples, see "examples/demo.ctt" and "examples/aim.ctt".
 
 
 Install
@@ -59,8 +59,15 @@ References and notes
    [http://homotopytypetheory.org/](http://homotopytypetheory.org/)
 
  * [Cubical Type
-   Theory](http://www.cse.chalmers.se/~coquand/rules5.pdf) - The
+   Theory](http://www.cse.chalmers.se/~coquand/rules7.pdf) - The
    typing rules of the system
+
+ * [Internal version of the uniform Kan filling
+   condition](http://www.cse.chalmers.se/~coquand/shape.pdf)
+
+ * [A category of cubical
+   sets](http://www.cse.chalmers.se/~coquand/vv.pdf) - main
+   definitions towards a formalization
 
  * [Lecture Notes on Cubical
    sets](http://www.cse.chalmers.se/~coquand/course3.pdf)

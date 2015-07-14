@@ -69,9 +69,9 @@ References and notes
    sets](http://www.cse.chalmers.se/~coquand/vv.pdf) - main
    definitions towards a formalization
 
-* [hoq](https://github.com/valis/hoq/) - A language based on homotopy
-  type theory with an interval (documentation available
-  [here](https://docs.google.com/viewer?a=v&pid=forums&srcid=MTgzMDE5NzAyNTk5NDUxMjg3MDABMDQ5MTM3MjY5Nzc5MzY3ODYzNjABT3A0QWRIempiZTBKATAuMQEBdjI)).
+ * [hoq](https://github.com/valis/hoq/) - A language based on homotopy
+   type theory with an interval (documentation available
+   [here](https://docs.google.com/viewer?a=v&pid=forums&srcid=MTgzMDE5NzAyNTk5NDUxMjg3MDABMDQ5MTM3MjY5Nzc5MzY3ODYzNjABT3A0QWRIempiZTBKATAuMQEBdjI)).
 
  * [A Cubical Approach to Synthetic Homotopy
    Theory](http://dlicata.web.wesleyan.edu/pubs/lb15cubicalsynth/lb15cubicalsynth.pdf),

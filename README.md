@@ -52,8 +52,8 @@ directory will be taken as the search path for the imports.
 References and notes
 --------------------
 
- * Voevodsky's page on [univalent
-   foundations](http://www.math.ias.edu/~vladimir/Site3/Univalent_Foundations.html)
+ * Voevodsky's lectures and texts on [univalent
+   foundations](http://www.math.ias.edu/vladimir/home)
 
  * HoTT book and webpage:
    [http://homotopytypetheory.org/](http://homotopytypetheory.org/)

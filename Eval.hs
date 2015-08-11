@@ -361,27 +361,14 @@ transFillNeg i a u = (transFill i (a `sym` i) u) `sym` i
 -- Given u of type a "squeeze i a u" connects in the direction i
 -- trans i a u(i=0) to u(i=1)
 squeeze :: Name -> Val -> Val -> Val
-squeeze i a u = comp i (a `disj` (i,j)) u $ mkSystem [ (j ~> 1, ui1) ]
-  where j   = fresh (Atom i,a,u)
-        ui1 = u `face` (i ~> 1)
-
-squeezeFill :: Name -> Val -> Val -> Val
-squeezeFill i a u = fill i (a `disj` (i,j)) u $ mkSystem [ (j ~> 1, ui1) ]
+squeeze i a u = comp j (a `disj` (i,j)) u $ mkSystem [ (i ~> 1, ui1) ]
   where j   = fresh (Atom i,a,u)
         ui1 = u `face` (i ~> 1)
 
 squeezes :: Name -> [(Ident,Ter)] -> Env -> [Val] -> [Val]
-squeezes i []         _ []     = []
-squeezes i ((x,a):as) e (u:us) =
-  let v   = squeezeFill i (eval e a) u
-      vi1 = squeeze i (eval e a) u
-      vs  = squeezes i as (upd (x,v) e) us
-  in vi1 : vs
-squeezes _ _ _ _ = error "squeezes: different lengths of types and values"
-
--- squeezeNeg :: Name -> Val -> Val -> Val
--- squeezeNeg i a u = transNeg j (a `conj` (i,j)) u
---   where j = fresh (Atom i,a,u)
+squeezes i xas e us = comps j xas (e `disj` (i,j)) us'
+  where j   = fresh (us,e)
+        us' = [ (mkSystem [(i ~> 1, u `face` (i ~> 1))],u) | u <- us ]
 
 
 -------------------------------------------------------------------------------

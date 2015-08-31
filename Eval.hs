@@ -343,6 +343,7 @@ transNegLine :: Val -> Val -> Val
 transNegLine u v = transNeg i (u @@ i) v
   where i = fresh (u,v)
 
+-- TODO: define in terms of comps?
 transps :: Name -> [(Ident,Ter)] -> Env -> [Val] -> [Val]
 transps i []         _ []     = []
 transps i ((x,a):as) e (u:us) =
@@ -392,8 +393,25 @@ compHIT i a u us
         mapWithKey (\alpha uAlpha ->
                      VPath i $ squeezeHIT i (a `face` alpha) uAlpha) us
 
+-- Given u of type a(i=0), transpHIT i a u is an element of a(i=1).
 transpHIT :: Name -> Val -> Val -> Val
-transpHIT i a u = squeezeHIT i a u `face` (i ~> 0)
+transpHIT i a@(Ter (HSum _ _ nass) env) u =
+ let j = fresh (a,u)
+     aij = swap a (i,j)
+ in
+ case u of
+  VCon n us -> case lookupLabel n nass of
+    Just as -> VCon n (transps i as env us)
+    Nothing -> error $ "transpHIT: missing constructor in labelled sum " ++ n
+  VPCon c _ ws0 phis -> case lookupLabel c nass of
+    Just as -> pcon c (a `face` (i ~> 1)) (transps i as env ws0) phis
+    Nothing -> error $ "transpHIT: missing path constructor " ++ c
+  VHComp _ v vs ->
+    hComp (a `face` (i ~> 1)) (transpHIT i a v) $
+      mapWithKey (\alpha vAlpha ->
+                   VPath j $ transpHIT j (aij `face` alpha) (vAlpha @@ j)) vs
+  _ -> error $ "transpHIT: neutral " ++ show u
+
 
 -- given u(i) of type a(i) "squeezeHIT i a u" connects in the direction i
 -- transHIT i a u(i=0) to u(i=1) in a(1)

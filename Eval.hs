@@ -72,6 +72,9 @@ instance Nominal Val where
     VGlue a ts              -> support (a,ts)
     VGlueElem a ts          -> support (a,ts)
     VUnGlueElem a b hs      -> support (a,b,hs)
+    VEqPair u us            -> support (u,us)
+    VEq a u v               -> support (a,u,v)
+    VEqJ a u c d x p        -> support [a,u,c,d,x,p]
 
   act u (i, phi) | i `notElem` support u = u
                  | otherwise =
@@ -103,6 +106,10 @@ instance Nominal Val where
          VGlue a ts              -> glue (acti a) (acti ts)
          VGlueElem a ts          -> glueElem (acti a) (acti ts)
          VUnGlueElem a b hs      -> unGlue (acti a) (acti b) (acti hs)
+         VEqPair u us            -> VEqPair (acti u) (acti us)
+         VEq a u v               -> VEq (acti a) (acti u) (acti v)
+         VEqJ a u c d x p        ->
+           eqJ (acti a) (acti u) (acti c) (acti d) (acti x) (acti p)
 
   -- This increases efficiency as it won't trigger computation.
   swap u ij@(i,j) =
@@ -130,6 +137,10 @@ instance Nominal Val where
          VGlue a ts              -> VGlue (sw a) (sw ts)
          VGlueElem a ts          -> VGlueElem (sw a) (sw ts)
          VUnGlueElem a b hs      -> VUnGlueElem (sw a) (sw b) (sw hs)
+         VEqPair u us            -> VEqPair (sw u) (sw us)
+         VEq a u v               -> VEq (sw a) (sw u) (sw v)
+         VEqJ a u c d x p        ->
+           VEqJ (sw a) (sw u) (sw c) (sw d) (sw x) (sw p)
 
 
 -----------------------------------------------------------------------
@@ -165,6 +176,10 @@ eval rho v = case v of
     fillLine (eval rho a) (eval rho t0) (evalSystem rho ts)
   Glue a ts           -> glue (eval rho a) (evalSystem rho ts)
   GlueElem a ts       -> glueElem (eval rho a) (evalSystem rho ts)
+  Eq a r s            -> VEq (eval rho a) (eval rho r) (eval rho s)
+  EqPair b ts         -> VEqPair (eval rho b) (evalSystem rho ts)
+  EqJ a t c d x p     -> eqJ (eval rho a) (eval rho t) (eval rho c)
+                             (eval rho d) (eval rho x) (eval rho p)
   _                   -> error $ "Cannot evaluate " ++ show v
 
 evals :: Env -> [(Ident,Ter)] -> [(Ident,Val)]
@@ -250,6 +265,7 @@ inferType v = case v of
                   ++ ", got " ++ show ty
   VComp a _ _ -> a @@ One
   VUnGlueElem _ b _  -> b
+  VEqJ _ _ c _ x p -> app (app c x) p
   _ -> error $ "inferType: not neutral " ++ show v
 
 (@@) :: ToFormula a => Val -> a -> Val
@@ -271,6 +287,16 @@ comp i a u ts = case a of
   VIdP p v0 v1 -> let j = fresh (Atom i,a,u,ts)
                   in VPath j $ comp i (p @@ j) (u @@ j) $
                        insertsSystem [(j ~> 0,v0),(j ~> 1,v1)] (Map.map (@@ j) ts)
+  VEq b v0 v1 -> case u of
+    VEqPair r _ | all isEqPair (elems ts) ->
+      let j = fresh (Atom i,a,u,ts)
+          VEqPair z _ @@@ phi = z @@ phi
+          sys (VEqPair _ ws)  = ws
+          w = VPath j $ comp i b (r @@ j) $
+                          insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
+                            (Map.map (@@@ j) ts)
+      in VEqPair w (joinSystem (Map.map sys (ts `face` (i ~> 1))))
+    _ -> VComp (VPath i a) u (Map.map (VPath i) ts)
   VSigma a f -> VPair ui1 comp_u2
     where (t1s, t2s) = (Map.map fstVal ts, Map.map sndVal ts)
           (u1,  u2)  = (fstVal u, sndVal u)
@@ -372,6 +398,23 @@ squeezes i xas e us = comps j xas (e `disj` (i,j)) us'
 
 
 -------------------------------------------------------------------------------
+-- | Eq
+
+eqJ :: Val -> Val -> Val -> Val -> Val -> Val -> Val
+eqJ a v c d x p = case p of
+  VEqPair w ws -> comp i (app (app c (w @@ i)) w') d
+                    (border d (shape ws))
+    where w' = VEqPair (VPath j $ w @@ (Atom i :/\: Atom j))
+                  (insertSystem (i ~> 0) v ws)
+          i:j:_ = freshs [a,v,c,d,x,p]
+  _ -> VEqJ a v c d x p
+
+isEqPair :: Val -> Bool
+isEqPair VEqPair{} = True
+isEqPair _         = False
+
+
+-------------------------------------------------------------------------------
 -- | HITs
 
 pcon :: LIdent -> Val -> [Val] -> [Formula] -> Val
@@ -444,7 +487,7 @@ isoSec = fstVal . sndVal . sndVal . sndVal
 
 isoRet :: Val -> Val
 isoRet = sndVal . sndVal . sndVal . sndVal
-          
+
 -- -- Every path in the universe induces an iso
 eqToIso :: Val -> Val
 eqToIso e = VPair e1 (VPair f (VPair g (VPair s t)))
@@ -485,7 +528,7 @@ unGlue w b isos | eps `member` isos = app (isoFun (isos ! eps)) w
                 | otherwise         = case w of
                                         VGlueElem v us -> v
                                         _ -> VUnGlueElem w b isos
-            
+
 compGlue :: Name -> Val -> System Val -> Val -> System Val -> Val
 compGlue i b isos wi0 ws = glueElem vi1'' usi1''
   where bi1 = b `face` (i ~> 1)
@@ -628,6 +671,10 @@ instance Convertible Val where
       (VGlue v isos,VGlue v' isos')          -> conv ns (v,isos) (v',isos')
       (VGlueElem u us,VGlueElem u' us')      -> conv ns (u,us) (u',us')
       (VUnGlueElem u _ _,VUnGlueElem u' _ _) -> conv ns u u'
+      (VEqPair v vs,VEqPair v' vs')          -> conv ns (v,vs) (v',vs')
+      (VEq a u v,VEq a' u' v')               -> conv ns (a,u,v) (a',u',v')
+      (VEqJ a u c d x p,VEqJ a' u' c' d' x' p') ->
+        conv ns [a,u,c,d,x,p] [a',u',c',d',x',p']
       _                                      -> False
 
 instance Convertible Ctxt where
@@ -691,6 +738,10 @@ instance Normal Val where
     VSplit u t          -> VSplit (normal ns u) (normal ns t)
     VApp u v            -> app (normal ns u) (normal ns v)
     VAppFormula u phi   -> VAppFormula (normal ns u) (normal ns phi)
+    VEq a u v           -> VEq (normal ns a) (normal ns u) (normal ns v)
+    VEqPair u us        -> VEqPair (normal ns u) (normal ns us)
+    VEqJ a u c d x p    -> eqJ (normal ns a) (normal ns u) (normal ns c)
+                               (normal ns d) (normal ns x) (normal ns p)
     _                   -> v
 
 instance Normal Ctxt where

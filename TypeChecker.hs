@@ -209,6 +209,22 @@ check a t = case (a,t) of
     check va u
     vu <- evalTyping u
     checkGlueElem vu ts us
+  (VU,Eq a a0 a1) -> do
+    check VU a
+    va <- evalTyping a
+    check va a0
+    check va a1
+  (VEq va va0 va1,EqPair w ts) -> do
+    check (VIdP (constPath va) va0 va1) w
+    vw <- evalTyping w
+    checkSystemWith ts $ \alpha tAlpha ->
+      local (faceEnv alpha) $ do
+        check (va `face` alpha) tAlpha
+        vtAlpha <- evalTyping tAlpha
+        unlessM (vw `face` alpha === constPath vtAlpha) $
+          throwError "malformed eqC"
+    rho <- asks env
+    checkCompSystem (evalSystem rho ts) -- Not needed
   _ -> do
     v <- infer t
     unlessM (v === a) $
@@ -291,10 +307,10 @@ mkIso vb = eval rho $
     Pi (Lam "x" a $ IdP (Path (Name "_") a) (App g (App f x)) x)
   where [a,b,f,g,x,y] = map Var ["a","b","f","g","x","y"]
         rho = upd ("b",vb) emptyEnv
-        
+
 checkIso :: Val -> Ter -> Typing ()
 checkIso vb iso = check (mkIso vb) iso
-        
+
 checkBranch :: (Label,Env) -> Val -> Branch -> Val -> Val -> Typing ()
 checkBranch (OLabel _ tele,nu) f (OBranch c ns e) _ _ = do
   ns' <- asks names
@@ -427,6 +443,23 @@ infer e = case e of
     checks (bs,nu) es
     mapM_ checkFormula phis
     return va
+  EqJ a u c d x p -> do
+    check VU a
+    va <- evalTyping a
+    check va u
+    vu <- evalTyping u
+    let refu = VEqPair (constPath vu) $ mkSystem [(eps,vu)]
+    rho <- asks env
+    let z = Var "z"
+        ctype = eval rho $ Pi $ Lam "z" a $ Pi $ Lam "_" (Eq a u z) U
+    check ctype c
+    vc <- evalTyping c
+    check (app (app vc vu) refu) d
+    check va x
+    vx <- evalTyping x
+    check (VEq va vu vx) p
+    vp <- evalTyping p
+    return (app (app vc vx) vp)
   _ -> throwError ("infer " ++ show e)
 
 -- Not used since we have U : U

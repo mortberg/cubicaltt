@@ -109,6 +109,10 @@ data Ter = App Ter Ter
            -- Glue
          | Glue Ter (System Ter)
          | GlueElem Ter (System Ter)
+           -- Eq
+         | Eq Ter Ter Ter
+         | EqPair Ter (System Ter)
+         | EqJ Ter Ter Ter Ter Ter Ter
   deriving Eq
 
 -- For an expression t, returns (u,ts) where u is no application and t = u ts
@@ -149,6 +153,10 @@ data Val = VU
            -- Composition for HITs; the type is constant
          | VHComp Val Val (System Val)
 
+           -- Eq
+         | VEq Val Val Val
+         | VEqPair Val (System Val)
+
            -- Neutral values:
          | VVar Ident Val
          | VFst Val
@@ -158,6 +166,7 @@ data Val = VU
          | VApp Val Val
          | VAppFormula Val Formula
          | VLam Ident Val Val
+         | VEqJ Val Val Val Val Val Val
   deriving Eq
 
 isNeutral :: Val -> Bool
@@ -172,6 +181,7 @@ isNeutral v = case v of
   VApp{}         -> True
   VAppFormula{}  -> True
   VUnGlueElem{}  -> True
+  VEqJ{}         -> True
   _              -> False
 
 isNeutralSystem :: System Val -> Bool
@@ -334,6 +344,9 @@ showTer v = case v of
   Fill e t ts        -> text "fill" <+> showTers [e,t] <+> text (showSystem ts)
   Glue a ts          -> text "glue" <+> showTer1 a <+> text (showSystem ts)
   GlueElem a ts      -> text "glueElem" <+> showTer1 a <+> text (showSystem ts)
+  Eq a u v           -> text "Eq" <+> showTers [a,u,v]
+  EqPair b ts        -> text "eqC" <+> showTer1 b <+> text (showSystem ts)
+  EqJ a t c d x p    -> text "eqJ" <+> showTers [a,t,c,d,x,p]
 
 showTers :: [Ter] -> Doc
 showTers = hsep . map showTer1
@@ -391,6 +404,9 @@ showVal v = case v of
     text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)
   VGlue a ts        -> text "glue" <+> showVal1 a <+> text (showSystem ts)
   VGlueElem a ts    -> text "glueElem" <+> showVal1 a <+> text (showSystem ts)
+  VEq a u v         -> text "Eq" <+> showVals [a,u,v]
+  VEqPair b ts      -> text "eqC" <+> showVal1 b <+> text (showSystem ts)
+  VEqJ a t c d x p  -> text "eqJ" <+> showVals [a,t,c,d,x,p]
 
 showPath :: Val -> Doc
 showPath e = case e of

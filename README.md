@@ -59,8 +59,9 @@ References and notes
    [http://homotopytypetheory.org/](http://homotopytypetheory.org/)
 
  * [Cubical Type
-   Theory](http://www.cse.chalmers.se/~coquand/rules7.pdf) - The
-   typing rules of the system
+   Theory](http://www.cse.chalmers.se/~coquand/face.pdf) - The
+   typing rules of the system. See [this](http://www.cse.chalmers.se/~coquand/face.pdf) 
+   for a variation using isomorphisms instead of equivalences.
 
  * [Internal version of the uniform Kan filling
    condition](http://www.cse.chalmers.se/~coquand/shape.pdf)

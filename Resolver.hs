@@ -272,11 +272,11 @@ resolveLabel cs (PLabel n vdecl is sys) = do
                 <*> local (insertNames is . insertIdents cs' . insertVars ts)
                       (resolveSystem sys)
 
--- Resolve a simple declaration (not mutual); returns resolver for
--- type and body separately
-resolveSimpleDecl :: Decl -> (Ident,Resolver CTT.Ter
-                             ,Resolver CTT.Ter,[(Ident,SymKind)])
-resolveSimpleDecl d = case d of
+-- Resolve a non-mutual declaration; returns resolver for type and
+-- body separately
+resolveNonMutualDecl :: Decl -> (Ident,Resolver CTT.Ter
+                                ,Resolver CTT.Ter,[(Ident,SymKind)])
+resolveNonMutualDecl d = case d of
   DeclDef (AIdent (_,f)) tele t body ->
     let tele' = flattenTele tele
         a     = binds CTT.Pi tele' (resolveExp t)
@@ -319,15 +319,17 @@ resolveRTele (i:is) (t:ts) = do
 resolveDecl :: Decl -> Resolver ([CTT.Decl],[(Ident,SymKind)])
 resolveDecl d = case d of
   DeclMutual decls -> do
-    let (fs,ts,bs,nss) = unzip4 $ map resolveSimpleDecl decls
+    let (fs,ts,bs,nss) = unzip4 $ map resolveNonMutualDecl decls
         ns = concat nss -- TODO: some sanity checks? Duplicates!?
+    when (nub (map fst ns) /= concatMap (map fst) nss) $
+      throwError ("Duplicated constructor or ident: " ++ show nss)
     as <- resolveRTele fs ts
     -- The bodies know about all the names and constructors in the
     -- mutual block
     ds <- sequence $ map (local (insertIdents ns)) bs
     let ads = zipWith (\ (x,y) z -> (x,(y,z))) as ds
     return (ads,ns)
-  _ -> do let (f,typ,body,ns) = resolveSimpleDecl d
+  _ -> do let (f,typ,body,ns) = resolveNonMutualDecl d
           a <- typ
           d <- body
           return ([(f,(a,d))],ns)

@@ -27,6 +27,10 @@ propIsEquiv (A B : U) (f : A -> B)
           <i> \ (y : B) (w : fibf y) ->
                  propSet (fibf y) (fibprop y) (s y) w (g y w) (h y w) @ i
 
+equivLemma (A B : U)
+  : (v w : equiv A B) -> Id (A -> B) v.1 w.1 -> Id (equiv A B) v w
+  = lemSig (A -> B) (isEquiv A B) (propIsEquiv A B)
+
 
 -- The identity function is an equivalence
 idCenter (A : U) (y : A) : fiber A A (idfun A) y = (y, refl A y)

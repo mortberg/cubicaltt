@@ -71,7 +71,6 @@ instance Nominal Val where
     VSplit u v              -> support (u,v)
     VGlue a ts              -> support (a,ts)
     VGlueElem a ts          -> support (a,ts)
-    VUnGlueElem a b hs      -> support (a,b,hs)
 
   act u (i, phi) | i `notElem` support u = u
                  | otherwise =
@@ -102,7 +101,6 @@ instance Nominal Val where
          VSplit u v              -> app (acti u) (acti v)
          VGlue a ts              -> glue (acti a) (acti ts)
          VGlueElem a ts          -> glueElem (acti a) (acti ts)
-         VUnGlueElem a b hs      -> unGlue (acti a) (acti b) (acti hs)
 
   -- This increases efficiency as it won't trigger computation.
   swap u ij@(i,j) =
@@ -129,7 +127,6 @@ instance Nominal Val where
          VSplit u v              -> VSplit (sw u) (sw v)
          VGlue a ts              -> VGlue (sw a) (sw ts)
          VGlueElem a ts          -> VGlueElem (sw a) (sw ts)
-         VUnGlueElem a b hs      -> VUnGlueElem (sw a) (sw b) (sw hs)
 
 
 -----------------------------------------------------------------------
@@ -249,7 +246,6 @@ inferType v = case v of
     ty         -> error $ "inferType: expected IdP type for " ++ show v
                   ++ ", got " ++ show ty
   VComp a _ _ -> a @@ One
-  VUnGlueElem _ b _  -> b
   _ -> error $ "inferType: not neutral " ++ show v
 
 (@@) :: ToFormula a => Val -> a -> Val
@@ -279,7 +275,7 @@ comp i a u ts = case a of
           comp_u2    = comp i (app f fill_u1) u2 t2s
   VPi{} -> VComp (VPath i a) u (Map.map (VPath i) ts)
   VU    -> glue u (Map.map (eqToIso . VPath i) ts)
-  VGlue b isos -> compGlue i b isos u ts
+  VGlue b isos | not (isNeutralGlue i isos u ts) -> compGlue i b isos u ts
   Ter (Sum _ _ nass) env -> case u of
     VCon n us | all isCon (elems ts) -> case lookupLabel n nass of
       Just as -> let tsus = transposeSystemAndList (Map.map unCon ts) us
@@ -462,7 +458,7 @@ isoSec = fstVal . sndVal . sndVal . sndVal
 
 isoRet :: Val -> Val
 isoRet = sndVal . sndVal . sndVal . sndVal
-          
+
 -- -- Every path in the universe induces an iso
 eqToIso :: Val -> Val
 eqToIso e = VPair e1 (VPair f (VPair g (VPair s t)))
@@ -502,8 +498,15 @@ unGlue :: Val -> Val -> System Val -> Val
 unGlue w b isos | eps `member` isos = app (isoFun (isos ! eps)) w
                 | otherwise         = case w of
                                         VGlueElem v us -> v
-                                        _ -> VUnGlueElem w b isos
-            
+                                        _ -> error ("unGlue: neutral" ++ show w)
+
+isNeutralGlue :: Name -> System Val -> Val -> System Val -> Bool
+isNeutralGlue i isos u0 ts = (eps `notMember` isosi0 && isNeutral u0) ||
+  any (\(alpha,talpha) ->
+           eps `notMember` (isos `face` alpha) && isNeutral talpha)
+    (assocs ts)
+  where isosi0 = isos `face` (i ~> 0)
+
 compGlue :: Name -> Val -> System Val -> Val -> System Val -> Val
 compGlue i b isos wi0 ws = glueElem vi1'' usi1''
   where bi1 = b `face` (i ~> 1)
@@ -645,7 +648,6 @@ instance Convertible Val where
       (VHComp a u ts,VHComp a' u' ts')       -> conv ns (a,u,ts) (a',u',ts')
       (VGlue v isos,VGlue v' isos')          -> conv ns (v,isos) (v',isos')
       (VGlueElem u us,VGlueElem u' us')      -> conv ns (u,us) (u',us')
-      (VUnGlueElem u _ _,VUnGlueElem u' _ _) -> conv ns u u'
       _                                      -> False
 
 instance Convertible Ctxt where
@@ -702,7 +704,6 @@ instance Normal Val where
     VHComp u v vs       -> hComp (normal ns u) (normal ns v) (normal ns vs)
     VGlue u isos        -> glue (normal ns u) (normal ns isos)
     VGlueElem u us      -> glueElem (normal ns u) (normal ns us)
-    VUnGlueElem u b hs  -> unGlue (normal ns u) (normal ns b) (normal ns hs)
     VVar x t            -> VVar x t -- (normal ns t)
     VFst t              -> fstVal (normal ns t)
     VSnd t              -> sndVal (normal ns t)

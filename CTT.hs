@@ -153,7 +153,6 @@ data Val = VU
          | VVar Ident Val
          | VFst Val
          | VSnd Val
-         | VUnGlueElem Val Val (System Val)
          | VSplit Val Val
          | VApp Val Val
          | VAppFormula Val Formula
@@ -171,7 +170,6 @@ isNeutral v = case v of
   VSplit{}       -> True
   VApp{}         -> True
   VAppFormula{}  -> True
-  VUnGlueElem{}  -> True
   _              -> False
 
 isNeutralSystem :: System Val -> Bool
@@ -383,8 +381,6 @@ showVal v = case v of
   VVar x _          -> text x
   VFst u            -> showVal1 u <> text ".1"
   VSnd u            -> showVal1 u <> text ".2"
-  VUnGlueElem v b hs  -> text "unGlueElem" <+> showVals [v,b]
-                         <+> text (showSystem hs)
   VIdP v0 v1 v2     -> text "IdP" <+> showVals [v0,v1,v2]
   VAppFormula v phi -> showVal v <+> char '@' <+> showFormula phi
   VComp v0 v1 vs    ->

@@ -14,6 +14,7 @@ separator Imp ";" ;
 
 DeclDef.    Decl ::= AIdent [Tele] ":" Exp "=" ExpWhere ;
 DeclData.   Decl ::= "data" AIdent [Tele] "=" [Label] ;
+DeclHData.  Decl ::= "hdata" AIdent [Tele] "=" [Label] ;
 DeclSplit.  Decl ::= AIdent [Tele] ":" Exp "=" "split" "{" [Branch] "}" ;
 DeclUndef.  Decl ::= AIdent [Tele] ":" Exp "=" "undefined" ;
 DeclMutual. Decl ::= "mutual" "{" [Decl] "}" ;

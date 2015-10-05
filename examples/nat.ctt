@@ -73,3 +73,5 @@ natDec : (n m:nat) -> dec (Id nat n m) = split
                  (sucInj n m) (natDec n m))
 
 natSet : set nat = hedberg nat natDec
+
+

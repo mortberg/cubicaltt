@@ -1,5 +1,5 @@
 ;; define several class of keywords
-(setq ctt-keywords '("data" "import" "mutual" "let" "in" "split"
+(setq ctt-keywords '("hdata" "data" "import" "mutual" "let" "in" "split"
                      "module" "where" "U") )
 (setq ctt-special '("undefined" "primitive"))
 

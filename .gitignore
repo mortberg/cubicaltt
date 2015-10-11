@@ -1,3 +1,4 @@
+TAGS
 *~
 *.hi
 *.ho
@@ -5,3 +6,5 @@
 dist/
 Exp/
 cubical
+Makefile.bak
+Main

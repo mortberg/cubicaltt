@@ -4,15 +4,16 @@
 name:                cubicaltt
 version:             1.0
 synopsis:            Experimental implementation of a cubical type theory
-description:         Experimental implementation of a cubical type theory in which the user can directly manipulate n-dimensional cubes.
+description:         Experimental implementation of a cubical type theory in
+                     which the user can directly manipulate n-dimensional cubes.
 license:             MIT
 license-file:        LICENSE
 author:              Cyril Cohen, Thierry Coquand, Simon Huber, Anders Mörtberg
-maintainer:          mortberg@chalmers.se
+maintainer:
 -- copyright:
 category:            Language
 build-type:          Custom
-extra-source-files:  Makefile, README.md, Exp.cf, examples/*.ctt, experiments/*.ctt, cubical.el
+extra-source-files:  Makefile, README.md, Exp.cf, examples/*.ctt, cubicaltt.el
 cabal-version:       >=1.10
 
 executable cubical

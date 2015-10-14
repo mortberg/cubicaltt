@@ -5,3 +5,5 @@
 dist/
 Exp/
 cubical
+.cabal-sandbox
+cabal.sandbox.config

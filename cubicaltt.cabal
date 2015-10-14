@@ -15,7 +15,7 @@ build-type:          Custom
 extra-source-files:  README.md
 cabal-version:       >=1.10
 
-executable cubicaltt
+executable cubical
   main-is:             Main.hs
   other-modules:       Exp.Lex, Exp.Par
   other-extensions:    TypeSynonymInstances, FlexibleInstances, GeneralizedNewtypeDeriving, TupleSections, CPP, MagicHash

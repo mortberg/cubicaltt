@@ -12,7 +12,7 @@ maintainer:          mortberg@chalmers.se
 -- copyright:
 category:            Language
 build-type:          Custom
-extra-source-files:  README.md
+extra-source-files:  Makefile, README.md, Exp.cf, examples/*.ctt, experiments/*.ctt, cubical.el
 cabal-version:       >=1.10
 
 executable cubical

@@ -42,14 +42,14 @@ funDepTr (A0:U) : (A1:U) (P:Id U A0 A1) (u0:A0) (u1:A1) ->
  where rem (u0 u1:A0) : Id U (Id A0 u0 u1) (Id A0 (transport (<_>A0) u0) u1) =
          <i>Id A0 (lemTransp A0 u0@i) u1
 
-lem2 (A:U) (B:A-> U) (t u : sig A B) (p:Id A t.1 u.1) : 
+lem2 (A:U) (B:A-> U) (t u : sig A B) (p:Id A t.1 u.1) :
   Id U  (IdP (<i>B (p@i)) t.2 u.2) (Id (B u.1) (transport (<i>B (p@i)) t.2) u.2) =
     funDepTr (B t.1) (B u.1) P t.2 u.2
  where P : Id U (B t.1) (B u.1) = <i>B (p@i)
        T0 : U = IdP P t.2 u.2
        T1 : U = Id (B u.1) (transport P t.2) u.2
 
-corSigProp (A:U) (B:A-> U) (pB : (x:A) -> prop (B x)) (t u : sig A B) (p:Id A t.1 u.1) : 
+corSigProp (A:U) (B:A-> U) (pB : (x:A) -> prop (B x)) (t u : sig A B) (p:Id A t.1 u.1) :
   prop (IdP (<i>B (p@i)) t.2 u.2) = substInv U prop T0 T1 rem rem1
  where P : Id U (B t.1) (B u.1) = <i>B (p@i)
        T0 : U = IdP P t.2 u.2
@@ -58,7 +58,7 @@ corSigProp (A:U) (B:A-> U) (pB : (x:A) -> prop (B x)) (t u : sig A B) (p:Id A t.
        v2 : B u.1 = transport P t.2
        rem1 : prop T1 = propSet (B u.1) (pB u.1) v2 u.2
 
-corSigSet (A:U) (B:A-> U) (sB : (x:A) -> set (B x)) (t u : sig A B) (p:Id A t.1 u.1) : 
+corSigSet (A:U) (B:A-> U) (sB : (x:A) -> set (B x)) (t u : sig A B) (p:Id A t.1 u.1) :
   prop (IdP (<i>B (p@i)) t.2 u.2) = substInv U prop T0 T1 rem rem1
  where P : Id U (B t.1) (B u.1) = <i>B (p@i)
        T0 : U = IdP P t.2 u.2
@@ -67,7 +67,7 @@ corSigSet (A:U) (B:A-> U) (sB : (x:A) -> set (B x)) (t u : sig A B) (p:Id A t.1 
        v2 : B u.1 = transport P t.2
        rem1 : prop T1 = sB u.1 v2 u.2
 
-setSig (A:U) (B:A-> U) (sA: set A) (sB : (x:A) -> set (B x)) (t u : sig A B) : prop (Id (sig A B) t u) = 
+setSig (A:U) (B:A-> U) (sA: set A) (sB : (x:A) -> set (B x)) (t u : sig A B) : prop (Id (sig A B) t u) =
   substInv U prop (Id (sig A B) t u) ((p:T) * C p) rem3 rem2
  where
    T : U = Id A t.1 u.1
@@ -77,7 +77,7 @@ setSig (A:U) (B:A-> U) (sA: set A) (sB : (x:A) -> set (B x)) (t u : sig A B) : p
    rem2 : prop ((p:T) * C p) = propSig T C rem1 rem
    rem3 : Id U (Id (sig A B) t u) ((p:T) * C p) = lemIdSig A B t u
 
-corSigGroupoid (A:U) (B:A-> U) (gB : (x:A) -> groupoid (B x)) (t u : sig A B) (p:Id A t.1 u.1) : 
+corSigGroupoid (A:U) (B:A-> U) (gB : (x:A) -> groupoid (B x)) (t u : sig A B) (p:Id A t.1 u.1) :
   set (IdP (<i>B (p@i)) t.2 u.2) = substInv U set T0 T1 rem rem1
  where P : Id U (B t.1) (B u.1) = <i>B (p@i)
        T0 : U = IdP P t.2 u.2
@@ -86,7 +86,7 @@ corSigGroupoid (A:U) (B:A-> U) (gB : (x:A) -> groupoid (B x)) (t u : sig A B) (p
        v2 : B u.1 = transport P t.2
        rem1 : set T1 = gB u.1 v2 u.2
 
-groupoidSig (A:U) (B:A-> U) (gA: groupoid A) (gB : (x:A) -> groupoid (B x)) (t u : sig A B) : set (Id (sig A B) t u) = 
+groupoidSig (A:U) (B:A-> U) (gA: groupoid A) (gB : (x:A) -> groupoid (B x)) (t u : sig A B) : set (Id (sig A B) t u) =
   substInv U set (Id (sig A B) t u) ((p:T) * C p) rem3 rem2
  where
    T : U = Id A t.1 u.1
@@ -99,12 +99,12 @@ groupoidSig (A:U) (B:A-> U) (gA: groupoid A) (gB : (x:A) -> groupoid (B x)) (t u
 lemContr (A:U) (pA:prop A) (a:A) : isContr A = (a,rem)
  where rem (y:A) : Id A a y = pA a y
 
-lem3 (A:U) (B:A-> U) (pB : (x:A) -> prop (B x)) (t u : sig A B) (p:Id A t.1 u.1) : 
+lem3 (A:U) (B:A-> U) (pB : (x:A) -> prop (B x)) (t u : sig A B) (p:Id A t.1 u.1) :
   isContr (IdP (<i>B (p@i)) t.2 u.2) = lemContr T0 (substInv U prop T0 T1 rem rem1) rem2
  where P : Id U (B t.1) (B u.1) = <i>B (p@i)
        T0 : U = IdP P t.2 u.2
        T1 : U = Id (B u.1) (transport P t.2) u.2
-       rem : Id U T0 T1 = funDepTr (B t.1) (B u.1) P t.2 u.2 -- lem2 A B t u p -- 
+       rem : Id U T0 T1 = funDepTr (B t.1) (B u.1) P t.2 u.2 -- lem2 A B t u p --
        v2 : B u.1 = transport P t.2
        rem1 : prop T1 = propSet (B u.1) (pB u.1) v2 u.2
        rem2 : T0 = transport (<i>rem@-i) (pB u.1 v2 u.2)
@@ -130,8 +130,5 @@ setGroupoid (A:U) (sA:set A) (a0 a1:A) : set (Id A a0 a1) = propSet (Id A a0 a1)
 
 propGroupoid (A:U) (pA: prop A) : groupoid A = setGroupoid A (propSet A pA)
 
-
-
-
-
-
+lemSigProj (A : U) (B : A -> U) (t u : sig A B) (p : Id (sig A B) t u) : Id A t.1 u.1 =
+  <i> (p @ i).1

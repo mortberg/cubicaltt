@@ -1,0 +1,19 @@
+module util where
+
+-- These utility functions are in a separate file because they depend on several other files.
+-- Hence they do not logically fit in any single one of them.
+
+import prelude
+import sigma
+import nat
+import bool
+
+boolToNat : bool -> nat = split
+  false -> one
+  true  -> zero
+
+PropLem (A B : Prop) (p : Id U A.1 B.1) : (Id Prop A B) =
+  lem U prop propIsProp A B p
+
+propAnd (A B : U) (pA : prop A) (pB : prop B) (t u : and A B) : Id (and A B) t u =
+  propSig A (\(_ : A) -> B) pA (\(_ : A) -> pB) t u

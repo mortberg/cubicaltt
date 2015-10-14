@@ -1,6 +1,7 @@
 module bool where
 
 import prelude
+import hedberg
 
 data bool = false | true
 
@@ -49,7 +50,7 @@ boolToF2K : (b : bool) -> Id bool (f2ToBool (boolToF2 b)) b = split
 
 boolEqF2 : Id U bool F2 =
  isoId bool F2 boolToF2 f2ToBool f2ToBoolK boolToF2K
-  
+
 negF2 : F2 -> F2 = subst U (\(X : U) -> (X -> X)) bool F2 boolEqF2 negBool
 
 -- lemTest (A : U) : (B : U) (p : Id U A B) (a : A) -> IdP p a (transport p a) =
@@ -80,7 +81,7 @@ squareBoolF2 : Square U bool bool bool F2 (refl U bool)
                   boolEqF2 (refl U bool) boolEqF2 =
   <i j> boolEqF2 @ i /\ j
 
-test5 : IdP boolEqF2 true oneF2 = 
+test5 : IdP boolEqF2 true oneF2 =
   <i> comp (<j> boolEqF2 @ i /\ j) true []
 
 test6 : Id bool true true =
@@ -95,5 +96,97 @@ test8 : Id U F2 F2 =
 test9 : Id U F2 F2 =
   comp (<i> Id U (boolEqF2 @ i) (boolEqF2 @ i)) (refl U bool) []
 
-p : Id U F2 bool = <i> comp (<_> U) bool [ (i = 0) -> boolEqF2, (i = 1) -> <_> bool]
-q : Id U F2 F2 = <i> p @ (i /\ - i)
+pF2 : Id U F2 bool = <i> comp (<_> U) bool [ (i = 0) -> boolEqF2, (i = 1) -> <_> bool]
+qF2 : Id U F2 F2 = <i> pF2 @ (i /\ - i)
+
+-- negBool is in prelude
+
+andBool : bool -> bool -> bool = split
+  false -> constfun bool bool false
+  true  -> idfun bool
+
+orBool : bool -> bool -> bool = split
+  false -> idfun bool
+  true  -> constfun bool bool true
+
+andBoolFalse : (a : bool) -> Id bool (andBool a false) false = split
+  false -> refl bool false
+  true  -> refl bool false
+
+trueNeqFalse : neg (Id bool true false) =
+  \(p : Id bool true false) ->
+    subst bool splitUniverse true false p tt
+      where
+      splitUniverse : (b : bool) -> U = split
+	false -> N0
+        true  -> Unit
+
+falseNeqTrue : neg (Id bool false true) =
+  \(p : Id bool false true) -> trueNeqFalse (inv bool false true p)
+
+orBoolRight : (a : bool) -> (b : bool) -> Id bool b true -> Id bool (orBool a b) true = split
+  false -> \(b : bool) -> idfun (Id bool b true)
+  true  -> \(b : bool) -> \(_ : Id bool b true) ->
+    refl bool true
+
+orBoolLeft (a : bool) (b : bool) (p : Id bool a true) : Id bool (orBool a b) true =
+  <i> orBool (p @ i) b
+
+orBoolFalseLeft : (a : bool) -> (b : bool) -> Id bool (orBool a b) false -> Id bool a false = split
+  false -> \(b : bool) -> \(_ : Id bool (orBool false b) false) -> refl bool false
+  true  -> \(b : bool) -> idfun (Id bool (orBool true b) false)
+
+orBoolFalseRight : (a : bool) -> (b : bool) -> Id bool (orBool a b) false -> Id bool b false = split
+  false -> \(b : bool) -> idfun (Id bool b false)
+  true  -> \(b : bool) -> \(p : Id bool (orBool true b) false) -> efq (Id bool b false) (trueNeqFalse p)
+
+orBoolTrueRight' (b : bool) (q : Id bool (orBool false b) true) : Id bool b true = q
+
+orBoolTrueRight (a : bool) (b : bool) (p : Id bool a false) (q : Id bool (orBool a b) true) : Id bool b true =
+  orBoolTrueRight' b (subst bool (\(x : bool) -> Id bool (orBool x b) true) a false p q)
+
+orBoolFalseFalse (a : bool) (b : bool) (p : Id bool a false) (q : Id bool b false) : Id bool (orBool a b) false =
+  <i> orBool (p @ i) (q @ i)
+
+andLeft : (a : bool) -> (b : bool) -> Id bool (andBool a b) true -> Id bool a true = split
+  false -> \(b : bool) -> \(p : Id bool (andBool false b) true) -> efq (Id bool false true) (trueNeqFalse (inv bool false true p))
+  true  -> \(b : bool) -> \(_ : Id bool (andBool true b) true) -> refl bool true
+
+andRight (a : bool) : (b : bool) -> Id bool (andBool a b) true -> Id bool b true = split
+  false -> \(p : Id bool (andBool a false) true) -> efq (Id bool false true) (trueNeqFalse (compId bool true (andBool a false) false (inv bool (andBool a false) true p) (andBoolFalse a)))
+  true  -> \(_ : Id bool (andBool a true) true) -> refl bool true
+
+andNegationRight : (a : bool) -> (b : bool) -> Id bool a true -> Id bool (andBool a b) false -> Id bool b false = split
+  false -> \(b : bool) -> \(p : Id bool false true) -> \(_ : Id bool (andBool false b) false) -> efq (Id bool b false) (falseNeqTrue p)
+  true  -> \(b : bool) -> \(_ : Id bool true true) -> idfun (Id bool b false)
+
+andNegationRight' (b : bool) : Id bool (andBool true b) false -> Id bool b false =
+  idfun (Id bool b false)
+
+negBoolTrue : (a : bool) -> Id bool (negBool a) true -> Id bool a false = split
+  false -> \(_ : Id bool (negBool false) true) -> refl bool false
+  true  -> inv bool (negBool true) true
+
+negBoolFalse : (a : bool) -> Id bool (negBool a) false -> Id bool a true = split
+  false -> inv bool (negBool false) false
+  true  -> \(_ : Id bool (negBool true) false) -> refl bool true
+
+andTrue (a : bool) (p : Id bool a true) : Id bool (andBool a true) true =
+  subst bool (\(x : bool) -> Id bool (andBool x true) true) true a (inv bool a true p) (refl bool true)
+
+andTrueTrue (a : bool) (p : Id bool a true) (b : bool) (q : Id bool b true) : Id bool (andBool a b) true =
+  subst bool (\(y : bool) -> Id bool (andBool a y) true) true b (inv bool b true q) (andTrue a p)
+
+boolDec : (a b : bool) -> dec (Id bool a b) = split
+  false -> falseHelper
+    where
+    falseHelper : (b : bool) -> dec (Id bool false b) = split
+      false -> inl (refl bool false)
+      true  -> inr falseNeqTrue
+  true  -> trueHelper
+    where
+    trueHelper : (b : bool) -> dec (Id bool true b) = split
+      false -> inr trueNeqFalse
+      true  -> inl (refl bool true)
+
+boolSet : set bool = hedberg bool boolDec

@@ -6,6 +6,18 @@ data nat = zero | suc (n : nat)
 
 one : nat = suc zero
 two : nat = suc one
+-- so that one doesn't have to keep typing these...
+n0 : nat = zero
+n1 : nat = one
+n2 : nat = suc one
+n3 : nat = suc two
+n4 : nat = suc n3
+n5 : nat = suc n4
+n6 : nat = suc n5
+n7 : nat = suc n6
+n8 : nat = suc n7
+n9 : nat = suc n8
+n10 : nat = suc n9
 
 pred : nat -> nat = split
   zero -> zero
@@ -41,6 +53,11 @@ add' : nat -> nat -> nat = split
 sucInj (n m : nat) (p : Id nat (suc n) (suc m)) : Id nat n m =
  <i> pred (p @ i)
 
+add_inj (a : nat) (b : nat) : (c : nat) -> Id nat (add a c) (add b c) -> Id nat a b = split
+  zero  -> idfun (Id nat a b)
+  suc d -> \(p : Id nat (add a (suc d)) (add b (suc d))) ->
+    add_inj a b d (sucInj (add a d) (add b d) p)
+
 idnat : nat -> nat = split
   zero -> zero
   suc n -> suc (idnat n)
@@ -74,4 +91,79 @@ natDec : (n m:nat) -> dec (Id nat n m) = split
 
 natSet : set nat = hedberg nat natDec
 
+-- Ordering of naturals as in
+-- http://www.cse.chalmers.se/~nad/repos/lib/src/Data/Nat.agda
 
+-- constructors are not yet first-class citizens
+suc' : nat -> nat = \(n : nat) -> suc n
+
+data natOrdering (m : nat) (n : nat)
+  = lessOrd (k : nat) (p : Id nat n (suc (add k m))) -- m < n
+  | equalOrd (p : Id nat m n) -- m == n
+  | greaterOrd (k : nat) (p : Id nat m (suc (add k n))) -- m > n
+
+-- encodes that m is less than (m+k+1)
+less (m : nat) (k : nat) : natOrdering m (suc (add k m))
+  = lessOrd k (refl nat (suc (add k m)))
+
+equal (m : nat) : natOrdering m m
+  = equalOrd (refl nat m)
+
+greater (n : nat) (k : nat) : natOrdering (suc (add k n)) n
+  = greaterOrd k (refl nat (suc (add k n)))
+
+compare : (m : nat) -> (n : nat) -> natOrdering m n = split
+  zero  -> compareMZero
+    where
+      compareMZero : (n : nat) -> natOrdering zero n = split
+        zero  -> equal zero
+        suc l -> less zero l
+  suc k -> compareMSuc k
+    where
+      compareMSuc (k : nat) : (n : nat) -> natOrdering (suc k) n = split
+        zero  -> greater zero k
+        suc l -> process (compare k l)
+          where
+          m : nat = suc k
+          n : nat = suc l
+          process : natOrdering k l -> natOrdering m n = split
+            lessOrd j q    -> lessOrd j (<i> suc (q @ i))
+            equalOrd q     -> equalOrd (<i> suc (q @ i))
+            greaterOrd j q -> greaterOrd j (<i> suc (q @ i))
+
+lessEq (m : nat) (n : nat) : U = (k : nat) * (Id nat (add m k) n)
+nLessEqn (n : nat) : lessEq n n = (zero , refl nat n)
+sucLessEq (m : nat) (n : nat) (p : lessEq m n) : (lessEq m (suc n)) =
+  (suc p.1, (<i> suc (p.2 @ i)))
+sucLessEq' (m : nat) (n : nat) (p : lessEq (suc m) n) : (lessEq m n) =
+  (suc p.1, compIdInv' nat (add m (suc p.1)) (add (suc m) p.1) n
+    (add_suc m p.1) p.2)
+zeroLessEq (n : nat) : lessEq zero n =
+  (n , add_zero n)
+
+lessEq_zero_is_zero : (m : nat) -> lessEq m zero -> Id nat m zero = split
+  zero -> \(_ : lessEq zero zero) -> refl nat zero
+  suc k -> \(t : lessEq (suc k) zero) -> efq (Id nat (suc k) zero) (
+    snotz (add k t.1) (compIdInv' nat (add k (suc t.1)) (add (suc k) t.1) zero
+      (add_suc k t.1)
+      t.2
+    ))
+
+-- if m < n then m \neq n
+lessEqIneq (m : nat) (n : nat) (t : lessEq (suc m) n) (p : Id nat m n) : N0 =
+  snotz k p5
+    where
+    k : nat = t.1
+    p1 : Id nat (add (suc m) k) m = compIdInv nat (add (suc m) k) n m t.2 p
+    p2 : Id nat (add m (suc k)) m =
+      compIdInv' nat (add m (suc k)) (add (suc m) k) m (add_suc m k) p1
+    p3 : Id nat (add (suc k) m) m =
+      compId nat (add (suc k) m) (add m (suc k)) m (add_comm (suc k) m) p2
+    p4 : Id nat (add (suc k) m) (add zero m) =
+      compIdInv nat (add (suc k) m) m (add zero m) p3 (add_zero m)
+    p5 : Id nat (suc k) zero =
+      add_inj (suc k) zero m p4
+
+add_one : (n : nat) -> Id nat (add (suc zero) n) (suc n) = split
+  zero  -> refl nat (suc zero)
+  suc m -> <i> suc (add_one m @ i)

@@ -53,6 +53,12 @@ inv (A : U) (a b : A) (p : Id A a b) : Id A b a = <i> p @ -i
 compId (A : U) (a b c : A) (p : Id A a b) (q : Id A b c) : Id A a c =
   <i> comp (<_>A) (p @ i) [ (i = 1) -> q, (i=0) -> <_> a ]
 
+compIdInv (A : U) (a b c : A) (p : Id A a b) (q : Id A c b) : Id A a c =
+  compId A a b c p (inv A c b q)
+
+compIdInv' (A : U) (a b c : A) (p : Id A b a) (q : Id A b c) : Id A a c =
+  compId A a b c (inv A b a p) q
+
 compId' (A : U) (a b c : A) (p : Id A a b) (q : Id A b c) : Id A a c =
   subst A (Id A a) b c q p
 
@@ -81,7 +87,7 @@ lemCompInv (A:U) (a b c:A) (p:Id A a b) (q:Id A b c)
 
 lemInv (A:U) (a b:A) (p:Id A a b) : Id (Id A b b) (compId A b a b (inv A a b p) p)  (refl A b) =
    <j i> comp (<_>A) (p @ (-i \/ j)) [(i=0) -> <l>b, (j=1) -> <l>b, (i=1) -> <k> p @ (j \/ k)]
-   
+
 test0 (A : U) (a b : A) (p : Id A a b) : Id A a a = refl A (p @ 0)
 test1 (A : U) (a b : A) (p : Id A a b) : Id A b b = refl A (p @ 1)
 
@@ -109,6 +115,8 @@ lemSimpl (A : U) (a b c : A) (p : Id A a b) (q q' : Id A b c)
 
 idfun (A : U) (a : A) : A = a
 
+constfun (A : U) (B : U) (x : B) (_ : A) : B = x
+
 --         u
 --    a0 -----> a1
 --    |         |
@@ -132,6 +140,7 @@ constSquare (A : U) (a : A) (p : Id A a a) : Square A a a a a p p p p =
 prop (A : U) : U = (a b : A) -> Id A a b
 set (A : U) : U = (a b : A) -> prop (Id A a b)
 groupoid (A : U) : U = (a b : A) -> set (Id A a b)
+Prop : U = (A : U) * prop A
 
 propSet (A : U) (h : prop A) (a b : A) (p q : Id A a b) : Id (Id A a b) p q =
  <j i> comp (<_>A) a [ (i=0) -> h a a
@@ -154,7 +163,7 @@ propPi (A : U) (B : A -> U) (h : (x : A) -> prop (B x))
        (f0 f1 : (x : A) -> B x) : Id ((x : A) -> B x) f0 f1
   = <i> \ (x:A) -> (h x (f0 x) (f1 x)) @ i
 
-lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a :A) : 
+lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a :A) :
           (a1 : A) (p : Id A a a1) (b0 : P a) (b1 : P a1) -> IdP (<i>P (p@i)) b0 b1 =
  J A a (\ (a1 : A) (p : Id A a a1) ->
           (b0 : P a) (b1 : P a1) -> IdP (<i>P (p@i)) b0 b1)
@@ -243,3 +252,22 @@ isoId (A B : U) (f : A -> B) (g : B -> A)
       (t : (x : A) -> Id A (g (f x)) x) : Id U A B =
       <i> glue B [ (i = 0) -> (A,f,g,s,t)
                  , (i = 1) -> (B,idfun B,idfun B,refl B,refl B) ]
+
+-- propDec (A : Prop) : prop (dec A)
+propDec (A : Prop) : (s t : dec A.1) -> Id (dec A.1) s t = split
+  inl sa -> \(t : dec A.1) -> propDecHelper sa t
+    where
+    propDecHelper (sa : A.1) : (t : dec A.1) -> Id (dec A.1) (inl sa) t = split
+      inl ta -> <i> inl (A.2 sa ta @ i)
+      inr tb -> efq (Id (dec A.1) (inl sa) (inr tb)) (tb sa)
+  inr sb -> \(t : dec A.1) -> propDecHelper sb t
+    where
+    propDecHelper (sb : A.1 -> N0) : (t : dec A.1) -> Id (dec A.1) (inr sb) t = split
+      inl ta -> efq (Id (dec A.1) (inr sb) (inl ta)) (sb ta)
+      inr tb -> <i> inr (propNeg A.1 sb tb @ i)
+
+inhabitedPropIsUnit (A : Prop) (x : A.1) : Id U A.1 Unit =
+  isoId A.1 Unit (constfun A.1 Unit tt) (constfun Unit A.1 x) (\(y : Unit) -> propUnit tt y) (\(y : A.1) -> A.2 x y)
+
+uninhabitedPropIsN0 (A : Prop) (f : A.1 -> N0) : Id U A.1 N0 =
+  isoId A.1 N0 f (efq A.1) (\(y : N0) -> efq (Id N0 (f (efq A.1 y)) y) y) (\(y : A.1) -> A.2 (efq A.1 (f y)) y)

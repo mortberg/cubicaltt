@@ -19,7 +19,8 @@ all: depends cubical
 # so we do it the old way at the very end
 cubical: $(INPUT:.hs=.o) $(GRAMMAR_OBJECT_FILES)
 	$(GHC) --make $(OPTIONS) -o cubical -rtsopts Main
-depends: $(INPUT) $(GRAMMAR_HS_FILES); $(GHC) -M $^
+Makefile depends: .depends-made
+.depends-made: $(INPUT) $(GRAMMAR_HS_FILES); $(GHC) -M $^; touch $@
 %.hi %.o: %.hs; $(GHC) $(GHCOPTIONS) $<
 %.hs: %.y; happy -gca $<
 %.hs: %.x; alex -g $<

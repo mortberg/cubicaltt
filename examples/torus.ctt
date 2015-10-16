@@ -76,7 +76,8 @@ c2t2c_base : (c2 : S1) -> IdP (<_> and S1 S1) (t2c (c2t_base c2)) (base,c2) = sp
   base -> <_> (base,base)
   loop @ y -> <_> (base,loop1 @ y)
 
--- the loop goal reduced using the defintional equalties, and with the two binders exchanged.
+-- the loop goal reduced using the defintional equalties, and with the
+-- two binders exchanged.
 -- c2t' (loop @ y) c2 = (c2t_loop @ y c2) = c2t_loop' c2 @ y
 c2t2c_loop' : (c2 : S1) ->
       IdP (<y> IdP (<_> and S1 S1) (t2c (c2t_loop @ y c2)) (loop1 @ y , c2))
@@ -91,45 +92,17 @@ c2t2c : (c1 : S1) (c2 : S1) -> IdP (<_> and S1 S1) (t2c (c2t' c1 c2)) (c1,c2) = 
                  -- I should be able to do a split inside of an interval binding
      loop @ y -> \(c : S1) -> c2t2c_loop' c @ y
 
--- ----------------------------------------------------------------------
--- tests
 
--- p * p
--- pp : IdP (<_> Torus) ptT ptT =
---    <x> comp Torus (pathOneT{Torus} @ x) [(x=1) -> <y> pathOneT{Torus}@y]
-
--- f :IdP (<x> IdP (<_> Torus) (pathTwoT{Torus}@x) (pathTwoT{Torus}@x) ) (<y> pathOneT{Torus}@y) (<y> pathOneT{Torus}@y) = 
---   <x> <y> squareT{Torus} @ x @ y
-
-
--- -- vertically compose two torus squares
--- ff : IdP (<x> IdP (<_> Torus) (pathTwoT{Torus}@x) (pathTwoT{Torus}@x) ) pp pp = 
---    <x> <y> comp Torus (squareT{Torus} @ x @ y) [(y=1) -> <y> squareT{Torus} @ x @ y]
-
-
--- image_of_f : IdP (<x> IdP (<_> (_ : S1) * S1) (t2c (pathTwoT{Torus}@x)) (t2c (pathTwoT{Torus}@x)) ) (<x> t2c ((pathOneT{Torus}@x))) (<x> t2c ((pathOneT{Torus}@x))) = 
---       <x> <y> t2c (f @ x @ y)
-
--- image_of_ff : IdP (<x> IdP (<_> (_ : S1) * S1) (t2c (pathTwoT{Torus}@x)) (t2c (pathTwoT{Torus}@x)) ) (<x> t2c (pp @ x)) (<x> t2c (pp @ x)) = 
---       <x> <y> t2c (ff @ x @ y)
-
--- diag_of_image_of_ff : IdP (<_> (_ : S1) * S1) (base,base) (base,base)
---   = <x> image_of_ff @ x @ x
-
--- Type checking failed: path endpoints don't match for 
--- got (<!0> comp (Torus) (pathOneT {Torus} @ !0) [ (!0 = 1) -> <!1> pathOneT {Torus} @ !1 ],
---      <!0> comp (Torus) (pathOneT {Torus} @ !0) [ (!0 = 1) -> <!1> pathOneT {Torus} @ !1 ]), 
--- but expected
---  (<!0> comp (Torus) (pathOneT {Torus} @ !0) 
---                    [ (!0 = 0) -> <!1> pathOneT {Torus} @ !1 ],
---                        <!0> comp (Torus) (pathOneT {Torus} @ !0) 
---                             [ (!0 = 0) -> <!1> pathOneT {Torus} @ !1 ])
+------------------------------------------------------------------------
+-- combine everything to get that Torus = S1 * S1
 
 S1S1equalsTorus : Id U (and S1 S1) Torus = isoId (and S1 S1) Torus c2t t2c t2c2t rem
  where
  rem (c:and S1 S1) : Id (and S1 S1) (t2c (c2t c)) c = c2t2c c.1 c.2
 
 TorusEqualsS1S1 : Id U Torus (and S1 S1) = <i> S1S1equalsTorus @ -i
+
+
 
 loopT : U = Id Torus ptT ptT
 

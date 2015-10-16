@@ -64,3 +64,10 @@ triv : loopS1 = <i> base
 -- around the circle and then back is contractible:
 hmtpy : Id loopS1 (<i> base) (<i> loop{S1} @ (i /\ -i)) =
   <j i> loop{S1} @ j /\ i /\ -i
+
+
+-- the loop space of the circle is equal to Z
+
+-- loopS1equalsZ : Id U loopS1 Z = undefined
+--  isoId loopS1 Z (encode base) (decode base) decodeEncodeBase (encodeDecode base)
+

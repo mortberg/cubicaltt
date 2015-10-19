@@ -128,30 +128,30 @@ loop flags f names tenv = do
           Left  err  -> do outputStrLn ("Resolver failed: " ++ err)
                            loop flags f names tenv
           Right body -> do
-          x <- liftIO $ TC.runInfer tenv body
-          case x of
-            Left err -> do outputStrLn ("Could not type-check: " ++ err)
-                           loop flags f names tenv
-            Right _  -> do
-              start <- liftIO getCurrentTime
-              let e = mod $ E.eval (TC.env tenv) body
+            x <- liftIO $ TC.runInfer tenv body
+            case x of
+              Left err -> do outputStrLn ("Could not type-check: " ++ err)
+                             loop flags f names tenv
+              Right _  -> do
+                start <- liftIO getCurrentTime
+                let e = mod $ E.eval (TC.env tenv) body
 
-              -- Let's not crash if the evaluation raises an error:
-              liftIO $ catch (putStrLn (msg ++ show e))
-                             (\e -> putStrLn ("Exception: " ++
-                                              show (e :: SomeException)))
-              stop <- liftIO getCurrentTime
-              -- Compute time and print nicely
-              let time = diffUTCTime stop start
-                  secs = read (takeWhile (/='.') (init (show time)))
-                  rest = read ('0':dropWhile (/='.') (init (show time)))
-                  mins = secs `quot` 60
-                  sec  = printf "%.3f" (fromInteger (secs `rem` 60) + rest :: Float)
-              when (Time `elem` flags) $
-                 outputStrLn $ "Time: " ++ show mins ++ "m" ++ sec ++ "s"
-              -- Only print in seconds:
-              -- when (Time `elem` flags) $ outputStrLn $ "Time: " ++ show time
-              loop flags f names tenv
+                -- Let's not crash if the evaluation raises an error:
+                liftIO $ catch (putStrLn (msg ++ show e))
+                               (\e -> putStrLn ("Exception: " ++
+                                                show (e :: SomeException)))
+                stop <- liftIO getCurrentTime
+                -- Compute time and print nicely
+                let time = diffUTCTime stop start
+                    secs = read (takeWhile (/='.') (init (show time)))
+                    rest = read ('0':dropWhile (/='.') (init (show time)))
+                    mins = secs `quot` 60
+                    sec  = printf "%.3f" (fromInteger (secs `rem` 60) + rest :: Float)
+                when (Time `elem` flags) $
+                   outputStrLn $ "Time: " ++ show mins ++ "m" ++ sec ++ "s"
+                -- Only print in seconds:
+                -- when (Time `elem` flags) $ outputStrLn $ "Time: " ++ show time
+                loop flags f names tenv
 
 -- (not ok,loaded,already loaded defs) -> to load ->
 --   (new not ok, new loaded, new defs)

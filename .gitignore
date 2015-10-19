@@ -9,3 +9,5 @@ cubical
 Makefile.bak
 Main
 .depends-made
+.cabal-sandbox
+cabal.sandbox.config

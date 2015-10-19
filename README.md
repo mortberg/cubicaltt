@@ -30,12 +30,20 @@ Install
 
 To compile the program type:
 
-  `make bnfc && make`
+```sh
+    make
+```
+
 
 This assumes that the following Haskell packages are installed:
 
   mtl, haskeline, directory, BNFC, alex, happy
 
+To build the TAGS file, type:
+
+```sh
+    make TAGS
+```
 
 Usage
 -----

@@ -45,6 +45,8 @@ To build the TAGS file, type:
     make TAGS
 ```
 
+This assumes that ```hasktags``` has been installed.
+
 Usage
 -----
 

@@ -27,6 +27,9 @@ Makefile depends: .depends-made
 
 $(GRAMMAR_FILES): Exp.cf; bnfc --haskell -d Exp.cf
 bnfc:; $(GHC) --make -O$(OPT) Exp/Test.hs -o Exp/Test
+
+TAGS:; hasktags --etags $(INPUT)
+
 clean:; rm -rf Exp *.log *.aux *.hi *.o cubical
 git-clean:; git clean -Xdfq
 

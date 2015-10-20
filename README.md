@@ -28,7 +28,17 @@ For more examples, see "examples/demo.ctt" and "examples/aim.ctt".
 Install
 -------
 
-To compile the program type:
+To compile the project using [cabal](https://www.haskell.org/cabal/),
+first install the build-time dependencies (either globally or in a
+cabal sandbox):
+
+  `cabal install alex happy bnfc`
+
+Then the project can be built (and installed):
+
+  `cabal install`
+
+Alternatively, a `Makefile` is provided:
 
   `make bnfc && make`
 
@@ -48,6 +58,9 @@ To enable the debugging mode add the -d flag. In the interaction loop
 type :h to get a list of available commands. Note that the current
 directory will be taken as the search path for the imports.
 
+When using cabal sandboxes, `cubical` can be invoked using
+
+  `cabal exec cubical <filename>`
 
 References and notes
 --------------------
@@ -60,7 +73,7 @@ References and notes
 
  * [Cubical Type
    Theory](http://www.cse.chalmers.se/~coquand/face.pdf) - The
-   typing rules of the system. See [this](http://www.cse.chalmers.se/~coquand/face.pdf) 
+   typing rules of the system. See [this](http://www.cse.chalmers.se/~coquand/face.pdf)
    for a variation using isomorphisms instead of equivalences.
 
  * [Internal version of the uniform Kan filling

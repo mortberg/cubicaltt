@@ -1,5 +1,11 @@
-GHC=ghc
-#GHC=cabal exec ghc -- 
+# ghc and bnfc don't update their output files' timestamps if the contents are
+# unchanged, but "make" expects commands to actually produce their output
+# files, so this is a poor match.  (By contrast, alex and happy do update their
+# output files.)  To defeat that, we touch the output files when trying to make them.
+
+GHC = ghc
+# or:
+# GHC = cabal exec ghc -- 
 INPUT = CTT.hs Connections.hs Eval.hs Main.hs Resolver.hs TypeChecker.hs
 GRAMMAR = Exp.cf
 GRAMMAR_X_FILES = Exp/Lex.x
@@ -11,76 +17,40 @@ GRAMMAR_HS_FILES += $(GRAMMAR_Y_FILES:.y=.hs)
 GRAMMAR_OBJECT_FILES = $(GRAMMAR_HS_FILES:.hs=.o)
 GHCOPTIONS = -O2 -rtsopts
 
-all: depends cubical
-# this new way doesn't quite work, because it fails to link with the packages
-# used: QuickCheck array bytestring containers deepseq directory filepath
-# haskeline mtl old pretty random template terminfo time transformers unix
-# cubical: $(INPUT:.hs=.o) $(GRAMMAR_OBJECT_FILES); $(GHC) -o $@ $(GHCOPTIONS) $^
-# so we do it the old way at the very end
+all: cubical
+
+# There should be a way to make ghc link with the appropriate libraries,
+# without using the --make option, but I can't figure it out.  The libraries
+# used are:
+#     QuickCheck array bytestring containers deepseq directory filepath haskeline
+#     mtl old pretty random template terminfo time transformers unix
+# This is what I tried:
+#   cubical: $(INPUT:.hs=.o) $(GRAMMAR_OBJECT_FILES); $(GHC) -o $@ $(GHCOPTIONS) $^
+
 cubical: $(INPUT:.hs=.o) $(GRAMMAR_OBJECT_FILES)
 	$(GHC) --make $(OPTIONS) -o cubical -rtsopts Main
-Makefile depends: .depends-made
-.depends-made: $(INPUT) $(GRAMMAR_HS_FILES); $(GHC) -M $^; touch $@
-%.hi %.o: %.hs; $(GHC) $(GHCOPTIONS) $<
-%.hs: %.y; happy -gca $<
-%.hs: %.x; alex -g $<
 
-$(GRAMMAR_FILES): Exp.cf; bnfc --haskell -d Exp.cf
-bnfc:; $(GHC) --make -O$(OPT) Exp/Test.hs -o Exp/Test
+depends: Makefile
+Makefile: $(INPUT) $(GRAMMAR_HS_FILES)
+	$(GHC) -M $^
+	touch $@
+INCLUDE=yes
+ifeq ($(INCLUDE),yes)
+include Makefile
+endif
+%.hi %.o: %.hs
+	$(GHC) $(GHCOPTIONS) $<
+	touch $*.hi $*.o
+%.hs: %.y
+	happy -gca $<
+%.hs: %.x
+	alex -g $<
 
-TAGS:; hasktags --etags $(INPUT)
+run-bnfc $(GRAMMAR_FILES): Exp.cf
+	bnfc --haskell -d Exp.cf
+	touch $(GRAMMAR_FILES)
 
-clean:; rm -rf Exp *.log *.aux *.hi *.o cubical
+TAGS:; hasktags --etags $(INPUT) $(GRAMMAR)
+
+clean:; rm -rf Exp *.log *.aux *.hi *.o cubical TAGS Makefile Makefile.bak
 git-clean:; git clean -Xdfq
-
-# DO NOT DELETE: Beginning of Haskell dependencies
-Exp/ErrM.o : Exp/ErrM.hs
-Exp/Abs.o : Exp/Abs.hs
-Exp/Skel.o : Exp/Skel.hs
-Exp/Skel.o : Exp/ErrM.hi
-Exp/Skel.o : Exp/Abs.hi
-Exp/Print.o : Exp/Print.hs
-Exp/Print.o : Exp/Abs.hi
-Exp/Lex.o : Exp/Lex.hs
-Exp/Par.o : Exp/Par.hs
-Exp/Par.o : Exp/ErrM.hi
-Exp/Par.o : Exp/Lex.hi
-Exp/Par.o : Exp/Abs.hi
-Exp/Layout.o : Exp/Layout.hs
-Exp/Layout.o : Exp/Lex.hi
-Exp/Test.o : Exp/Test.hs
-Exp/Test.o : Exp/ErrM.hi
-Exp/Test.o : Exp/Layout.hi
-Exp/Test.o : Exp/Abs.hi
-Exp/Test.o : Exp/Print.hi
-Exp/Test.o : Exp/Skel.hi
-Exp/Test.o : Exp/Par.hi
-Exp/Test.o : Exp/Lex.hi
-Connections.o : Connections.hs
-CTT.o : CTT.hs
-CTT.o : Connections.hi
-Eval.o : Eval.hs
-Eval.o : CTT.hi
-Eval.o : Connections.hi
-Resolver.o : Resolver.hs
-Resolver.o : Connections.hi
-Resolver.o : Connections.hi
-Resolver.o : CTT.hi
-Resolver.o : CTT.hi
-Resolver.o : Exp/Abs.hi
-TypeChecker.o : TypeChecker.hs
-TypeChecker.o : Eval.hi
-TypeChecker.o : CTT.hi
-TypeChecker.o : Connections.hi
-Main.o : Main.hs
-Main.o : Eval.hi
-Main.o : TypeChecker.hi
-Main.o : Resolver.hi
-Main.o : CTT.hi
-Main.o : Exp/ErrM.hi
-Main.o : Exp/Layout.hi
-Main.o : Exp/Abs.hi
-Main.o : Exp/Print.hi
-Main.o : Exp/Par.hi
-Main.o : Exp/Lex.hi
-# DO NOT DELETE: End of Haskell dependencies

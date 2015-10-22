@@ -39,13 +39,19 @@ This assumes that the following Haskell packages are installed:
 
   mtl, haskeline, directory, BNFC, alex, happy
 
-To build the TAGS file, type:
+To build the TAGS file, run:
 
 ```sh
     make TAGS
 ```
 
 This assumes that ```hasktags``` has been installed.
+
+To clean up, run:
+
+```sh
+    make clean INCLUDE=no
+```
 
 Usage
 -----

@@ -15,7 +15,7 @@ GRAMMAR_FILES := $(GRAMMAR_HS_FILES) $(GRAMMAR_X_FILES) $(GRAMMAR_Y_FILES) Exp/D
 GRAMMAR_HS_FILES += $(GRAMMAR_X_FILES:.x=.hs)
 GRAMMAR_HS_FILES += $(GRAMMAR_Y_FILES:.y=.hs)
 GRAMMAR_OBJECT_FILES = $(GRAMMAR_HS_FILES:.hs=.o)
-GHCOPTIONS = -O2 -rtsopts
+GHCOPTIONS = -O2 -rtsopts -v0
 
 all: cubical
 
@@ -28,19 +28,19 @@ all: cubical
 #   cubical: $(INPUT:.hs=.o) $(GRAMMAR_OBJECT_FILES); $(GHC) -o $@ $(GHCOPTIONS) $^
 
 cubical: $(INPUT:.hs=.o) $(GRAMMAR_OBJECT_FILES)
-	$(GHC) --make $(OPTIONS) -o cubical -rtsopts Main
+	$(GHC) --make $(GHCOPTIONS) -o cubical Main
 
 depends: Makefile
 Makefile: $(INPUT) $(GRAMMAR_HS_FILES)
 	$(GHC) -M $^
-	touch $@
+	@ touch $@
 INCLUDE=yes
 ifeq ($(INCLUDE),yes)
 include Makefile
 endif
 %.hi %.o: %.hs
 	$(GHC) $(GHCOPTIONS) $<
-	touch $*.hi $*.o
+	@ touch $*.hi $*.o
 %.hs: %.y
 	happy -gca $<
 %.hs: %.x
@@ -48,7 +48,7 @@ endif
 
 run-bnfc $(GRAMMAR_FILES): Exp.cf
 	bnfc --haskell -d Exp.cf
-	touch $(GRAMMAR_FILES)
+	@ touch $(GRAMMAR_FILES)
 
 TAGS:; hasktags --etags $(INPUT) $(GRAMMAR)
 

@@ -28,16 +28,13 @@ all: cubical
 #   cubical: $(INPUT:.hs=.o) $(GRAMMAR_OBJECT_FILES); $(GHC) -o $@ $(GHCOPTIONS) $^
 
 cubical: $(INPUT:.hs=.o) $(GRAMMAR_OBJECT_FILES)
+	$(GHC) -M $(INPUT) $(GRAMMAR_HS_FILES)
 	$(GHC) --make $(GHCOPTIONS) -o cubical Main
 
-depends: Makefile
-Makefile: $(INPUT) $(GRAMMAR_HS_FILES)
+build-Makefile: $(INPUT) $(GRAMMAR_HS_FILES)
 	$(GHC) -M $^
-	@ touch $@
-INCLUDE=yes
-ifeq ($(INCLUDE),yes)
+
 include Makefile
-endif
 %.hi %.o: %.hs
 	$(GHC) $(GHCOPTIONS) $<
 	@ touch $*.hi $*.o
@@ -52,5 +49,5 @@ run-bnfc $(GRAMMAR_FILES): Exp.cf
 
 TAGS:; hasktags --etags $(INPUT) $(GRAMMAR)
 
-clean:; rm -rf Exp *.log *.aux *.hi *.o cubical TAGS Makefile Makefile.bak
+clean:; rm -rf Exp *.log *.aux *.hi *.o cubical TAGS Makefile.bak
 git-clean:; git clean -Xdfq

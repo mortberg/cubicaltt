@@ -50,7 +50,7 @@ This assumes that ```hasktags``` has been installed.
 To clean up, run:
 
 ```sh
-    make clean INCLUDE=no
+    make clean
 ```
 
 Usage

@@ -35,6 +35,7 @@ build-Makefile: $(INPUT) $(GRAMMAR_HS_FILES)
 	$(GHC) -M $^
 
 include Makefile
+
 %.hi %.o: %.hs
 	$(GHC) $(GHCOPTIONS) $<
 	@ touch $*.hi $*.o
@@ -43,8 +44,10 @@ include Makefile
 %.hs: %.x
 	alex -g $<
 
-run-bnfc $(GRAMMAR_FILES): Exp.cf
+bnfc $(GRAMMAR_FILES): Exp.cf
 	bnfc --haskell -d Exp.cf
+	alex -g Exp/Lex.x
+	happy -gca Exp/Par.y
 	@ touch $(GRAMMAR_FILES)
 
 TAGS:; hasktags --etags $(INPUT) $(GRAMMAR)

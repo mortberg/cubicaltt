@@ -40,12 +40,28 @@ Then the project can be built (and installed):
 
 Alternatively, a `Makefile` is provided:
 
-  `make bnfc && make`
+```sh
+    make
+```
+
 
 This assumes that the following Haskell packages are installed:
 
   mtl, haskeline, directory, BNFC, alex, happy
 
+To build the TAGS file, run:
+
+```sh
+    make TAGS
+```
+
+This assumes that ```hasktags``` has been installed.
+
+To clean up, run:
+
+```sh
+    make clean
+```
 
 Usage
 -----
@@ -58,9 +74,24 @@ To enable the debugging mode add the -d flag. In the interaction loop
 type :h to get a list of available commands. Note that the current
 directory will be taken as the search path for the imports.
 
+
 When using cabal sandboxes, `cubical` can be invoked using
 
   `cabal exec cubical <filename>`
+
+
+To enable emacs to edit ```*.ctt``` files in ```ctt-mode```, add the following
+line to your ```.emacs``` file:
+```
+(autoload 'ctt-mode "cubicaltt" "cubical editing mode" t)
+(setq auto-mode-alist (append auto-mode-alist '(("\\.ctt$" . ctt-mode))))
+```
+and ensure that the file ```cubicaltt.el``` is visible in one of the diretories
+on emacs' ```load-path```, or else load it in advance, either manually with
+```M-x load-file```, or with something like the following line in ```.emacs```:
+```
+(load-file "cubicaltt.el")
+```
 
 References and notes
 --------------------

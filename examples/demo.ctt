@@ -416,3 +416,9 @@ generalize normal inductive types by allowing constructors that define
   - examples/integer.ctt: The integers as a HIT.
 
 -}
+
+{-
+Local Variables:
+compile-command: "echo :q | ../cubical demo.ctt"
+End:
+-}

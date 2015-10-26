@@ -45,7 +45,7 @@ Alternatively, a `Makefile` is provided:
 ```
 
 
-This assumes that the following Haskell packages are installed:
+This assumes that the following Haskell packages are installed using cabal:
 
   mtl, haskeline, directory, BNFC, alex, happy, QuickCheck
 

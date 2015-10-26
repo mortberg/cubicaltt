@@ -369,7 +369,7 @@ showVal v = case v of
                        <+> hsep (map ((char '@' <+>) . showFormula) phis)
   VHComp v0 v1 vs   -> text "hComp" <+> showVals [v0,v1] <+> text (showSystem vs)
   VPi a l@(VLam x t b)
-    | "_" `isPrefixOf` x -> showVal a <+> text "->" <+> showVal1 b
+    | "_" `isPrefixOf` x -> showVal1 a <+> text "->" <+> showVal1 b
     | otherwise          -> char '(' <> showLam v
   VPi a b           -> text "Pi" <+> showVals [a,b]
   VPair u v         -> parens (showVal u <> comma <> showVal v)
@@ -413,12 +413,16 @@ showLam e = case e of
 
 showVal1 :: Val -> Doc
 showVal1 v = case v of
-  VU        -> showVal v
-  VCon c [] -> showVal v
-  VVar{}    -> showVal v
-  VFst{}    -> showVal v
-  VSnd{}    -> showVal v
-  _         -> parens (showVal v)
+  VU                -> showVal v
+  VCon c []         -> showVal v
+  VVar{}            -> showVal v
+  VFst{}            -> showVal v
+  VSnd{}            -> showVal v
+  Ter t@Sum{} rho   -> showTer t <+> showEnv False rho
+  Ter t@HSum{} rho  -> showTer t <+> showEnv False rho
+  Ter t@Split{} rho -> showTer t <+> showEnv False rho
+  Ter t rho         -> showTer1 t <+> showEnv True rho
+  _                 -> parens (showVal v)
 
 showVals :: [Val] -> Doc
 showVals = hsep . map showVal1

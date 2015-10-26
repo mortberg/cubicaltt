@@ -47,7 +47,7 @@ Alternatively, a `Makefile` is provided:
 
 This assumes that the following Haskell packages are installed:
 
-  mtl, haskeline, directory, BNFC, alex, happy
+  mtl, haskeline, directory, BNFC, alex, happy, QuickCheck
 
 To build the TAGS file, run:
 

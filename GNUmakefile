@@ -32,7 +32,7 @@ cubical: $(INPUT:.hs=.o) $(GRAMMAR_OBJECT_FILES)
 	$(GHC) --make $(GHCOPTIONS) -o cubical Main
 
 build-Makefile: $(INPUT) $(GRAMMAR_HS_FILES)
-	$(GHC) -M $^
+	$(GHC) -M -dep-suffix "" $^
 
 include Makefile
 
@@ -46,8 +46,6 @@ include Makefile
 
 bnfc $(GRAMMAR_FILES): Exp.cf
 	bnfc --haskell -d Exp.cf
-	alex -g Exp/Lex.x
-	happy -gca Exp/Par.y
 	@ touch $(GRAMMAR_FILES)
 
 TAGS:; hasktags --etags $(INPUT) $(GRAMMAR)

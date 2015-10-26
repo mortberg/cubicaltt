@@ -28,7 +28,7 @@ all: cubical
 #   cubical: $(INPUT:.hs=.o) $(GRAMMAR_OBJECT_FILES); $(GHC) -o $@ $(GHCOPTIONS) $^
 
 cubical: $(INPUT:.hs=.o) $(GRAMMAR_OBJECT_FILES)
-	$(GHC) -M $(INPUT) $(GRAMMAR_HS_FILES)
+	$(GHC) -M -dep-suffix "" $(INPUT) $(GRAMMAR_HS_FILES)
 	$(GHC) --make $(GHCOPTIONS) -o cubical Main
 
 build-Makefile: $(INPUT) $(GRAMMAR_HS_FILES)

@@ -1,0 +1,87 @@
+module testempty where
+
+import nat
+import sigma
+
+empty : U = N0
+-- the eliminator is efq ("ex falso quodlibet")
+
+invmap (A B : U) : equiv A B -> B -> A = invEq A B
+
+homotinvweqweq (A B : U) (f : equiv A B) (x : A) : Id A (invmap A B f (f.1 x)) x =
+  secEq A B f x
+
+subtypeEquality (A : U) (B : A -> U) (pB : (x : A) -> prop (B x))
+                (s t : (x : A) * B x) : Id A s.1 t.1 -> Id (sig A B) s t =
+  trans (Id A s.1 t.1) (Id (sig A B) s t) rem
+    where
+    rem : Id U (Id A s.1 t.1) (Id (sig A B) s t) =
+      <i> lemSigProp A B pB s t @ -i
+
+
+-- special case of funext for maps into the empty type
+funextempty (A : U) (f g : A -> empty) : Id (A -> empty) f g =
+  <i> \(a : A) -> (rem a) @ i
+    where rem (x : A) : Id empty (f x) (g x) = efq (Id empty (f x) (g x)) (f x)
+
+-- as this term is defined using funextempty Coq gets stuck:
+isapropneg (A : U) : prop (neg A) = funextempty A
+
+-- Nonzero nat
+X : U = (m : nat) * neg (Id nat m zero)
+
+-- nonzero nat is a set
+setX : set X = \(a b : X) ->
+  setSig nat (\(m : nat) -> neg (Id nat m zero)) natSet rem' a b
+    where
+    rem' (m : nat) : set (neg (Id nat m zero)) =
+      propSet (neg (Id nat m zero)) (isapropneg (Id nat m zero))
+
+-- helper lemma: m != 0 -> 1 + (m - 1) = m
+natsucpredneq0 : (m : nat) -> neg (Id nat m zero) -> Id nat (suc (pred m)) m = split 
+  zero -> \(h : neg (Id nat zero zero)) ->
+           efq (Id nat (suc (pred zero)) zero) (h (<i> zero))
+  suc n -> \(_ : neg (Id nat (suc n) zero)) -> <i> suc n
+
+-- nat and nonzero nat are equivalent
+f : equiv nat X = (g,rem)
+  where
+  -- the map
+  g (m : nat) : X = (suc m,snotz m)
+  -- the proof that the map is an equivalence
+  rem : isEquiv nat X g = (s,rem')
+    where
+    -- the fiber of g is inhabited, ie we have a center of contraction
+    s (y : X) : fiber nat X g y = (x,rem1)
+      where
+      x : nat = pred y.1
+      rem1 : Id X (g x) y =
+        subtypeEquality nat (\(m : nat) -> neg (Id nat m zero)) rem2 (g x) y rem2'
+          where
+          rem2 (m : nat) : prop (neg (Id nat m zero)) = isapropneg (Id nat m zero)
+          rem2' : Id nat (suc (pred y.1)) y.1 = natsucpredneq0 y.1 y.2
+          
+    -- any element in the fiber is equal to the center of contraction
+    rem' (y : X) (w : fiber nat X g y) : Id (fiber nat X g y) (s y) w =
+      subtypeEquality nat (\(x : nat) -> Id X (g x) y)
+                      (\(x : nat) -> setX (g x) y) (s y) w rem3'
+        where
+        w2 : Id nat (suc w.1) y.1 = <i> (w.2 @ i).1
+        rem3' : Id nat (pred y.1) w.1 = <i> pred (w2 @ -i) -- this is pretty neat!
+
+
+-- some tests:
+
+two : nat = suc (suc zero)
+x : X = f.1 two
+
+-- this terminates in Coq:
+test1 : Id nat (invmap nat X f x) two = <i> two
+
+-- this is where Coq gets stuck but cubicaltt works:
+test2 : Id (Id nat two two) (homotinvweqweq nat X f two) (refl nat two) = <i j> two
+
+-- The normal form of "homotinvweqweq nat X f two" is refl: 
+-- > :n homotinvweqweq nat X f two
+-- NORMEVAL: <!0> suc (suc zero)
+-- Time: 0m4.105s

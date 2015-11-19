@@ -254,6 +254,7 @@ propInvFormulaIncomp phi b = incomparables (invFormula phi b)
 -- testInvFormula = invFormula (Atom (Name 0) :/\: Atom (Name 1)) 1
 
 -- | Nominal
+
 -- gensym :: [Name] -> Name
 -- gensym xs = head (ys \\ xs)
 --   where ys = map Name $ ["i","j","k","l"] ++ map (('i':) . show) [0..]

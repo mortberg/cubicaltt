@@ -202,9 +202,9 @@ app u v = case (u,v) of
     _ -> error $ "app: Split annotation not a Pi type " ++ show u
   (Ter Split{} _,_) | isNeutral v         -> VSplit u v
   (VComp (VPath i (VPi a f)) li0 ts,vi1) ->
-    let j   = fresh (u,vi1)
+    let j       = fresh (u,vi1)
         (aj,fj) = (a,f) `swap` (i,j)
-        tsj = Map.map (@@ j) ts
+        tsj     = Map.map (@@ j) ts
         v       = transFillNeg j aj vi1
         vi0     = transNeg j aj vi1
     in comp j (app fj v) (app li0 vi0)

@@ -1,0 +1,473 @@
+module setquot where
+
+import bool
+import sigma
+
+subtypeEquality (A : U) (B : A -> U) (pB : (x : A) -> prop (B x))
+                (s t : (x : A) * B x) : Id A s.1 t.1 -> Id (sig A B) s t =
+  trans (Id A s.1 t.1) (Id (sig A B) s t) rem
+    where
+    rem : Id U (Id A s.1 t.1) (Id (sig A B) s t) =
+      <i> lemSigProp A B pB s t @ -i
+
+
+funextsec (A : U) (B : A -> U) (f g : (x : A) -> B x)
+          (p : (x : A) -> Id (B x) (f x) (g x)) :
+          Id ((y : A) -> B y) f g = <i> \(a : A) -> (p a) @ i
+
+-- Require Import UniMath.Foundations.Basics.All.
+
+-- (* Propositions *)
+
+-- Definition hProp := total2 (fun X : UU => isaprop X).
+
+isaprop : U -> U = prop
+isaset : U -> U = set
+
+hProp : U = (X : U) * isaprop X
+
+-- Definition hProppair (X : UU) (isp : isaprop X) : hProp :=
+--   tpair (fun X : UU => isaprop X) X isp.
+hProppair (X : U) (isp : isaprop X) : hProp = (X,isp)
+
+-- Definition ishinh_UU (X : UU) := ∀ P : hProp, ((X -> pr1 P) -> pr1 P).
+ishinh_UU (X : U) : U = (P : hProp) -> ((X -> P.1) -> P.1)
+
+-- Lemma isapropishinh (X : UU) : isaprop (ishinh_UU X).
+-- Proof.
+-- apply impred; intro P.
+-- apply impred; intro f.
+-- apply (pr2 P).
+-- Defined.
+isapropishinh (X : U) : isaprop (ishinh_UU X) = undefined -- by propPi
+
+-- Definition ishinh (X : UU) : hProp := hProppair (ishinh_UU X) (isapropishinh X).
+ishinh (X : U) : hProp = hProppair (ishinh_UU X) (isapropishinh X)
+
+-- Definition hinhpr {X : UU} : X -> pr1 (ishinh X) :=
+--  fun (x : X) (P : hProp) (f : X -> pr1 P) => f x.
+hinhpr (X : U) : X -> (ishinh X).1 = 
+  \(x : X) (P : hProp) (f : X -> P.1) -> f x
+
+-- Definition hinhuniv {X : UU} {P : hProp} (f : X -> pr1 P)
+--   (inhX : pr1 (ishinh X)) : pr1 P := inhX P f.
+hinhuniv (X : U) (P : hProp) (f : X -> P.1) (inhX : (ishinh X).1) : P.1 =
+  inhX P f
+
+-- Definition hdisj (P Q : UU) : hProp := ishinh (coprod P Q).
+hdisj (P Q : U) : hProp = ishinh (or P Q)
+
+-- Definition hdisj_in1 {P Q : UU} : P -> pr1 (hdisj P Q) := fun X => hinhpr (ii1 X).
+-- Definition hdisj_in2 {P Q : UU} : Q -> pr1 (hdisj P Q) := fun X => hinhpr (ii2 X).
+hdisj_in1 (P Q : U) (X : P) : (hdisj P Q).1 = hinhpr (or P Q) (inl X)
+hdisj_in2 (P Q : U) (X : Q) : (hdisj P Q).1 = hinhpr (or P Q) (inr X)
+
+-- Definition eqweqmaphProp {P P' : hProp} (e: @paths hProp P P') : weq (pr1 P) (pr1 P').
+-- Proof.
+-- destruct e.
+-- apply idweq.
+-- Defined.
+
+-- Axiom uahp : ∀ P P' : hProp, (pr1 P -> pr1 P') -> (pr1 P' -> pr1 P) -> P = P'.
+uahp (P P' : hProp) : (P.1 -> P'.1) -> (P'.1 -> P.1) -> Id hProp P P' = undefined
+
+weq : U -> U -> U = equiv
+invweq (A B : U) : weq A B -> B -> A = invEq A B
+
+-- Definition weqtopathshProp {P P' : hProp} (w : weq (pr1 P) (pr1 P')) : P = P' :=
+--   uahp P P' w (invweq w).
+weqtopathshProp (P P' : hProp) (w : weq P.1 P'.1) : Id hProp P P' =
+  uahp P P' w.1 (invweq P.1 P'.1 w)
+
+-- Definition weqpathsweqhProp {P P' : hProp} (w : weq (pr1 P) (pr1 P')) :
+--   eqweqmaphProp (weqtopathshProp w) = w.
+-- Proof.
+-- apply proofirrelevance.
+-- apply (isapropweqtoprop (pr1 P) (pr1 P') (pr2 P')).
+-- Defined.
+
+-- Theorem univfromtwoaxiomshProp (P P' : hProp) : isweq (@eqweqmaphProp P P').
+-- Proof.
+-- set (P1 := fun XY : hProp × hProp => pr1 XY = pr2 XY).
+-- set (P2 := fun XY : hProp × hProp => weq (pr1 (pr1 XY)) (pr1 (pr2 XY))).
+-- set (Z1 := total2 P1).
+-- set (Z2 := total2 P2).
+-- set (f := totalfun _ _ (fun XY : hProp × hProp =>
+--                            @eqweqmaphProp (pr1 XY) (pr2 XY)) : Z1 -> Z2).
+-- set (g := totalfun _ _ (fun XY : hProp × hProp =>
+--                            @weqtopathshProp (pr1 XY) (pr2 XY)) : Z2 -> Z1).
+-- assert (efg : ∀ z2 : Z2, f (g z2) = z2).
+--   intros. induction z2 as [ XY w] .
+--   exact (maponpaths (fun w : weq (pr1 (pr1 XY)) (pr1 (pr2 XY)) => tpair P2 XY w)
+--            (@weqpathsweqhProp (pr1 XY) (pr2 XY) w)).
+
+-- set (h := fun a1 : Z1 => (pr1 (pr1 a1))).
+-- assert (egf0 : ∀ a1 : Z1, pr1 (g (f a1)) = pr1 a1).
+--   intro; apply idpath.
+-- assert (egf1 : ∀ a1 a1' : Z1, pr1 a1' = pr1 a1 -> a1' = a1).
+--   intros ? ? X .
+--   set (X' :=  maponpaths (@pr1 _ _ ) X).
+--   assert (is : isweq h).
+--     apply (isweqpr1pr1 hProp).
+--   apply (invmaponpathsweq (weqpair h is) _ _ X').
+-- set (egf := fun a1 => (egf1 _ _ (egf0 a1))).
+-- set (is2 := gradth _ _ egf efg).
+-- apply (isweqtotaltofib P1 P2 (fun XY : hProp × hProp =>
+--          @eqweqmaphProp (pr1 XY) (pr2 XY)) is2 (dirprodpair P P')).
+-- Defined.
+
+-- Definition weqeqweqhProp (P P' : hProp) := weqpair _ (univfromtwoaxiomshProp P P') .
+
+-- Lemma isasethProp : isaset hProp.
+-- Proof.
+-- unfold isaset.
+-- intros x x'.
+-- apply (isofhlevelweqb (S O) (weqeqweqhProp x x')
+--          (isapropweqtoprop (pr1 x) (pr1 x') (pr2 x'))).
+-- Defined.
+isasethProp : set hProp = undefined
+
+-- (* Sets *)
+
+-- Definition hsubtypes (X : UU) := X -> hProp .
+hsubtypes (X : U) : U = X -> hProp
+
+-- Definition carrier {X : UU} (A : hsubtypes X) : UU := @total2 X (fun x : X => pr1 (A x)).
+carrier (X : U) (A : hsubtypes X) : U = sig X (\(x : X) -> (A x).1)
+
+-- Lemma isasethsubtypes (X : UU) : isaset (hsubtypes X).
+-- Proof.
+-- change (isofhlevel 2 (hsubtypes X)).
+-- apply impred; intro.
+-- apply isasethProp.
+-- Defined.
+isasethsubtypes (X : U) : isaset (hsubtypes X) = undefined
+
+
+-- Definition hrel (X : UU) := X -> X -> hProp.
+hrel (X : U) : U = X -> X -> hProp
+
+-- Definition iseqclass {X : UU} (R : hrel X) (A : hsubtypes X) :=
+--      pr1 (ishinh (carrier A))
+--   × (∀ x1 x2 : X, pr1 (R x1 x2) -> pr1 (A x1) -> pr1 (A x2))
+--   × (∀ x1 x2 : X, pr1 (A x1) -> pr1 (A x2) -> pr1 (R x1 x2)).
+data iseqclass (X : U) (R : hrel X) (A : hsubtypes X) =
+  IsEqClass (_ : (ishinh (carrier X A)).1)
+            (_ : (x1 x2 : X) -> (R x1 x2).1 -> (A x1).1 -> (A x2).1)
+            (_ : (x1 x2 : X) -> (A x1).1 -> (A x2).1 -> (R x1 x2).1)
+  
+-- Definition eqax0 {X : UU} {R : hrel X} {A : hsubtypes X} :
+--   iseqclass R A -> pr1 (ishinh (carrier A)) := fun S => pr1 S.
+-- Definition eqax1 {X : UU} {R : hrel X} {A : hsubtypes X} :
+--   iseqclass R A -> ∀ x1 x2 : X, pr1 (R x1 x2) -> pr1 (A x1) -> pr1 (A x2) :=
+--   fun S => pr1 (pr2 S).
+-- Definition eqax2 {X : UU} {R : hrel X} {A : hsubtypes X} :
+--   iseqclass R A -> ∀ x1 x2 : X, pr1 (A x1) -> pr1 (A x2) -> pr1 (R x1 x2) :=
+--   fun S => pr2 (pr2 S).
+eqax0 (X : U) (R : hrel X) (A : hsubtypes X) : 
+  iseqclass X R A -> (ishinh (carrier X A)).1 = split
+  IsEqClass p _ _ -> p
+
+eqax1 (X : U) (R : hrel X) (A : hsubtypes X) : 
+  iseqclass X R A -> (x1 x2 : X) -> (R x1 x2).1 -> (A x1).1 -> (A x2).1 = split
+  IsEqClass _ p _ -> p
+
+eqax2 (X : U) (R : hrel X) (A : hsubtypes X) : 
+  iseqclass X R A -> (x1 x2 : X) -> (A x1).1 -> (A x2).1 -> (R x1 x2).1 = split
+  IsEqClass _ _ p -> p
+
+-- Lemma isapropiseqclass {X : UU} (R : hrel X) (A : hsubtypes X) :
+--   isaprop (iseqclass R A) .
+-- Proof.
+-- apply isofhleveldirprod.
+-- - apply (isapropishinh (carrier A)).
+-- - apply isofhleveldirprod.
+--   + repeat (apply impred; intro).
+--     apply (pr2 (A t0)).
+--   + repeat (apply impred; intro).
+--     apply (pr2 (R t t0)).
+-- Defined.
+isapropiseqclass (X : U) (R : hrel X) (A : hsubtypes X) : isaprop (iseqclass X R A) = undefined
+
+-- Definition hSet:= total2 (fun X : UU => isaset X) .
+hSet : U = (X : U) * isaset X
+
+-- Definition isrefl {X : UU} (R : hrel X) := ∀ x : X, pr1 (R x x).
+-- Definition issymm {X : UU} (R : hrel X) := ∀ (x1 x2 : X), pr1 (R x1 x2) -> pr1 (R x2 x1).
+-- Definition istrans {X : UU} (R : hrel X) :=
+--   ∀ (x1 x2 x3 : X), pr1 (R x1 x2) -> pr1 (R x2 x3) -> pr1 (R x1 x3).
+isrefl (X : U) (R : hrel X) : U = (x : X) -> (R x x).1
+issymm (X : U) (R : hrel X) : U = (x1 x2 : X) -> (R x1 x2).1 -> (R x2 x1).1
+istrans (X : U) (R : hrel X) : U = (x1 x2 x3 : X) -> (R x1 x2).1 -> (R x2 x3).1 -> (R x1 x3).1
+
+-- Definition ispreorder {X : UU} (R : hrel X) := istrans R × isrefl R .
+ispreorder (X : U) (R : hrel X) : U = and (istrans X R) (isrefl X R)
+
+-- Definition iseqrel {X : UU} (R : hrel X) := ispreorder R × issymm R.
+iseqrel (X : U) (R : hrel X) : U = and (ispreorder X R) (issymm X R)
+
+-- Definition eqrel (X : UU) := total2 (fun R : hrel X => iseqrel R).
+eqrel (X : U) : U = (R : hrel X) * (iseqrel X R)
+
+-- Definition eqrelrefl {X : UU} (R : eqrel X) : isrefl (pr1 R) :=
+--   pr2 (pr1 (pr2 R)).
+-- Definition eqrelsymm {X : UU} (R : eqrel X) : issymm (pr1 R) := pr2 (pr2 R).
+-- Definition eqreltrans {X : UU} (R : eqrel X) : istrans (pr1 R) :=
+--   pr1 (pr1 (pr2 R)).
+eqrelrefl (X : U) (R : eqrel X) : isrefl X R.1 = R.2.1.2
+eqrelsymm (X : U) (R : eqrel X) : issymm X R.1 = R.2.2
+eqreltrans (X : U) (R : eqrel X) : istrans X R.1 = R.2.1.1
+
+-- Definition hSetpair X i := tpair isaset X i : hSet.
+hSetpair  (X : U) (iss : isaset X) : hSet = (X,iss)
+
+-- Definition boolset : hSet := hSetpair bool isasetbool.
+isasetbool : isaset bool = undefined
+boolset : hSet = hSetpair bool isasetbool
+
+-- Definition setquot {X : UU} (R : hrel X) := total2 (fun A => iseqclass R A).
+-- Definition pr1setquot {X : UU} (R : hrel X) : setquot R -> (hsubtypes X) :=
+--   @pr1 _ (fun A => iseqclass R A).
+setquot (X : U) (R : hrel X) : U = (A : hsubtypes X) * (iseqclass X R A)
+pr1setquot (X : U) (R : hrel X) (Q : setquot X R) : hsubtypes X = Q.1
+
+-- Lemma isinclpr1setquot {X : UU} (R : hrel X) : isincl (pr1setquot R).
+-- Proof .
+-- apply isinclpr1; intro x0.
+-- apply isapropiseqclass.
+-- Defined.
+
+-- Definition setquottouu0 {X : UU} (R : hrel X) (a : setquot R) :=
+--   carrier (pr1 a).
+-- setquottouu0 (X : U) (R : hrel X) (a : setquot X R) : U =
+--   carrier X a.1
+
+-- Theorem isasetsetquot {X : UU} (R : hrel X) : isaset (setquot R).
+-- Proof.
+-- apply (isasetsubset (@pr1 _ _) (isasethsubtypes X)).
+-- apply isinclpr1; intro x.
+-- apply isapropiseqclass.
+-- Defined.
+-- isasetsetquot (X : U) (R : hrel X) : isaset (setquot X R) = undefined
+
+-- Definition setquotinset {X : UU} (R : hrel X) : hSet :=
+--   hSetpair _ (isasetsetquot R).
+-- setquotinset (X : U) (R : hrel X) : hSet =
+--   hSetpair (setquot X R) (isasetsetquot X R)
+
+-- Theorem setquotpr {X : UU} (R : eqrel X) : X -> setquot (pr1 R).
+-- Proof.
+-- intros X0.
+-- set (rax := eqrelrefl R).
+-- set (sax := eqrelsymm R).
+-- set (tax := eqreltrans R).
+-- split with (fun x : X => (pr1 R) X0 x).
+-- split.
+--   exact (hinhpr (tpair _ X0 (rax X0))).
+-- assert (a1 : ∀ x1 x2 : X, pr1 (pr1 R x1 x2) -> pr1 (pr1 R X0 x1) -> pr1 (pr1 R X0 x2)).
+--   intros x1 x2 X1 X2.
+--   now apply (tax X0 x1 x2 X2 X1).
+-- split.
+--   assumption.
+-- intros x1 x2 X1 X2.
+-- now apply (tax x1 X0 x2 (sax X0 x1 X1) X2).
+-- Defined.
+setquotpr (X : U) (R : eqrel X) (X0 : X) : setquot X R.1 = (A,IsEqClass p1 p2 p3)
+   where
+   rax : isrefl X R.1 = eqrelrefl X R
+   sax : issymm X R.1 = eqrelsymm X R
+   tax : istrans X R.1 = eqreltrans X R
+   A : hsubtypes X = \(x : X) -> R.1 X0 x
+   p1 : (ishinh (carrier X A)).1 = hinhpr (carrier X A) (X0,rax X0)
+   p2 (x1 x2 : X) (X1 : (R.1 x1 x2).1) (X2 : (A x1).1) : (A x2).1 = tax X0 x1 x2 X2 X1
+   p3 (x1 x2 : X) (X1 : (A x1).1) (X2 : (A x2).1) : (R.1 x1 x2).1 = tax x1 X0 x2 (sax X0 x1 X1) X2
+
+
+-- Lemma setquotl0 {X : UU} (R : eqrel X) (c : setquot (pr1 R))
+--   (x : setquottouu0 _ c) : setquotpr R (pr1 x) = c.
+-- Proof.
+-- apply subtypeEquality.
+--   intro a.
+--   apply isapropiseqclass.
+-- apply funextsec; intro x0.
+-- destruct c as [A iseq].
+-- destruct x as [x is].
+-- simpl in *.
+-- apply uahp.
+-- - intro r.
+--   exact (eqax1 iseq _ _ r is).
+-- - intro a.
+--   exact (eqax2 iseq _ _ is a).
+-- Defined.
+setquotl0 (X : U) (R : eqrel X) (c : setquot X R.1) (x : carrier X c.1) : 
+  Id (setquot X R.1) (setquotpr X R x.1) c = subtypeEquality (hsubtypes X) (iseqclass X R.1) p (setquotpr X R x.1) c rem
+  where
+  p (A : hsubtypes X) : isaprop (iseqclass X R.1 A) = isapropiseqclass X R.1 A
+  rem : Id (hsubtypes X) (setquotpr X R x.1).1 c.1 = <i> \(x : X) -> (rem' x) @ i  -- inlined use of funext
+    where rem' (a : X) : Id hProp ((setquotpr X R x.1).1 a) (c.1 a) = 
+            uahp ((setquotpr X R x.1).1 a) (c.1 a) l2r r2l
+              where
+              l2r (r : ((setquotpr X R x.1).1 a).1) : (c.1 a).1 = eqax1 X R.1 c.1 c.2 x.1 a r x.2
+              r2l : (c.1 a).1 -> ((setquotpr X R x.1).1 a).1 = eqax2 X R.1 c.1 c.2 x.1 a x.2
+
+-- eqax1 (X : U) (R : hrel X) (A : hsubtypes X) : 
+--   iseqclass X R A -> (x1 x2 : X) -> (R x1 x2).1 -> (A x1).1 -> (A x2).1 = split
+
+
+-- uahp (P P' : hProp) : (P.1 -> P'.1) -> (P'.1 -> P.1) -> Id hProp P P' = undefined
+-- subtypeEquality (A : U) (B : A -> U) (pB : (x : A) -> prop (B x))
+--                 (s t : (x : A) * B x) : Id A s.1 t.1 -> Id (sig A B) s t =
+-- setquot (X : U) (R : hrel X) : U = (A : hsubtypes X) * (iseqclass X R A)
+-- setquotpr (X : U) (R : eqrel X) : X -> setquot X R.1 = undefined
+-- isapropiseqclass (X : U) (R : hrel X) (A : hsubtypes X) : isaprop (iseqclass X R A) = undefined
+
+
+
+-- Theorem setquotunivprop {X : UU} (R : eqrel X) (P : setquot (pr1 R) -> hProp)
+--   (ps : ∀ x : X, pr1 (P (setquotpr R x))) : ∀ c : setquot (pr1 R), pr1 (P c).
+-- Proof.
+-- intro c.
+-- apply (@hinhuniv (carrier (pr1 c)) (P c)).
+-- - intro x.
+--   set (e := setquotl0 R c x).
+--   apply (eqweqmaphProp (maponpaths P e)).
+--   exact (ps (pr1 x)).
+-- - apply (eqax0 (pr2 c)).
+-- Defined.
+setquotunivprop (X : U) (R : eqrel X) (P : setquot X R.1 -> hProp)
+  (ps : (x : X) -> (P (setquotpr X R x)).1) (c : setquot X R.1) : (P c).1 = hinhuniv (carrier X c.1) (P c) f rem
+  where
+   f (x : carrier X c.1) : (P c).1 = 
+     let e : Id (setquot X R.1) (setquotpr X R x.1) c = setquotl0 X R c x
+     in subst (setquot X R.1) (\(w : setquot X R.1) -> (P w).1) (setquotpr X R x.1) c e (ps x.1)
+   rem : (ishinh (carrier X c.1)).1 = eqax0 X R.1 c.1 c.2
+
+-- carrier (X : U) (A : hsubtypes X) : U = sig X (\(x : X) -> (A x).1)
+-- setquot (X : U) (R : hrel X) : U = (A : hsubtypes X) * (iseqclass X R A)
+
+-- eqax0 (X : U) (R : hrel X) (A : hsubtypes X) : 
+--   iseqclass X R A -> (ishinh (carrier X A)).1 = split
+
+
+-- hinhuniv (X : U) (P : hProp) (f : X -> P.1) (inhX : (ishinh X).1) : P.1 =
+
+
+
+-- (* New stuff below here *)
+
+-- Definition R : eqrel bool.
+-- Proof.
+--   refine (_,,_).
+--   { intros x y. exists (x=y). apply isasetbool. }
+--   split.
+--   - split.
+--     + intros x y z. apply pathscomp0.
+--     + intros x. reflexivity.
+--   - intros x y. apply pathsinv0.
+-- Defined.
+R : eqrel bool = (r1,r2)
+  where
+  r1 : hrel bool = \(x y : bool) -> (Id bool x y,isasetbool x y)
+  r2 : iseqrel bool r1 = ((compId bool,refl bool),inv bool)
+
+-- Definition T : hSet := setquotinset (pr1 R).
+-- T : hSet = setquotinset bool R.1
+
+-- Definition true' : setquot (pr1 R) := setquotpr R true.
+-- Definition false' : setquot (pr1 R) := setquotpr R false.
+true' : setquot bool R.1 = setquotpr bool R true
+false' : setquot bool R.1 = setquotpr bool R false
+
+-- (* Version of predicate based on hdisj (ie truncated sum) *)
+
+-- Definition P' (t : pr1 T) : hProp := hdisj (t = true') (t = false').
+P' (t : setquot bool R.1) : hProp =
+  hdisj (Id (setquot bool R.1) t true') (Id (setquot bool R.1) t false')
+
+-- Lemma K' (t : pr1 T) : pr1 (P' t).
+-- Proof.
+--   apply setquotunivprop. intros x. unfold P'.
+--   induction x as [x|x].
+--   - apply hdisj_in1. reflexivity.
+--   - apply hdisj_in2. reflexivity.
+-- Defined.
+K' (t : setquot bool R.1) : (P' t).1 = setquotunivprop bool R P' ps t
+  where
+  ps : (x : bool) -> (P' (setquotpr bool R x)).1 = split
+    false -> hdisj_in2 (Id (setquot bool R.1) false' true') 
+                       (Id (setquot bool R.1) false' false') (<_> false')
+    true  -> hdisj_in1 (Id (setquot bool R.1) true' true')
+                       (Id (setquot bool R.1) true' false') (<_> true')
+
+-- Print Assumptions K'.
+
+-- Goal K' true' = hdisj_in1 (idpath true').
+--  try reflexivity.                (* Error: Unable to unify "L'" with "K' true'". *)
+-- Abort.
+-- test : Id (P' true').1 (K' true') 
+--           (hdisj_in1 (Id (setquot bool R.1) true' true') (Id (setquot bool R.1) true' false') (<_> true')) =
+--   <_> K' true'
+
+-- (* Version of predicate based on sum *)
+
+-- (* preliminary results *)
+-- Lemma iscompsetquotpr {X : UU} (R : eqrel X) (x x' : X) (a : pr1 (pr1 R x x')) :
+--   setquotpr R x = setquotpr R x'.
+-- Proof.
+-- apply (invmaponpathsincl _ (isinclpr1setquot (pr1 R))); simpl.
+-- apply funextsec; intro x0.
+-- apply uahp.
+-- - intro r0.
+--   exact (eqreltrans R _ _ _ (eqrelsymm R _ _ a) r0).
+-- - intro x0'.
+--   exact (eqreltrans R _ _ _ a x0').
+-- Defined.
+
+-- Theorem weqpathsinsetquot {X : UU} (R : eqrel X) (x x' : X) :
+--   weq (pr1 (pr1 R x x')) (setquotpr R x = setquotpr R x').
+-- Proof.
+-- split with (iscompsetquotpr R x x').
+-- apply isweqimplimpl.
+-- - intro e.
+--   set (e' := maponpaths (pr1setquot (pr1 R)) e).
+--   set (e'' := maponpaths (fun f => f x') e').
+--   exact (eqweqmaphProp (pathsinv0 e'') (eqrelrefl R x')).
+-- - exact (pr2 (pr1 R x x')).
+-- - exact (isasetsetquot (pr1 R) (setquotpr R x) (setquotpr R x')).
+-- Defined.
+
+-- Lemma C P Q : isaprop P -> isaprop Q -> (P -> ¬Q) -> isaprop (sum P Q).
+-- Proof.
+--   intros i j n. apply invproofirrelevance. intros a b.
+--   induction a as [a|a].
+--   - induction b as [b|b].
+--     + apply maponpaths, i.
+--     + induction (n a b).
+--   - induction b as [b|b].
+--     + induction (n b a).
+--     + apply maponpaths, j.
+-- Defined.
+
+
+-- Definition P : pr1 T -> hProp.
+-- Proof.
+--   intros t. exists (sum (t = true') (t = false')). apply C.
+--   - apply (pr2 T).
+--   - apply (pr2 T).
+--   - intros p q.
+--     exact (nopathstruetofalse (invmap (weqpathsinsetquot R true false) (!p @ q))).
+-- Defined.
+
+-- Lemma K t : pr1 (P t).
+-- Proof.
+--   apply setquotunivprop. intros x. unfold P; simpl.
+--   induction x as [x|x].
+--   - apply ii1. reflexivity.
+--   - apply ii2. reflexivity.
+-- Defined.
+
+-- Print Assumptions K.
+
+-- Goal K true' = ii1 (idpath true').
+--   try reflexivity.             (* Error: Unable to unify "L" with "K true'". *)
+-- Abort.

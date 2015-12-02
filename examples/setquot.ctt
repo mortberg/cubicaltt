@@ -11,13 +11,6 @@ subtypeEquality (A : U) (B : A -> U) (pB : (x : A) -> prop (B x))
     rem : Id U (Id A s.1 t.1) (Id (sig A B) s t) =
       <i> lemSigProp A B pB s t @ -i
 
-
-funextsec (A : U) (B : A -> U) (f g : (x : A) -> B x)
-          (p : (x : A) -> Id (B x) (f x) (g x)) :
-          Id ((y : A) -> B y) f g = <i> \(a : A) -> (p a) @ i
-
--- Require Import UniMath.Foundations.Basics.All.
-
 -- (* Propositions *)
 
 -- Definition hProp := total2 (fun X : UU => isaprop X).
@@ -96,20 +89,6 @@ uahp (P P' : hProp) (f : P.1 -> P'.1) (g : P'.1 -> P.1) : Id hProp P P' =
   rem : Id U P.1 P'.1 = 
     invweq (Id U P.1 P'.1) (weq P.1 P'.1) (univalence P.1 P'.1) (weqhProp P P' f g)
 
-
-
-
--- subtypeEquality (A : U) (B : A -> U) (pB : (x : A) -> prop (B x))
---                 (s t : (x : A) * B x) : Id A s.1 t.1 -> Id (sig A B) s t =
-
--- hProp : U = (X : U) * isaprop X
-
--- univalence (A B : U) : equiv (Id U A B) (equiv A B) =
---   (transEquiv A B,transEquivIsEquiv A B)
-
-
-
-
 -- Definition weqtopathshProp {P P' : hProp} (w : weq (pr1 P) (pr1 P')) : P = P' :=
 --   uahp P P' w (invweq w).
 weqtopathshProp (P P' : hProp) (w : weq P.1 P'.1) : Id hProp P P' =
@@ -161,7 +140,24 @@ weqtopathshProp (P P' : hProp) (w : weq P.1 P'.1) : Id hProp P P' =
 -- apply (isofhlevelweqb (S O) (weqeqweqhProp x x')
 --          (isapropweqtoprop (pr1 x) (pr1 x') (pr2 x'))).
 -- Defined.
-isasethProp : set hProp = undefined
+
+-- temp1 (X Y : U) : isaprop Y -> isaprop (weq X Y) = undefined
+isapropweq (X Y : U) (H : isaprop Y) (f g : weq X Y) : Id (weq X Y) f g =
+  equivLemma X Y f g rem
+  where
+  rem : Id (X -> Y) f.1 g.1 = <i> \(x : X) -> H (f.1 x) (g.1 x) @ i
+
+isapropidU (X Y : U) : Id U X Y -> isaprop Y -> isaprop X = 
+  substInv U isaprop X Y 
+
+-- isasethProp : isaset hProp
+isasethProp (P P' : hProp) : isaprop (Id hProp P P') =
+  isapropidU (Id hProp P P') (weq P.1 P'.1) temp'' (isapropweq P.1 P'.1 P'.2)
+  where
+   temp : Id U (Id hProp P P') (Id U P.1 P'.1) = lemSigProp U isaprop propIsProp P P'
+   temp' : Id U (Id U P.1 P'.1) (weq P.1 P'.1) = univalence1 P.1 P'.1
+   temp'' : Id U (Id hProp P P') (weq P.1 P'.1) =
+     compId U (Id hProp P P') (Id U P.1 P'.1) (weq P.1 P'.1) temp temp'
 
 -- (* Sets *)
 
@@ -178,7 +174,6 @@ carrier (X : U) (A : hsubtypes X) : U = sig X (\(x : X) -> (A x).1)
 -- apply isasethProp.
 -- Defined.
 isasethsubtypes (X : U) : isaset (hsubtypes X) = undefined
-
 
 -- Definition hrel (X : UU) := X -> X -> hProp.
 hrel (X : U) : U = X -> X -> hProp

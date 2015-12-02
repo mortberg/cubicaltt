@@ -2,6 +2,7 @@ module setquot where
 
 import bool
 import sigma
+import univalence
 
 subtypeEquality (A : U) (B : A -> U) (pB : (x : A) -> prop (B x))
                 (s t : (x : A) * B x) : Id A s.1 t.1 -> Id (sig A B) s t =
@@ -39,8 +40,13 @@ ishinh_UU (X : U) : U = (P : hProp) -> ((X -> P.1) -> P.1)
 -- apply impred; intro f.
 -- apply (pr2 P).
 -- Defined.
-isapropishinh (X : U) : isaprop (ishinh_UU X) = undefined -- by propPi
-
+-- TODO: inline propPi?
+isapropishinh (X : U) : isaprop (ishinh_UU X) =
+  propPi hProp (\(P : hProp) -> ((X -> P.1) -> P.1)) rem1
+  where
+   rem1 (P : hProp) : isaprop ((X -> P.1) -> P.1) =
+     propPi (X -> P.1) (\(_ : X -> P.1) -> P.1) (\(f : X -> P.1) -> P.2)
+       
 -- Definition ishinh (X : UU) : hProp := hProppair (ishinh_UU X) (isapropishinh X).
 ishinh (X : U) : hProp = hProppair (ishinh_UU X) (isapropishinh X)
 
@@ -68,11 +74,41 @@ hdisj_in2 (P Q : U) (X : Q) : (hdisj P Q).1 = hinhpr (or P Q) (inr X)
 -- apply idweq.
 -- Defined.
 
--- Axiom uahp : ∀ P P' : hProp, (pr1 P -> pr1 P') -> (pr1 P' -> pr1 P) -> P = P'.
-uahp (P P' : hProp) : (P.1 -> P'.1) -> (P'.1 -> P.1) -> Id hProp P P' = undefined
-
 weq : U -> U -> U = equiv
 invweq (A B : U) : weq A B -> B -> A = invEq A B
+
+-- Direct proof, could have used grad lemma
+weqhProp (P P' : hProp) (f : P.1 -> P'.1) (g : P'.1 -> P.1) : weq P.1 P'.1 = (f,isEquivf)
+  where
+  isEquivf : isEquiv P.1 P'.1 f = (s,t)
+    where
+    s (y : P'.1) : fiber P.1 P'.1 f y = (g y,P'.2 (f (g y)) y)
+    t (y : P'.1) (w : fiber P.1 P'.1 f y) : Id ((x :  P.1) * Id P'.1 (f x) y) (s y) w =
+      subtypeEquality P.1 (\(x :  P.1) -> Id P'.1 (f x) y) pb (s y) w r1
+      where
+      pb (x : P.1) : (a b : Id P'.1 (f x) y) -> Id (Id P'.1 (f x) y) a b = propSet P'.1 P'.2 (f x) y
+      r1 : Id P.1 (s y).1 w.1 = P.2 (s y).1 w.1
+
+-- Axiom uahp : ∀ P P' : hProp, (pr1 P -> pr1 P') -> (pr1 P' -> pr1 P) -> P = P'.
+uahp (P P' : hProp) (f : P.1 -> P'.1) (g : P'.1 -> P.1) : Id hProp P P' =
+  subtypeEquality U isaprop propIsProp P P' rem
+  where
+  rem : Id U P.1 P'.1 = 
+    invweq (Id U P.1 P'.1) (weq P.1 P'.1) (univalence P.1 P'.1) (weqhProp P P' f g)
+
+
+
+
+-- subtypeEquality (A : U) (B : A -> U) (pB : (x : A) -> prop (B x))
+--                 (s t : (x : A) * B x) : Id A s.1 t.1 -> Id (sig A B) s t =
+
+-- hProp : U = (X : U) * isaprop X
+
+-- univalence (A B : U) : equiv (Id U A B) (equiv A B) =
+--   (transEquiv A B,transEquivIsEquiv A B)
+
+
+
 
 -- Definition weqtopathshProp {P P' : hProp} (w : weq (pr1 P) (pr1 P')) : P = P' :=
 --   uahp P P' w (invweq w).

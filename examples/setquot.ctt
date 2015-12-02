@@ -2,6 +2,7 @@ module setquot where
 
 import bool
 import sigma
+import pi
 import univalence
 
 subtypeEquality (A : U) (B : A -> U) (pB : (x : A) -> prop (B x))
@@ -173,7 +174,7 @@ carrier (X : U) (A : hsubtypes X) : U = sig X (\(x : X) -> (A x).1)
 -- apply impred; intro.
 -- apply isasethProp.
 -- Defined.
-isasethsubtypes (X : U) : isaset (hsubtypes X) = undefined
+isasethsubtypes (X : U) : isaset (hsubtypes X) = setPi X (\(_ : X) -> hProp) (\(_ : X) -> isasethProp)
 
 -- Definition hrel (X : UU) := X -> X -> hProp.
 hrel (X : U) : U = X -> X -> hProp
@@ -182,11 +183,11 @@ hrel (X : U) : U = X -> X -> hProp
 --      pr1 (ishinh (carrier A))
 --   × (∀ x1 x2 : X, pr1 (R x1 x2) -> pr1 (A x1) -> pr1 (A x2))
 --   × (∀ x1 x2 : X, pr1 (A x1) -> pr1 (A x2) -> pr1 (R x1 x2)).
-data iseqclass (X : U) (R : hrel X) (A : hsubtypes X) =
-  IsEqClass (_ : (ishinh (carrier X A)).1)
-            (_ : (x1 x2 : X) -> (R x1 x2).1 -> (A x1).1 -> (A x2).1)
-            (_ : (x1 x2 : X) -> (A x1).1 -> (A x2).1 -> (R x1 x2).1)
-  
+iseqclass (X : U) (R : hrel X) (A : hsubtypes X) : U =
+  and (and (ishinh (carrier X A)).1
+           ((x1 x2 : X) -> (R x1 x2).1 -> (A x1).1 -> (A x2).1)) 
+      ((x1 x2 : X) -> (A x1).1 -> (A x2).1 -> (R x1 x2).1)
+
 -- Definition eqax0 {X : UU} {R : hrel X} {A : hsubtypes X} :
 --   iseqclass R A -> pr1 (ishinh (carrier A)) := fun S => pr1 S.
 -- Definition eqax1 {X : UU} {R : hrel X} {A : hsubtypes X} :
@@ -195,17 +196,14 @@ data iseqclass (X : U) (R : hrel X) (A : hsubtypes X) =
 -- Definition eqax2 {X : UU} {R : hrel X} {A : hsubtypes X} :
 --   iseqclass R A -> ∀ x1 x2 : X, pr1 (A x1) -> pr1 (A x2) -> pr1 (R x1 x2) :=
 --   fun S => pr2 (pr2 S).
-eqax0 (X : U) (R : hrel X) (A : hsubtypes X) : 
-  iseqclass X R A -> (ishinh (carrier X A)).1 = split
-  IsEqClass p _ _ -> p
+eqax0 (X : U) (R : hrel X) (A : hsubtypes X) (eqc : iseqclass X R A) : 
+  (ishinh (carrier X A)).1 = eqc.1.1
 
-eqax1 (X : U) (R : hrel X) (A : hsubtypes X) : 
-  iseqclass X R A -> (x1 x2 : X) -> (R x1 x2).1 -> (A x1).1 -> (A x2).1 = split
-  IsEqClass _ p _ -> p
+eqax1 (X : U) (R : hrel X) (A : hsubtypes X) (eqc : iseqclass X R A) : 
+  (x1 x2 : X) -> (R x1 x2).1 -> (A x1).1 -> (A x2).1 = eqc.1.2
 
-eqax2 (X : U) (R : hrel X) (A : hsubtypes X) : 
-  iseqclass X R A -> (x1 x2 : X) -> (A x1).1 -> (A x2).1 -> (R x1 x2).1 = split
-  IsEqClass _ _ p -> p
+eqax2 (X : U) (R : hrel X) (A : hsubtypes X) (eqc : iseqclass X R A) :
+  (x1 x2 : X) -> (A x1).1 -> (A x2).1 -> (R x1 x2).1 = eqc.2
 
 -- Lemma isapropiseqclass {X : UU} (R : hrel X) (A : hsubtypes X) :
 --   isaprop (iseqclass R A) .
@@ -218,7 +216,23 @@ eqax2 (X : U) (R : hrel X) (A : hsubtypes X) :
 --   + repeat (apply impred; intro).
 --     apply (pr2 (R t t0)).
 -- Defined.
-isapropiseqclass (X : U) (R : hrel X) (A : hsubtypes X) : isaprop (iseqclass X R A) = undefined
+isapropAnd (A B : U) (pA : isaprop A) (pB : isaprop B) : isaprop (and A B) = 
+  propSig A (\(_ : A) -> B) pA (\(_ : A) -> pB)
+
+isapropiseqclass (X : U) (R : hrel X) (A : hsubtypes X) : isaprop (iseqclass X R A) = 
+  isapropAnd (and (ishinh (carrier X A)).1 ((x1 x2 : X) -> (R x1 x2).1 -> (A x1).1 -> (A x2).1)) 
+             ((x1 x2 : X) -> (A x1).1 -> (A x2).1 -> (R x1 x2).1) 
+             (isapropAnd (ishinh (carrier X A)).1 ((x1 x2 : X) -> (R x1 x2).1 -> (A x1).1 -> (A x2).1) p1 p2) p3
+  where 
+  p1 : isaprop (ishinh (carrier X A)).1 = isapropishinh (carrier X A)
+  p2 (f g : (x1 x2 : X) -> (R x1 x2).1 -> (A x1).1 -> (A x2).1) :
+   Id ((x1 x2 : X) -> (R x1 x2).1 -> (A x1).1 -> (A x2).1) f g =
+    <i> \(x1 x2 : X) (h1 : (R x1 x2).1) (h2 : (A x1).1) ->
+         (A x2).2 (f x1 x2 h1 h2) (g x1 x2 h1 h2) @ i
+  p3 (f g : (x1 x2 : X) -> (A x1).1 -> (A x2).1 -> (R x1 x2).1) :
+    Id ((x1 x2 : X) -> (A x1).1 -> (A x2).1 -> (R x1 x2).1) f g =
+   <i> \(x1 x2 : X) (h1 : (A x1).1) (h2 : (A x2).1) -> 
+        (R x1 x2).2 (f x1 x2 h1 h2) (g x1 x2 h1 h2) @ i
 
 -- Definition hSet:= total2 (fun X : UU => isaset X) .
 hSet : U = (X : U) * isaset X
@@ -253,7 +267,7 @@ eqreltrans (X : U) (R : eqrel X) : istrans X R.1 = R.2.1.1
 hSetpair  (X : U) (iss : isaset X) : hSet = (X,iss)
 
 -- Definition boolset : hSet := hSetpair bool isasetbool.
-isasetbool : isaset bool = undefined
+isasetbool : isaset bool = setbool
 boolset : hSet = hSetpair bool isasetbool
 
 -- Definition setquot {X : UU} (R : hrel X) := total2 (fun A => iseqclass R A).
@@ -303,7 +317,7 @@ pr1setquot (X : U) (R : hrel X) (Q : setquot X R) : hsubtypes X = Q.1
 -- intros x1 x2 X1 X2.
 -- now apply (tax x1 X0 x2 (sax X0 x1 X1) X2).
 -- Defined.
-setquotpr (X : U) (R : eqrel X) (X0 : X) : setquot X R.1 = (A,IsEqClass p1 p2 p3)
+setquotpr (X : U) (R : eqrel X) (X0 : X) : setquot X R.1 = (A,((p1,p2),p3)) -- IsEqClass p1 p2 p3)
    where
    rax : isrefl X R.1 = eqrelrefl X R
    sax : issymm X R.1 = eqrelsymm X R

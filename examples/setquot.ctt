@@ -152,14 +152,13 @@ weqtopathshProp (P P' : hProp) (w : weq P.1 P'.1) : Id hProp P P' =
 
 
 
--- A shorter proof that hProp form a set using univalence:
+-- A short proof that hProp form a set using univalence:
 
 isapropweq (X Y : U) (H : isaprop Y) (f g : weq X Y) : Id (weq X Y) f g =
   equivLemma X Y f g (<i> \(x : X) -> H (f.1 x) (g.1 x) @ i)
 
 isapropidU (X Y : U) : Id U X Y -> isaprop Y -> isaprop X = substInv U isaprop X Y
 
--- isasethProp : isaset hProp
 isasethProp (P P' : hProp) : isaprop (Id hProp P P') =
   isapropidU (Id hProp P P') (weq P.1 P'.1) rem (isapropweq P.1 P'.1 P'.2)
   where

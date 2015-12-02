@@ -1,8 +1,33 @@
 module bool where
 
-import prelude
+import hedberg
 
 data bool = false | true
+
+caseBool (A : U) (f t : A) : bool -> A = split
+ false -> f
+ true  -> t
+
+falseNeqTrue : neg (Id bool false true) =
+  \(h : Id bool false true) -> subst bool (caseBool U bool N0) false true h false
+
+trueNeqFalse : neg (Id bool true false) =
+  \(h : Id bool true false) -> subst bool (caseBool U N0 bool) true false h true
+
+boolDec : (b1 b2 : bool) -> dec (Id bool b1 b2) = split
+ false -> rem
+  where
+  rem : (b : bool) -> dec (Id bool false b) = split
+   false -> inl (<i> false)
+   true -> inr falseNeqTrue
+ true -> rem
+  where
+  rem : (b : bool) -> dec (Id bool true b) = split
+   false -> inr trueNeqFalse
+   true -> inl (<i> true)
+
+setbool : set bool = hedberg bool boolDec
+
 
       ---------------------------------------------------------
       -- Example: Non-trivial equality between bool and bool --
@@ -23,7 +48,6 @@ negBoolEq : Id U bool bool =
 
 -- We can transport true along this non-trivial equality:
 testFalse : bool = transport negBoolEq true
-
 
 
 

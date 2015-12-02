@@ -56,6 +56,7 @@ ishinh (X : U) : hProp = (ishinh_UU X,isapropishinh X)
 hinhpr (X : U) : X -> (ishinh X).1 =
   \(x : X) (P : hProp) (f : X -> P.1) -> f x
 
+
 -- Definition hinhuniv {X : UU} {P : hProp} (f : X -> pr1 P)
 --   (inhX : pr1 (ishinh X)) : pr1 P := inhX P f.
 hinhuniv (X : U) (P : hProp) (f : X -> P.1) (inhX : (ishinh X).1) : P.1 =
@@ -81,19 +82,28 @@ weqhProp (P P' : hProp) (f : P.1 -> P'.1) (g : P'.1 -> P.1) : weq P.1 P'.1 = (f,
       pb (x : P.1) : (a b : Id P'.1 (f x) y) -> Id (Id P'.1 (f x) y) a b = propSet P'.1 P'.2 (f x) y
       r1 : Id P.1 (s y).1 w.1 = P.2 (s y).1 w.1
 
+-- Proof of uahp using full univalence
 -- Axiom uahp : ∀ P P' : hProp, (pr1 P -> pr1 P') -> (pr1 P' -> pr1 P) -> P = P'.
-uahp (P P' : hProp) (f : P.1 -> P'.1) (g : P'.1 -> P.1) : Id hProp P P' =
+uahp' (P P' : hProp) (f : P.1 -> P'.1) (g : P'.1 -> P.1) : Id hProp P P' =
   subtypeEquality U isaprop propIsProp P P' rem
   where
   rem : Id U P.1 P'.1 =
     invweq (Id U P.1 P'.1) (weq P.1 P'.1) (univalence P.1 P'.1) (weqhProp P P' f g)
 
+-- Direct proof of uahp
+uahp (P P' : hProp) (f : P.1 -> P'.1) (g : P'.1 -> P.1) : Id hProp P P' =
+  subtypeEquality U isaprop propIsProp P P' rem
+  where
+  rem : Id U P.1 P'.1 = isoId P.1 P'.1 f g s t
+    where s (y : P'.1) : Id P'.1 (f (g y)) y = P'.2 (f (g y)) y
+          t (x : P.1) : Id P.1 (g (f x)) x = P.2 (g (f x)) x
+
+
+
 -- Definition weqtopathshProp {P P' : hProp} (w : weq (pr1 P) (pr1 P')) : P = P' :=
 --   uahp P P' w (invweq w).
-weqtopathshProp (P P' : hProp) (w : weq P.1 P'.1) : Id hProp P P' =
-  uahp P P' w.1 (invweq P.1 P'.1 w)
-
-
+-- weqtopathshProp (P P' : hProp) (w : weq P.1 P'.1) : Id hProp P P' =
+--   uahp P P' w.1 (invweq P.1 P'.1 w)
 
 -- The Coq proof that hProp is a set:
 
@@ -152,7 +162,7 @@ weqtopathshProp (P P' : hProp) (w : weq P.1 P'.1) : Id hProp P P' =
 
 
 
--- A short proof that hProp form a set using univalence:
+-- A short proof that hProp form a set using univalence: (this is not needed!)
 
 isapropweq (X Y : U) (H : isaprop Y) (f g : weq X Y) : Id (weq X Y) f g =
   equivLemma X Y f g (<i> \(x : X) -> H (f.1 x) (g.1 x) @ i)
@@ -184,8 +194,8 @@ carrier (X : U) (A : hsubtypes X) : U = sig X (\(x : X) -> (A x).1)
 -- apply impred; intro.
 -- apply isasethProp.
 -- Defined.
-isasethsubtypes (X : U) : isaset (hsubtypes X) =
-  setPi X (\(_ : X) -> hProp) (\(_ : X) -> isasethProp)
+-- isasethsubtypes (X : U) : isaset (hsubtypes X) =
+--   setPi X (\(_ : X) -> hProp) (\(_ : X) -> isasethProp)
 
 -- Definition hrel (X : UU) := X -> X -> hProp.
 hrel (X : U) : U = X -> X -> hProp
@@ -277,11 +287,11 @@ eqrelsymm (X : U) (R : eqrel X) : issymm X R.1 = R.2.2
 eqreltrans (X : U) (R : eqrel X) : istrans X R.1 = R.2.1.1
 
 -- Definition hSetpair X i := tpair isaset X i : hSet.
-hSetpair  (X : U) (iss : isaset X) : hSet = (X,iss)
+-- hSetpair  (X : U) (iss : isaset X) : hSet = (X,iss)
 
 -- Definition boolset : hSet := hSetpair bool isasetbool.
 isasetbool : isaset bool = setbool
-boolset : hSet = hSetpair bool isasetbool
+boolset : hSet = (bool,isasetbool)
 
 -- Definition setquot {X : UU} (R : hrel X) := total2 (fun A => iseqclass R A).
 -- Definition pr1setquot {X : UU} (R : hrel X) : setquot R -> (hsubtypes X) :=
@@ -436,12 +446,18 @@ K' (t : setquot bool R.1) : (P' t).1 = setquotunivprop bool R P' ps t
     true  -> hdisj_in1 (Id (setquot bool R.1) true' true')
                        (Id (setquot bool R.1) true' false') (<_> true')
 
+-- setquotunivprop (X : U) (R : eqrel X) (P : setquot X R.1 -> hProp)
+--   (ps : (x : X) -> (P (setquotpr X R x)).1) (c : setquot X R.1) : (P c).1
+
 -- Print Assumptions K'.
+
+test : (P' true').1 = hdisj_in1 (Id (setquot bool R.1) true' true')
+                                (Id (setquot bool R.1) true' false') (<_> true')
 
 -- Goal K' true' = hdisj_in1 (idpath true').
 --  try reflexivity.                (* Error: Unable to unify "L'" with "K' true'". *)
 -- Abort.
--- test : Id (P' true').1 (K' true')
+-- test' : Id (P' true').1 (K' true')
 --           (hdisj_in1 (Id (setquot bool R.1) true' true') (Id (setquot bool R.1) true' false') (<_> true')) =
 --   <_> K' true'
 

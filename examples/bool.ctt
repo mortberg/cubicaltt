@@ -4,6 +4,10 @@ import hedberg
 
 data bool = false | true
 
+
+-- Proof that bool is a set using hedberg:
+
+
 caseBool (A : U) (f t : A) : bool -> A = split
  false -> f
  true  -> t
@@ -26,7 +30,44 @@ boolDec : (b1 b2 : bool) -> dec (Id bool b1 b2) = split
    false -> inr trueNeqFalse
    true -> inl (<i> true)
 
-setbool : set bool = hedberg bool boolDec
+setbool' : set bool = hedberg bool boolDec
+
+
+-- Direct proof that bool is a set:
+
+lem1 : (y:bool) (p:Id bool true y) -> Id bool true y = split
+ false -> \ (p : Id bool true false) -> p
+ true -> \ (p : Id bool true true) -> <i>true
+
+lem2 : (x y :bool)  (p:Id bool true x) (q:Id bool true y) -> Id bool x y = split
+ false -> \ (y:bool) (p:Id bool true false) (q:Id bool true y) -> efq (Id bool false y) (trueNeqFalse p)
+ true -> \ (y:bool) (p:Id bool true true) (q:Id bool true y) -> lem1 y q
+
+lem3 : prop (Id bool true true) =
+ \ (p q:Id bool true true) -> <j i>lem2 (p@i) (q@i) (<k>p@i/\k) (<k>q@i/\k) @ j
+
+lem4 : (y:bool) (p:Id bool false y) -> Id bool false y = split
+ false -> \ (p : Id bool false false) -> <i>false
+ true -> \ (p : Id bool false true) -> p 
+
+lem5 : (x y :bool)  (p:Id bool false x) (q:Id bool false y) -> Id bool x y = split
+ false -> \ (y:bool) (p:Id bool false false) (q:Id bool false y) -> lem4 y q
+ true -> \ (y:bool) (p:Id bool false true) (q:Id bool false y) -> efq (Id bool true y) (falseNeqTrue p)
+
+lem6 : prop (Id bool false false) =
+ \ (p q:Id bool false false) -> <j i>lem5 (p@i) (q@i) (<k>p@i/\k) (<k>q@i/\k) @ j
+
+lem7 : (y:bool) (p:Id bool false y) (q:Id bool false y) -> Id (Id bool false y) p q = split
+ false -> lem6
+ true -> \ (p:Id bool false true) (q:Id bool false true) -> efq (Id (Id bool false true) p q) (falseNeqTrue p)
+
+lem8 : (y:bool) (p:Id bool true y) (q:Id bool true y) -> Id (Id bool true y) p q = split
+ false -> \ (p:Id bool true false) (q:Id bool true false) -> efq (Id (Id bool true false) p q) (trueNeqFalse p)
+ true -> lem3
+
+setbool : set bool = split
+ false -> lem7
+ true -> lem8
 
 
       ---------------------------------------------------------

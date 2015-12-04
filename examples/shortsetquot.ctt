@@ -249,7 +249,7 @@ foo (x : bool') : bool = f x rem
 -- Time: 0m0.490s
 testfoo : bool = foo true'
 
-
+testfoo' : Id bool (foo true') true = <i> foo true'
 
 
 

@@ -628,7 +628,7 @@ compU i b es wi0 ws = glueElem vi1'' usi1''
 
         esI1 = es `face` (i ~> 1)
         es'  = filterWithKey (\alpha _ -> i `Map.notMember` alpha) es
-        es'' = filterWithKey (\alpha _ -> alpha `Map.notMember` es') esI1
+        es'' = filterWithKey (\alpha _ -> alpha `Map.notMember` es) esI1
 
         us'    = mapWithKey (\gamma eGamma ->
                    fill i (eGamma @@ One) (wi0 `face` gamma) (ws `face` gamma))

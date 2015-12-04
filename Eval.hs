@@ -606,7 +606,7 @@ gradLemma b iso us v = (u, VPath i theta'')
 
 unGlueU :: Val -> Val -> System Val -> Val
 unGlueU w b es
-    | Map.null es         = w
+--     | Map.null es         = w
     | eps `Map.member` es = transNegLine (es ! eps) w
     | otherwise           = case w of
        VGlueElem v us   -> v
@@ -614,7 +614,7 @@ unGlueU w b es
 
 
 compUniv :: Val -> System Val -> Val
-compUniv b es | Map.null es         = b
+compUniv b es -- | Map.null es         = b
               | eps `Map.member` es = (es ! eps) @@ One
               | otherwise           = VCompU b es
 
@@ -632,7 +632,7 @@ compU i b es wi0 ws = glueElem vi1'' usi1''
 
         esI1 = es `face` (i ~> 1)
         es'  = filterWithKey (\alpha _ -> i `Map.notMember` alpha) es
-        es'' = filterWithKey (\alpha _ -> not (alpha `Map.member` es')) esI1
+        es'' = filterWithKey (\alpha _ -> alpha `Map.notMember` es') esI1
 
         us'    = mapWithKey (\gamma eGamma ->
                    fill i (eGamma @@ One) (wi0 `face` gamma) (ws `face` gamma))

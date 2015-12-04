@@ -252,6 +252,7 @@ inferType v = case v of
     ty         -> error $ "inferType: expected IdP type for " ++ show v
                   ++ ", got " ++ show ty
   VComp a _ _ -> a @@ One
+  VUnGlueElemU _ b es -> compUniv b es
   _ -> error $ "inferType: not neutral " ++ show v
 
 (@@) :: ToFormula a => Val -> a -> Val
@@ -764,6 +765,8 @@ instance Convertible Val where
       (VHComp a u ts,VHComp a' u' ts')       -> conv ns (a,u,ts) (a',u',ts')
       (VGlue v isos,VGlue v' isos')          -> conv ns (v,isos) (v',isos')
       (VGlueElem u us,VGlueElem u' us')      -> conv ns (u,us) (u',us')
+      (VUnGlueElemU u _ _,VUnGlueElemU u' _ _) -> conv ns u u'
+      (VCompU u es,VCompU u' es') -> conv ns (u,es) (u',es')
       _                                      -> False
 
 instance Convertible Ctxt where
@@ -826,6 +829,8 @@ instance Normal Val where
     VSplit u t          -> VSplit (normal ns u) (normal ns t)
     VApp u v            -> app (normal ns u) (normal ns v)
     VAppFormula u phi   -> VAppFormula (normal ns u) (normal ns phi)
+    VCompU u es         -> compUniv (normal ns u) (normal ns es)
+    VUnGlueElemU u b es -> unGlueU (normal ns u) (normal ns b) (normal ns es)
     _                   -> v
 
 instance Normal Ctxt where

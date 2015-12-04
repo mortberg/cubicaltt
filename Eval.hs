@@ -602,23 +602,18 @@ gradLemma b iso us v = (u, VPath i theta'')
         theta'' = comp j b (app f theta') xs
 
 -------------------------------------------------------------------------------
--- | Composition in the Universe (to be replaced as glue)
-
+-- | Composition in the Universe
 
 unGlueU :: Val -> Val -> System Val -> Val
 unGlueU w b es
---     | Map.null es         = w
     | eps `Map.member` es = transNegLine (es ! eps) w
     | otherwise           = case w of
        VGlueElem v us   -> v
        _ -> VUnGlueElemU w b es
 
-
 compUniv :: Val -> System Val -> Val
-compUniv b es -- | Map.null es         = b
-              | eps `Map.member` es = (es ! eps) @@ One
+compUniv b es | eps `Map.member` es = (es ! eps) @@ One
               | otherwise           = VCompU b es
-
 
 compU :: Name -> Val -> System Val -> Val -> System Val -> Val
 compU i b es wi0 ws = glueElem vi1'' usi1''
@@ -660,7 +655,6 @@ compU i b es wi0 ws = glueElem vi1'' usi1''
                     (vi1' `face` gamma))
                   es''
 
-
         vsi1' = Map.map constPath $ border vi1' es' `unionSystem` vsi1
 
         vi1'' = compLine (constPath bi1) vi1'
@@ -671,24 +665,37 @@ compU i b es wi0 ws = glueElem vi1'' usi1''
                      else fst (uls'' ! gamma))
                    esI1
 
-
 -- Grad Lemma, takes a line eq in U, a system us and a value v, s.t. f us =
 -- border v. Outputs (u,p) s.t. border u = us and a path p between v
 -- and f u, where f is transNegLine eq
+gradLemmaU :: Val -> Val -> System Val -> Val -> (Val, Val)
+gradLemmaU b eq us v = (u, VPath i theta)
+  where i:j:_   = freshs (b,eq,us,v)
+        ej      = eq @@ j
+        a       = eq @@ One
+        ws      = mapWithKey (\alpha uAlpha ->
+                                   transFillNeg j (ej `face` alpha) uAlpha) us
+        u       = comp j ej v ws
+        w       = fill j ej v ws
+        xs      = insertSystem (i ~> 0) w $
+                  insertSystem (i ~> 1) (transFillNeg j ej u) $ ws
+        theta   = compNeg j ej u xs
+
+{-
 gradLemmaU :: Val -> Val -> System Val -> Val -> (Val, Val)
 gradLemmaU b eq us v = (u, VPath i theta'')
   where i:j:_   = freshs (b,eq,us,v)
         a       = eq @@ One
         g       = transLine
         f       = transNegLine
-        s e b   = VPath j $ compNeg j (e @@ j) (trans j (e @@ j) b)
-                    (mkSystem [(j ~> 0, transFill j (e @@ j) b)
+        s e y   = VPath j $ compNeg i (e @@ i) (trans i (e @@ i) y)
+                    (mkSystem [(j ~> 0, transFill j (e @@ j) y)
                               ,(j ~> 1, transFillNeg j (e @@ j)
-                                          (trans j (e @@ j) b))])
-        t e a   = VPath j $ comp j (e @@ j) (transNeg j (e @@ j) a)
+                                          (trans j (e @@ j) y))])
+        t e x   = VPath j $ comp i (e @@ i) (transNeg i (e @@ i) x)
                     (mkSystem [(j ~> 0, transFill j (e @@ j)
-                                          (transNeg j (e @@ j) a))
-                              ,(j ~> 1, transFillNeg j (e @@ j) a)])
+                                          (transNeg j (e @@ j) x))
+                              ,(j ~> 1, transFillNeg j (e @@ j) x)])
         gv      = g eq v
         us'     = mapWithKey (\alpha uAlpha ->
                                    t (eq `face` alpha) uAlpha @@ i) us
@@ -706,6 +713,7 @@ gradLemmaU b eq us v = (u, VPath i theta'')
                     (\alpha uAlpha ->
                        s (eq `face` alpha) (f (eq `face` alpha) uAlpha) @@ j) us
         theta'' = comp j b (f eq theta') xs
+-}
 
 
 -------------------------------------------------------------------------------

@@ -185,6 +185,12 @@ test' : (P' true').1 = K' true'
 
 test'' : Id (P' true').1 test test' = (P' true').2 test test'
 
+-- These two terms are not convertible:
+-- test' : Id (P' true').1 (K' true')
+--           (hdisj_in1 (Id (setquot bool R.1) true' true') (Id (setquot bool R.1) true' false') (<_> true')) =
+--   <_> K' true'
+
+
 
 -- Another test:
 
@@ -230,6 +236,7 @@ bar (x : bool') : or (Id bool' x true') (Id bool' x false') ->
   inl p -> inl (hinhpr (Id bool' x true') p)
   inr p -> inr (hinhpr (Id bool' x false') p)
 
+-- finally the map:
 foo (x : bool') : bool = f x rem
   where
   rem : or (ishinh (Id bool' x true')).1 (ishinh (Id bool' x false')).1 =
@@ -237,7 +244,9 @@ foo (x : bool') : bool = f x rem
              (or (ishinh (Id bool' x true')).1 (ishinh (Id bool' x false')).1,test3 x)
              (bar x) (K' x)
 
--- This should evaluate to true??
+-- > :n testfoo
+-- NORMEVAL: true
+-- Time: 0m0.490s
 testfoo : bool = foo true'
 
 
@@ -249,12 +258,7 @@ testfoo : bool = foo true'
 
 ntrue' : bool' = (\(x : bool) -> (IdP (<i0> bool) true x,lem8 x),((\(P : sig U (\(X : U) -> (a b : X) -> IdP (<i0> X) a b)) -> \(f : (sig bool (\(x : bool) -> IdP (<i0> bool) true x)) -> P.1) -> f ((true,<i0> true)),\(x1 x2 : bool) -> \(X1 : IdP (<i0> bool) x1 x2) -> \(X2 : IdP (<i0> bool) true x1) -> <i0> comp (<i1> bool) (X2 @ i0) [ (i0 = 0) -> <i1> true, (i0 = 1) -> <i1> X1 @ i1 ]),\(x1 x2 : bool) -> \(X1 : IdP (<i0> bool) true x1) -> \(X2 : IdP (<i0> bool) true x2) -> <i0> comp (<i1> bool) (X1 @ -i0) [ (i0 = 0) -> <i1> x1, (i0 = 1) -> <i1> X2 @ i1 ]))
 
--- Why is this not working?
+-- Why is this not working? Bug in pretty printer?
 -- ntest : (P' true').1 = \(P : sig U (\(X : U) -> (a b : X) -> IdP (<i0> X) a b)) -> \(f : or (IdP (<i0> sig (bool -> (sig U (\(X : U) -> (a b : X) -> IdP (<i0> X) a b))) (\(A : bool -> (sig U (\(X : U) -> (a b : X) -> IdP (<i0> X) a b))) -> sig (sig ((P0 : sig U (\(X : U) -> (a b : X) -> IdP (<i0> X) a b)) -> ((sig bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) (\(_ : (P0 : sig U (\(X : U) -> (a b : X) -> IdP (<i0> X) a b)) -> ((sig bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) -> (x1 x2 : bool) -> (IdP (<i0> bool) x1 x2) -> ((A x1).1 -> (A x2).1))) (\(_ : sig ((P0 : sig U (\(X : U) -> (a b : X) -> IdP (<i0> X) a b)) -> ((sig bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) (\(_ : (P0 : sig U (\(X : U) -> (a b : X) -> IdP (<i0> X) a b)) -> ((sig bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) -> (x1 x2 : bool) -> (IdP (<i0> bool) x1 x2) -> ((A x1).1 -> (A x2).1))) -> (x1 x2 : bool) -> (A x1).1 -> ((A x2).1 -> (IdP (<i0> bool) x1 x2))))) ((\(x : bool) -> (IdP (<i0> bool) true x,lem8 x),((\(P0 : sig U (\(X : U) -> (a b : X) -> IdP (<i0> X) a b)) -> \(f : (sig bool (\(x : bool) -> IdP (<i0> bool) true x)) -> P0.1) -> f ((true,<i0> true)),\(x1 x2 : bool) -> \(X1 : IdP (<i0> bool) x1 x2) -> \(X2 : IdP (<i0> bool) true x1) -> <i0> comp (<i1> bool) (X2 @ i0) [ (i0 = 0) -> <i1> true, (i0 = 1) -> <i1> X1 @ i1 ]),\(x1 x2 : bool) -> \(X1 : IdP (<i0> bool) true x1) -> \(X2 : IdP (<i0> bool) true x2) -> <i0> comp (<i1> bool) (X1 @ -i0) [ (i0 = 0) -> <i1> x1, (i0 = 1) -> <i1> X2 @ i1 ]))) ((\(x : bool) -> (IdP (<i0> bool) true x,lem8 x),((\(P0 : sig U (\(X : U) -> (a b : X) -> IdP (<i0> X) a b)) -> \(f : (sig bool (\(x : bool) -> IdP (<i0> bool) true x)) -> P0.1) -> f ((true,<i0> true)),\(x1 x2 : bool) -> \(X1 : IdP (<i0> bool) x1 x2) -> \(X2 : IdP (<i0> bool) true x1) -> <i0> comp (<i1> bool) (X2 @ i0) [ (i0 = 0) -> <i1> true, (i0 = 1) -> <i1> X1 @ i1 ]),\(x1 x2 : bool) -> \(X1 : IdP (<i0> bool) true x1) -> \(X2 : IdP (<i0> bool) true x2) -> <i0> comp (<i1> bool) (X1 @ -i0) [ (i0 = 0) -> <i1> x1, (i0 = 1) -> <i1> X2 @ i1 ]))), IdP (<i0> sig (bool -> (sig U (\(X : U) -> (a b : X) -> IdP (<i0> X) a b))) (\(A : bool -> (sig U (\(X : U) -> (a b : X) -> IdP (<i0> X) a b))) -> sig (sig ((P0 : sig U (\(X : U) -> (a b : X) -> IdP (<i0> X) a b)) -> ((sig bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) (\(_ : (P0 : sig U (\(X : U) -> (a b : X) -> IdP (<i0> X) a b)) -> ((sig bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) -> (x1 x2 : bool) -> (IdP (<i0> bool) x1 x2) -> ((A x1).1 -> (A x2).1))) (\(_ : sig ((P0 : sig U (\(X : U) -> (a b : X) -> IdP (<i0> X) a b)) -> ((sig bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) (\(_ : (P0 : sig U (\(X : U) -> (a b : X) -> IdP (<i0> X) a b)) -> ((sig bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) -> (x1 x2 : bool) -> (IdP (<i0> bool) x1 x2) -> ((A x1).1 -> (A x2).1))) -> (x1 x2 : bool) -> (A x1).1 -> ((A x2).1 -> (IdP (<i0> bool) x1 x2))))) ((\(x : bool) -> (IdP (<i0> bool) true x,lem8 x),((\(P0 : sig U (\(X : U) -> (a b : X) -> IdP (<i0> X) a b)) -> \(f : (sig bool (\(x : bool) -> IdP (<i0> bool) true x)) -> P0.1) -> f ((true,<i0> true)),\(x1 x2 : bool) -> \(X1 : IdP (<i0> bool) x1 x2) -> \(X2 : IdP (<i0> bool) true x1) -> <i0> comp (<i1> bool) (X2 @ i0) [ (i0 = 0) -> <i1> true, (i0 = 1) -> <i1> X1 @ i1 ]),\(x1 x2 : bool) -> \(X1 : IdP (<i0> bool) true x1) -> \(X2 : IdP (<i0> bool) true x2) -> <i0> comp (<i1> bool) (X1 @ -i0) [ (i0 = 0) -> <i1> x1, (i0 = 1) -> <i1> X2 @ i1 ]))) ((\(x : bool) -> (IdP (<i0> bool) false x,lem7 x),((\(P0 : sig U (\(X : U) -> (a b : X) -> IdP (<i0> X) a b)) -> \(f : (sig bool (\(x : bool) -> IdP (<i0> bool) false x)) -> P0.1) -> f ((false,<i0> false)),\(x1 x2 : bool) -> \(X1 : IdP (<i0> bool) x1 x2) -> \(X2 : IdP (<i0> bool) false x1) -> <i0> comp (<i1> bool) (X2 @ i0) [ (i0 = 0) -> <i1> false, (i0 = 1) -> <i1> X1 @ i1 ]),\(x1 x2 : bool) -> \(X1 : IdP (<i0> bool) false x1) -> \(X2 : IdP (<i0> bool) false x2) -> <i0> comp (<i1> bool) (X1 @ -i0) [ (i0 = 0) -> <i1> x1, (i0 = 1) -> <i1> X2 @ i1 ])))) -> P.1) -> f (inl (<i0> (\(x : bool) -> (IdP (<i0> bool) true x,lem8 x),((\(P0 : sig U (\(X : U) -> (a b : X) -> IdP (<i0> X) a b)) -> \(f0 : (sig bool (\(x : bool) -> IdP (<i0> bool) true x)) -> P0.1) -> f0 ((true,<i0> true)),\(x1 x2 : bool) -> \(X1 : IdP (<i0> bool) x1 x2) -> \(X2 : IdP (<i0> bool) true x1) -> <i0> comp (<i1> bool) (X2 @ i0) [ (i0 = 0) -> <i1> true, (i0 = 1) -> <i1> X1 @ i1 ]),\(x1 x2 : bool) -> \(X1 : IdP (<i0> bool) true x1) -> \(X2 : IdP (<i0> bool) true x2) -> <i0> comp (<i1> bool) (X1 @ -i0) [ (i0 = 0) -> <i1> x1, (i0 = 1) -> <i1> X2 @ i1 ]))))
 
 
-
--- This is not true:
--- test' : Id (P' true').1 (K' true')
---           (hdisj_in1 (Id (setquot bool R.1) true' true') (Id (setquot bool R.1) true' false') (<_> true')) =
---   <_> K' true'

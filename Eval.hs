@@ -71,6 +71,8 @@ instance Nominal Val where
     VSplit u v              -> support (u,v)
     VGlue a ts              -> support (a,ts)
     VGlueElem a ts          -> support (a,ts)
+    VCompU a ts             -> support (a,ts)
+    VUnGlueElemU a b es     -> support (a,b,es)
 
   act u (i, phi) | i `notElem` support u = u
                  | otherwise =
@@ -101,6 +103,8 @@ instance Nominal Val where
          VSplit u v              -> app (acti u) (acti v)
          VGlue a ts              -> glue (acti a) (acti ts)
          VGlueElem a ts          -> glueElem (acti a) (acti ts)
+         VUnGlueElemU a b es     -> unGlueU (acti a) (acti b) (acti es)
+         VCompU a ts             -> compUniv (acti a) (acti ts)
 
   -- This increases efficiency as it won't trigger computation.
   swap u ij@(i,j) =
@@ -127,6 +131,8 @@ instance Nominal Val where
          VSplit u v              -> VSplit (sw u) (sw v)
          VGlue a ts              -> VGlue (sw a) (sw ts)
          VGlueElem a ts          -> VGlueElem (sw a) (sw ts)
+         VUnGlueElemU a b es     -> VUnGlueElemU (sw a) (sw b) (sw es)
+         VCompU a ts             -> VCompU (sw a) (sw ts)
 
 
 -----------------------------------------------------------------------
@@ -261,6 +267,8 @@ v @@ phi                   = error $ "(@@): " ++ show v ++ " should be neutral."
 -------------------------------------------------------------------------------
 -- Composition and filling
 
+
+
 comp :: Name -> Val -> Val -> System Val -> Val
 comp i a u ts | eps `member` ts = (ts ! eps) `face` (i ~> 1)
 comp i a u ts = case a of
@@ -274,7 +282,8 @@ comp i a u ts = case a of
           ui1        = comp i a u1 t1s
           comp_u2    = comp i (app f fill_u1) u2 t2s
   VPi{} -> VComp (VPath i a) u (Map.map (VPath i) ts)
-  VU    -> glue u (Map.map (eqToIso . VPath i) ts)
+  VU -> compUniv u (Map.map (VPath i) ts)
+  -- VU    -> glue u (Map.map (eqToIso . VPath i) ts)
   VGlue b isos | not (isNeutralGlue i isos u ts) -> compGlue i b isos u ts
   Ter (Sum _ _ nass) env -> case u of
     VCon n us | all isCon (elems ts) -> case lookupLabel n nass of
@@ -589,6 +598,113 @@ gradLemma b iso us v = (u, VPath i theta'')
                     (\alpha uAlpha ->
                       app (s `face` alpha) (app (f `face` alpha) uAlpha) @@ j) us
         theta'' = comp j b (app f theta') xs
+
+-------------------------------------------------------------------------------
+-- | Composition in the Universe (to be replaced as glue)
+
+
+unGlueU :: Val -> Val -> System Val -> Val
+unGlueU w b es
+    | Map.null es         = w
+    | eps `Map.member` es = transNegLine (es ! eps) w
+    | otherwise           = case w of
+       VGlueElem v us   -> v
+       _ -> VUnGlueElemU w b es
+
+
+compUniv :: Val -> System Val -> Val
+compUniv b es | Map.null es         = b
+              | eps `Map.member` es = (es ! eps) @@ One
+              | otherwise           = VCompU b es
+
+
+compU :: Name -> Val -> System Val -> Val -> System Val -> Val
+compU i b es wi0 ws = glueElem vi1'' usi1''
+  where bi1 = b `face` (i ~> 1)
+        vs   = mapWithKey (\alpha wAlpha ->
+                 unGlueU wAlpha (b `face` alpha) (es `face` alpha)) ws
+        vsi1 = vs `face` (i ~> 1) -- same as: border vi1 vs
+        vi0  = unGlueU wi0 (b `face` (i ~> 0)) (es `face` (i ~> 0)) -- in b(i0)
+
+        v    = fill i b vi0 vs           -- in b
+        vi1  = comp i b vi0 vs           -- is v `face` (i ~> 1) in b(i1)
+
+        esI1 = es `face` (i ~> 1)
+        es'  = filterWithKey (\alpha _ -> i `Map.notMember` alpha) es
+        es'' = filterWithKey (\alpha _ -> not (alpha `Map.member` es')) esI1
+
+        us'    = mapWithKey (\gamma eGamma ->
+                   fill i (eGamma @@ One) (wi0 `face` gamma) (ws `face` gamma))
+                 es'
+        usi1'  = mapWithKey (\gamma eGamma ->
+                   comp i (eGamma @@ One) (wi0 `face` gamma) (ws `face` gamma))
+                 es'
+
+        ls'    = mapWithKey (\gamma eGamma ->
+                     pathComp i (b `face` gamma) (v `face` gamma)
+                       (transNegLine eGamma (us' ! gamma)) (vs `face` gamma))
+                   es'
+
+        vi1' = compLine (constPath bi1) vi1
+                 (ls' `unionSystem` Map.map constPath vsi1)
+
+        wsi1 = ws `face` (i ~> 1)
+
+        -- for gamma in es'', (i1) gamma is in es, so wsi1 gamma
+        -- is in the domain of isoGamma
+        uls'' = mapWithKey (\gamma eGamma ->
+                  gradLemmaU (bi1 `face` gamma) eGamma
+                    ((usi1' `face` gamma) `unionSystem` (wsi1 `face` gamma))
+                    (vi1' `face` gamma))
+                  es''
+
+
+        vsi1' = Map.map constPath $ border vi1' es' `unionSystem` vsi1
+
+        vi1'' = compLine (constPath bi1) vi1'
+                  (Map.map snd uls'' `unionSystem` vsi1')
+
+        usi1'' = Map.mapWithKey (\gamma _ ->
+                     if gamma `Map.member` usi1' then usi1' ! gamma
+                     else fst (uls'' ! gamma))
+                   esI1
+
+
+-- Grad Lemma, takes a line eq in U, a system us and a value v, s.t. f us =
+-- border v. Outputs (u,p) s.t. border u = us and a path p between v
+-- and f u, where f is transNegLine eq
+gradLemmaU :: Val -> Val -> System Val -> Val -> (Val, Val)
+gradLemmaU b eq us v = (u, VPath i theta'')
+  where i:j:_   = freshs (b,eq,us,v)
+        a       = eq @@ One
+        g       = transLine
+        f       = transNegLine
+        s e b   = VPath j $ compNeg j (e @@ j) (trans j (e @@ j) b)
+                    (mkSystem [(j ~> 0, transFill j (e @@ j) b)
+                              ,(j ~> 1, transFillNeg j (e @@ j)
+                                          (trans j (e @@ j) b))])
+        t e a   = VPath j $ comp j (e @@ j) (transNeg j (e @@ j) a)
+                    (mkSystem [(j ~> 0, transFill j (e @@ j)
+                                          (transNeg j (e @@ j) a))
+                              ,(j ~> 1, transFillNeg j (e @@ j) a)])
+        gv      = g eq v
+        us'     = mapWithKey (\alpha uAlpha ->
+                                   t (eq `face` alpha) uAlpha @@ i) us
+        theta   = fill i a gv us'
+        u       = comp i a gv us'  -- Same as "theta `face` (i ~> 1)"
+        ws      = insertSystem (i ~> 0) gv $
+                  insertSystem (i ~> 1) (t eq u @@ j) $
+                  mapWithKey
+                    (\alpha uAlpha ->
+                      t (eq `face` alpha) uAlpha @@ (Atom i :/\: Atom j)) us
+        theta'  = compNeg j a theta ws
+        xs      = insertSystem (i ~> 0) (s eq v @@ j) $
+                  insertSystem (i ~> 1) (s eq (f eq u) @@ j) $
+                  mapWithKey
+                    (\alpha uAlpha ->
+                       s (eq `face` alpha) (f (eq `face` alpha) uAlpha) @@ j) us
+        theta'' = comp j b (f eq theta') xs
+
 
 -------------------------------------------------------------------------------
 -- | Conversion

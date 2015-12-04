@@ -146,6 +146,9 @@ data Val = VU
          | VGlue Val (System Val)
          | VGlueElem Val (System Val)
 
+           -- Composition in the universe (for now)
+         | VCompU Val (System Val)
+
            -- Composition for HITs; the type is constant
          | VHComp Val Val (System Val)
 
@@ -157,6 +160,9 @@ data Val = VU
          | VApp Val Val
          | VAppFormula Val Formula
          | VLam Ident Val Val
+
+         | VUnGlueElemU Val Val (System Val)
+
   deriving Eq
 
 isNeutral :: Val -> Bool
@@ -170,6 +176,7 @@ isNeutral v = case v of
   VSplit{}       -> True
   VApp{}         -> True
   VAppFormula{}  -> True
+  VUnGlueElemU{} -> True
   _              -> False
 
 isNeutralSystem :: System Val -> Bool
@@ -387,6 +394,9 @@ showVal v = case v of
     text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)
   VGlue a ts        -> text "glue" <+> showVal1 a <+> text (showSystem ts)
   VGlueElem a ts    -> text "glueElem" <+> showVal1 a <+> text (showSystem ts)
+  VUnGlueElemU v b es -> text "unGlueElemU" <+> showVals [v,b]
+                         <+> text (showSystem es)
+  VCompU a ts       -> text "compU" <+> showVal1 a <+> text (showSystem ts)
 
 showPath :: Val -> Doc
 showPath e = case e of

@@ -180,6 +180,13 @@ K' (t : setquot bool R.1) : (P' t).1 = setquotunivprop bool R P' ps t
 test : (P' true').1 = hdisj_in1 (Id (setquot bool R.1) true' true')
                                 (Id (setquot bool R.1) true' false') (<_> true')
 
+test' : (P' true').1 = K' true'
+
+test'' : Id (P' true').1 test test' = (P' true').2 test test'
+
+-- test' : Id (P' true').1 (K' true')
+--           (hdisj_in1 (Id (setquot bool R.1) true' true') (Id (setquot bool R.1) true' false') (<_> true')) =
+--   <_> K' true'
 
 -- This takes too long:
 -- > :n K' true'

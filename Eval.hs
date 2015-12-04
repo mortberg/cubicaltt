@@ -285,6 +285,7 @@ comp i a u ts = case a of
   VPi{} -> VComp (VPath i a) u (Map.map (VPath i) ts)
   VU -> compUniv u (Map.map (VPath i) ts)
   -- VU    -> glue u (Map.map (eqToIso . VPath i) ts)
+  VCompU a es   -> compU i a es u ts
   VGlue b isos | not (isNeutralGlue i isos u ts) -> compGlue i b isos u ts
   Ter (Sum _ _ nass) env -> case u of
     VCon n us | all isCon (elems ts) -> case lookupLabel n nass of

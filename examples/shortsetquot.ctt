@@ -194,9 +194,6 @@ ntrue' : setquot bool R.1 = (\(x : bool) -> (IdP (<i0> bool) true x,lem8 x),((\(
 
 
 
-
-
-
 -- This is not true:
 -- test' : Id (P' true').1 (K' true')
 --           (hdisj_in1 (Id (setquot bool R.1) true' true') (Id (setquot bool R.1) true' false') (<_> true')) =

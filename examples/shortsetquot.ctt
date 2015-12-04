@@ -237,19 +237,19 @@ bar (x : bool') : or (Id bool' x true') (Id bool' x false') ->
   inr p -> inr (hinhpr (Id bool' x false') p)
 
 -- finally the map:
-foo (x : bool') : bool = f x rem
+foo (x : bool') (x' : (P' x).1) : bool = f x rem
   where
   rem : or (ishinh (Id bool' x true')).1 (ishinh (Id bool' x false')).1 =
     hinhuniv (or (Id bool' x true') (Id bool' x false'))
              (or (ishinh (Id bool' x true')).1 (ishinh (Id bool' x false')).1,test3 x)
-             (bar x) (K' x)
+             (bar x) x' 
 
 -- > :n testfoo
 -- NORMEVAL: true
 -- Time: 0m0.490s
-testfoo : bool = foo true'
+testfoo : bool = foo true' (K' true')
 
-testfoo' : Id bool (foo true') true = <i> foo true'
+testfoo' : Id bool (foo true' (K' true')) true = <i> foo true' (K' true')
 
 
 

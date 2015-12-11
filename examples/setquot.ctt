@@ -202,7 +202,7 @@ test : (P' true').1 = hdisj_in1 (Id bool' true' true')
                                 (Id bool' true' false') (<_> true')
 test' : (P' true').1 = K' true'
 
-test'' : Id (P' true').1 test test' = (P' true').2 test test'
+-- test'' : Id (P' true').1 test test' = (P' true').2 test test'
 
 -- These two terms are not convertible:
 -- test' : Id (P' true').1 (K' true')

@@ -241,6 +241,8 @@ injective (A B : U) (f : A -> B) : U =
 
 and (A B : U) : U = (_ : A) * B
 
+propAnd (A B : U) (pA : prop A) (pB : prop B) : prop (and A B) =
+  propSig A (\(_ : A) -> B) pA (\(_ : A) -> pB)
 
 isoId (A B : U) (f : A -> B) (g : B -> A)
       (s : (y : B) -> Id B (f (g y)) y)

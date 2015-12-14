@@ -531,7 +531,7 @@ compGlue i b isos wi0 ws = glueElem vi1'' usi1''
                  isos'
 
         ls'    = mapWithKey (\gamma isoG ->
-                   pathComp i (b `face` gamma) (v `face` gamma)
+                   pathComp i (b `face` gamma) (vi0 `face` gamma)
                      (isoFun isoG `app` (us' ! gamma)) (vs `face` gamma))
                  isos'
 
@@ -558,12 +558,12 @@ compGlue i b isos wi0 ws = glueElem vi1'' usi1''
                      else fst (uls'' ! gamma))
                    isosI1
 
--- assumes u and u' : A are solutions of us + (i0 -> u(i0))
--- The output is an L-path in A(i1) between u(i1) and u'(i1)
+-- Assumes u' : A is a solution of us + (i0 -> u0)
+-- The output is an L-path in A(i1) between comp i u0 us and u'(i1)
 pathComp :: Name -> Val -> Val -> Val -> System Val -> Val
-pathComp i a u u' us = VPath j $ comp i a (u `face` (i ~> 0)) us'
-  where j   = fresh (Atom i,a,us,u,u')
-        us' = insertsSystem [(j ~> 0, u), (j ~> 1, u')] us
+pathComp i a u0 u' us = VPath j $ comp i a u0 us'
+  where j   = fresh (Atom i,a,us,u0,u')
+        us' = insertsSystem [(j ~> 1, u')] us
 
 -- Grad Lemma, takes an iso f, a system us and a value v, s.t. f us =
 -- border v. Outputs (u,p) s.t. border u = us and a path p between v

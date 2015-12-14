@@ -194,7 +194,7 @@ app u v = case (u,v) of
     _ -> error $ "app: missing case in split for " ++ c
   (Ter (Split _ _ ty hbr) e,VHComp a w ws) -> case eval e ty of
     VPi _ f -> let j   = fresh (e,v)
-                   wsj = Map.map (@@ j) ws
+                   wsj = Map.map (@@@ j) ws
                    w'  = app u w
                    ws' = mapWithKey (\alpha -> app (u `face` alpha)) wsj
                    -- a should be constant
@@ -204,7 +204,7 @@ app u v = case (u,v) of
   (VComp (VPath i (VPi a f)) li0 ts,vi1) ->
     let j       = fresh (u,vi1)
         (aj,fj) = (a,f) `swap` (i,j)
-        tsj     = Map.map (@@ j) ts
+        tsj     = Map.map (@@@ j) ts
         v       = transFillNeg j aj vi1
         vi0     = transNeg j aj vi1
     in comp j (app fj v) (app li0 vi0)
@@ -257,6 +257,10 @@ v @@ phi | isNeutral v     = case (inferType v,toFormula phi) of
   _                    -> VAppFormula v (toFormula phi)
 v @@ phi                   = error $ "(@@): " ++ show v ++ " should be neutral."
 
+-- Applying a *fresh* name.
+(@@@) :: Val -> Name -> Val
+(VPath i u) @@@ j = u `swap` (i,j)
+v @@@ j           = VAppFormula v (toFormula j)
 
 -------------------------------------------------------------------------------
 -- Composition and filling
@@ -265,8 +269,8 @@ comp :: Name -> Val -> Val -> System Val -> Val
 comp i a u ts | eps `member` ts = (ts ! eps) `face` (i ~> 1)
 comp i a u ts = case a of
   VIdP p v0 v1 -> let j = fresh (Atom i,a,u,ts)
-                  in VPath j $ comp i (p @@ j) (u @@ j) $
-                       insertsSystem [(j ~> 0,v0),(j ~> 1,v1)] (Map.map (@@ j) ts)
+                  in VPath j $ comp i (p @@@ j) (u @@@ j) $
+                       insertsSystem [(j ~> 0,v0),(j ~> 1,v1)] (Map.map (@@@ j) ts)
   VSigma a f -> VPair ui1 comp_u2
     where (t1s, t2s) = (Map.map fstVal ts, Map.map sndVal ts)
           (u1,  u2)  = (fstVal u, sndVal u)
@@ -289,7 +293,7 @@ compNeg :: Name -> Val -> Val -> System Val -> Val
 compNeg i a u ts = comp i (a `sym` i) u (ts `sym` i)
 
 compLine :: Val -> Val -> System Val -> Val
-compLine a u ts = comp i (a @@ i) u (Map.map (@@ i) ts)
+compLine a u ts = comp i (a @@@ i) u (Map.map (@@@ i) ts)
   where i = fresh (a,u,ts)
 
 comps :: Name -> [(Ident,Ter)] -> Env -> [(System Val,Val)] -> [Val]
@@ -310,7 +314,7 @@ fillNeg :: Name -> Val -> Val -> System Val -> Val
 fillNeg i a u ts = (fill i (a `sym` i) u (ts `sym` i)) `sym` i
 
 fillLine :: Val -> Val -> System Val -> Val
-fillLine a u ts = VPath i $ fill i (a @@ i) u (Map.map (@@ i) ts)
+fillLine a u ts = VPath i $ fill i (a @@@ i) u (Map.map (@@@ i) ts)
   where i = fresh (a,u,ts)
 
 -- fills :: Name -> [(Ident,Ter)] -> Env -> [(System Val,Val)] -> [Val]
@@ -332,11 +336,11 @@ transNeg :: Name -> Val -> Val -> Val
 transNeg i a u = trans i (a `sym` i) u
 
 transLine :: Val -> Val -> Val
-transLine u v = trans i (u @@ i) v
+transLine u v = trans i (u @@@ i) v
   where i = fresh (u,v)
 
 transNegLine :: Val -> Val -> Val
-transNegLine u v = transNeg i (u @@ i) v
+transNegLine u v = transNeg i (u @@@ i) v
   where i = fresh (u,v)
 
 -- TODO: define in terms of comps?
@@ -405,7 +409,7 @@ transpHIT i a@(Ter (HSum _ _ nass) env) u =
   VHComp _ v vs ->
     hComp (a `face` (i ~> 1)) (transpHIT i a v) $
       mapWithKey (\alpha vAlpha ->
-                   VPath j $ transpHIT j (aij `face` alpha) (vAlpha @@ j)) vs
+                   VPath j $ transpHIT j (aij `face` alpha) (vAlpha @@@ j)) vs
   _ -> error $ "transpHIT: neutral " ++ show u
 
 
@@ -426,7 +430,7 @@ squeezeHIT i a@(Ter (HSum _ _ nass) env) u =
   VHComp _ v vs ->
     hComp (a `face` (i ~> 1)) (squeezeHIT i a v) $
       mapWithKey (\alpha vAlpha ->
-                   VPath j $ squeezeHIT j (aij `face` alpha) (vAlpha @@ j)) vs
+                   VPath j $ squeezeHIT j (aij `face` alpha) (vAlpha @@@ j)) vs
   _ -> error $ "squeezeHIT: neutral " ++ show u
 
 hComp :: Val -> Val -> System Val -> Val
@@ -573,21 +577,21 @@ gradLemma b iso us v = (u, VPath i theta'')
   where i:j:_   = freshs (b,iso,us,v)
         (a,f,g,s,t) = (isoDom iso,isoFun iso,isoInv iso,isoSec iso,isoRet iso)
         us'     = mapWithKey (\alpha uAlpha ->
-                                   app (t `face` alpha) uAlpha @@ i) us
+                                   app (t `face` alpha) uAlpha @@@ i) us
         gv      = app g v
         theta   = fill i a gv us'
         u       = comp i a gv us'  -- Same as "theta `face` (i ~> 1)"
         ws      = insertSystem (i ~> 0) gv $
-                  insertSystem (i ~> 1) (app t u @@ j) $
+                  insertSystem (i ~> 1) (app t u @@@ j) $
                   mapWithKey
                     (\alpha uAlpha ->
                       app (t `face` alpha) uAlpha @@ (Atom i :/\: Atom j)) us
         theta'  = compNeg j a theta ws
-        xs      = insertSystem (i ~> 0) (app s v @@ j) $
-                  insertSystem (i ~> 1) (app s (app f u) @@ j) $
+        xs      = insertSystem (i ~> 0) (app s v @@@ j) $
+                  insertSystem (i ~> 1) (app s (app f u) @@@ j) $
                   mapWithKey
                     (\alpha uAlpha ->
-                      app (s `face` alpha) (app (f `face` alpha) uAlpha) @@ j) us
+                      app (s `face` alpha) (app (f `face` alpha) uAlpha) @@@ j) us
         theta'' = comp j b (app f theta') xs
 
 -------------------------------------------------------------------------------
@@ -641,8 +645,8 @@ instance Convertible Val where
       (VVar x _, VVar x' _)      -> x == x'
       (VIdP a b c,VIdP a' b' c') -> conv ns a a' && conv ns b b' && conv ns c c'
       (VPath i a,VPath i' a')    -> conv ns (a `swap` (i,j)) (a' `swap` (i',j))
-      (VPath i a,p')             -> conv ns (a `swap` (i,j)) (p' @@ j)
-      (p,VPath i' a')            -> conv ns (p @@ j) (a' `swap` (i',j))
+      (VPath i a,p')             -> conv ns (a `swap` (i,j)) (p' @@@ j)
+      (p,VPath i' a')            -> conv ns (p @@@ j) (a' `swap` (i',j))
       (VAppFormula u x,VAppFormula u' x')    -> conv ns (u,x) (u',x')
       (VComp a u ts,VComp a' u' ts')         -> conv ns (a,u,ts) (a',u',ts')
       (VHComp a u ts,VHComp a' u' ts')       -> conv ns (a,u,ts) (a',u',ts')

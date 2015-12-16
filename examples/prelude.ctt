@@ -238,8 +238,23 @@ injective (A B : U) (f : A -> B) : U =
 and (A B : U) : U = (_ : A) * B
 
 
-isoId (A B : U) (f : A -> B) (g : B -> A)
-      (s : (y : B) -> Id B (f (g y)) y)
-      (t : (x : A) -> Id A (g (f x)) x) : Id U A B =
-      <i> glue B [ (i = 0) -> (A,f,g,s,t)
-                 , (i = 1) -> (B,idfun B,idfun B,refl B,refl B) ]
+-- isoId (A B : U) (f : A -> B) (g : B -> A)
+--       (s : (y : B) -> Id B (f (g y)) y)
+--       (t : (x : A) -> Id A (g (f x)) x) : Id U A B =
+--       <i> glue B [ (i = 0) -> (A,f,g,s,t)
+--                  , (i = 1) -> (B,idfun B,idfun B,refl B,refl B) ]
+
+fiber (A B : U) (f : A -> B) (y : B) : U =
+  (x : A) * Id B y (f x)
+
+isEquiv (A B : U) (f : A -> B) : U =
+  (y : B) -> isContr (fiber A B f y)
+
+idIsEquiv (A : U) : isEquiv A A (idfun A) =
+  \ (a : A) ->
+  ((a, refl A a)
+  , \ (z : fiber A A (idfun A) a) -> contrSingl A a z.1 z.2)
+
+
+equivId (T A : U) (f : T -> A) (p : isEquiv T A f) : Id U T A =
+  <i> glue A [ (i=0) -> (T,f,p), (i=1) -> (A,idfun A, idIsEquiv A)]

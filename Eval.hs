@@ -458,46 +458,51 @@ equivContr =  sndVal . sndVal
 
 -- Every path in the universe induces an equivalence
 eqToEquiv :: Val -> Val
-eqToEquiv e = undefined -- VPair e1 (VPair f (VPair s t))
-  -- where (i,j,x,y,w,ev) = (Name "i",Name "j",Var "x",Var "y",Var "w",Var "E")
-  --       e1    = e @@ One
-  --       inv t = Path i $ AppFormula t (NegAtom i)
-  --       evinv = inv ev
-  --       (ev0,ev1) = (AppFormula ev (Dir Zero),AppFormula ev (Dir One)) -- (b,a)
-  --       eenv     = upd ("E",e) emptyEnv
-  --       -- eplus : e0 -> e1
-  --       eplus z  = Comp ev z empty
-  --       -- eminus : e1 -> e0
-  --       eminus z = Comp evinv z empty
-  --       -- NB: edown is *not* transNegFill
-  --       eup z   = Fill ev z empty
-  --       edown z = Fill evinv z empty
-  --       f = Ter (Lam "x" ev1 (eminus x)) eenv
-  --       -- g = Ter (Lam "y" ev0 (eplus y)) eenv
-  --       etasys z0 = mkSystem [(j ~> 1, inv (eup z0))
-  --                            ,(j ~> 0, edown (eplus z0))]
-  --       -- eta : (y : e0) -> eminus (eplus y) = y
-  --       eta z0 = Path j $ Comp evinv (eplus z0) (etasys z0)
-  --       etaSquare z0 = Fill evinv (eplus z0) (etasys z0)
-  --       s = Ter (Lam "y" ev0 $ Pair (eplus y) (eta y)) eenv
-  --       (a,p) = (Fst w,Snd w) -- a : e1 and p : eminus a = y
-  --       phisys l = mkSystem [ (l ~> 0, inv (edown a))
-  --                           , (l ~> 1, eup y)]
-  --       psi l = Comp ev (AppFormula p (Atom l)) (phisys l)
-  --       phi l = Fill ev (AppFormula p (Atom l)) (phisys l)
-  --       tsys = mkSystem
-  --                [ (j ~> 0, edown (psi i))
-  --                , (j ~> 1, inv $ eup y)
-  --                , (i ~> 0, inv $ phi j)
-  --                , (i ~> 1, etaSquare y) ]
-  --       -- encode act on terms using Path and AppFormula
-  --       psi' formula = AppFormula (Path j $ psi j) formula
-  --       tprinc = psi' (Atom i :\/: Atom j)
-  --       t2 = Comp evinv tprinc tsys
-  --       t2inv = AppFormula (inv (Path i t2)) (Atom i)
-  --       fibtype = Sigma (Lam "x" ev1 $ IdP (Path (Name "_") ev0) (eminus x) y)
-  --       t = Ter (Lam "y" ev0 $ Lam "w" fibtype $ Path i $
-  --                Pair (psi' (NegAtom i)) (Path j t2inv)) eenv
+eqToEquiv e = VPair e1 (VPair f q)
+  where (i,j,x,y,w,ev) = (Name "i",Name "j",Var "x",Var "y",Var "w",Var "E")
+        e1    = e @@ One
+        inv t = Path i $ AppFormula t (NegAtom i)
+        evinv = inv ev
+        (ev0,ev1) = (AppFormula ev (Dir Zero),AppFormula ev (Dir One)) -- (b,a)
+        eenv     = upd ("E",e) emptyEnv
+        -- eplus : e0 -> e1
+        eplus z  = Comp ev z empty
+        -- eminus : e1 -> e0
+        eminus z = Comp evinv z empty
+        -- NB: edown is *not* transNegFill
+        eup z   = Fill ev z empty
+        edown z = Fill evinv z empty
+        f = Ter (Lam "x" ev1 (eminus x)) eenv
+        etasys z0 = mkSystem [ (j ~> 0, inv (eup z0))
+                             , (j ~> 1, edown (eplus z0))]
+        -- eta : (y : e0) -> y = eminus (eplus y)
+        eta z0 = Path j $ Comp evinv (eplus z0) (etasys z0)
+        etaSquare z0 = Fill evinv (eplus z0) (etasys z0)
+
+
+        (a,p) = (Fst w,Snd w) -- a : e1 and p : y = eminus a
+
+        --       s = Ter (Lam "y" ev0 $ Pair (eplus y) (eta y)) eenv
+
+        phisys l = mkSystem [ (l ~> 0, eup y)
+                            , (l ~> 1, inv (edown a))]
+        psi l = Comp ev (AppFormula p (Atom l)) (phisys l)
+        phi l = Fill ev (AppFormula p (Atom l)) (phisys l)
+
+        tsys = mkSystem
+                 [ (j ~> 0, inv $ eup y)
+                 , (j ~> 1, edown (psi i))
+                 , (i ~> 0, etaSquare y)
+                 , (i ~> 1, inv $ phi j) ]
+        -- encode act on terms using Path and AppFormula
+        psi' formula = AppFormula (Path j $ psi j) formula
+        tprinc = psi' (Atom i :/\: Atom j)
+        t2 = Comp evinv tprinc tsys
+        fibtype = Sigma (Lam "x" ev1 $ IdP (Path (Name "_") ev0) y (eminus x))
+        q = Ter (Lam "y" ev0 $
+                 Pair (Pair (eplus y) (eta y)) $
+                 Lam "w" fibtype $ Path i $
+                 Pair (psi i) (Path j t2)) eenv
 
 
 glue :: Val -> System Val -> Val

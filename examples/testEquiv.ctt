@@ -95,17 +95,14 @@ eqToEq (A B : U) (p : Id U A B)
            , (j = 1) -> (p@i,g.1,invEq Ai B g,retEq Ai B g,secEq Ai B g) ]
 
 transIdFun (A B : U) (w : equiv A B)
-  : Id (A -> B) (trans A B (transEquivToId A B w)) w.1 =
-  <i> \(a : A) -> let b : B = w.1 a
-                  in addf (f (f (f b))) b (addf (f (f b)) b (addf (f b) b (trf b))) @ i
-  where f (b : B) : B = comp (<_> B) b []
-        trf (b : B) : Id B (f b) b =
-          <i> fill (<_> B) b [] @ -i
-        addf (b b' : B) : Id B b b' -> Id B (f b) b' =
-          compId B (f b) b b' (trf b)
+  : Id (A -> B) w.1 (trans A B (transEquivToId A B w)) =
+ <i> \ (a:A) -> 
+   let b : B = w.1 a
+   in comp (<j> B) (comp (<j> B) (comp (<j> B) (comp (<j> B) b [(i=0)-><j>b]) [(i=0)-><j>b]) [(i=0)-><j>b]) [(i=0)-><j>b]
 
 idToId (A B : U) (w : equiv A B)
   : Id (equiv A B) (transEquiv A B (transEquivToId A B w)) w
   = equivLemma A B (transEquiv A B (transEquivToId A B w)) w
-      (transIdFun A B w)
+      (<i>transIdFun A B w@-i)
+
 

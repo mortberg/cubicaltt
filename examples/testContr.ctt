@@ -1,0 +1,78 @@
+module testContr where
+
+import prelude
+
+retIsContr (A B :U) (f:A->B) (g:B->A) (h : (x:A) -> Id A (g (f x)) x) (v:isContr B) 
+ : isContr A = (g b,p) 
+ where
+  b : B = v.1
+  q : (y:B) -> Id B b y = v.2
+  p (x:A) : Id A (g b) x = <i>comp (<j>A) (g (q (f x)@i)) [(i=0) -> <j>g b,(i=1) -> h x]
+
+sigIsContr (A:U) (B:A->U) (u:isContr A) (q:(x:A) -> isContr (B x)) 
+ : isContr ((x:A)*B x) = ((a,g a),r)
+ where
+  a : A = u.1
+  p : (x:A) -> Id A a x = u.2
+  g (x:A) : B x = (q x).1
+  h (x:A) : (y:B x) -> Id (B x) (g x) y = (q x).2
+  C : U = (x:A) * B x
+  r (z:C) : Id C (a,g a) z = 
+   <i>(p z.1@i,h (p z.1@i) (comp (<j>B (p z.1@i\/-j)) z.2 [(i=1)-><j>z.2])@i)
+
+isPathContr (A:U) (cA:isContr A) (x y:A) : isContr (Id A x y) =  (p0,q) 
+ where
+  a : A = cA.1
+  f : (x:A) -> Id A a x = cA.2
+  p0 : Id A x y = <i>comp (<j>A) a [(i=0) -> f x,(i=1) -> f y]
+  q (p:Id A x y) : Id (Id A x y) p0 p = 
+   <j i>comp (<k>A) a [(i=0) -> f x,(i=1) -> f y,
+                       (j=0) -> <k>comp (<l>A) a [(k=0) -> <l>a,(i=0) -> <l>f x@k/\l,(i=1) -> <l>f y@k/\l],
+                       (j=1) -> f (p@i)]
+
+fiber (A B : U) (f : A -> B) (y : B) : U =
+  (x : A) * Id B y (f x)
+
+isEquiv (A B : U) (f : A -> B) : U = (y:B) -> isContr (fiber A B f y)
+
+equiv (A B : U) : U = (f : A -> B) * isEquiv A B f
+
+isEquivContr (A B:U) (cA:isContr A) (cB:isContr B) (f:A->B) : isEquiv A B f = 
+ \ (y:B) -> sigIsContr A (\ (x:A) -> Id B y (f x)) cA (\ (x:A) -> isPathContr B cB y (f x))
+
+sig (A:U) (B:A->U) : U = (x:A) * B x
+
+totalFun (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (w:sig A B) : sig A C =
+ (w.1,f (w.1) (w.2))
+
+funFib1  (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (x0:A) (z0:C x0) (u:fiber (B x0) (C x0) (f x0) z0) :
+ fiber (sig A B) (sig A C) (totalFun A B C f) (x0,z0) =  ((x0,u.1),<i>(x0,u.2@i))
+
+funFib2  (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (x0:A) (z0:C x0) 
+         (w : fiber (sig A B) (sig A C) (totalFun A B C f) (x0,z0)) : fiber (B x0) (C x0) (f x0) z0 = (b0,s) 
+ where
+  x : A = w.1.1
+  b : B x = w.1.2
+  p : Id A x0 x = <i>(w.2@i).1
+  q : IdP (<i>C (p@i)) z0 (f x b) = <i>(w.2@i).2
+  b0 : B x0 = comp (<i>B (p@-i)) b []
+  r : IdP (<i>B (p@-i)) b b0 = <i>comp (<j>B (p@-j\/-i)) b [(i=0) -> <k>b]
+  s : Id (C x0) z0 (f x0 b0) = <i>comp (<j>C (p@(i/\-j))) (q@i) [(i=0) -> <k>z0,(i=1) -> <k>f (p@-k) (r@k)]
+
+compFunFib (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (x0:A) (z0:C x0) (u:fiber (B x0) (C x0) (f x0) z0) : 
+    fiber (B x0) (C x0) (f x0) z0 = funFib2 A B C f x0 z0 (funFib1 A B C f x0 z0 u)
+
+retFunFib (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (x0:A) (z0:C x0) (u:fiber (B x0) (C x0) (f x0) z0) : 
+   Id (fiber (B x0) (C x0) (f x0) z0) (funFib2 A B C f x0 z0 (funFib1 A B C f x0 z0 u)) u =
+ <l> (comp (<i> B x0) u.1 [(l=1) -> <j>u.1],
+      <i> comp (<j> C x0) (u.2 @ i) [ (l=1) -> <j> u.2 @ i,
+                                      (i = 0) -> <j> z0, 
+                                      (i = 1) -> <j> f x0 (comp (<k> B x0) u.1 [ (j = 0) -> <k> u.1, (l=1) -> <k>u.1 ]) ])
+
+equivFunFib (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (cB : isContr (sig A B)) (cC : isContr (sig A C)) (x:A) 
+  : isEquiv (B x) (C x) (f x) =
+ \ (z:C x) -> retIsContr (fiber (B x) (C x) (f x) z) (fiber (sig A B) (sig A C) (totalFun A B C f) (x,z))
+                         (funFib1 A B C f x z)
+                         (funFib2 A B C f x z)
+                         (retFunFib A B C f x z)
+                         (isEquivContr (sig A B) (sig A C) cB cC (totalFun A B C f) (x,z))

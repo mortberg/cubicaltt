@@ -292,6 +292,7 @@ comp i a u ts = case a of
           comp_u2    = comp i (app f fill_u1) u2 t2s
   VPi{} -> VComp (VPath i a) u (Map.map (VPath i) ts)
   VU -> compUniv u (Map.map (VPath i) ts)
+  VCompU a es   -> compU i a es u ts
   VGlue b equivs | not (isNeutralGlue i equivs u ts) -> compGlue i b equivs u ts
   Ter (Sum _ _ nass) env -> case u of
     VCon n us | all isCon (elems ts) -> case lookupLabel n nass of

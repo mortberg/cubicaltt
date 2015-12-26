@@ -76,3 +76,16 @@ equivFunFib (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (cB : isContr (sig A B)
                          (funFib2 A B C f x z)
                          (retFunFib A B C f x z)
                          (isEquivContr (sig A B) (sig A C) cB cC (totalFun A B C f) (x,z))
+
+
+lemSinglContr (A:U) (a:A) : isContr ((x:A) * Id A a x) =
+ ((a,refl A a),\ (z:(x:A) * Id A a x) -> contrSingl A a z.1 z.2)
+
+lem1 (A:U) : isContr ((X:U) * equiv A X) = undefined
+
+thmUniv (t : (A X:U) -> Id U A X -> equiv A X) (A:U) : (X:U) -> isEquiv (Id U A X) (equiv A X) (t A X) =
+ equivFunFib U (\ (X:U) -> Id U A X) (equiv A) (t A) (lemSinglContr U A) (lem1 A)
+
+thmUniv (lem1 : (A:U) -> isContr ((X:U) * equiv A X)) (t : (A X:U) -> Id U A X -> equiv A X) (A:U) 
+ : (X:U) -> isEquiv (Id U A X) (equiv A X) (t A X) =
+ equivFunFib U (\ (X:U) -> Id U A X) (equiv A) (t A) (lemSinglContr U A) (lem1 A)

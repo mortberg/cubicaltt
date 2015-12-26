@@ -37,6 +37,7 @@ Trans.        Exp3 ::= "transport" Exp4 Exp4 ;
 Fill.         Exp3 ::= "fill" Exp4 Exp4 System ;
 Glue.         Exp3 ::= "glue" Exp4 System ;
 GlueElem.     Exp3 ::= "glueElem" Exp4 System ;
+UnGlueElem.   Exp3 ::= "unglueElem" Exp4 System ;
 Fst.          Exp4 ::= Exp4 ".1" ;
 Snd.          Exp4 ::= Exp4 ".2" ;
 Pair.         Exp5 ::= "(" Exp "," [Exp] ")" ;

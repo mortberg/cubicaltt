@@ -71,6 +71,10 @@ instance Nominal Val where
     VSplit u v              -> support (u,v)
     VGlue a ts              -> support (a,ts)
     VGlueElem a ts          -> support (a,ts)
+    VUnGlueElem a ts        -> support (a,ts)
+    VCompU a ts             -> support (a,ts)
+    VUnGlueElemU a b es     -> support (a,b,es)
+
 
   act u (i, phi) | i `notElem` support u = u
                  | otherwise =
@@ -101,6 +105,9 @@ instance Nominal Val where
          VSplit u v              -> app (acti u) (acti v)
          VGlue a ts              -> glue (acti a) (acti ts)
          VGlueElem a ts          -> glueElem (acti a) (acti ts)
+         VUnGlueElem a ts        -> unglueElem (acti a) (acti ts)
+         VUnGlueElemU a b es     -> unGlueU (acti a) (acti b) (acti es)
+         VCompU a ts             -> compUniv (acti a) (acti ts)
 
   -- This increases efficiency as it won't trigger computation.
   swap u ij@(i,j) =
@@ -127,6 +134,10 @@ instance Nominal Val where
          VSplit u v              -> VSplit (sw u) (sw v)
          VGlue a ts              -> VGlue (sw a) (sw ts)
          VGlueElem a ts          -> VGlueElem (sw a) (sw ts)
+         VUnGlueElem a ts        -> VUnGlueElem (sw a) (sw ts)
+         VUnGlueElemU a b es     -> VUnGlueElemU (sw a) (sw b) (sw es)
+         VCompU a ts             -> VCompU (sw a) (sw ts)
+
 
 
 -----------------------------------------------------------------------
@@ -162,6 +173,7 @@ eval rho v = case v of
     fillLine (eval rho a) (eval rho t0) (evalSystem rho ts)
   Glue a ts           -> glue (eval rho a) (evalSystem rho ts)
   GlueElem a ts       -> glueElem (eval rho a) (evalSystem rho ts)
+  UnGlueElem a ts     -> unglueElem (eval rho a) (evalSystem rho ts)
   _                   -> error $ "Cannot evaluate " ++ show v
 
 evals :: Env -> [(Ident,Ter)] -> [(Ident,Val)]
@@ -246,6 +258,7 @@ inferType v = case v of
     ty         -> error $ "inferType: expected IdP type for " ++ show v
                   ++ ", got " ++ show ty
   VComp a _ _ -> a @@ One
+  VUnGlueElemU _ b es -> compUniv b es
   _ -> error $ "inferType: not neutral " ++ show v
 
 (@@) :: ToFormula a => Val -> a -> Val
@@ -278,7 +291,7 @@ comp i a u ts = case a of
           ui1        = comp i a u1 t1s
           comp_u2    = comp i (app f fill_u1) u2 t2s
   VPi{} -> VComp (VPath i a) u (Map.map (VPath i) ts)
-  VU    -> glue u (Map.map (eqToEquiv . VPath i) ts)
+  VU -> compUniv u (Map.map (VPath i) ts)
   VGlue b equivs | not (isNeutralGlue i equivs u ts) -> compGlue i b equivs u ts
   Ter (Sum _ _ nass) env -> case u of
     VCon n us | all isCon (elems ts) -> case lookupLabel n nass of
@@ -456,62 +469,21 @@ equivFun = fstVal . sndVal
 equivContr :: Val -> Val
 equivContr =  sndVal . sndVal
 
--- Every path in the universe induces an equivalence
-eqToEquiv :: Val -> Val
-eqToEquiv e = VPair e1 (VPair f q)
-  where (i,j,x,y,w,ev) = (Name "i",Name "j",Var "x",Var "y",Var "w",Var "E")
-        e1    = e @@ One
-        inv t = Path i $ AppFormula t (NegAtom i)
-        evinv = inv ev
-        (ev0,ev1) = (AppFormula ev (Dir Zero),AppFormula ev (Dir One)) -- (b,a)
-        eenv     = upd ("E",e) emptyEnv
-        -- eplus : e0 -> e1
-        eplus z  = Comp ev z empty
-        -- eminus : e1 -> e0
-        eminus z = Comp evinv z empty
-        -- NB: edown is *not* transNegFill
-        eup z   = Fill ev z empty
-        edown z = Fill evinv z empty
-        f = Ter (Lam "x" ev1 (eminus x)) eenv
-        etasys z0 = mkSystem [ (j ~> 0, inv (eup z0))
-                             , (j ~> 1, edown (eplus z0))]
-        -- eta : (y : e0) -> y = eminus (eplus y)
-        eta z0 = Path j $ Comp evinv (eplus z0) (etasys z0)
-        etaSquare z0 = Fill evinv (eplus z0) (etasys z0)
-
-
-        (a,p) = (Fst w,Snd w) -- a : e1 and p : y = eminus a
-
-        --       s = Ter (Lam "y" ev0 $ Pair (eplus y) (eta y)) eenv
-
-        phisys l = mkSystem [ (l ~> 0, eup y)
-                            , (l ~> 1, inv (edown a))]
-        psi l = Comp ev (AppFormula p (Atom l)) (phisys l)
-        phi l = Fill ev (AppFormula p (Atom l)) (phisys l)
-
-        tsys = mkSystem
-                 [ (j ~> 0, inv $ eup y)
-                 , (j ~> 1, edown (psi i))
-                 , (i ~> 0, etaSquare y)
-                 , (i ~> 1, inv $ phi j) ]
-        -- encode act on terms using Path and AppFormula
-        psi' formula = AppFormula (Path j $ psi j) formula
-        tprinc = psi' (Atom i :/\: Atom j)
-        t2 = Comp evinv tprinc tsys
-        fibtype = Sigma (Lam "x" ev1 $ IdP (Path (Name "_") ev0) y (eminus x))
-        q = Ter (Lam "y" ev0 $
-                 Pair (Pair (eplus y) (eta y)) $
-                 Lam "w" fibtype $ Path i $
-                 Pair (psi i) (Path j t2)) eenv
-
 
 glue :: Val -> System Val -> Val
 glue b ts | eps `member` ts = equivDom (ts ! eps)
           | otherwise       = VGlue b ts
 
 glueElem :: Val -> System Val -> Val
+glueElem (VUnGlueElem u _) _ = u
 glueElem v us | eps `member` us = us ! eps
               | otherwise       = VGlueElem v us
+
+unglueElem :: Val -> System Val -> Val
+unglueElem w isos | eps `member` isos = app (equivFun (isos ! eps)) w
+                  | otherwise         = case w of
+                                          VGlueElem v us -> v
+                                          _ -> VUnGlueElem w isos
 
 unGlue :: Val -> Val -> System Val -> Val
 unGlue w b equivs | eps `member` equivs = app (equivFun (equivs ! eps)) w
@@ -577,7 +549,7 @@ compGlue i a equivs wi0 ws = glueElem vi1' usi1
             let fibsgamma = intersectionWith (\ x y -> VPair x (constPath y))
                               (wsi1 `face` gamma) (vsi1 `face` gamma)
             in extend (mkFiberType (ai1 `face` gamma) (vi1' `face` gamma) equivG)
-                 (equivContr equivG)
+                 (app (equivContr equivG) (vi1' `face` gamma))
                  (fibsgamma `unionSystem` (fibersys `face` gamma))) equivsI1
 
         vi1 = compLine (constPath ai1) vi1'
@@ -623,6 +595,89 @@ pathComp i a u0 u' us = VPath j $ comp i a u0 us'
 --                     (\alpha uAlpha ->
 --                       app (s `face` alpha) (app (f `face` alpha) uAlpha) @@@ j) us
 --         theta'' = comp j b (app f theta') xs
+
+
+-------------------------------------------------------------------------------
+-- | Composition in the Universe
+
+unGlueU :: Val -> Val -> System Val -> Val
+unGlueU w b es
+    | eps `Map.member` es = transNegLine (es ! eps) w
+    | otherwise           = case w of
+       VGlueElem v us   -> v
+       _ -> VUnGlueElemU w b es
+
+compUniv :: Val -> System Val -> Val
+compUniv b es | eps `Map.member` es = (es ! eps) @@ One
+              | otherwise           = VCompU b es
+
+compU :: Name -> Val -> System Val -> Val -> System Val -> Val
+compU i b es wi0 ws = glueElem vi1'' usi1''
+  where bi1 = b `face` (i ~> 1)
+        vs   = mapWithKey (\alpha wAlpha ->
+                 unGlueU wAlpha (b `face` alpha) (es `face` alpha)) ws
+        vsi1 = vs `face` (i ~> 1) -- same as: border vi1 vs
+        vi0  = unGlueU wi0 (b `face` (i ~> 0)) (es `face` (i ~> 0)) -- in b(i0)
+
+        v    = fill i b vi0 vs           -- in b
+        vi1  = comp i b vi0 vs           -- is v `face` (i ~> 1) in b(i1)
+
+        esI1 = es `face` (i ~> 1)
+        es'  = filterWithKey (\alpha _ -> i `Map.notMember` alpha) es
+        es'' = filterWithKey (\alpha _ -> alpha `Map.notMember` es) esI1
+
+        us'    = mapWithKey (\gamma eGamma ->
+                   fill i (eGamma @@ One) (wi0 `face` gamma) (ws `face` gamma))
+                 es'
+        usi1'  = mapWithKey (\gamma eGamma ->
+                   comp i (eGamma @@ One) (wi0 `face` gamma) (ws `face` gamma))
+                 es'
+
+        ls'    = mapWithKey (\gamma eGamma ->
+                     pathComp i (b `face` gamma) (v `face` gamma)
+                       (transNegLine eGamma (us' ! gamma)) (vs `face` gamma))
+                   es'
+
+        vi1' = compLine (constPath bi1) vi1
+                 (ls' `unionSystem` Map.map constPath vsi1)
+
+        wsi1 = ws `face` (i ~> 1)
+
+        -- for gamma in es'', (i1) gamma is in es, so wsi1 gamma
+        -- is in the domain of isoGamma
+        uls'' = mapWithKey (\gamma eGamma ->
+                  gradLemmaU (bi1 `face` gamma) eGamma
+                    ((usi1' `face` gamma) `unionSystem` (wsi1 `face` gamma))
+                    (vi1' `face` gamma))
+                  es''
+
+        vsi1' = Map.map constPath $ border vi1' es' `unionSystem` vsi1
+
+        vi1'' = compLine (constPath bi1) vi1'
+                  (Map.map snd uls'' `unionSystem` vsi1')
+
+        usi1'' = Map.mapWithKey (\gamma _ ->
+                     if gamma `Map.member` usi1' then usi1' ! gamma
+                     else fst (uls'' ! gamma))
+                   esI1
+
+-- Grad Lemma, takes a line eq in U, a system us and a value v, s.t. f us =
+-- border v. Outputs (u,p) s.t. border u = us and a path p between v
+-- and f u, where f is transNegLine eq
+gradLemmaU :: Val -> Val -> System Val -> Val -> (Val, Val)
+gradLemmaU b eq us v = (u, VPath i theta)
+  where i:j:_   = freshs (b,eq,us,v)
+        ej      = eq @@ j
+        a       = eq @@ One
+        ws      = mapWithKey (\alpha uAlpha ->
+                                   transFillNeg j (ej `face` alpha) uAlpha) us
+        u       = comp j ej v ws
+        w       = fill j ej v ws
+        xs      = insertSystem (i ~> 0) w $
+                  insertSystem (i ~> 1) (transFillNeg j ej u) $ ws
+        theta   = compNeg j ej u xs
+
+
 
 -------------------------------------------------------------------------------
 -- | Conversion
@@ -738,6 +793,9 @@ instance Normal Val where
     VHComp u v vs       -> hComp (normal ns u) (normal ns v) (normal ns vs)
     VGlue u equivs      -> glue (normal ns u) (normal ns equivs)
     VGlueElem u us      -> glueElem (normal ns u) (normal ns us)
+    VUnGlueElem u us    -> unglueElem (normal ns u) (normal ns us)
+    VUnGlueElemU e u us -> unGlueU (normal ns e) (normal ns u) (normal ns us)
+    VCompU a ts         -> VCompU (normal ns a) (normal ns ts)
     VVar x t            -> VVar x t -- (normal ns t)
     VFst t              -> fstVal (normal ns t)
     VSnd t              -> sndVal (normal ns t)

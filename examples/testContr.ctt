@@ -120,11 +120,16 @@ lem1 (B:U) : isContr ((X:U) * equiv X B) =
 contrSingl (A : U) (a b : A) (p : Id A a b) :
   Id ((x:A) * Id A x b) (b,refl A b) (a,p) = <i> (p @ -i,<j> p @ -i\/j)
 
-lemSinglContr (A:U) (a:A) : isContr ((x:A) * Id A x a) =
+lemSinglContr1 (A:U) (a:A) : isContr ((x:A) * Id A x a) =
  ((a,refl A a),\ (z:(x:A) * Id A x a) -> contrSingl A z.1 a z.2)
 
 thmUniv (t : (A X:U) -> Id U X A -> equiv X A) (A:U) : (X:U) -> isEquiv (Id U X A) (equiv X A) (t A X) =
-  equivFunFib U (\ (X:U) -> Id U X A) (\ (X:U) -> equiv X A) (t A) (lemSinglContr U A) (lem1 A)
+  equivFunFib U (\ (X:U) -> Id U X A) (\ (X:U) -> equiv X A) (t A) (lemSinglContr1 U A) (lem1 A)
+
+lem2 (A X:U) (p:Id U X A) : equiv X A = substTrans U (\ (Y:U) -> equiv Y A) A X (<i>p@-i) (idEquiv A)
+
+univalence (A X:U) : isEquiv (Id U X A) (equiv X A) (lem2 A X) = thmUniv lem2 A X
+
 
 -- thmUniv (lem1 : (A:U) -> isContr ((X:U) * equiv A X)) (t : (A X:U) -> Id U A X -> equiv A X) (A:U) 
 --  : (X:U) -> isEquiv (Id U A X) (equiv A X) (t A X) =

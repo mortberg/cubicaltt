@@ -130,6 +130,24 @@ lem2 (A X:U) (p:Id U X A) : equiv X A = substTrans U (\ (Y:U) -> equiv Y A) A X 
 
 univalence (A X:U) : isEquiv (Id U X A) (equiv X A) (lem2 A X) = thmUniv lem2 A X
 
+corrUniv (A X:U) : Id U (Id U X A) (equiv X A) = 
+ equivId  (Id U X A) (equiv X A) (lem2 A X) (univalence A X)
+
+testUniv1 (A:U) : Id U A A = trans (equiv A A) (Id U A A) (<i>corrUniv A A@-i) (idEquiv A)
+
+-- obtained by normal form
+
+testUniv1 (A:U) : Id U A A =
+ <i> comp (<_>U) 
+      (comp (<_>U) A 
+         [ (i = 0) -> <l> comp (<_>U) A [ (l = 0) -> <i> glue A [ (i = 0) -> (A,(\(x : A) -> x,\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i))))), (i = 1) -> (A,(comp (<l> A -> A) (\(x : A) -> x) [],comp (<l> (y : A) ->
+  ((x : ((x : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x []) [ (l = 0) -> <j> comp (<k> A) x [ (j = 1) -> <k> x ] ]))) *    (y0 : ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) -> IdP (<j> ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) x y0)) (\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i)))) [])) ], (l = 1) -> <i> glue A [ (i = 0) -> (A,(\(x : A) -> x,\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i))))), (i = 1) -> (A,(comp (<l> A -> A) (\(x : A) -> x) [],comp (<l> (y : A) -> 
+        ((x : ((x : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x []) [ (l = 0) -> <j> comp (<k> A) x [ (j = 1) -> <k> x ] ]))) * (y0 : ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) -> IdP (<j> ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) x y0)) (\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i)))) [])) ] ], (i = 1) -> <l> A ]) [ (i = 0) -> <l> A, (i = 1) -> <l> A ]
+ 
+
+
+
+
 
 -- thmUniv (lem1 : (A:U) -> isContr ((X:U) * equiv A X)) (t : (A X:U) -> Id U A X -> equiv A X) (A:U) 
 --  : (X:U) -> isEquiv (Id U A X) (equiv A X) (t A X) =

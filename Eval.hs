@@ -292,7 +292,7 @@ comp i a u ts = case a of
           comp_u2    = comp i (app f fill_u1) u2 t2s
   VPi{} -> VComp (VPath i a) u (Map.map (VPath i) ts)
   VU -> compUniv u (Map.map (VPath i) ts)
-  VCompU a es   -> compU i a es u ts
+  VCompU a es | not (isNeutralU i es u ts)  -> compU i a es u ts
   VGlue b equivs | not (isNeutralGlue i equivs u ts) -> compGlue i b equivs u ts
   Ter (Sum _ _ nass) env -> case u of
     VCon n us | all isCon (elems ts) -> case lookupLabel n nass of
@@ -499,6 +499,12 @@ isNeutralGlue i equivs u0 ts = (eps `notMember` equivsi0 && isNeutral u0) ||
     (assocs ts)
   where equivsi0 = equivs `face` (i ~> 0)
 
+isNeutralU :: Name -> System Val -> Val -> System Val -> Bool
+isNeutralU i eqs u0 ts = (eps `notMember` eqsi0 && isNeutral u0) ||
+  any (\(alpha,talpha) ->
+           eps `notMember` (eqs `face` alpha) && isNeutral talpha)
+    (assocs ts)
+  where eqsi0 = eqs `face` (i ~> 0)
 
 -- Extend the system ts to a total element in b given q : isContr b
 extend :: Val -> Val -> System Val -> Val

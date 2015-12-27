@@ -76,6 +76,14 @@ transEquiv (A B:U) (p:Id U A B) : equiv A B = (f,p)
     <i>(lem5 y z.1 z.2@i,lem7 y z.1 z.2@i)
   p (y:B) : isContr (fiber A B f y) = (lem8 y,lem9 y)
 
+lemSinglContr (A:U) (a:A) : isContr ((x:A) * Id A a x) =
+ ((a,refl A a),\ (z:(x:A) * Id A a x) -> contrSingl A a z.1 z.2)
+
+idEquiv (A:U) : equiv A A =  (\ (x:A) -> x, lemSinglContr A)
+
+transEquiv (A X:U) (p:Id U A X) : equiv A X = 
+ substTrans U (equiv A) A X p (idEquiv A)
+
 transDelta (A:U) : equiv A A = transEquiv A A (<i>A)
 
 transEquivToId (A B : U) (w : equiv A B) : Id U A B =
@@ -94,13 +102,16 @@ eqToEq (A B : U) (p : Id U A B)
            , (i = 1) -> (B,f)
            , (j = 1) -> (p@i,g)]
 
-test (A B : U) (w : equiv A B) : A -> B = trans A B (transEquivToId A B w)
+test (A B : U) (w : equiv A B) (x:A) : B = (transEquiv A B (transEquivToId A B w)).1 x
 
 transIdFun (A B : U) (w : equiv A B)
-  : Id (A -> B) w.1 (trans A B (transEquivToId A B w)) =
+  : Id (A -> B) w.1 (transEquiv A B (transEquivToId A B w)).1 =
  <i> \ (a:A) -> 
    let b : B = w.1 a
-   in comp (<j> B) (comp (<j> B) (comp (<j> B) b [(i=0)-><j>b]) [(i=0)-><j>b]) [(i=0)-><j>b]
+       u : A = comp (<j>A) a []
+       q : Id B (w.1 u) b = <i>w.1 (comp (<j>A) a [(i=1) -> <j>a])
+   in comp (<j> B) 
+        (comp (<j> B) (comp (<j> B) (comp (<j> B) (w.1 u) [(i=0)->q]) [(i=0)-><_>b]) [(i=0)-><_>b]) [(i=0)-><_>b]
 
 idToId (A B : U) (w : equiv A B)
   : Id (equiv A B) (transEquiv A B (transEquivToId A B w)) w
@@ -165,6 +176,7 @@ transEquivIsEquiv (A B : U)
   : isEquiv (Id U A B) (equiv A B) (transEquiv A B)
   = gradLemma (Id U A B) (equiv A B) (transEquiv A B)
       (transEquivToId A B) (idToId A B) (eqToEq A B)
+
 
 
 

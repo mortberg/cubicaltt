@@ -238,12 +238,6 @@ injective (A B : U) (f : A -> B) : U =
 and (A B : U) : U = (_ : A) * B
 
 
--- isoId (A B : U) (f : A -> B) (g : B -> A)
---       (s : (y : B) -> Id B (f (g y)) y)
---       (t : (x : A) -> Id A (g (f x)) x) : Id U A B =
---       <i> glue B [ (i = 0) -> (A,f,g,s,t)
---                  , (i = 1) -> (B,idfun B,idfun B,refl B,refl B) ]
-
 fiber (A B : U) (f : A -> B) (y : B) : U =
   (x : A) * Id B y (f x)
 
@@ -258,3 +252,70 @@ idIsEquiv (A : U) : isEquiv A A (idfun A) =
 
 equivId (T A : U) (f : T -> A) (p : isEquiv T A f) : Id U T A =
   <i> glue A [ (i=0) -> (T,f,p), (i=1) -> (A,idfun A, idIsEquiv A)]
+
+
+
+---  isoId
+
+lemIso (A B : U) (f : A -> B) (g : B -> A)
+       (s : (y : B) -> Id B (f (g y)) y)
+       (t : (x : A) -> Id A (g (f x)) x)
+       (y : B) (x0 x1 : A) (p0 : Id B y (f x0)) (p1 : Id B y (f x1)) :
+       Id (fiber A B f y) (x0,p0) (x1,p1) = <i> (p @ i,sq1 @ i)
+  where
+    rem0 : Id A (g y) x0 =
+      <i> comp (<_> A) (g (p0 @ i)) [ (i = 1) -> t x0, (i = 0) -> <_> g y ]
+
+    rem1 : Id A (g y) x1 =
+      <i> comp (<_> A) (g (p1 @ i)) [ (i = 1) -> t x1, (i = 0) -> <_> g y ]
+
+    p : Id A x0 x1 =
+     <i> comp (<_> A) (g y) [ (i = 0) -> rem0
+                            , (i = 1) -> rem1 ]
+
+    fill0 : Square A (g y) (g (f x0)) (g y) x0
+                     (<i> g (p0 @ i)) rem0 (<i> g y) (t x0)  =
+      <i j> comp (<_> A) (g (p0 @ i)) [ (i = 1) -> <k> t x0 @ j /\ k
+                                      , (i = 0) -> <_> g y
+                                      , (j = 0) -> <_> g (p0 @ i) ]
+
+    fill1 : Square A (g y) (g (f x1)) (g y) x1
+                     (<i> g (p1 @ i)) rem1 (<i> g y) (t x1) =
+      <i j> comp (<_> A) (g (p1 @ i)) [ (i = 1) -> <k> t x1 @ j /\ k
+                                      , (i = 0) -> <_> g y
+                                      , (j = 0) -> <_> g (p1 @ i) ]
+
+    fill2 : Square A (g y) (g y) x0 x1 
+                     (<_> g y) p rem0 rem1 =
+      <i j> comp (<_> A) (g y) [ (i = 0) -> <k> rem0 @ j /\ k
+                               , (i = 1) -> <k> rem1 @ j /\ k
+                               , (j = 0) -> <_> g y ]
+
+    sq : Square A (g y) (g y) (g (f x0)) (g (f x1)) 
+                  (<i> g y) (<i> g (f (p @ i))) 
+                  (<j> g (p0 @ j)) (<j> g (p1 @ j)) =
+      <i j> comp (<_> A) (fill2 @ i @ j) [ (i = 0) -> <k> fill0 @ j @ -k
+                                         , (i = 1) -> <k> fill1 @ j @ -k
+                                         , (j = 0) -> <_> g y
+                                         , (j = 1) -> <k> t (p @ i) @ -k ]
+
+    sq1 : Square B y y (f x0) (f x1) 
+                   (<_>y) (<i> f (p @ i)) p0 p1 =
+      <i j> comp (<_> B) (f (sq @ i @j)) [ (i = 0) -> s (p0 @ j)
+                                         , (i = 1) -> s (p1 @ j)
+                                         , (j = 1) -> s (f (p @ i))
+                                         , (j = 0) -> s y ]
+
+gradLemma (A B : U) (f : A -> B) (g : B -> A)
+       (s : (y : B) -> Id B (f (g y)) y)
+       (t : (x : A) -> Id A (g (f x)) x) : isEquiv A B f = 
+ \ (y:B) -> ((g y,<i>s y@-i),\ (z:fiber A B f y) -> lemIso A B f g s t y (g y) z.1 (<i>s y@-i) z.2)
+
+
+
+isoId (A B : U) (f : A -> B) (g : B -> A)
+      (s : (y : B) -> Id B (f (g y)) y)
+      (t : (x : A) -> Id A (g (f x)) x) : Id U A B =
+       <i> glue B [ (i = 0) -> (A,f,gradLemma A B f g s t)
+                  , (i = 1) -> (B,idfun B,idIsEquiv B) ]
+

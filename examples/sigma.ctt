@@ -31,12 +31,6 @@ funDepTr (A:U) (P:A->U) (a0 a1 :A) (p:Id A a0 a1) (u0:P a0) (u1:P a1) :
              Id U (IdP (<i> P (p@i)) u0 u1) (Id (P a1) (transport (<i> P (p@i)) u0) u1) =
  <j>IdP (<i>P (p@j\/i)) (comp (<i>P (p@j/\i)) u0 [(j=0)-><_>u0]) u1
 
-funDepTr (A0:U) : (A1:U) (P:Id U A0 A1) (u0:A0) (u1:A1) ->
-             Id U (IdP P u0 u1) (Id A1 (transport P u0) u1) =
- J U A0 (\ (A1:U) (P:Id U A0 A1) -> (u0:A0) (u1:A1) -> Id U (IdP P u0 u1) (Id A1 (transport P u0) u1)) rem
- where rem (u0 u1:A0) : Id U (Id A0 u0 u1) (Id A0 (transport (<_>A0) u0) u1) =
-         <i>Id A0 (lemTransp A0 u0@i) u1
-
 lem2 (A:U) (B:A-> U) (t u : sig A B) (p:Id A t.1 u.1) : 
   Id U  (IdP (<i>B (p@i)) t.2 u.2) (Id (B u.1) (transport (<i>B (p@i)) t.2) u.2) =
     funDepTr (B t.1) (B u.1) P t.2 u.2

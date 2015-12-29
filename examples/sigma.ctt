@@ -33,10 +33,7 @@ funDepTr (A:U) (P:A->U) (a0 a1 :A) (p:Id A a0 a1) (u0:P a0) (u1:P a1) :
 
 lem2 (A:U) (B:A-> U) (t u : sig A B) (p:Id A t.1 u.1) : 
   Id U  (IdP (<i>B (p@i)) t.2 u.2) (Id (B u.1) (transport (<i>B (p@i)) t.2) u.2) =
-    funDepTr (B t.1) (B u.1) P t.2 u.2
- where P : Id U (B t.1) (B u.1) = <i>B (p@i)
-       T0 : U = IdP P t.2 u.2
-       T1 : U = Id (B u.1) (transport P t.2) u.2
+    funDepTr A B t.1 u.1 p  t.2 u.2
 
 corSigProp (A:U) (B:A-> U) (pB : (x:A) -> prop (B x)) (t u : sig A B) (p:Id A t.1 u.1) : 
   prop (IdP (<i>B (p@i)) t.2 u.2) = substInv U prop T0 T1 rem rem1
@@ -93,7 +90,7 @@ lem3 (A:U) (B:A-> U) (pB : (x:A) -> prop (B x)) (t u : sig A B) (p:Id A t.1 u.1)
  where P : Id U (B t.1) (B u.1) = <i>B (p@i)
        T0 : U = IdP P t.2 u.2
        T1 : U = Id (B u.1) (transport P t.2) u.2
-       rem : Id U T0 T1 = funDepTr (B t.1) (B u.1) P t.2 u.2 -- lem2 A B t u p -- 
+       rem : Id U T0 T1 = lem2 A B t u p 
        v2 : B u.1 = transport P t.2
        rem1 : prop T1 = propSet (B u.1) (pB u.1) v2 u.2
        rem2 : T0 = transport (<i>rem@-i) (pB u.1 v2 u.2)

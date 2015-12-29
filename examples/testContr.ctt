@@ -77,7 +77,6 @@ equivFunFib (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (cB : isContr (sig A B)
                          (retFunFib A B C f x z)
                          (isEquivContr (sig A B) (sig A C) cB cC (totalFun A B C f) (x,z))
 
-
 lemSinglContr (A:U) (a:A) : isContr ((x:A) * Id A a x) =
  ((a,refl A a),\ (z:(x:A) * Id A a x) -> contrSingl A a z.1 z.2)
 

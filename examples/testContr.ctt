@@ -143,6 +143,8 @@ univalence (A X:U) : isEquiv (Id U X A) (equiv X A) (lem2 A X) = thmUniv lem2 A 
 corrUniv (A X:U) : Id U (Id U X A) (equiv X A) = 
  equivId  (Id U X A) (equiv X A) (lem2 A X) (univalence A X)
 
+corrUniv' (A B : U) : equiv (Id U A B) (equiv A B) = (lem2 B A,univalence B A)
+
 testUniv1 (A:U) : Id U A A = trans (equiv A A) (Id U A A) (<i>corrUniv A A@-i) (idEquiv A)
 
 -- obtained by normal form

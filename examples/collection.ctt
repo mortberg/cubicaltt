@@ -2,8 +2,22 @@ module collection where
 
 import sigma
 import pi
-import univalence
-import retract
+import testContr
+
+propIsContr (A:U) (z0 z1:isContr A) : Id (isContr A) z0 z1 =
+ <j>(p0 a1@j,
+     \ (x:A) -> 
+        <i>comp (<_>A) (lem1 x@i@j) [ (i=0) -> <k>p0 a1@j, (i=1) -> <k>p0 x@(j\/k),
+                                      (j=0) -> <k>p0 x@(i/\k), (j=1) -> <k>p1 x@i ])
+ where
+  a0 : A = z0.1
+  p0 : (x:A) -> Id A a0 x = z0.2
+  a1 : A = z1.1
+  p1 : (x:A) -> Id A a1 x = z1.2
+  lem1 (x:A) : IdP (<i>Id A a0 (p1 x@i)) (p0 a1) (p0 x) = <i j> p0 (p1 x@i) @ j
+ 
+propIsEquiv (A B : U) (f : A -> B)
+  : prop (isEquiv A B f) = \ (u0 u1:isEquiv A B f) -> <i> \ (y:B) -> propIsContr (fiber A B f y) (u0 y) (u1 y) @ i
 
 setFun (A B:U) (sB: set B) : set (A -> B) = setPi A (\ (x:A) -> B) (\ (x:A) -> sB)
 
@@ -19,7 +33,7 @@ lem5 (A B : U) (gB:groupoid B) (t u:equiv A B) : set (Id (equiv A B) t u)
  = substInv U set  (Id (equiv A B) t u) (Id (A -> B) t.1 u.1) (lem3 A B t u) (groupoidFun A B gB t.1 u.1)
 
 lem6 (A B : U) (sB : set B) : set (Id U A B) = 
- substInv U set (Id U A B)  (equiv A B) (univalence1 A B) (lem4 A B sB)
+ substInv U set (Id U A B)  (equiv A B) (corrUniv B A) (lem4 A B sB)
 
 -- the collection of all sets
 

@@ -9,7 +9,7 @@ isContr (A:U) : U = (a:A) * ((x:A) -> Id A a x)
 
 propIsContr (A:U) (z0 z1:isContr A) : Id (isContr A) z0 z1 =
  <j>(p0 a1@j,
-     \ (x:A) -> 
+     \ (x:A) ->
         <i>comp (<_>A) (lem1 x@i@j) [ (i=0) -> <k>p0 a1@j, (i=1) -> <k>p0 x@(j\/k),
                                       (j=0) -> <k>p0 x@(i/\k), (j=1) -> <k>p1 x@i ])
  where
@@ -18,7 +18,7 @@ propIsContr (A:U) (z0 z1:isContr A) : Id (isContr A) z0 z1 =
   a1 : A = z1.1
   p1 : (x:A) -> Id A a1 x = z1.2
   lem1 (x:A) : IdP (<i>Id A a0 (p1 x@i)) (p0 a1) (p0 x) = <i j> p0 (p1 x@i) @ j
- 
+
 isEquiv (A B : U) (f : A -> B) : U = (y:B) -> isContr (fiber A B f y)
 
 equiv (A B : U) : U = (f : A -> B) * isEquiv A B f
@@ -26,7 +26,7 @@ equiv (A B : U) : U = (f : A -> B) * isEquiv A B f
 propIsEquiv (A B : U) (f : A -> B)
   : prop (isEquiv A B f) = \ (u0 u1:isEquiv A B f) -> <i> \ (y:B) -> propIsContr (fiber A B f y) (u0 y) (u1 y) @ i
 
-lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a0 a1 :A) 
+lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a0 a1 :A)
          (p : Id A a0 a1) (b0 : P a0) (b1 : P a1) : IdP (<i>P (p@i)) b0 b1 =
  <i>pP (p@i) (comp (<j>P (p@i/\j)) b0 [(i=0) -> <_>b0]) (comp (<j>P (p@i\/-j)) b1 [(i=1) -> <_>b1])@i
 
@@ -54,7 +54,7 @@ retEq (A B:U) (w:equiv A B) (y:B) : Id B (w.1 (invEq A B w y)) y =
 secEq (A B:U) (w:equiv A B) (x:A) : Id A (invEq A B w (w.1 x)) x =
  <i> ((w.2 (w.1 x)).2 (x,<j>w.1 x)@i).1
 
--- transDelta (A:U) : equiv A A = 
+-- transDelta (A:U) : equiv A A =
 
 transEquiv (A B:U) (p:Id U A B) : equiv A B = (f,p)
  where
@@ -65,22 +65,30 @@ transEquiv (A B:U) (p:Id U A B) : equiv A B = (f,p)
   lem3 (y:B) : Id B y (f (g y)) = <i>comp p (g y) [(i=0) -> lem2 y,(i=1) -> lem1 (g y)]
   lem4 (y:B) : IdP (<i>Id (p@i) (lem2 y@i) (lem1 (g y)@i)) (<j>g y) (lem3 y) =
     <j i>fill p (g y) [(i=0) -> lem2 y,(i=1) -> lem1 (g y)] @ j
-  lem5 (y:B) (x:A) (q:Id B y (f x)) : Id A (g y) x = 
+  lem5 (y:B) (x:A) (q:Id B y (f x)) : Id A (g y) x =
     <i>comp (<j>p@-j) (q@i) [(i=0) -> <j>lem2 y@-j,(i=1) -> <j>lem1 x@-j]
   lem6 (y:B) (x:A) (q:Id B y (f x)) : IdP (<i>Id (p@i) (lem2 y@i) (lem1 x@i)) (lem5 y x q) q =
     <j i>fill (<j>p@-j) (q@i) [(i=0) -> <k>lem2 y@-k,(i=1) -> <k>lem1 x@-k] @ -j
-  lem7 (y:B) (x:A) (q:Id B y (f x)) : IdP (<i>Id B y (f (lem5 y x q@i))) (lem3 y) q = 
+  lem7 (y:B) (x:A) (q:Id B y (f x)) : IdP (<i>Id B y (f (lem5 y x q@i))) (lem3 y) q =
     <j i>comp p (lem5 y x q@i/\j) [(i=0) -> lem2 y, (i=1) -> lem1 (lem5 y x q@j),(j=0) -> <k>lem4 y@k@i,(j=1) -> <k>lem6 y x q@k@i]
   lem8 (y:B) : fiber A B f y = (g y,lem3 y)
   lem9 (y:B) (z:fiber A B f y) : Id (fiber A B f y) (lem8 y) z =
     <i>(lem5 y z.1 z.2@i,lem7 y z.1 z.2@i)
   p (y:B) : isContr (fiber A B f y) = (lem8 y,lem9 y)
 
+lemSinglContr (A:U) (a:A) : isContr ((x:A) * Id A a x) =
+ ((a,refl A a),\ (z:(x:A) * Id A a x) -> contrSingl A a z.1 z.2)
+
+idEquiv (A:U) : equiv A A =  (\ (x:A) -> x, lemSinglContr A)
+
+transEquiv (A X:U) (p:Id U A X) : equiv A X =
+ substTrans U (equiv A) A X p (idEquiv A)
+
 transDelta (A:U) : equiv A A = transEquiv A A (<i>A)
 
 transEquivToId (A B : U) (w : equiv A B) : Id U A B =
-  <i> glue B [ (i = 1) -> (B,eB.1,invEq B B eB,retEq B B eB,secEq B B eB)
-             , (i = 0) -> (A,w.1,invEq A B w,retEq A B w,secEq A B w) ]
+  <i> glue B [ (i = 1) -> (B,eB)
+             , (i = 0) -> (A,w) ]
  where eB : equiv B B = transDelta B
 
 eqToEq (A B : U) (p : Id U A B)
@@ -90,15 +98,20 @@ eqToEq (A B : U) (p : Id U A B)
               Ai : U = p@i
               g : equiv Ai B = transEquiv Ai B (<k> p @ (i \/ k))
           in glue B
-           [ (i = 0) -> (A,e.1,invEq A B e,retEq A B e,secEq A B e)
-           , (i = 1) -> (B,f.1,invEq B B f,retEq B B f,secEq B B f)
-           , (j = 1) -> (p@i,g.1,invEq Ai B g,retEq Ai B g,secEq Ai B g) ]
+           [ (i = 0) -> (A,e)
+           , (i = 1) -> (B,f)
+           , (j = 1) -> (p@i,g)]
+
+test (A B : U) (w : equiv A B) (x:A) : B = (transEquiv A B (transEquivToId A B w)).1 x
 
 transIdFun (A B : U) (w : equiv A B)
-  : Id (A -> B) w.1 (trans A B (transEquivToId A B w)) =
- <i> \ (a:A) -> 
+  : Id (A -> B) w.1 (transEquiv A B (transEquivToId A B w)).1 =
+ <i> \ (a:A) ->
    let b : B = w.1 a
-   in comp (<j> B) (comp (<j> B) (comp (<j> B) (comp (<j> B) b [(i=0)-><j>b]) [(i=0)-><j>b]) [(i=0)-><j>b]) [(i=0)-><j>b]
+       u : A = comp (<j>A) a []
+       q : Id B (w.1 u) b = <i>w.1 (comp (<j>A) a [(i=1) -> <j>a])
+   in comp (<j> B)
+        (comp (<j> B) (comp (<j> B) (comp (<j> B) (w.1 u) [(i=0)->q]) [(i=0)-><_>b]) [(i=0)-><_>b]) [(i=0)-><_>b]
 
 idToId (A B : U) (w : equiv A B)
   : Id (equiv A B) (transEquiv A B (transEquivToId A B w)) w
@@ -133,21 +146,21 @@ lemIso (A B : U) (f : A -> B) (g : B -> A)
                                       , (i = 0) -> <_> g y
                                       , (j = 0) -> <_> g (p1 @ i) ]
 
-    fill2 : Square A (g y) (g y) x0 x1 
+    fill2 : Square A (g y) (g y) x0 x1
                      (<_> g y) p rem0 rem1 =
       <i j> comp (<_> A) (g y) [ (i = 0) -> <k> rem0 @ j /\ k
                                , (i = 1) -> <k> rem1 @ j /\ k
                                , (j = 0) -> <_> g y ]
 
-    sq : Square A (g y) (g y) (g (f x0)) (g (f x1)) 
-                  (<i> g y) (<i> g (f (p @ i))) 
+    sq : Square A (g y) (g y) (g (f x0)) (g (f x1))
+                  (<i> g y) (<i> g (f (p @ i)))
                   (<j> g (p0 @ j)) (<j> g (p1 @ j)) =
       <i j> comp (<_> A) (fill2 @ i @ j) [ (i = 0) -> <k> fill0 @ j @ -k
                                          , (i = 1) -> <k> fill1 @ j @ -k
                                          , (j = 0) -> <_> g y
                                          , (j = 1) -> <k> t (p @ i) @ -k ]
 
-    sq1 : Square B y y (f x0) (f x1) 
+    sq1 : Square B y y (f x0) (f x1)
                    (<_>y) (<i> f (p @ i)) p0 p1 =
       <i j> comp (<_> B) (f (sq @ i @j)) [ (i = 0) -> s (p0 @ j)
                                          , (i = 1) -> s (p1 @ j)
@@ -156,13 +169,10 @@ lemIso (A B : U) (f : A -> B) (g : B -> A)
 
 gradLemma (A B : U) (f : A -> B) (g : B -> A)
        (s : (y : B) -> Id B (f (g y)) y)
-       (t : (x : A) -> Id A (g (f x)) x) : isEquiv A B f = 
+       (t : (x : A) -> Id A (g (f x)) x) : isEquiv A B f =
  \ (y:B) -> ((g y,<i>s y@-i),\ (z:fiber A B f y) -> lemIso A B f g s t y (g y) z.1 (<i>s y@-i) z.2)
 
 transEquivIsEquiv (A B : U)
   : isEquiv (Id U A B) (equiv A B) (transEquiv A B)
   = gradLemma (Id U A B) (equiv A B) (transEquiv A B)
       (transEquivToId A B) (idToId A B) (eqToEq A B)
-
-
-

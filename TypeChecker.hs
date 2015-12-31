@@ -263,17 +263,17 @@ checkGlueElem vu ts us = do
     (throwError ("Keys don't match in " ++ show ts ++ " and " ++ show us))
   rho <- asks env
   checkSystemsWith ts us
-    (\alpha vt u -> local (faceEnv alpha) $ check (isoDom vt) u)
+    (\alpha vt u -> local (faceEnv alpha) $ check (equivDom vt) u)
   let vus = evalSystem rho us
   checkSystemsWith ts vus (\alpha vt vAlpha ->
-    unlessM (app (isoFun vt) vAlpha === (vu `face` alpha)) $
+    unlessM (app (equivFun vt) vAlpha === (vu `face` alpha)) $
       throwError $ "Image of glueElem component " ++ show vAlpha ++
                    " doesn't match " ++ show vu)
   checkCompSystem vus
 
 checkGlue :: Val -> System Ter -> Typing ()
 checkGlue va ts = do
-  checkSystemWith ts (\alpha tAlpha -> checkIso (va `face` alpha) tAlpha)
+  checkSystemWith ts (\alpha tAlpha -> checkEquiv (va `face` alpha) tAlpha)
   rho <- asks env
   checkCompSystem (evalSystem rho ts)
 
@@ -293,8 +293,25 @@ mkIso vb = eval rho $
   where [a,b,f,g,x,y] = map Var ["a","b","f","g","x","y"]
         rho = upd ("b",vb) emptyEnv
 
-checkIso :: Val -> Ter -> Typing ()
-checkIso vb iso = check (mkIso vb) iso
+-- An equivalence for a type a is a triple (t,f,p) where
+-- t : U
+-- f : t -> a
+-- p : (x : a) -> isContr ((y:t) * Id a x (f y))
+-- with isContr c = (z : c) * ((z' : C) -> Id c z z')
+mkEquiv :: Val -> Val
+mkEquiv va = eval rho $
+  Sigma $ Lam "t" U $
+  Sigma $ Lam "f" (Pi (Lam "_" t a)) $
+  Pi (Lam "x" a $ iscontrfib)
+  where [a,b,f,x,y,s,t,z] = map Var ["a","b","f","x","y","s","t","z"]
+        rho = upd ("a",va) emptyEnv
+        fib = Sigma $ Lam "y" t (IdP (Path (Name "_") a) x (App f y))
+        iscontrfib = Sigma $ Lam "s" fib $
+                     Pi $ Lam "z" fib $ IdP (Path (Name "_") fib) s z
+
+checkEquiv :: Val -> Ter -> Typing ()
+checkEquiv va equiv = check (mkEquiv va) equiv
+
 
 checkBranch :: (Label,Env) -> Val -> Branch -> Val -> Val -> Typing ()
 checkBranch (OLabel _ tele,nu) f (OBranch c ns e) _ _ = do
@@ -400,6 +417,11 @@ infer e = case e of
   Where t d -> do
     checkDecls d
     local (addDecls d) $ infer t
+  UnGlueElem e _ -> do
+    t <- infer e
+    case t of
+     VGlue a _ -> return a
+     _ -> throwError (show t ++ " is not a Glue")
   AppFormula e phi -> do
     checkFormula phi
     t <- infer e

@@ -1,0 +1,23 @@
+module hz where
+
+import nat
+import setquot
+
+-- shorthand for nat x nat
+nat2 : U = and nat nat
+
+rel : eqrel nat2 = (r,rem)
+  where
+  r : hrel nat2) = \(x y : nat2) -> 
+    (Id nat (add x.1 y.2) (add x.2 y.1),natSet (add x.1 y.2) (add x.2 y.1))
+    
+  rem : iseqrel nat2 r = ((rem1,refl nat2),rem2)
+   where
+   rem1 : istrans nat2 r = undefined
+   rem2 : issymm nat2 r = undefined
+
+hz : U = setquot nat2 rel
+zeroz : hz = setquotpr nat2 rel (zero,zero)
+onez : hz = setquotpr nat2 rel (one,zero)
+
+test : neg (Id hz zeroz onez) = undefined

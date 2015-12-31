@@ -107,6 +107,10 @@ lemSimpl (A : U) (a b c : A) (p : Id A a b) (q q' : Id A b c)
            , (k = 0)  -> p
            , (k = 1)  -> s @ j ]
 
+IdPathTest1 (A : U) (a b : A) (p : Id A a b) :
+  Id (Id A a b) p (<i> comp (<_> A) (p @ i) [(i=0) -> <_> a,(i=1) -> <_> b]) = 
+  <j i> fill (<_> A) (p @ i) [(i=0) -> <_> a,(i=1) -> <_> b] @ j
+
 idfun (A : U) (a : A) : A = a
 
 --         u
@@ -237,6 +241,8 @@ injective (A B : U) (f : A -> B) : U =
 
 and (A B : U) : U = (_ : A) * B
 
+propAnd (A B : U) (pA : prop A) (pB : prop B) : prop (and A B) =
+  propSig A (\(_ : A) -> B) pA (\(_ : A) -> pB)
 
 fiber (A B : U) (f : A -> B) (y : B) : U =
   (x : A) * Id B y (f x)

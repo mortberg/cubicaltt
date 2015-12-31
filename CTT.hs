@@ -148,10 +148,8 @@ data Val = VU
          | VGlueElem Val (System Val)
          | VUnGlueElem Val (System Val)
 
-           -- Composition in the universe (for now)
+           -- Composition in the universe
          | VCompU Val (System Val)
-
-
 
            -- Composition for HITs; the type is constant
          | VHComp Val Val (System Val)

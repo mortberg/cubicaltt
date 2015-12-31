@@ -11,7 +11,7 @@ Experimental implementation of a type theory in which the user can
 directly manipulate n-dimensional cubes. It is based on a model of
 type theory in cubical sets with connections. The goal is to have a
 type theory with well behaved identity types and to give a
-computational interpretation of notions from HoTT/UF, in particular
+computational interpretation of notions from UF/HoTT, in particular
 the univalence axiom and higher inductive types.
 
 The system is based on Mini-TT: "A simple type-theoretic language:
@@ -29,7 +29,6 @@ types. cubiclaltt extends Mini-TT with:
 
 Try it:  https://github.com/mortberg/cubicaltt
 
-Note: At the moment one should use the no_regular branch.
 
 -}
 
@@ -47,7 +46,6 @@ data bool = false
 not : bool -> bool = split
   false -> true
   true  -> false
-
 
 {-
                 Identity types, names and formulas
@@ -75,7 +73,6 @@ Id (A : U) (a b : A) : U = IdP (<i> A) a b
 
 -- "<i>" abstracts the name/color/dimension i:
 refl (A : U) (a : A) : Id A a a = <i> a
-
 
 {-
 
@@ -116,7 +113,7 @@ cong (A B : U) (f : A -> B) (a b : A) (p : Id A a b) : Id B (f a) (f b) =
 -- This also gives a short proof of function extensionality:
 funExt (A : U) (B : A -> U) (f g : (x : A) -> B x)
        (p : (x : A) -> Id (B x) (f x) (g x)) : Id ((y : A) -> B y) f g =
-  <i> \(a : A) -> (p a) @ i
+  <i> \(x : A) -> (p x) @ i
 
 {-
 
@@ -224,13 +221,32 @@ testConj (A : U) (a b : A) (p : Id A a b) : Id A a a = <i> p @ i /\ -i
 testDisj (A : U) (a b : A) (p : Id A a b) : Id A b b = <i> p @ i \/ -i
 
 
+
+{-
+
+So far we have: MLTT + Id, <i>, @, i/\j...
+
+We can prove that singletons are contractible. But, we don't have
+transport:
+
+transportf (A : U) (P : A -> U) (a b : A) (p : Id A a b) : P a -> P b
+
+Which is what is needed to get J as:
+
+   J = contr. singl. + transport
+
+In order to get this (and a lot more) we consider compositions.
+
+-}
+
+
+
+
+
+
 {-
                           Compositions
 ------------------------------------------------------------------------
-
-Given a cube, we form a new cube by replacing some faces along
-equalities. This can be seen a generalization of composition of
-relations.
 
 The comp operation takes a line in the universe, a principal side and
 a system describing the rest of the shape, and produces the missing
@@ -239,12 +255,13 @@ side (opposite of the principal side).
 
 Transitivity of Id is obtained from a composition of this open square:
 
+i : I, j : I |-
 
           a - - - - - - - - > c
           ^                   ^
           |                   |
           |                   |
-    <j> a |                   | q
+ (<_> a)@j|                   | q @ j
           |                   |
           |                   |
           |                   |
@@ -252,15 +269,19 @@ Transitivity of Id is obtained from a composition of this open square:
                  p @ i
 
 The composition computes the dashed line at the top of the square.
+ ( <i>(<_>a)@i ) = (<j> (<_>a)@j) : Id (Id A a a) (<i> a) (<j> a)
 
+p = <i> p @ i
+
+i : I |- (<_>a) @i
+|- <i> (<_> a) @ i
+|- <_> a
 -}
-trans (A : U) (a b c : A) (p : Id A a b) (q : Id A b c) : Id A a c =
-  <i> comp (<_> A) (p @ i) [ (i = 0) -> <j> a, (i = 1) -> q ]
 
--- "Kan composition":
-kan (A : U) (a b c d : A) (p : Id A a b)
-    (q : Id A a c) (r : Id A b d) : Id A c d =
-  <i> comp (<_> A) (p @ i) [ (i = 0) -> q, (i = 1) -> r ]
+
+pathscomp0 (A : U) (a b c : A) (p : Id A a b) (q : Id A b c) : Id A a c =
+  <i> comp (<_> A) (p @ i) [ (i = 0) -> <_> a
+                           , (i = 1) -> q ]
 
 
 -- The first two nonzero h-levels are propositions and sets:
@@ -310,6 +331,26 @@ constSquare (A : U) (a : A) (p : Id A a a) : Square A a a a a p p p p =
 
 
 
+-- The first argument to comp is a line in the universe. So far we
+-- have only considered constant lines..
+
+-- "Kan composition":
+kan (A : U) (a b c d : A) (p : Id A a b)
+    (q : Id A a c) (r : Id A b d) : Id A c d =
+  <i> comp (<_> A) (p @ i) [ (i = 0) -> q, (i = 1) -> r ]
+
+-- Generalized Kan composition:
+kan' (A B : U) (P : Id U A B) (a b : A) (c d : B) (p : Id A a b)
+     (q : IdP P a c) (r : IdP P b d) : Id B c d =
+  <i> comp P (p @ i) [ (i = 0) -> q, (i = 1) -> r ]
+
+kan'' (A : U) (a b c d : A) (p : Id A a b)
+      (q : Id A a c) (r : Id A b d) : Id A c d =
+      kan' A A (<_> A) a b c d p q r
+
+
+
+
 -- Names and compisitions provides a convenient way for reasoning with
 -- equalities:
 
@@ -338,6 +379,8 @@ addAssoc (a b : nat) : (c : nat) -> Id nat (add a (add b c)) (add (add a b) c) =
   suc c' -> <i> suc (addAssoc a b c' @ i)
 
 
+
+
 {-
                           Transport
 --------------------------------------------------------------------------
@@ -347,15 +390,22 @@ function from A to B:
 
   transport : Id U A B -> A -> B
 
-It is defined internally as a composition with an empty cube/system.
-
 -}
 
--- This gives a simple proof of subst:
+-- This gives a simple proof of subst (called transportf above and in
+-- UniMath):
 subst (A : U) (P : A -> U) (a b : A) (p : Id A a b) (e : P a) : P b =
-  transport (cong A U P a b p) e
+  transport (maponpaths A U P a b p) e
 
--- Combined with the fact that singletons are contractible this gives
+
+-- Transport is defined in the Haskell code as a composition with an
+-- empty cube/system. It can also be directly defined as:
+trans (A B : U) (p : Id U A B) (a : A) : B = comp p a []
+
+-- However these are not exactly the same because the lack of implicit
+-- arguments.
+
+-- subst with the fact that singletons are contractible this gives
 -- the J eliminator:
 J (A : U) (a : A) (C : (x : A) -> Id A a x -> U)
   (d : C a (refl A a)) (x : A) (p : Id A a x) : C x p =
@@ -371,26 +421,66 @@ J (A : U) (a : A) (C : (x : A) -> Id A a x -> U)
 -- defEqJ (A : U) (a : A) (C : (x : A) -> Id A a x -> U) (d : C a (refl A a)) :
 --        Id (C a (refl A a)) (J A a C d a (refl A a)) d = refl (C a (refl A a)) d
 
+-- We can get the equality between a and the transport of a by filling:
+transFill (A : U) (a : A) : Id A a (transport (<_> A) a) =
+  fill (<_> A) a []
+
+
 -- This might not be too bad though. Nils-Anders Danielsson has
 -- verified in Agda that many of the consequences of univalence can be
 -- developed without defEqJ.
+
+
+-- We used to have a system where defEqJ was definitional, however it
+-- relied on a condition called "regularity" which Dan Licata showed to
+-- not hold for the universe (at least for the way we define
+-- composition in the universe).
+
+-- A "strange" term showing what happens without regularity
+-- strange (A : U) (a b c : A) (p : Id A a b) (q : Id A b c) :
+--   Id A (comp (<_> A) a []) c =
+--     <i> comp (<_> A) (p @ i) [ (i = 1) -> q ]
+
+
+
+-- It seems like we can recover a new Id type with the correct
+-- definitional equalities using ideas from awfs of Andrew
+-- Swan... Simon has implemented this in the branch "defeq".
+
+
+
+
+
+
+
+
+
+{-
+
+So far we have: MLTT + Id, <i>, @, i/\j, compositions, transport
+
+With all of this we get J, but so far without def. eq.
+
+We also want univalence and HITs.
+
+-}
+
+
+
+
 
 
 {-
                           Glueing
 --------------------------------------------------------------------------
 
-The univalence axiom says that equivalent (written as ~) types are
-equal:
-
-       (A = B)  ~  (A ~ B)
-
-Glueing is a weaker form of this for producing non-trivial equalities
-from isomorphisms. In particular glueing gives a map from Iso(A,B) to
-A = B. This weak form of univalence is useful for developing a lot of
-examples.
+Glueing is a alternative form of univalence for producing non-trivial
+equalities from isomorphisms. In particular glueing gives a map from
+Iso(A,B) to A = B. This alternative form of univalence is useful for
+developing a lot of examples.
 
 -}
+
 
 isoId (A B : U) (f : A -> B) (g : B -> A)
       (s : (y : B) -> Id B (f (g y)) y)
@@ -398,8 +488,7 @@ isoId (A B : U) (f : A -> B) (g : B -> A)
       <i> glue A [ (i = 0) -> (A,idfun A,idfun A,refl A,refl A)
                  , (i = 1) -> (B,g,f,t,s) ]
 
--- Note that we have to glue the identity isomorphism to (i = 0), this
--- is because lack of regularity. Compare with trans.
+
 
 
       ---------------------------------------------------------
@@ -416,6 +505,11 @@ notEq : Id U bool bool = isoId bool bool not not notK notK
 
 -- We can transport true along this non-trivial equality:
 testFalse : bool = transport notEq true
+
+
+
+
+
 
 
        ---------------------------------------------------
@@ -479,30 +573,19 @@ testOneZ : Z = transport sucIdZ zeroZ
 testNOneZ : Z = transport (<i> sucIdZ @ - i) zeroZ
 
 
-              -----------------------------------
-              -- Example: Equality in pi types --
-              -----------------------------------
+-- transport sucIdZ = sucZ ?
 
-pi (A : U) (P : A -> U) : U = (x : A) -> P x
 
--- Equality in pi types:
-idPi (A : U) (B : A -> U) (f g : pi A B) :
-  Id U (Id (pi A B) f g) ((x : A) -> Id (B x) (f x) (g x)) =
-    isoId  (Id (pi A B) f g) ((x : A) -> Id (B x) (f x) (g x)) F G S T
- where T0 : U = Id (pi A B) f g
-       T1 : U = (x : A) -> Id (B x) (f x) (g x)
-       F (p : T0) : T1                = \(x : A) -> <i> (p @ i) x
-       G (p : T1) : T0                = <i> \(x : A) -> (p x) @ i
-       S (p : T1) : Id T1 (F (G p)) p = <i> p
-       T (p : T0) : Id T0 (G (F p)) p = <i> p
 
--- If B is a family of sets then pi A B is a set:
-setPi (A : U) (B : A -> U) (h : (x : A) -> set (B x)) : set (pi A B) =
-  \(f g : pi A B) ->
-  let T : U = (x : A) -> Id (B x) (f x) (g x)
-      rem : prop T =
-        \(p q : T) -> <i> \(x : A) -> h x (f x) (g x) (p x) (q x) @ i
-  in subst U prop T (Id (pi A B) f g) (<i> idPi A B f g @ -i) rem
+
+-----------------------------------------------------------------
+-- Using glue we get a proof of univalence, see univalence.ctt --
+
+
+
+
+
+
 
 
 
@@ -515,59 +598,6 @@ generalize normal inductive types by allowing constructors that define
 (possibly higher) equalities.
 
 -}
-
-              ----------------------------------
-              -- Example: The circle as a HIT --
-              ----------------------------------
-
-data S1 = base
-        | loop <i> [ (i = 0) -> base, (i = 1) -> base]
-
-loopS1 : U = Id S1 base base
-
--- The loop constructor
-loop1 : loopS1 = <i> loop{S1} @ i
-
-invLoop : loopS1 = sym S1 base base loop1
-
-helix : S1 -> U = split
-  base     -> Z
-  loop @ i -> sucIdZ @ i
-
--- The winding number:
-winding (p : loopS1) : Z = transport (<i> helix (p @ i)) zeroZ
-
--- Loop composition:
-compS1 : loopS1 -> loopS1 -> loopS1 = trans S1 base base base
-
--- Some examples of winding numbers:
-loopZ1  : Z = winding loop1
-loopZ2  : Z = winding (compS1 loop1 loop1)
-loopZ3  : Z = winding (compS1 loop1 (compS1 loop1 loop1))
-loopZN1 : Z = winding invLoop
-loopZ0  : Z = winding (compS1 loop1 invLoop)
-
-mLoop : (x : S1) -> Id S1 x x = split
-  base     -> loop1
-  loop @ i -> constSquare S1 base loop1 @ i
-
--- Multiplication:
-mult (x : S1) : S1 -> S1 = split
-  base     -> x
-  loop @ i -> mLoop x @ i
-
--- Squaring:
-square (x : S1) : S1 = mult x x
-
-doubleLoop (l : loopS1) : loopS1 = <i> square (l @ i)
-
-loopZ4 : Z = winding (doubleLoop (compS1 loop1 loop1))
-loopZ8 : Z = winding (doubleLoop (doubleLoop (compS1 loop1 loop1)))
-
--- A nice example of a homotopy on the circle. The path going halfway
--- around the circle and then back is contractible:
-hmtpy : Id loopS1 (<i> base) (<i> loop{S1} @ (i /\ -i)) =
-  <j i> loop{S1} @ j /\ i /\ -i
 
 
            ------------------------------------
@@ -587,10 +617,11 @@ Solution: Define the integers as a HIT!
 
 data int = pos (n : nat)
          | neg (n : nat)
-         | zeroP <i> [ (i = 0) -> pos zero, (i = 1) -> neg zero ]
+         | zeroP <i> [ (i = 0) -> pos zero
+                     , (i = 1) -> neg zero ]
 
 -- Nice version of the zero constructor:
-zeroZ : Id int (pos zero) (neg zero) = <i> zeroP {int} @ i
+zeroPath : Id int (pos zero) (neg zero) = <i> zeroP {int} @ i
 
 sucInt : int -> int = split
   pos n -> pos (suc n)
@@ -620,16 +651,80 @@ fromZK : (a : int) -> Id int (fromZ (toZ a)) a = split
   pos n -> <i> pos n
   neg n -> rem n
     where rem : (n : nat) -> Id int (fromZ (toZ (neg n))) (neg n) = split
-      zero  -> zeroZ
+      zero  -> zeroPath
       suc m -> <i> neg (suc m)
-  zeroP @ i -> <j> zeroZ @ i /\ j -- A connection makes this proof easy!
+  zeroP @ i -> <j> zeroPath @ i /\ j -- A connection makes this proof easy!
 
 isoIntZ : Id U Z int = isoId Z int fromZ toZ fromZK toZK
 
--- This is proved in the library but admitted here:
-ZSet : set Z = undefined
 
-intSet : set int = subst U set Z int isoIntZ ZSet
+
+              ----------------------------------
+              -- Example: The circle as a HIT --
+              ----------------------------------
+
+data S1 = base
+        | loop <i> [ (i = 0) -> base, (i = 1) -> base]
+
+loopS1 : U = Id S1 base base
+
+-- The loop constructor
+loop1 : loopS1 = <i> loop{S1} @ i
+
+invLoop : loopS1 = <i> loop1 @ -i
+
+helix : S1 -> U = split
+  base     -> Z
+  loop @ i -> sucIdZ @ i
+
+-- The winding number:
+winding (p : loopS1) : Z = transport (<i> helix (p @ i)) zeroZ
+
+-- Loop composition:
+compS1 : loopS1 -> loopS1 -> loopS1 = pathscomp0 S1 base base base
+
+-- Some examples of winding numbers:
+loopZ1  : Z = winding loop1
+loopZ2  : Z = winding (compS1 loop1 loop1)
+loopZ3  : Z = winding (compS1 loop1 (compS1 loop1 loop1))
+loopZN1 : Z = winding invLoop
+loopZ0  : Z = winding (compS1 loop1 invLoop)
+
+mLoop : (x : S1) -> Id S1 x x = split
+  base     -> loop1
+  loop @ i -> constSquare S1 base loop1 @ i
+
+-- Multiplication:
+mult (x : S1) : S1 -> S1 = split
+  base     -> x
+  loop @ i -> mLoop x @ i
+
+-- Squaring:
+square (x : S1) : S1 = mult x x
+
+doubleLoop (l : loopS1) : loopS1 = <i> square (l @ i)
+
+doubleLoop' (l : loopS1) : loopS1 = compS1 l l
+
+loopZ4 : Z = winding (doubleLoop (compS1 loop1 loop1))
+loopZ8 : Z = winding (doubleLoop (doubleLoop (compS1 loop1 loop1)))
+
+-- A nice example of a homotopy on the circle. The path going halfway
+-- around the circle and then back is contractible:
+hmtpy : Id loopS1 (<i> base) (<i> loop{S1} @ (i /\ -i)) =
+  <j i> loop{S1} @ j /\ i /\ -i
+
+
+
+--------------------------------------------------------------------------
+-- For a higher dimensional HIT see, torus.ctt
+
+
+
+
+
+
+
 
 
 {-

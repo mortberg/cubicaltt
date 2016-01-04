@@ -318,4 +318,3 @@ isoId (A B : U) (f : A -> B) (g : B -> A)
       (t : (x : A) -> Id A (g (f x)) x) : Id U A B =
        <i> glue B [ (i = 0) -> (A,f,gradLemma A B f g s t)
                   , (i = 1) -> (B,idfun B,idIsEquiv B) ]
-

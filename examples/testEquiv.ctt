@@ -26,6 +26,11 @@ equiv (A B : U) : U = (f : A -> B) * isEquiv A B f
 propIsEquiv (A B : U) (f : A -> B)
   : prop (isEquiv A B f) = \ (u0 u1:isEquiv A B f) -> <i> \ (y:B) -> propIsContr (fiber A B f y) (u0 y) (u1 y) @ i
 
+sig (A : U) (P : A -> U) : U = (x : A) * P x
+
+propIsEquiv (A B : U) (f : A -> B) : prop (isEquiv A B f) =
+ \(u0 u1 : (y : B) -> sig (sig A (\(x : A) -> IdP (<i> B) y (f x))) (\(a : sig A (\(x : A) -> IdP (<i> B) y (f x))) -> (x : sig A (\(x : A) -> IdP (<i> B) y (f x))) -> IdP (<i> sig A (\(x0 : A) -> IdP (<i> B) y (f x0))) a x)) -> <i> \(y : B) -> ((u0 y).2 (u1 y).1 @ i,\(x : sig A (\(x : A) -> IdP (<i> B) y (f x))) -> <j> (comp (<k> A) ((u0 y).2 ((u1 y).2 x @ j) @ i).1 [ (i = 0) -> <k> ((u0 y).2 x @ (j /\ k)).1, (i = 1) -> <k> ((u1 y).2 x @ j).1, (j = 0) -> <k> ((u0 y).2 (u1 y).1 @ i).1, (j = 1) -> <k> ((u0 y).2 x @ (i \/ k)).1 ],<m> comp (<l> B) (((u0 y).2 ((u1 y).2 x @ j) @ i).2 @ m) [ (i = 0) -> <l> ((u0 y).2 x @ (j /\ l)).2 @ m, (i = 1) -> <l> ((u1 y).2 x @ j).2 @ m, (j = 0) -> <l> ((u0 y).2 (u1 y).1 @ i).2 @ m, (j = 1) -> <l> ((u0 y).2 x @ (i \/ l)).2 @ m, (m = 0) -> <l> y, (m = 1) -> <l> f (comp (<m> A) ((u0 y).2 ((u1 y).2 x @ j) @ i).1 [ (i = 0) -> <m> ((u0 y).2 x @ (j /\ l /\ m)).1, (i = 1) -> <m> ((u1 y).2 x @ j).1, (j = 0) -> <m> ((u0 y).2 (u1 y).1 @ i).1, (j = 1) -> <m> ((u0 y).2 x @ (i \/ (l /\ m))).1, (l = 0) -> <m> ((u0 y).2 ((u1 y).2 x @ j) @ i).1 ]) ]))
+
 lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a0 a1 :A) 
          (p : Id A a0 a1) (b0 : P a0) (b1 : P a1) : IdP (<i>P (p@i)) b0 b1 =
  <i>pP (p@i) (comp (<j>P (p@i/\j)) b0 [(i=0) -> <_>b0]) (comp (<j>P (p@i\/-j)) b1 [(i=1) -> <_>b1])@i

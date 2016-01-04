@@ -1,7 +1,7 @@
 module testUniv where
 
 import testContr
-import testEquiv
+import equiv
 
 swap : bool -> bool = split
  true -> false

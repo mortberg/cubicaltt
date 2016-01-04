@@ -1,10 +1,11 @@
+-- The old version of univalence using the old definition of equivalences
 module univalence where
 
 import gradLemma
 
 transEquivToId (A B : U) (w : equiv A B) : Id U A B =
-  <i> glue B [ (i = 1) -> (B,eB.1,invEq B B eB,retEq B B eB,secEq B B eB)
-             , (i = 0) -> (A,w.1,invEq A B w,retEq A B w,secEq A B w) ]
+  <i> glue B [ (i = 1) -> (B,eB)
+             , (i = 0) -> (A,w) ]
  where eB : equiv B B = transDelta B
 
 eqToEq (A B : U) (p : Id U A B)

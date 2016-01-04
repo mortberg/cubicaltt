@@ -1,3 +1,5 @@
+-- This file contains a proof of the graduate lemma using the old
+-- version of equivalence
 module gradLemma where
 
 import equiv

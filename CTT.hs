@@ -399,7 +399,7 @@ showVal v = case v of
   VUnGlueElem a ts  -> text "unglueElem" <+> showVal1 a <+> text (showSystem ts)
   VUnGlueElemU v b es -> text "unGlueElemU" <+> showVals [v,b]
                          <+> text (showSystem es)
-  VCompU a ts       -> text "compU" <+> showVal1 a <+> text (showSystem ts)
+  VCompU a ts       -> text "comp (<_> U)" <+> showVal1 a <+> text (showSystem ts)
 
 showPath :: Val -> Doc
 showPath e = case e of

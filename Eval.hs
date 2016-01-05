@@ -664,6 +664,9 @@ lemEq eq b aps = (a,VPath i (compNeg j (eq @@ j) p1 ths))
                    (mkSystem [ (i~>0,transFill j eqaj ba),(i~>1,transFillNeg j eqaj aa)])) aps
    
 -- Old version:
+-- This version triggers the following error when checking the normal form of corrUniv:
+-- Parsed "examples/nunivalence2.ctt" successfully!
+-- Resolver failed: Cannot resolve name !3 at position (7,30062) in module nunivalence2
 -- compU :: Name -> Val -> System Val -> Val -> System Val -> Val
 -- compU i b es wi0 ws = glueElem vi1'' usi1''
 --   where bi1 = b `face` (i ~> 1)

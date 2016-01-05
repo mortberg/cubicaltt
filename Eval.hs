@@ -310,6 +310,10 @@ compLine :: Val -> Val -> System Val -> Val
 compLine a u ts = comp i (a @@@ i) u (Map.map (@@@ i) ts)
   where i = fresh (a,u,ts)
 
+compConstLine :: Val -> Val -> System Val -> Val
+compConstLine a u ts = comp i a u (Map.map (@@@ i) ts)
+  where i = fresh (a,u,ts)
+
 comps :: Name -> [(Ident,Ter)] -> Env -> [(System Val,Val)] -> [Val]
 comps i []         _ []         = []
 comps i ((x,a):as) e ((ts,u):tsus) =
@@ -560,7 +564,7 @@ compGlue i a equivs wi0 ws = glueElem vi1' usi1
                  (app (equivContr equivG) (vi1' `face` gamma))
                  (fibsgamma `unionSystem` (fibersys `face` gamma))) equivsI1
 
-        vi1 = compLine (constPath ai1) vi1'
+        vi1 = compConstLine ai1 vi1'
                   (Map.map sndVal fibersys')
 
         usi1 = Map.map fstVal fibersys'
@@ -638,7 +642,7 @@ compU i a eqs wi0 ws = glueElem vi1' usi1
                               (wsi1 `face` gamma) (vsi1 `face` gamma)
             in lemEq eqG (vi1' `face` gamma) (fibsgamma `unionSystem` (fibersys `face` gamma))) eqsI1
 
-        vi1 = compLine (constPath ai1) vi1' (Map.map snd fibersys')
+        vi1 = compConstLine ai1 vi1' (Map.map snd fibersys')
 
         usi1 = Map.map fst fibersys'
 

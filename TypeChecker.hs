@@ -376,7 +376,7 @@ checkPathSystem t0 va ps = do
       unlessM (a0 === eval rhoAlpha t0) $
         throwError $ "Incompatible system " ++ showSystem ps ++
                      ", component\n " ++ show pAlpha ++
-                     "\nincompatible  with\n " ++ show t0
+                     "\nincompatible with\n " ++ show t0
       return a1) ps
   checkCompSystem (evalSystem rho ps)
   return v

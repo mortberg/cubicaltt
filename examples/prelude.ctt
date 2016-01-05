@@ -27,7 +27,7 @@ subst (A : U) (P : A -> U) (a b : A) (p : Id A a b) (e : P a) : P b =
 
 substEq (A : U) (P : A -> U) (a : A) (e : P a)
   : Id (P a) e (subst A P a a (refl A a) e) =
-  fill (<_> P a) e []
+  fill (<i> P a) e []
 
 substInv (A : U) (P : A -> U) (a b : A) (p : Id A a b) : P b -> P a =
  subst A P b a (<i> p @ -i)
@@ -51,7 +51,7 @@ JEq (A : U) (a : A) (C : (x : A) -> Id A a x -> U) (d : C a (refl A a))
 inv (A : U) (a b : A) (p : Id A a b) : Id A b a = <i> p @ -i
 
 compId (A : U) (a b c : A) (p : Id A a b) (q : Id A b c) : Id A a c =
-  <i> comp (<_>A) (p @ i) [ (i = 1) -> q, (i=0) -> <_> a ]
+  <i> comp (<j>A) (p @ i) [ (i = 1) -> q, (i=0) -> <j> a ]
 
 compId' (A : U) (a b c : A) (p : Id A a b) (q : Id A b c) : Id A a c =
   subst A (Id A a) b c q p
@@ -62,7 +62,7 @@ compId'' (A : U) (a b : A) (p : Id A a b) : (c : A) -> (q : Id A b c) -> Id A a 
 
 compUp (A : U) (a a' b b' : A)
        (p : Id A a a') (q : Id A b b') (r : Id A a b) : Id A a' b' =
-  <i> comp (<_>A) (r @ i) [(i = 0) -> p, (i = 1) -> q]
+  <i> comp (<j>A) (r @ i) [(i = 0) -> p, (i = 1) -> q]
 
 compDown (A : U) (a a' b b' : A)
          (p : Id A a a') (q: Id A b b') : Id A a' b' -> Id A a b =
@@ -70,17 +70,17 @@ compDown (A : U) (a a' b b' : A)
 
 lemCompInv (A:U) (a b c:A) (p:Id A a b) (q:Id A b c)
   : Id (Id A a b) (compId A a c b (compId A a b c p q) (inv A b c q)) p =
-  <j i> comp (<_>A)
-          ((fill (<_>A) (p @ i) [(i=0) -> <_>a, (i=1) -> q]) @ -j)
-          [ (i=0) -> <_> a
+  <j i> comp (<k>A)
+          ((fill (<k>A) (p @ i) [(i=0) -> <k>a, (i=1) -> q]) @ -j)
+          [ (i=0) -> <k> a
           , (i=1) -> <k> q @ - (j \/  k)
-          , (j=0) -> fill (<_>A) ((compId A a b c p q @ i))
-                       [(i=0) -> <_>a, (i=1) -> <k> q @ -k ]
-          , (j=1) -> <_> p @ i
+          , (j=0) -> fill (<k>A) ((compId A a b c p q @ i))
+                       [(i=0) -> <k>a, (i=1) -> <k> q @ -k ]
+          , (j=1) -> <k> p @ i
           ]
 
 lemInv (A:U) (a b:A) (p:Id A a b) : Id (Id A b b) (compId A b a b (inv A a b p) p)  (refl A b) =
-   <j i> comp (<_>A) (p @ (-i \/ j)) [(i=0) -> <l>b, (j=1) -> <l>b, (i=1) -> <k> p @ (j \/ k)]
+   <j i> comp (<k>A) (p @ (-i \/ j)) [(i=0) -> <l>b, (j=1) -> <l>b, (i=1) -> <k> p @ (j \/ k)]
    
 test0 (A : U) (a b : A) (p : Id A a b) : Id A a a = refl A (p @ 0)
 test1 (A : U) (a b : A) (p : Id A a b) : Id A b b = refl A (p @ 1)
@@ -90,17 +90,17 @@ test1 (A : U) (a b : A) (p : Id A a b) : Id A b b = refl A (p @ 1)
 
 kan (A : U) (a b c d : A) (p : Id A a b) (q : Id A a c)
                           (r : Id A b d) : Id A c d =
-  <i> comp (<_>A) (p @ i) [ (i = 0) -> q, (i = 1) -> r ]
+  <i> comp (<j>A) (p @ i) [ (i = 0) -> q, (i = 1) -> r ]
 
 lemSimpl (A : U) (a b c : A) (p : Id A a b) (q q' : Id A b c)
   (s : Id (Id A a c) (compId A a b c p q) (compId A a b c p q')) :
   Id (Id A b c) q q' =
-   <j k> comp (<_> A) a
-           [ (j = 0) -> <i> comp (<_> A) (p @ i)
+   <j k> comp (<i> A) a
+           [ (j = 0) -> <i> comp (<l> A) (p @ i)
                               [ (k = 0) -> <l> p @ i
                               , (i = 0) -> <l> a
                               , (i = 1) -> <l> q @ k /\ l]
-           , (j = 1) -> <i> comp (<_> A) (p @ i)
+           , (j = 1) -> <i> comp (<l> A) (p @ i)
                               [ (k = 0) -> <l> p @ i
                               , (i = 0) -> <l> a
                               , (i = 1) -> <l> q' @ k /\ l]
@@ -108,8 +108,8 @@ lemSimpl (A : U) (a b c : A) (p : Id A a b) (q q' : Id A b c)
            , (k = 1)  -> s @ j ]
 
 IdPathTest1 (A : U) (a b : A) (p : Id A a b) :
-  Id (Id A a b) p (<i> comp (<_> A) (p @ i) [(i=0) -> <_> a,(i=1) -> <_> b]) = 
-  <j i> fill (<_> A) (p @ i) [(i=0) -> <_> a,(i=1) -> <_> b] @ j
+  Id (Id A a b) p (<i> comp (<j> A) (p @ i) [(i=0) -> <j> a,(i=1) -> <j> b]) = 
+  <j i> fill (<k> A) (p @ i) [(i=0) -> <k> a,(i=1) -> <k> b] @ j
 
 idfun (A : U) (a : A) : A = a
 
@@ -127,7 +127,7 @@ Square (A : U) (a0 a1 b0 b1 : A)
   = IdP (<i> (IdP (<j> A) (u @ i) (v @ i))) r0 r1
 
 constSquare (A : U) (a : A) (p : Id A a a) : Square A a a a a p p p p =
-  <i j> comp (<_>A) a
+  <i j> comp (<k>A) a
      [(i = 0) -> <k> p @ (j \/ - k),
       (i = 1) -> <k> p @ (j /\ k),
       (j = 0) -> <k> p @ (i \/ - k),
@@ -138,7 +138,7 @@ set (A : U) : U = (a b : A) -> prop (Id A a b)
 groupoid (A : U) : U = (a b : A) -> set (Id A a b)
 
 propSet (A : U) (h : prop A) (a b : A) (p q : Id A a b) : Id (Id A a b) p q =
- <j i> comp (<_>A) a [ (i=0) -> h a a
+ <j i> comp (<k>A) a [ (i=0) -> h a a
                 , (i=1) -> h a b
                 , (j=0) -> h a (p @ i)
                 , (j=1) -> h a (q @ i)]

@@ -6,7 +6,7 @@
 module univalence where
 
 import equiv
-import bool
+-- import bool
 
 ------------------------------------------------------------------------------
 -- Proof of univalence using unglue:
@@ -96,24 +96,24 @@ lem1 (B:U) : isContr ((X:U) * equiv X B) =
               ,unglueElemB
               ,\(b : B)
                -> let center : fiber glueB B unglueElemB b
-                             = (glueElem (comp (<_> B) b [(i=0) -> <_> b
+                             = (glueElem (comp (<j> B) b [(i=0) -> <j> b
                                                          ,(i=1) -> (w.2.2 b).1.2])
                                          [(i=0) -> b
                                          ,(i=1) -> (w.2.2 b).1.1]
-                               ,fill (<_> B) b [(i=0) -> <_> b
+                               ,fill (<j> B) b [(i=0) -> <j> b
                                                ,(i=1) -> (w.2.2 b).1.2])
                       contr (v : fiber glueB B unglueElemB b)
                             : Id (fiber glueB B unglueElemB b) center v
-                            = <j> (glueElem (comp (<_> B) b [(i=0) -> <k> v.2 @ (j /\ k)
+                            = <j> (glueElem (comp (<j> B) b [(i=0) -> <k> v.2 @ (j /\ k)
                                                             ,(i=1) -> ((w.2.2 b).2 v @ j).2
-                                                            ,(j=0) -> fill (<_> B) b [(i=0) -> <_> b
+                                                            ,(j=0) -> fill (<j> B) b [(i=0) -> <j> b
                                                                                      ,(i=1) -> (w.2.2 b).1.2]
                                                             ,(j=1) -> v.2])
                                             [(i=0) -> v.2 @ j
                                             ,(i=1) -> ((w.2.2 b).2 v @ j).1]
-                                  ,fill (<_> B) b [(i=0) -> <l> v.2 @ (j /\ l)
+                                  ,fill (<j> B) b [(i=0) -> <l> v.2 @ (j /\ l)
                                                   ,(i=1) -> ((w.2.2 b).2 v @ j).2
-                                                  ,(j=0) -> fill (<_> B) b [(i=0) -> <_> b
+                                                  ,(j=0) -> fill (<j> B) b [(i=0) -> <j> b
                                                                            ,(i=1) -> (w.2.2 b).1.2]
                                                   ,(j=1) -> v.2])
                   in (center,contr)))
@@ -144,100 +144,100 @@ corrUniv' (A B : U) : equiv (Id U A B) (equiv A B) =
   (transEquiv' B A,univalence B A)
 
 
--- Some tests of normal forms:
-testUniv1 (A : U) : Id U A A =
-  trans (equiv A A) (Id U A A) (<i> corrUniv A A @ -i) (idEquiv A)
+-- -- Some tests of normal forms:
+-- testUniv1 (A : U) : Id U A A =
+--   trans (equiv A A) (Id U A A) (<i> corrUniv A A @ -i) (idEquiv A)
 
--- obtained by normal form
-ntestUniv1 (A:U) : Id U A A =
- <i> comp (<_>U)
-      (comp (<_>U) A
-         [ (i = 0) -> <l> comp (<_>U) A [ (l = 0) -> <i> glue A [ (i = 0) -> (A,(\(x : A) -> x,\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i))))), (i = 1) -> (A,(comp (<l> A -> A) (\(x : A) -> x) [],comp (<l> (y : A) ->
-  ((x : ((x : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x []) [ (l = 0) -> <j> comp (<k> A) x [ (j = 1) -> <k> x ] ]))) *    (y0 : ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) -> IdP (<j> ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) x y0)) (\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i)))) [])) ], (l = 1) -> <i> glue A [ (i = 0) -> (A,(\(x : A) -> x,\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i))))), (i = 1) -> (A,(comp (<l> A -> A) (\(x : A) -> x) [],comp (<l> (y : A) ->
-        ((x : ((x : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x []) [ (l = 0) -> <j> comp (<k> A) x [ (j = 1) -> <k> x ] ]))) * (y0 : ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) -> IdP (<j> ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) x y0)) (\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i)))) [])) ] ], (i = 1) -> <l> A ]) [ (i = 0) -> <l> A, (i = 1) -> <l> A ]
+-- -- obtained by normal form
+-- ntestUniv1 (A:U) : Id U A A =
+--  <i> comp (<_>U)
+--       (comp (<_>U) A
+--          [ (i = 0) -> <l> comp (<_>U) A [ (l = 0) -> <i> glue A [ (i = 0) -> (A,(\(x : A) -> x,\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i))))), (i = 1) -> (A,(comp (<l> A -> A) (\(x : A) -> x) [],comp (<l> (y : A) ->
+--   ((x : ((x : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x []) [ (l = 0) -> <j> comp (<k> A) x [ (j = 1) -> <k> x ] ]))) *    (y0 : ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) -> IdP (<j> ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) x y0)) (\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i)))) [])) ], (l = 1) -> <i> glue A [ (i = 0) -> (A,(\(x : A) -> x,\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i))))), (i = 1) -> (A,(comp (<l> A -> A) (\(x : A) -> x) [],comp (<l> (y : A) ->
+--         ((x : ((x : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x []) [ (l = 0) -> <j> comp (<k> A) x [ (j = 1) -> <k> x ] ]))) * (y0 : ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) -> IdP (<j> ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) x y0)) (\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i)))) [])) ] ], (i = 1) -> <l> A ]) [ (i = 0) -> <l> A, (i = 1) -> <l> A ]
 
-testUniv2 : bool = trans bool bool (ntestUniv1 bool) true
+-- testUniv2 : bool = trans bool bool (ntestUniv1 bool) true
 
-ntestUniv2 : bool =
- comp (<i> comp (<_>U) (comp (<_>U) bool [ (i = 0) -> <j> comp (<_>U) bool [ (j = 0) -> <i> glue bool [ (i = 0) -> (bool,(\(x : bool) -> x,\(a : bool) -> ((a,<i> a),\(z : ((x : bool) * IdP (<i> bool) a x)) -> <i> (z.2 @ i,<j> z.2 @ (i /\ j))))), (i = 1) -> (bool,(comp (<i> bool -> bool) (\(x : bool) -> x) [],comp (<i> (y : bool) ->
-  ((x : ((x : bool) * IdP (<j> bool) y (comp (<j> bool) (comp (<i> bool) x []) [ (i = 0) -> <j> comp (<k> bool) x [ (j = 1) -> <k> x ] ]))) * (y0 : ((x0 : bool) * IdP (<j> bool) y (comp (<j> bool) (comp (<i> bool) x0 []) [ (i = 0) -> <j> comp (<k> bool) x0 [ (j = 1) -> <k> x0 ] ]))) -> IdP (<j> ((x0 : bool) * IdP (<k> bool) y (comp (<j> bool) (comp (<i> bool) x0 []) [ (i = 0) -> <j> comp (<k> bool) x0 [ (j = 1) -> <k> x0 ] ]))) x y0)) (\(a : bool) -> ((a,<i> a),\(z : ((x : bool) * IdP (<i> bool) a x)) -> <i> (z.2 @ i,<j> z.2 @ (i /\ j)))) [])) ], (j = 1) -> <i> glue bool [ (i = 0) -> (bool,(\(x : bool) -> x,\(a : bool) -> ((a,<i> a),\(z : ((x : bool) * IdP (<i> bool) a x)) -> <i> (z.2 @ i,<j> z.2 @ (i /\ j))))), (i = 1) -> (bool,(comp (<i> bool -> bool) (\(x : bool) -> x) [],comp (<i> (y : bool) ->
-  ((x : ((x : bool) * IdP (<j> bool) y (comp (<j> bool) (comp (<i> bool) x []) [ (i = 0) -> <j> comp (<k> bool) x [ (j = 1) -> <k> x ] ]))) * (y0 : ((x0 : bool) * IdP (<j> bool) y (comp (<j> bool) (comp (<i> bool) x0 []) [ (i = 0) -> <j> comp (<k> bool) x0 [ (j = 1) -> <k> x0 ] ]))) -> IdP (<j> ((x0 : bool) * IdP (<k> bool) y (comp (<j> bool) (comp (<i> bool) x0 []) [ (i = 0) -> <j> comp (<k> bool) x0 [ (j = 1) -> <k> x0 ] ]))) x y0)) (\(a : bool) -> ((a,<i> a),\(z : ((x : bool) * IdP (<i> bool) a x)) -> <i> (z.2 @ i,<j> z.2 @ (i /\ j)))) [])) ] ], (i = 1) -> <j> bool ]) [ (i = 0) -> <j> bool, (i = 1) -> <j> bool ]) true []
-
-
--- A small test of univalence using boolean negation
-isEquivNegBool : isEquiv bool bool negBool =
- gradLemma bool bool negBool negBool negBoolK negBoolK
-
-eqBool : Id U bool bool = 
- trans (equiv bool bool) (Id U bool bool)
-       (<i> corrUniv bool bool @ -i) (negBool,isEquivNegBool)
-
-test1 : bool = trans bool bool eqBool true
-test2 : bool = trans bool bool eqBool false
+-- ntestUniv2 : bool =
+--  comp (<i> comp (<_>U) (comp (<_>U) bool [ (i = 0) -> <j> comp (<_>U) bool [ (j = 0) -> <i> glue bool [ (i = 0) -> (bool,(\(x : bool) -> x,\(a : bool) -> ((a,<i> a),\(z : ((x : bool) * IdP (<i> bool) a x)) -> <i> (z.2 @ i,<j> z.2 @ (i /\ j))))), (i = 1) -> (bool,(comp (<i> bool -> bool) (\(x : bool) -> x) [],comp (<i> (y : bool) ->
+--   ((x : ((x : bool) * IdP (<j> bool) y (comp (<j> bool) (comp (<i> bool) x []) [ (i = 0) -> <j> comp (<k> bool) x [ (j = 1) -> <k> x ] ]))) * (y0 : ((x0 : bool) * IdP (<j> bool) y (comp (<j> bool) (comp (<i> bool) x0 []) [ (i = 0) -> <j> comp (<k> bool) x0 [ (j = 1) -> <k> x0 ] ]))) -> IdP (<j> ((x0 : bool) * IdP (<k> bool) y (comp (<j> bool) (comp (<i> bool) x0 []) [ (i = 0) -> <j> comp (<k> bool) x0 [ (j = 1) -> <k> x0 ] ]))) x y0)) (\(a : bool) -> ((a,<i> a),\(z : ((x : bool) * IdP (<i> bool) a x)) -> <i> (z.2 @ i,<j> z.2 @ (i /\ j)))) [])) ], (j = 1) -> <i> glue bool [ (i = 0) -> (bool,(\(x : bool) -> x,\(a : bool) -> ((a,<i> a),\(z : ((x : bool) * IdP (<i> bool) a x)) -> <i> (z.2 @ i,<j> z.2 @ (i /\ j))))), (i = 1) -> (bool,(comp (<i> bool -> bool) (\(x : bool) -> x) [],comp (<i> (y : bool) ->
+--   ((x : ((x : bool) * IdP (<j> bool) y (comp (<j> bool) (comp (<i> bool) x []) [ (i = 0) -> <j> comp (<k> bool) x [ (j = 1) -> <k> x ] ]))) * (y0 : ((x0 : bool) * IdP (<j> bool) y (comp (<j> bool) (comp (<i> bool) x0 []) [ (i = 0) -> <j> comp (<k> bool) x0 [ (j = 1) -> <k> x0 ] ]))) -> IdP (<j> ((x0 : bool) * IdP (<k> bool) y (comp (<j> bool) (comp (<i> bool) x0 []) [ (i = 0) -> <j> comp (<k> bool) x0 [ (j = 1) -> <k> x0 ] ]))) x y0)) (\(a : bool) -> ((a,<i> a),\(z : ((x : bool) * IdP (<i> bool) a x)) -> <i> (z.2 @ i,<j> z.2 @ (i /\ j)))) [])) ] ], (i = 1) -> <j> bool ]) [ (i = 0) -> <j> bool, (i = 1) -> <j> bool ]) true []
 
 
+-- -- A small test of univalence using boolean negation
+-- isEquivNegBool : isEquiv bool bool negBool =
+--  gradLemma bool bool negBool negBool negBoolK negBoolK
 
+-- eqBool : Id U bool bool = 
+--  trans (equiv bool bool) (Id U bool bool)
+--        (<i> corrUniv bool bool @ -i) (negBool,isEquivNegBool)
 
-------------------------------------------------------------------------------
--- The direct proof of univalence using transEquiv which is too slow
--- to normalize:
-
--- transEquiv is an equiv
-transEquivIsEquiv (A B : U)
-  : isEquiv (Id U A B) (equiv A B) (transEquiv A B)
-  = gradLemma (Id U A B) (equiv A B) (transEquiv A B)
-      (transEquivToId A B) (idToId A B) (eqToEq A B)
-
--- Univalence proved using transEquiv
-univalenceTrans (A B:U) : Id U (Id U A B) (equiv A B) = 
- isoId (Id U A B) (equiv A B) (transEquiv A B)
-       (transEquivToId A B) (idToId A B) (eqToEq A B)
-
-univalenceTrans' (A B : U) : equiv (Id U A B) (equiv A B) =
-  (transEquiv A B,transEquivIsEquiv A B)
-
--- univalenceTrans takes extremely much memory when normalizing
-
--- This also takes too long to normalize:
-slowtest (A : U) : Id (equiv A A)
-  (transEquiv A A (transEquivToId A A (idEquiv A))) (idEquiv A) =
-    idToId A A (idEquiv A)
+-- test1 : bool = trans bool bool eqBool true
+-- test2 : bool = trans bool bool eqBool false
 
 
 
 
-------------------------------------------------------------------------------
--- TODO: Adapt this to new definition of equiv
+-- ------------------------------------------------------------------------------
+-- -- The direct proof of univalence using transEquiv which is too slow
+-- -- to normalize:
 
--- The canonical map defined using J
--- canIdToEquiv (A : U) : (B : U) -> Id U A B -> equiv A B =
---   J U A (\ (B : U) (_ : Id U A B) -> equiv A B) (idEquiv A)
+-- -- transEquiv is an equiv
+-- transEquivIsEquiv (A B : U)
+--   : isEquiv (Id U A B) (equiv A B) (transEquiv A B)
+--   = gradLemma (Id U A B) (equiv A B) (transEquiv A B)
+--       (transEquivToId A B) (idToId A B) (eqToEq A B)
 
--- canDiagTrans (A : U) : Id (A -> A) (canIdToEquiv A A (<_> A)).1 (idfun A) =
---   <i> fill (<_> A -> A) (idfun A) [] @ -i
+-- -- Univalence proved using transEquiv
+-- univalenceTrans (A B:U) : Id U (Id U A B) (equiv A B) = 
+--  isoId (Id U A B) (equiv A B) (transEquiv A B)
+--        (transEquivToId A B) (idToId A B) (eqToEq A B)
 
--- transDiagTrans (A : U) : Id (A -> A) (idfun A) (trans A A (<_> A)) =
---   <i> \ (a : A) -> fill (<_> A) a [] @ i
+-- univalenceTrans' (A B : U) : equiv (Id U A B) (equiv A B) =
+--   (transEquiv A B,transEquivIsEquiv A B)
 
--- canIdToEquivLem (A : U) : (B : U) (p : Id U A B) ->
---   Id (A -> B) (canIdToEquiv A B p).1 (transEquiv A B p).1
---   = J U A
---       (\ (B : U) (p : Id U A B) ->
---         Id (A -> B) (canIdToEquiv A B p).1 (transEquiv A B p).1)
---       (compId (A -> A)
---         (canIdToEquiv A A (<_> A)).1 (idfun A) (trans A A (<_> A))
---         (canDiagTrans A) (transDiagTrans A))
+-- -- univalenceTrans takes extremely much memory when normalizing
 
--- canIdToEquivIsTransEquiv (A B : U) :
---   Id (Id U A B -> equiv A B) (canIdToEquiv A B) (transEquiv A B) =
---   <i> \ (p : Id U A B) ->
---         equivLemma A B (canIdToEquiv A B p) (transEquiv A B p)
---           (canIdToEquivLem A B p) @ i
+-- -- This also takes too long to normalize:
+-- slowtest (A : U) : Id (equiv A A)
+--   (transEquiv A A (transEquivToId A A (idEquiv A))) (idEquiv A) =
+--     idToId A A (idEquiv A)
 
--- -- The canonical map is an equivalence
--- univalenceJ (A B : U) : isEquiv (Id U A B) (equiv A B) (canIdToEquiv A B) =
---   substInv (Id U A B -> equiv A B)
---     (isEquiv (Id U A B) (equiv A B))
---      (canIdToEquiv A B) (transEquiv A B)
---      (canIdToEquivIsTransEquiv A B)
---      (transEquivIsEquiv A B)
+
+
+
+-- ------------------------------------------------------------------------------
+-- -- TODO: Adapt this to new definition of equiv
+
+-- -- The canonical map defined using J
+-- -- canIdToEquiv (A : U) : (B : U) -> Id U A B -> equiv A B =
+-- --   J U A (\ (B : U) (_ : Id U A B) -> equiv A B) (idEquiv A)
+
+-- -- canDiagTrans (A : U) : Id (A -> A) (canIdToEquiv A A (<_> A)).1 (idfun A) =
+-- --   <i> fill (<_> A -> A) (idfun A) [] @ -i
+
+-- -- transDiagTrans (A : U) : Id (A -> A) (idfun A) (trans A A (<_> A)) =
+-- --   <i> \ (a : A) -> fill (<_> A) a [] @ i
+
+-- -- canIdToEquivLem (A : U) : (B : U) (p : Id U A B) ->
+-- --   Id (A -> B) (canIdToEquiv A B p).1 (transEquiv A B p).1
+-- --   = J U A
+-- --       (\ (B : U) (p : Id U A B) ->
+-- --         Id (A -> B) (canIdToEquiv A B p).1 (transEquiv A B p).1)
+-- --       (compId (A -> A)
+-- --         (canIdToEquiv A A (<_> A)).1 (idfun A) (trans A A (<_> A))
+-- --         (canDiagTrans A) (transDiagTrans A))
+
+-- -- canIdToEquivIsTransEquiv (A B : U) :
+-- --   Id (Id U A B -> equiv A B) (canIdToEquiv A B) (transEquiv A B) =
+-- --   <i> \ (p : Id U A B) ->
+-- --         equivLemma A B (canIdToEquiv A B p) (transEquiv A B p)
+-- --           (canIdToEquivLem A B p) @ i
+
+-- -- -- The canonical map is an equivalence
+-- -- univalenceJ (A B : U) : isEquiv (Id U A B) (equiv A B) (canIdToEquiv A B) =
+-- --   substInv (Id U A B -> equiv A B)
+-- --     (isEquiv (Id U A B) (equiv A B))
+-- --      (canIdToEquiv A B) (transEquiv A B)
+-- --      (canIdToEquivIsTransEquiv A B)
+-- --      (transEquivIsEquiv A B)

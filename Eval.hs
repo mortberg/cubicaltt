@@ -722,18 +722,18 @@ lemEq eq b aps = (a,VPath i (compNeg j (eq @@ j) p1 ths))
 -- Grad Lemma, takes a line eq in U, a system us and a value v, s.t. f us =
 -- border v. Outputs (u,p) s.t. border u = us and a path p between v
 -- and f u, where f is transNegLine eq
-gradLemmaU :: Val -> Val -> System Val -> Val -> (Val, Val)
-gradLemmaU b eq us v = (u, VPath i theta)
-  where i:j:_   = freshs (b,eq,us,v)
-        ej      = eq @@ j
-        a       = eq @@ One
-        ws      = mapWithKey (\alpha uAlpha ->
-                                   transFillNeg j (ej `face` alpha) uAlpha) us
-        u       = comp j ej v ws
-        w       = fill j ej v ws
-        xs      = insertSystem (i ~> 0) w $
-                  insertSystem (i ~> 1) (transFillNeg j ej u) $ ws
-        theta   = compNeg j ej u xs
+-- gradLemmaU :: Val -> Val -> System Val -> Val -> (Val, Val)
+-- gradLemmaU b eq us v = (u, VPath i theta)
+--   where i:j:_   = freshs (b,eq,us,v)
+--         ej      = eq @@ j
+--         a       = eq @@ One
+--         ws      = mapWithKey (\alpha uAlpha ->
+--                                    transFillNeg j (ej `face` alpha) uAlpha) us
+--         u       = comp j ej v ws
+--         w       = fill j ej v ws
+--         xs      = insertSystem (i ~> 0) w $
+--                   insertSystem (i ~> 1) (transFillNeg j ej u) $ ws
+--         theta   = compNeg j ej u xs
 
 
 

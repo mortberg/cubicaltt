@@ -585,23 +585,19 @@ pathComp i a u0 u' us = VPath j $ comp i a u0 us'
 -------------------------------------------------------------------------------
 -- | Composition in the Universe
 
-unGlueU :: Val -> Val -> System Val -> Val
-unGlueU w b es
-    | eps `Map.member` es = transNegLine (es ! eps) w
-    | otherwise           = case w of
-       VGlueElem v us   -> v
-       _ -> VUnGlueElemU w b es
+-- any path between types define an equivalence
+eqFun :: Val -> Val -> Val
+eqFun = transNegLine
 
+unGlueU :: Val -> Val -> System Val -> Val
+unGlueU w b es | eps `Map.member` es = eqFun (es ! eps) w
+               | otherwise           = case w of
+                                        VGlueElem v us   -> v
+                                        _ -> VUnGlueElemU w b es
 
 compUniv :: Val -> System Val -> Val
 compUniv b es | eps `Map.member` es = (es ! eps) @@ One
               | otherwise           = VCompU b es
-
--- any path between types define an equivalence
-
-eqFun :: Val -> Val -> Val
-eqFun e t = transNeg i (e @@ i) t
- where i = fresh (e,t)
 
 compU :: Name -> Val -> System Val -> Val -> System Val -> Val
 compU i a eqs wi0 ws = glueElem vi1' usi1
@@ -829,8 +825,7 @@ instance Convertible Val where
       (VHComp a u ts,VHComp a' u' ts')    -> conv ns (a,u,ts) (a',u',ts')
       (VGlue v equivs,VGlue v' equivs')   -> conv ns (v,equivs) (v',equivs')
       (VGlueElem u us,VGlueElem u' us')   -> conv ns (u,us) (u',us')
-      -- Anders: these two are from the compU branch:
-      (VUnGlueElemU u _ _,VUnGlueElemU u' _ _) -> conv ns u u'  -- ??
+      (VUnGlueElemU u _ _,VUnGlueElemU u' _ _) -> conv ns u u'  -- Is this correct?
       (VUnGlueElem u ts,VUnGlueElem u' ts') -> conv ns (u,ts) (u',ts')
       (VCompU u es,VCompU u' es')              -> conv ns (u,es) (u',es')
       _                                        -> False

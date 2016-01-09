@@ -525,7 +525,7 @@ extend b q ts = comp i b (fstVal q) ts'
 -- equivs' corresponds to delta
 -- ti1'  corresponds to usi1'
 compGlue :: Name -> Val -> System Val -> Val -> System Val -> Val
-compGlue i a equivs wi0 ws = glueElem vi1' usi1
+compGlue i a equivs wi0 ws = glueElem vi1 usi1
   where ai1 = a `face` (i ~> 1)
         vs  = mapWithKey
                 (\alpha wAlpha ->
@@ -600,7 +600,7 @@ compUniv b es | eps `Map.member` es = (es ! eps) @@ One
               | otherwise           = VCompU b es
 
 compU :: Name -> Val -> System Val -> Val -> System Val -> Val
-compU i a eqs wi0 ws = glueElem vi1' usi1
+compU i a eqs wi0 ws = glueElem vi1 usi1
   where ai1 = a `face` (i ~> 1)
         vs  = mapWithKey
                 (\alpha wAlpha ->
@@ -621,7 +621,7 @@ compU i a eqs wi0 ws = glueElem vi1' usi1
                    comp i (eqG @@ One) (wi0 `face` gamma) (ws `face` gamma))
                  eqs'
 
-        -- path in ai1 between vi1 and f(i1) usi1' on equivs'
+        -- path in ai1 between vi1 and f(i1) usi1' on eqs'
         ls'    = mapWithKey (\gamma eqG ->
                    pathComp i (a `face` gamma) (vi0 `face` gamma)
                      (eqFun eqG (us' ! gamma)) (vs `face` gamma))
@@ -634,33 +634,35 @@ compU i a eqs wi0 ws = glueElem vi1' usi1
           (\gamma eqG ->
             let fibsgamma = intersectionWith (\ x y -> (x,constPath y))
                               (wsi1 `face` gamma) (vsi1 `face` gamma)
-            in lemEq eqG (vi1' `face` gamma) (fibsgamma `unionSystem` (fibersys `face` gamma))) eqsI1
+            in lemEq eqG (vi1' `face` gamma)
+                     (fibsgamma `unionSystem` (fibersys `face` gamma))) eqsI1
 
         vi1 = compConstLine ai1 vi1' (Map.map snd fibersys')
 
         usi1 = Map.map fst fibersys'
 
-  
-lemEq :: Val -> Val -> System (Val,Val) -> (Val,Val) 
-lemEq eq b aps = (a,VPath i (compNeg j (eq @@ j) p1 ths))
- where 
-   ths = insertsSystem [(i ~> 0,transFill j eq b),(i ~> 1,transFillNeg j eq a)] thetas
+lemEq :: Val -> Val -> System (Val,Val) -> (Val,Val)
+lemEq eq b aps = (a,VPath i (compNeg j (eq @@ j) p1 thetas'))
+ where
    i:j:_ = freshs (eq,b,aps)
    ta = eq @@ One
    eqi = eq @@ i
+   p1s = mapWithKey (\alpha (aa,pa) ->
+              let eqaj = (eq `face` alpha) @@ j
+                  ba = b `face` alpha
+              in comp j eqaj (pa @@ i)
+                   (mkSystem [ (i~>0,transFill j eqaj ba),(i~>1,transFillNeg j eqaj aa)])) aps
+   thetas = mapWithKey (\alpha (aa,pa) ->
+              let eqaj = (eq `face` alpha) @@ j
+                  ba = b `face` alpha
+              in fill j eqaj (pa @@ i)
+                   (mkSystem [ (i~>0,transFill j eqaj ba),(i~>1,transFillNeg j eqaj aa)])) aps
+
    a  = comp i ta (trans i eqi b) p1s
    p1 = fill i ta (trans i eqi b) p1s
-   thetas = mapWithKey (\alpha (aa,pa) -> 
-              let eqaj = (eq `face` alpha) @@ j
-                  ba = b `face` alpha
-              in fill j eqaj (pa @@ i) 
-                   (mkSystem [ (i~>0,transFill j eqaj ba),(i~>1,transFillNeg j eqaj aa)])) aps
-   p1s = mapWithKey (\alpha (aa,pa) -> 
-              let eqaj = (eq `face` alpha) @@ j
-                  ba = b `face` alpha
-              in comp j eqaj (pa @@ i) 
-                   (mkSystem [ (i~>0,transFill j eqaj ba),(i~>1,transFillNeg j eqaj aa)])) aps
-   
+
+   thetas' = insertsSystem [(i ~> 0,transFill j eq b),(i ~> 1,transFillNeg j eq a)] thetas
+
 -- Old version:
 -- This version triggers the following error when checking the normal form of corrUniv:
 -- Parsed "examples/nunivalence2.ctt" successfully!

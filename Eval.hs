@@ -646,22 +646,24 @@ lemEq eq b aps = (a,VPath i (compNeg j (eq @@ j) p1 thetas'))
  where
    i:j:_ = freshs (eq,b,aps)
    ta = eq @@ One
-   eqi = eq @@ i
    p1s = mapWithKey (\alpha (aa,pa) ->
               let eqaj = (eq `face` alpha) @@ j
                   ba = b `face` alpha
               in comp j eqaj (pa @@ i)
-                   (mkSystem [ (i~>0,transFill j eqaj ba),(i~>1,transFillNeg j eqaj aa)])) aps
+                   (mkSystem [ (i~>0,transFill j eqaj ba)
+                             , (i~>1,transFillNeg j eqaj aa)])) aps
    thetas = mapWithKey (\alpha (aa,pa) ->
               let eqaj = (eq `face` alpha) @@ j
                   ba = b `face` alpha
               in fill j eqaj (pa @@ i)
-                   (mkSystem [ (i~>0,transFill j eqaj ba),(i~>1,transFillNeg j eqaj aa)])) aps
+                   (mkSystem [ (i~>0,transFill j eqaj ba)
+                             , (i~>1,transFillNeg j eqaj aa)])) aps
 
-   a  = comp i ta (trans i eqi b) p1s
-   p1 = fill i ta (trans i eqi b) p1s
+   a  = comp i ta (trans i (eq @@ i) b) p1s
+   p1 = fill i ta (trans i (eq @@ i) b) p1s
 
-   thetas' = insertsSystem [(i ~> 0,transFill j eq b),(i ~> 1,transFillNeg j eq a)] thetas
+   thetas' = insertsSystem [ (i ~> 0,transFill j (eq @@ j) b)
+                           , (i ~> 1,transFillNeg j (eq @@ j) a)] thetas
 
 -- Old version:
 -- This version triggers the following error when checking the normal form of corrUniv:

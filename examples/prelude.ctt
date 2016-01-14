@@ -143,8 +143,13 @@ propSet (A : U) (h : prop A) (a b : A) (p q : Id A a b) : Id (Id A a b) p q =
                 , (j=0) -> h a (p @ i)
                 , (j=1) -> h a (q @ i)]
 
-propIsProp (A : U) (f g : prop A) : Id (prop A) f g =
- <i> \(a b :A) -> (propSet A f a b (f a b) (g a b)) @ i
+
+propIsProp (A : U) : prop (prop A) =
+  \(f g : prop A) ->
+    <i> \(a b : A) -> (propSet A f a b (f a b) (g a b)) @ i
+
+-- propIsProp (A : U) (f g : prop A) : Id (prop A) f g =
+--  <i> \(a b :A) -> (propSet A f a b (f a b) (g a b)) @ i
 
 setIsProp (A : U) (f g : set A) : Id (set A) f g =
  <i> \(a b :A) -> (propIsProp (Id A a b) (f a b) (g a b)) @ i
@@ -221,12 +226,13 @@ setUnit : set Unit = propSet Unit propUnit
 data or (A B : U) = inl (a : A)
                   | inr (b : B)
 
+propOr (A B : U) (hA : prop A) (hB : prop B) (h : A -> neg B) : prop (or A B) = undefined
+
 stable (A:U) : U = neg (neg A) -> A
 
 const (A : U) (f : A -> A) : U = (x y : A) -> Id A (f x) (f y)
 
 exConst (A : U) : U = (f:A -> A) * const A f
-
 
 propN0 : prop N0 = \ (x y:N0) -> efq (Id N0 x y) x
 
@@ -235,6 +241,9 @@ propNeg (A:U) : prop (neg A) = \ (f g:neg A) -> <i>\(x:A) -> (propN0 (f x) (g x)
 dNeg (A:U) (a:A) : neg (neg A) = \ (h : neg A) -> h a
 
 dec (A : U) : U = or A (neg A)
+
+propDec (A : U) (h : prop A) : prop (dec A) =
+  propOr A (neg A) h (propNeg A) (\(x : A) (h : neg A) -> h x)
 
 decEqCong (A B : U) (f : A -> B) (g : B -> A) : dec A -> dec B = split
   inl a -> inl (f a)

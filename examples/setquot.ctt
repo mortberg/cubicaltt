@@ -38,24 +38,23 @@ hdisj_in1 (P Q : U) (X : P) : (hdisj P Q).1 = hinhpr (or P Q) (inl X)
 hdisj_in2 (P Q : U) (X : Q) : (hdisj P Q).1 = hinhpr (or P Q) (inr X)
 
 -- Direct proof that logical equivalence is equiv for props
--- equivhProp (P P' : hProp) (f : P.1 -> P'.1) (g : P'.1 -> P.1) : equiv P.1 P'.1 = undefined
--- (f,isEquivf)
---   where
---   isEquivf : isEquiv P.1 P'.1 f = (s,t)
---     where
---     s (y : P'.1) : fiber P.1 P'.1 f y = (g y,P'.2 (f (g y)) y)
---     t (y : P'.1) (w : fiber P.1 P'.1 f y) : Id ((x :  P.1) * Id P'.1 (f x) y) (s y) w =
---       subtypeEquality P.1 (\(x :  P.1) -> Id P'.1 (f x) y) pb (s y) w r1
---       where
---       pb (x : P.1) : (a b : Id P'.1 (f x) y) -> Id (Id P'.1 (f x) y) a b = propSet P'.1 P'.2 (f x) y
---       r1 : Id P.1 (s y).1 w.1 = P.2 (s y).1 w.1
+equivhProp (P P' : hProp) (f : P.1 -> P'.1) (g : P'.1 -> P.1) : equiv P.1 P'.1 =
+  (f,isEquivf)
+   where
+   isEquivf (y : P'.1) : isContr (fiber P.1 P'.1 f y) = (s,t)
+    where
+    s : fiber P.1 P'.1 f y = (g y,P'.2 y (f (g y)))
+    t (w : fiber P.1 P'.1 f y) : Id ((x :  P.1) * Id P'.1 y (f x)) s w =
+      subtypeEquality P.1 (\(x :  P.1) -> Id P'.1 y (f x)) pb s w r1
+       where
+       pb (x : P.1) : (a b : Id P'.1 y (f x)) -> Id (Id P'.1 y (f x)) a b = propSet P'.1 P'.2 y (f x)
+       r1 : Id P.1 s.1 w.1 = P.2 s.1 w.1
 
 -- Proof of uahp using full univalence
--- uahp' (P P' : hProp) (f : P.1 -> P'.1) (g : P'.1 -> P.1) : Id hProp P P' = undefined
-  -- subtypeEquality U prop propIsProp P P' rem
-  -- where
-  -- rem : Id U P.1 P'.1 =
-  --   invEq (Id U P.1 P'.1) (equiv P.1 P'.1) (univalence P.1 P'.1) (equivhProp P P' f g)
+uahp' (P P' : hProp) (f : P.1 -> P'.1) (g : P'.1 -> P.1) : Id hProp P P' =
+  subtypeEquality U prop propIsProp P P' rem
+  where
+  rem : Id U P.1 P'.1 = transport (<i> corrUniv P.1 P'.1 @ -i) (equivhProp P P' f g)
 
 -- Direct proof of uahp
 uahp (P P' : hProp) (f : P.1 -> P'.1) (g : P'.1 -> P.1) : Id hProp P P' =
@@ -176,6 +175,59 @@ setquotunivprop (X : U) (R : eqrel X) (P : setquot X R.1 -> hProp)
      in subst (setquot X R.1) (\(w : setquot X R.1) -> (P w).1) (setquotpr X R x.1) c e (ps x.1)
    rem : (ishinh (carrier X c.1)).1 = eqax0 X R.1 c.1 c.2
 
+setquotuniv2prop (X : U) (R : eqrel X) (P : setquot X R.1 -> setquot X R.1 -> hProp)
+  (ps : (x x' : X) -> (P (setquotpr X R x) (setquotpr X R x')).1) (c c' : setquot X R.1) : (P c c').1 =
+    setquotunivprop X R (\ (c0' : setquot X R.1) -> P c c0')
+      (\ (x : X) -> setquotunivprop X R (\ (c0 : setquot X R.1) -> P c0 (setquotpr X R x))
+                      (\ (x0 : X) -> ps x0 x) c) c'
+
+isincl (X Y : U) (f : X -> Y) : U = (y : Y) -> prop (fiber X Y f y)
+
+iscompsetquotpr (X : U) (R : eqrel X) (x x' : X) (a : (R.1 x x').1) :
+  Id (setquot X R.1) (setquotpr X R x) (setquotpr X R x') = undefined
+
+weqpathsinsetquot (X : U) (R : eqrel X) (x x' : X) : 
+  equiv (R.1 x x').1 (Id (setquot X R.1) (setquotpr X R x) (setquotpr X R x')) = undefined
+
+isdecprop (X : U) : U = and (prop X) (dec X)
+
+propisdecprop (X : U): prop (isdecprop X) = 
+  propSig (prop X) (\ (_ : prop X) -> dec X) rem1 rem2
+  where
+  rem1 : prop (prop X) = propIsProp X
+  rem2 : prop X -> prop (dec X) = propDec X
+
+isdeceqif (X : U) (h : (x x' : X) -> isdecprop (Id X x x')) : discrete X = 
+  \(x x' : X) -> (h x x').2
+
+propEquiv (X Y : U) (w : equiv X Y) : prop X -> prop Y = subst U prop X Y rem
+  where
+  rem : Id U X Y = transport (<i> corrUniv X Y @ -i) w
+
+isdecpropweqf (X Y : U) (w : equiv X Y) (hX : isdecprop X) : isdecprop Y = (rem1,rem2 hX.2)
+  where
+  rem1 : prop Y = propEquiv X Y w hX.1
+  rem2 : dec X -> dec Y = split
+    inl x -> inl (w.1 x)
+    inr nx -> inr (\(y : Y) -> nx (invEq X Y w y))
+
+isdiscretesetquot (X : U) (R : eqrel X) (is : (x x' : X) -> isdecprop (R.1 x x').1) :
+  discrete (setquot X R.1) = isdeceqif (setquot X R.1) rem
+  where
+  rem : (x x' : setquot X R.1) -> isdecprop (Id (setquot X R.1) x x') =
+    setquotuniv2prop X R 
+      (\(x0 x0' : setquot X R.1) -> (isdecprop (Id (setquot X R.1) x0 x0'),
+                                     propisdecprop (Id (setquot X R.1) x0 x0'))) rem'
+    where
+    rem' (x0 x0' : X) : isdecprop (Id (setquot X R.1) (setquotpr X R x0) (setquotpr X R x0')) =
+      isdecpropweqf (R.1 x0 x0').1 (Id (setquot X R.1) (setquotpr X R x0) (setquotpr X R x0')) 
+                    (weqpathsinsetquot X R x0 x0') (is x0 x0')
+
+discretetobool (X : U) (h : discrete X) (x y : X) : bool = rem (h x y)
+  where
+  rem : dec (Id X x y) -> bool = split
+    inl _ -> true
+    inr _ -> false
 
 -- The bool exercise:
 

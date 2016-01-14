@@ -1,13 +1,11 @@
 module bool where
 
 import hedberg
+import univalence
 
 data bool = false | true
 
-
 -- Proof that bool is a set using hedberg:
-
-
 caseBool (A : U) (f t : A) : bool -> A = split
  false -> f
  true  -> t
@@ -32,9 +30,7 @@ boolDec : (b1 b2 : bool) -> dec (Id bool b1 b2) = split
 
 setbool' : set bool = hedberg bool boolDec
 
-
 -- Direct proof that bool is a set:
-
 lem1 : (y:bool) (p:Id bool true y) -> Id bool true y = split
  false -> \ (p : Id bool true false) -> p
  true -> \ (p : Id bool true true) -> <i>true
@@ -48,7 +44,7 @@ lem3 : prop (Id bool true true) =
 
 lem4 : (y:bool) (p:Id bool false y) -> Id bool false y = split
  false -> \ (p : Id bool false false) -> <i>false
- true -> \ (p : Id bool false true) -> p 
+ true -> \ (p : Id bool false true) -> p
 
 lem5 : (x y :bool)  (p:Id bool false x) (q:Id bool false y) -> Id bool x y = split
  false -> \ (y:bool) (p:Id bool false false) (q:Id bool false y) -> lem4 y q
@@ -114,7 +110,7 @@ boolToF2K : (b : bool) -> Id bool (f2ToBool (boolToF2 b)) b = split
 
 boolEqF2 : Id U bool F2 =
  isoId bool F2 boolToF2 f2ToBool f2ToBoolK boolToF2K
-  
+
 negF2 : F2 -> F2 = subst U (\(X : U) -> (X -> X)) bool F2 boolEqF2 negBool
 
 -- lemTest (A : U) : (B : U) (p : Id U A B) (a : A) -> IdP p a (transport p a) =
@@ -145,7 +141,7 @@ squareBoolF2 : Square U bool bool bool F2 (refl U bool)
                   boolEqF2 (refl U bool) boolEqF2 =
   <i j> boolEqF2 @ i /\ j
 
-test5 : IdP boolEqF2 true oneF2 = 
+test5 : IdP boolEqF2 true oneF2 =
   <i> comp (<j> boolEqF2 @ i /\ j) true []
 
 test6 : Id bool true true =
@@ -162,3 +158,15 @@ test9 : Id U F2 F2 =
 
 p : Id U F2 bool = <i> comp (<_> U) bool [ (i = 0) -> boolEqF2, (i = 1) -> <_> bool]
 q : Id U F2 F2 = <i> p @ (i /\ - i)
+
+
+-- A small test of univalence using boolean negation
+isEquivNegBool : isEquiv bool bool negBool =
+ gradLemma bool bool negBool negBool negBoolK negBoolK
+
+eqBool : Id U bool bool =
+ trans (equiv bool bool) (Id U bool bool)
+       (<i> corrUniv bool bool @ -i) (negBool,isEquivNegBool)
+
+testf : bool = trans bool bool eqBool true
+testt : bool = trans bool bool eqBool false

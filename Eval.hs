@@ -564,7 +564,7 @@ compGlue i a equivs wi0 ws = glueElem vi1 usi1
                  (fibsgamma `unionSystem` (fibersys `face` gamma))) equivsI1
 
         vi1 = compConstLine ai1 vi1'
-                  (Map.map sndVal fibersys')
+                (Map.map sndVal fibersys' `unionSystem` Map.map constPath vsi1)
 
         usi1 = Map.map fstVal fibersys'
 
@@ -637,7 +637,8 @@ compU i a eqs wi0 ws = glueElem vi1 usi1
             in lemEq eqG (vi1' `face` gamma)
                      (fibsgamma `unionSystem` (fibersys `face` gamma))) eqsI1
 
-        vi1 = compConstLine ai1 vi1' (Map.map snd fibersys')
+        vi1 = compConstLine ai1 vi1'
+                (Map.map snd fibersys' `unionSystem` Map.map constPath vsi1)
 
         usi1 = Map.map fst fibersys'
 

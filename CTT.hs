@@ -284,18 +284,18 @@ showEnv b e =
 
       showEnv1 e = case e of
         (Upd x env,u:us,fs)   ->
-          showEnv1 (env,us,fs) <+> names x <+> showVal u <> comma
+          showEnv1 (env,us,fs) <+> names x <+> showVal1 u
         (Sub i env,us,phi:fs) ->
-          showEnv1 (env,us,fs) <+> names (show i) <+> text (show phi) <> comma
+          showEnv1 (env,us,fs) <+> names (show i) <+> text (show phi)
         (Def _ env,vs,fs)     -> showEnv1 (env,vs,fs)
         _                     -> showEnv b e
   in case e of
     (Empty,_,_)           -> PP.empty
     (Def _ env,vs,fs)     -> showEnv b (env,vs,fs)
     (Upd x env,u:us,fs)   ->
-      parens (showEnv1 (env,us,fs) <+> names x <+> showVal u)
+      showEnv1 (env,us,fs) <+> names x <+> showVal u
     (Sub i env,us,phi:fs) ->
-      parens (showEnv1 (env,us,fs) <+> names (show i) <+> text (show phi))
+      showEnv1 (env,us,fs) <+> names (show i) <+> text (show phi)
 
 instance Show Loc where
   show = render . showLoc

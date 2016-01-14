@@ -182,6 +182,7 @@ check a t = case (a,t) of
       throwError $ "check: lam types don't match"
         ++ "\nlambda type annotation: " ++ show a'
         ++ "\ndomain of Pi: " ++ show a
+        ++ "\nnormal form of type: " ++ show (normal ns a)
     let var = mkVarNice ns x a
     local (addTypeVal (x,a)) $ check (app f var) t
   (VSigma a f, Pair t1 t2) -> do
@@ -376,7 +377,10 @@ checkPathSystem t0 va ps = do
       unlessM (a0 === eval rhoAlpha t0) $
         throwError $ "Incompatible system " ++ showSystem ps ++
                      ", component\n " ++ show pAlpha ++
-                     "\nincompatible with\n " ++ show t0
+                     "\nincompatible with\n " ++ show t0 ++
+                     "\na0 = " ++ show a0 ++
+                     "\nt0alpha = " ++ show (eval rhoAlpha t0) ++
+                     "\nva = " ++ show va
       return a1) ps
   checkCompSystem (evalSystem rho ps)
   return v

@@ -4,12 +4,10 @@ import prelude
 
 -- application of this fact
 
-sig (A : U) (P : A -> U) : U = (x : A) * P x
-
-lemIdSig (A:U) (B : A -> U) (t u : sig A B) :
- Id U (Id (sig A B) t u) ((p : Id A t.1 u.1) * IdP (<i> B (p @ i)) t.2 u.2) =
+lemIdSig (A:U) (B : A -> U) (t u : Sigma A B) :
+ Id U (Id (Sigma A B) t u) ((p : Id A t.1 u.1) * IdP (<i> B (p @ i)) t.2 u.2) =
   isoId T0 T1 f g s t where
-   T0 : U = Id (sig A B) t u
+   T0 : U = Id (Sigma A B) t u
    T1 : U = (p:Id A t.1 u.1) * IdP (<i> B (p@i)) t.2 u.2
    f (q:T0) : T1 = (<i> (q@i).1,<i> (q@i).2)
    g (z:T1) : T0 = <i>(z.1 @i,z.2 @i)
@@ -22,7 +20,7 @@ lemIdAnd (A B : U) (t u : and A B) :
 lem (A:U) (P:A->U) (pP:(x:A) -> prop (P x)) (u v:(x:A) * P x) (p:Id A u.1 v.1) :
  Id ((x:A)*P x) u v = <i>(p@i,(lemPropF A P pP u.1 v.1 p u.2 v.2)@i)
 
-propSig (A:U) (B:A-> U) (pA:prop A) (pB : (x:A) -> prop (B x)) (t u : sig A B) : Id (sig A B) t u
+propSig (A:U) (B:A-> U) (pA:prop A) (pB : (x:A) -> prop (B x)) (t u : Sigma A B) : Id (Sigma A B) t u
  = lem A B pB t u (pA t.1 u.1)
 
 lemTransp (A:U) (a:A) : Id A a (transport (<_>A) a) = fill (<_>A) a []
@@ -31,11 +29,11 @@ funDepTr (A:U) (P:A->U) (a0 a1 :A) (p:Id A a0 a1) (u0:P a0) (u1:P a1) :
              Id U (IdP (<i> P (p@i)) u0 u1) (Id (P a1) (transport (<i> P (p@i)) u0) u1) =
  <j>IdP (<i>P (p@j\/i)) (comp (<i>P (p@j/\i)) u0 [(j=0)-><_>u0]) u1
 
-lem2 (A:U) (B:A-> U) (t u : sig A B) (p:Id A t.1 u.1) : 
+lem2 (A:U) (B:A-> U) (t u : Sigma A B) (p:Id A t.1 u.1) : 
   Id U  (IdP (<i>B (p@i)) t.2 u.2) (Id (B u.1) (transport (<i>B (p@i)) t.2) u.2) =
     funDepTr A B t.1 u.1 p  t.2 u.2
 
-corSigProp (A:U) (B:A-> U) (pB : (x:A) -> prop (B x)) (t u : sig A B) (p:Id A t.1 u.1) : 
+corSigProp (A:U) (B:A-> U) (pB : (x:A) -> prop (B x)) (t u : Sigma A B) (p:Id A t.1 u.1) : 
   prop (IdP (<i>B (p@i)) t.2 u.2) = substInv U prop T0 T1 rem rem1
  where P : Id U (B t.1) (B u.1) = <i>B (p@i)
        T0 : U = IdP P t.2 u.2
@@ -44,7 +42,7 @@ corSigProp (A:U) (B:A-> U) (pB : (x:A) -> prop (B x)) (t u : sig A B) (p:Id A t.
        v2 : B u.1 = transport P t.2
        rem1 : prop T1 = propSet (B u.1) (pB u.1) v2 u.2
 
-corSigSet (A:U) (B:A-> U) (sB : (x:A) -> set (B x)) (t u : sig A B) (p:Id A t.1 u.1) : 
+corSigSet (A:U) (B:A-> U) (sB : (x:A) -> set (B x)) (t u : Sigma A B) (p:Id A t.1 u.1) : 
   prop (IdP (<i>B (p@i)) t.2 u.2) = substInv U prop T0 T1 rem rem1
  where P : Id U (B t.1) (B u.1) = <i>B (p@i)
        T0 : U = IdP P t.2 u.2
@@ -53,17 +51,17 @@ corSigSet (A:U) (B:A-> U) (sB : (x:A) -> set (B x)) (t u : sig A B) (p:Id A t.1 
        v2 : B u.1 = transport P t.2
        rem1 : prop T1 = sB u.1 v2 u.2
 
-setSig (A:U) (B:A-> U) (sA: set A) (sB : (x:A) -> set (B x)) (t u : sig A B) : prop (Id (sig A B) t u) = 
-  substInv U prop (Id (sig A B) t u) ((p:T) * C p) rem3 rem2
+setSig (A:U) (B:A-> U) (sA: set A) (sB : (x:A) -> set (B x)) (t u : Sigma A B) : prop (Id (Sigma A B) t u) = 
+  substInv U prop (Id (Sigma A B) t u) ((p:T) * C p) rem3 rem2
  where
    T : U = Id A t.1 u.1
    C (p:T) : U = IdP (<i> B (p@i)) t.2 u.2
    rem (p : T) : prop (C p) = corSigSet A B sB t u p
    rem1 : prop T = sA t.1 u.1
    rem2 : prop ((p:T) * C p) = propSig T C rem1 rem
-   rem3 : Id U (Id (sig A B) t u) ((p:T) * C p) = lemIdSig A B t u
+   rem3 : Id U (Id (Sigma A B) t u) ((p:T) * C p) = lemIdSig A B t u
 
-corSigGroupoid (A:U) (B:A-> U) (gB : (x:A) -> groupoid (B x)) (t u : sig A B) (p:Id A t.1 u.1) : 
+corSigGroupoid (A:U) (B:A-> U) (gB : (x:A) -> groupoid (B x)) (t u : Sigma A B) (p:Id A t.1 u.1) : 
   set (IdP (<i>B (p@i)) t.2 u.2) = substInv U set T0 T1 rem rem1
  where P : Id U (B t.1) (B u.1) = <i>B (p@i)
        T0 : U = IdP P t.2 u.2
@@ -72,20 +70,20 @@ corSigGroupoid (A:U) (B:A-> U) (gB : (x:A) -> groupoid (B x)) (t u : sig A B) (p
        v2 : B u.1 = transport P t.2
        rem1 : set T1 = gB u.1 v2 u.2
 
-groupoidSig (A:U) (B:A-> U) (gA: groupoid A) (gB : (x:A) -> groupoid (B x)) (t u : sig A B) : set (Id (sig A B) t u) = 
-  substInv U set (Id (sig A B) t u) ((p:T) * C p) rem3 rem2
+groupoidSig (A:U) (B:A-> U) (gA: groupoid A) (gB : (x:A) -> groupoid (B x)) (t u : Sigma A B) : set (Id (Sigma A B) t u) = 
+  substInv U set (Id (Sigma A B) t u) ((p:T) * C p) rem3 rem2
  where
    T : U = Id A t.1 u.1
    C (p:T) : U = IdP (<i> B (p@i)) t.2 u.2
    rem (p : T) : set (C p) = corSigGroupoid A B gB t u p
    rem1 : set T = gA t.1 u.1
    rem2 : set ((p:T) * C p) = setSig T C rem1 rem
-   rem3 : Id U (Id (sig A B) t u) ((p:T) * C p) = lemIdSig A B t u
+   rem3 : Id U (Id (Sigma A B) t u) ((p:T) * C p) = lemIdSig A B t u
 
 lemContr (A:U) (pA:prop A) (a:A) : isContr A = (a,rem)
  where rem (y:A) : Id A a y = pA a y
 
-lem3 (A:U) (B:A-> U) (pB : (x:A) -> prop (B x)) (t u : sig A B) (p:Id A t.1 u.1) : 
+lem3 (A:U) (B:A-> U) (pB : (x:A) -> prop (B x)) (t u : Sigma A B) (p:Id A t.1 u.1) : 
   isContr (IdP (<i>B (p@i)) t.2 u.2) = lemContr T0 (substInv U prop T0 T1 rem rem1) rem2
  where P : Id U (B t.1) (B u.1) = <i>B (p@i)
        T0 : U = IdP P t.2 u.2
@@ -103,14 +101,14 @@ lem6 (A:U) (P:A-> U) (cA:(x:A) -> isContr (P x)) : Id U ((x:A)*P x) A = isoId T 
    s (z:T) : Id T (g (f z)) z = <i>(z.1,((cA z.1).2 z.2)@ i)
    t (x:A) : Id A (f (g x)) x = refl A x
 
-lemSigProp (A:U) (B:A-> U) (pB : (x:A) -> prop (B x)) (t u : sig A B) : Id U (Id (sig A B) t u) (Id A t.1 u.1) =
- compId U (Id (sig A B) t u) ((p:Id A t.1 u.1) * IdP (<i> B (p@i)) t.2 u.2) (Id A t.1 u.1) rem2 rem1
+lemSigProp (A:U) (B:A-> U) (pB : (x:A) -> prop (B x)) (t u : Sigma A B) : Id U (Id (Sigma A B) t u) (Id A t.1 u.1) =
+ compId U (Id (Sigma A B) t u) ((p:Id A t.1 u.1) * IdP (<i> B (p@i)) t.2 u.2) (Id A t.1 u.1) rem2 rem1
  where
    T : U = Id A t.1 u.1
    C (p:T) : U = IdP (<i> B (p@i)) t.2 u.2
    rem (p : T) : isContr (C p) = lem3 A B pB t u p
    rem1 : Id U ((p:T) * C p) T = lem6 T C rem
-   rem2 : Id U (Id (sig A B) t u) ((p:T) * C p) = lemIdSig A B t u
+   rem2 : Id U (Id (Sigma A B) t u) ((p:T) * C p) = lemIdSig A B t u
 
 setGroupoid (A:U) (sA:set A) (a0 a1:A) : set (Id A a0 a1) = propSet (Id A a0 a1) (sA a0 a1)
 

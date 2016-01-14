@@ -165,6 +165,8 @@ lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a :A) :
    rem
  where rem : (b0 b1:P a) -> Id (P a) b0 b1 = pP a
 
+Sigma (A : U) (B : A -> U) : U = (x : A) * B x
+
 lemSig (A : U) (B : A -> U) (pB : (x : A) -> prop (B x))
        (u v : (x:A) * B x) (p : Id A u.1 v.1) :
        Id ((x:A) * B x) u v =

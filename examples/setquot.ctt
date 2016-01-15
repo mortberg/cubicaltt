@@ -38,17 +38,19 @@ hdisj_in1 (P Q : U) (X : P) : (hdisj P Q).1 = hinhpr (or P Q) (inl X)
 hdisj_in2 (P Q : U) (X : Q) : (hdisj P Q).1 = hinhpr (or P Q) (inr X)
 
 -- Direct proof that logical equivalence is equiv for props
-equivhProp (P P' : hProp) (f : P.1 -> P'.1) (g : P'.1 -> P.1) : equiv P.1 P'.1 =
-  (f,isEquivf)
-   where
-   isEquivf (y : P'.1) : isContr (fiber P.1 P'.1 f y) = (s,t)
+isEquivprop (A B : U) (f : A -> B) (g : B -> A) (pA : prop A) (pB : prop B) : isEquiv A B f = rem
+  where
+  rem (y : B) : isContr (fiber A B f y) = (s,t)
     where
-    s : fiber P.1 P'.1 f y = (g y,P'.2 y (f (g y)))
-    t (w : fiber P.1 P'.1 f y) : Id ((x :  P.1) * Id P'.1 y (f x)) s w =
-      subtypeEquality P.1 (\(x :  P.1) -> Id P'.1 y (f x)) pb s w r1
+    s : fiber A B f y = (g y,pB y (f (g y)))
+    t (w : fiber A B f y) : Id ((x :  A) * Id B y (f x)) s w =
+      subtypeEquality A (\(x : A) -> Id B y (f x)) pb s w r1
        where
-       pb (x : P.1) : (a b : Id P'.1 y (f x)) -> Id (Id P'.1 y (f x)) a b = propSet P'.1 P'.2 y (f x)
-       r1 : Id P.1 s.1 w.1 = P.2 s.1 w.1
+       pb (x : A) : (a b : Id B y (f x)) -> Id (Id B y (f x)) a b = propSet B pB y (f x)
+       r1 : Id A s.1 w.1 = pA s.1 w.1
+
+equivhProp (P P' : hProp) (f : P.1 -> P'.1) (g : P'.1 -> P.1) : equiv P.1 P'.1 =
+  (f,isEquivprop P.1 P'.1 f g P.2 P'.2)
 
 -- Proof of uahp using full univalence
 uahp' (P P' : hProp) (f : P.1 -> P'.1) (g : P'.1 -> P.1) : Id hProp P P' =
@@ -183,11 +185,37 @@ setquotuniv2prop (X : U) (R : eqrel X) (P : setquot X R.1 -> setquot X R.1 -> hP
 
 isincl (X Y : U) (f : X -> Y) : U = (y : Y) -> prop (fiber X Y f y)
 
+
+-- Theorem isasetsetquot {X : UU} (R : hrel X) : isaset (setquot R).
+-- Proof.
+-- apply (isasetsubset (@pr1 _ _) (isasethsubtypes X)).
+-- apply isinclpr1; intro x.
+-- apply isapropiseqclass.
+-- Defined.
+
+setsetquot (X : U) (R : hrel X) : set (setquot X R) = undefined
+
 iscompsetquotpr (X : U) (R : eqrel X) (x x' : X) (a : (R.1 x x').1) :
   Id (setquot X R.1) (setquotpr X R x) (setquotpr X R x') = undefined
 
 weqpathsinsetquot (X : U) (R : eqrel X) (x x' : X) : 
-  equiv (R.1 x x').1 (Id (setquot X R.1) (setquotpr X R x) (setquotpr X R x')) = undefined
+  equiv (R.1 x x').1 (Id (setquot X R.1) (setquotpr X R x) (setquotpr X R x')) =
+  (iscompsetquotpr X R x x',rem)
+  where
+  rem : isEquiv (R.1 x x').1
+                (Id (setquot X R.1) (setquotpr X R x) (setquotpr X R x'))
+                (iscompsetquotpr X R x x') =
+    isEquivprop (R.1 x x').1
+                (Id (setquot X R.1) (setquotpr X R x) (setquotpr X R x'))
+                (iscompsetquotpr X R x x')
+                g pA pB
+   where g (e : Id (setquot X R.1) (setquotpr X R x) (setquotpr X R x')) :
+             (R.1 x x').1 = transport (<i> (rem1 @ i).1) rem
+           where
+           rem : (R.1 x' x').1 = eqrelrefl X R x'
+           rem1 : Id hProp (R.1 x' x') (R.1 x x') = undefined
+         pA : prop (R.1 x x').1 = (R.1 x x').2
+         pB : prop (Id (setquot X R.1) (setquotpr X R x) (setquotpr X R x')) = setsetquot X R.1 (setquotpr X R x) (setquotpr X R x')
 
 isdecprop (X : U) : U = and (prop X) (dec X)
 

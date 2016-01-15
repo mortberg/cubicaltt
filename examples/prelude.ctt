@@ -226,7 +226,19 @@ setUnit : set Unit = propSet Unit propUnit
 data or (A B : U) = inl (a : A)
                   | inr (b : B)
 
-propOr (A B : U) (hA : prop A) (hB : prop B) (h : A -> neg B) : prop (or A B) = undefined
+propOr (A B : U) (hA : prop A) (hB : prop B) (h : A -> neg B) : prop (or A B) = rem
+  where
+  rem : (a b : or A B) -> Id (or A B) a b = split
+    inl a' -> rem1
+      where
+      rem1 : (b : or A B) -> Id (or A B) (inl a') b = split
+        inl b' -> <i> inl (hA a' b' @ i)
+        inr b' -> efq (Id (or A B) (inl a') (inr b')) (h a' b')
+    inr a' -> rem1
+      where
+      rem1 : (b : or A B) -> Id (or A B) (inr a') b = split
+        inl b' -> efq (Id (or A B) (inr a') (inl b')) (h b' a')
+        inr b' -> <i> inr (hB a' b' @ i)
 
 stable (A:U) : U = neg (neg A) -> A
 

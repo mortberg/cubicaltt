@@ -256,7 +256,7 @@ inferType v = case v of
     ty         -> error $ "inferType: expected IdP type for " ++ show v
                   ++ ", got " ++ show ty
   VComp a _ _ -> a @@ One
-  VUnGlueElem _ b _  -> b
+--  VUnGlueElem _ b _  -> b   -- This is wrong! Store the type??
   VUnGlueElemU _ b _ -> b
   _ -> error $ "inferType: not neutral " ++ show v
 

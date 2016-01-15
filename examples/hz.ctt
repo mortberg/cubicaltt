@@ -6,22 +6,11 @@ import setquot
 -- shorthand for nat x nat
 nat2 : U = and nat nat
 
-add_comm3 (a b c : nat) : Id nat (add a (add b c)) (add c (add b a)) = 
-  let rem : Id nat (add a (add b c)) (add a (add c b)) = <i> add a (add_comm b c @ i)
-      rem1 : Id nat (add a (add c b)) (add (add c b) a) = add_comm a (add c b)
-      rem2 : Id nat (add (add c b) a) (add c (add b a)) = <i> assocAdd c b a @ -i
-  in <i> comp (<_> nat) (rem1 @ i) [ (i = 0) -> <j> rem @ -j, (i = 1) -> rem2 ]
-
 natlemma (a b c d : nat) : Id nat (add (add a b) (add c d)) (add (add a d) (add c b)) =
   let rem : Id nat (add a (add b (add c d))) (add a (add d (add c b))) =
         <i> add a (add_comm3 b c d @ i)
   in <i> comp (<_> nat) (rem @ i) [ (i = 0) -> assocAdd a b (add c d)
                                   , (i = 1) -> assocAdd a d (add c b) ]
-
-natcancelr (a b : nat) : (x : nat) -> Id nat (add a x) (add b x) -> Id nat a b = split
-  zero -> \(h : Id nat a b) -> h
-  suc x' -> \(h : Id nat (suc (add a x')) (suc (add b x'))) ->
-    natcancelr a b x' (sucInj (add a x') (add b x') h)
 
 rel : eqrel nat2 = (r,rem)
   where

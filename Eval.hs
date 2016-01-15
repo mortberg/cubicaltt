@@ -256,7 +256,8 @@ inferType v = case v of
     ty         -> error $ "inferType: expected IdP type for " ++ show v
                   ++ ", got " ++ show ty
   VComp a _ _ -> a @@ One
-  VUnGlueElemU _ b es -> compUniv b es
+  VUnGlueElem _ b _  -> b
+  VUnGlueElemU _ b _ -> b
   _ -> error $ "inferType: not neutral " ++ show v
 
 (@@) :: ToFormula a => Val -> a -> Val

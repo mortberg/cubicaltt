@@ -183,17 +183,14 @@ setquotuniv2prop (X : U) (R : eqrel X) (P : setquot X R.1 -> setquot X R.1 -> hP
       (\ (x : X) -> setquotunivprop X R (\ (c0 : setquot X R.1) -> P c0 (setquotpr X R x))
                       (\ (x0 : X) -> ps x0 x) c) c'
 
+setsetquot (X : U) (R : hrel X) : set (setquot X R) =
+  setSig (hsubtypes X) (\(A : hsubtypes X) -> iseqclass X R A)
+    sA sB
+    where
+    sA : set (hsubtypes X) = sethsubtypes X
+    sB (x : hsubtypes X) : set (iseqclass X R x) = propSet (iseqclass X R x) (propiseqclass X R x)
+
 isincl (X Y : U) (f : X -> Y) : U = (y : Y) -> prop (fiber X Y f y)
-
-
--- Theorem isasetsetquot {X : UU} (R : hrel X) : isaset (setquot R).
--- Proof.
--- apply (isasetsubset (@pr1 _ _) (isasethsubtypes X)).
--- apply isinclpr1; intro x.
--- apply isapropiseqclass.
--- Defined.
-
-setsetquot (X : U) (R : hrel X) : set (setquot X R) = undefined
 
 iscompsetquotpr (X : U) (R : eqrel X) (x x' : X) (a : (R.1 x x').1) :
   Id (setquot X R.1) (setquotpr X R x) (setquotpr X R x') = undefined

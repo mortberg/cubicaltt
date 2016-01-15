@@ -6,20 +6,68 @@ import setquot
 -- shorthand for nat x nat
 nat2 : U = and nat nat
 
+add_comm3 (a b c : nat) : Id nat (add a (add b c)) (add c (add b a)) = 
+  let rem : Id nat (add a (add b c)) (add a (add c b)) = <i> add a (add_comm b c @ i)
+      rem1 : Id nat (add a (add c b)) (add (add c b) a) = add_comm a (add c b)
+      rem2 : Id nat (add (add c b) a) (add c (add b a)) = <i> assocAdd c b a @ -i
+  in <i> comp (<_> nat) (rem1 @ i) [ (i = 0) -> <j> rem @ -j, (i = 1) -> rem2 ]
+
+natlemma (a b c d : nat) : Id nat (add (add a b) (add c d)) (add (add a d) (add c b)) =
+  let rem : Id nat (add a (add b (add c d))) (add a (add d (add c b))) =
+        <i> add a (add_comm3 b c d @ i)
+  in <i> comp (<_> nat) (rem @ i) [ (i = 0) -> assocAdd a b (add c d)
+                                  , (i = 1) -> assocAdd a d (add c b) ]
+
+natcancelr (a b : nat) : (x : nat) -> Id nat (add a x) (add b x) -> Id nat a b = split
+  zero -> \(h : Id nat a b) -> h
+  suc x' -> \(h : Id nat (suc (add a x')) (suc (add b x'))) ->
+    natcancelr a b x' (sucInj (add a x') (add b x') h)
+
 rel : eqrel nat2 = (r,rem)
   where
   r : hrel nat2 = \(x y : nat2) -> 
     (Id nat (add x.1 y.2) (add x.2 y.1),natSet (add x.1 y.2) (add x.2 y.1))
     
-  rem : iseqrel nat2 r = undefined -- ((rem1,refl nat2),rem2)
-   -- where
-   -- rem1 : istrans nat2 r = undefined
-   -- rem2 : issymm nat2 r = undefined
+  rem : iseqrel nat2 r = ((rem1,rem2),rem3)
+    where
+    rem1 : istrans nat2 r =
+     \(x y z : nat2) 
+      (h1 : Id nat (add x.1 y.2) (add x.2 y.1))
+      (h2 : Id nat (add y.1 z.2) (add y.2 z.1)) ->
+      let rem : Id nat (add (add x.1 y.2) (add y.1 z.2)) (add (add x.2 y.1) (add y.2 z.1)) = 
+           <i> add (h1 @ i) (h2 @ i)
+
+          rem1 : Id nat (add (add x.1 y.2) (add y.1 z.2)) (add (add x.1 z.2) (add y.1 y.2)) =
+            natlemma x.1 y.2 y.1 z.2
+
+          rem2 : Id nat (add (add x.2 y.1) (add y.2 z.1)) (add (add x.2 z.1) (add y.2 y.1)) =
+            natlemma x.2 y.1 y.2 z.1
+          rem3 : Id nat (add (add x.2 z.1) (add y.2 y.1)) (add (add x.2 z.1) (add y.1 y.2)) = 
+            <i> add (add x.2 z.1) (add_comm y.2 y.1 @ i)
+          rem4 : Id nat (add (add x.2 y.1) (add y.2 z.1)) (add (add x.2 z.1) (add y.1 y.2)) =
+            <i> comp (<_> nat) (add (add x.2 z.1) (add y.2 y.1)) [ (i = 0) -> <j> rem2 @ -j
+                                                                 , (i = 1) -> rem3 ]
+
+          rem5 : Id nat (add (add x.1 z.2) (add y.1 y.2)) (add (add x.2 z.1) (add y.1 y.2)) =
+            <i> comp (<_> nat) (rem @ i) [ (i = 0) -> rem1, (i = 1) -> rem4 ]
+
+      in natcancelr (add x.1 z.2) (add x.2 z.1) (add y.1 y.2) rem5
+    rem2 : isrefl nat2 r = \(x : nat2) -> add_comm x.1 x.2
+    rem3 : issymm nat2 r = \(x y : nat2) (h : Id nat (add x.1 y.2) (add x.2 y.1)) ->
+      let rem : Id nat (add x.2 y.1) (add y.2 x.1) = 
+            <i> comp (<_> nat) (add x.1 y.2) [ (i = 0) -> h
+                                             , (i = 1) -> add_comm x.1 y.2 ]
+      in <i> comp (<_> nat) (add x.2 y.1) [ (i = 0) -> add_comm x.2 y.1
+                                          , (i = 1) -> rem ]
 
 hz : U = setquot nat2 rel.1
 zeroz : hz = setquotpr nat2 rel (zero,zero)
 onez : hz = setquotpr nat2 rel (one,zero)
 
-discretehz : discrete hz = undefined
+discretehz : discrete hz = isdiscretesetquot nat2 rel rem
+  where
+  rem (x y : nat2) : isdecprop (rel.1 x y).1 = 
+    (natSet (add x.1 y.2) (add x.2 y.1),natDec (add x.1 y.2) (add x.2 y.1))
 
 test01 : bool = discretetobool hz discretehz zeroz onez
+test11 : bool = discretetobool hz discretehz onez onez

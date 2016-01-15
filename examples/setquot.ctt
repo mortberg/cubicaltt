@@ -190,12 +190,22 @@ setsetquot (X : U) (R : hrel X) : set (setquot X R) =
     sA : set (hsubtypes X) = sethsubtypes X
     sB (x : hsubtypes X) : set (iseqclass X R x) = propSet (iseqclass X R x) (propiseqclass X R x)
 
-isincl (X Y : U) (f : X -> Y) : U = (y : Y) -> prop (fiber X Y f y)
-
 iscompsetquotpr (X : U) (R : eqrel X) (x x' : X) (a : (R.1 x x').1) :
-  Id (setquot X R.1) (setquotpr X R x) (setquotpr X R x') = undefined
+  Id (setquot X R.1) (setquotpr X R x) (setquotpr X R x') =
+  subtypeEquality (hsubtypes X) (iseqclass X R.1) rem1 (setquotpr X R x) (setquotpr X R x') rem2
+  where
+  rem1 (x : hsubtypes X) : prop (iseqclass X R.1 x) = propiseqclass X R.1 x
+  rem2 : Id (hsubtypes X) (setquotpr X R x).1 (setquotpr X R x').1 =
+    <i> \(x0 : X) -> rem x0 @ i
+    where
+    rem (x0 : X) : Id hProp (R.1 x x0) (R.1 x' x0) = uahp (R.1 x x0) (R.1 x' x0) f g
+      where
+      f (r0 : (R.1 x x0).1) : (R.1 x' x0).1 =
+        eqreltrans X R x' x x0 (eqrelsymm X R x x' a) r0
+      g (r0 : (R.1 x' x0).1) : (R.1 x x0).1 =
+        eqreltrans X R x x' x0 a r0
 
-weqpathsinsetquot (X : U) (R : eqrel X) (x x' : X) : 
+weqpathsinsetquot (X : U) (R : eqrel X) (x x' : X) :
   equiv (R.1 x x').1 (Id (setquot X R.1) (setquotpr X R x) (setquotpr X R x')) =
   (iscompsetquotpr X R x x',rem)
   where
@@ -213,17 +223,18 @@ weqpathsinsetquot (X : U) (R : eqrel X) (x x' : X) :
            rem2 : Id hProp (R.1 x x') (R.1 x' x') = <i> (e @ i).1 x'
            rem1 : Id hProp (R.1 x' x') (R.1 x x') = <i> rem2 @ -i
          pA : prop (R.1 x x').1 = (R.1 x x').2
-         pB : prop (Id (setquot X R.1) (setquotpr X R x) (setquotpr X R x')) = setsetquot X R.1 (setquotpr X R x) (setquotpr X R x')
+         pB : prop (Id (setquot X R.1) (setquotpr X R x) (setquotpr X R x')) =
+                setsetquot X R.1 (setquotpr X R x) (setquotpr X R x')
 
 isdecprop (X : U) : U = and (prop X) (dec X)
 
-propisdecprop (X : U): prop (isdecprop X) = 
+propisdecprop (X : U): prop (isdecprop X) =
   propSig (prop X) (\ (_ : prop X) -> dec X) rem1 rem2
   where
   rem1 : prop (prop X) = propIsProp X
   rem2 : prop X -> prop (dec X) = propDec X
 
-isdeceqif (X : U) (h : (x x' : X) -> isdecprop (Id X x x')) : discrete X = 
+isdeceqif (X : U) (h : (x x' : X) -> isdecprop (Id X x x')) : discrete X =
   \(x x' : X) -> (h x x').2
 
 propEquiv (X Y : U) (w : equiv X Y) : prop X -> prop Y = subst U prop X Y rem
@@ -241,12 +252,12 @@ isdiscretesetquot (X : U) (R : eqrel X) (is : (x x' : X) -> isdecprop (R.1 x x')
   discrete (setquot X R.1) = isdeceqif (setquot X R.1) rem
   where
   rem : (x x' : setquot X R.1) -> isdecprop (Id (setquot X R.1) x x') =
-    setquotuniv2prop X R 
+    setquotuniv2prop X R
       (\(x0 x0' : setquot X R.1) -> (isdecprop (Id (setquot X R.1) x0 x0'),
                                      propisdecprop (Id (setquot X R.1) x0 x0'))) rem'
     where
     rem' (x0 x0' : X) : isdecprop (Id (setquot X R.1) (setquotpr X R x0) (setquotpr X R x0')) =
-      isdecpropweqf (R.1 x0 x0').1 (Id (setquot X R.1) (setquotpr X R x0) (setquotpr X R x0')) 
+      isdecpropweqf (R.1 x0 x0').1 (Id (setquot X R.1) (setquotpr X R x0) (setquotpr X R x0'))
                     (weqpathsinsetquot X R x0 x0') (is x0 x0')
 
 discretetobool (X : U) (h : discrete X) (x y : X) : bool = rem (h x y)

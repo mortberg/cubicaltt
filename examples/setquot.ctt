@@ -213,7 +213,8 @@ weqpathsinsetquot (X : U) (R : eqrel X) (x x' : X) :
              (R.1 x x').1 = transport (<i> (rem1 @ i).1) rem
            where
            rem : (R.1 x' x').1 = eqrelrefl X R x'
-           rem1 : Id hProp (R.1 x' x') (R.1 x x') = undefined
+           rem2 : Id hProp (R.1 x x') (R.1 x' x') = <i> (e @ i).1 x'
+           rem1 : Id hProp (R.1 x' x') (R.1 x x') = <i> rem2 @ -i
          pA : prop (R.1 x x').1 = (R.1 x x').2
          pB : prop (Id (setquot X R.1) (setquotpr X R x) (setquotpr X R x')) = setsetquot X R.1 (setquotpr X R x) (setquotpr X R x')
 

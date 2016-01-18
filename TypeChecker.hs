@@ -210,6 +210,10 @@ check a t = case (a,t) of
     check va u
     vu <- evalTyping u
     checkGlueElem vu ts us
+  (VCompU va ves,GlueElem u us) -> do
+    check va u
+    vu <- evalTyping u
+    checkGlueElemU vu ves us
   _ -> do
     v <- infer t
     unlessM (v === a) $
@@ -269,6 +273,21 @@ checkGlueElem vu ts us = do
   checkSystemsWith ts vus (\alpha vt vAlpha ->
     unlessM (app (equivFun vt) vAlpha === (vu `face` alpha)) $
       throwError $ "Image of glueElem component " ++ show vAlpha ++
+                   " doesn't match " ++ show vu)
+  checkCompSystem vus
+
+-- Check a glueElem against VComp _ ves
+checkGlueElemU :: Val -> System Val -> System Ter -> Typing ()
+checkGlueElemU vu ves us = do
+  unless (keys ves == keys us)
+    (throwError ("Keys don't match in " ++ show ves ++ " and " ++ show us))
+  rho <- asks env
+  checkSystemsWith ves us
+    (\alpha ve u -> local (faceEnv alpha) $ check (ve @@ One) u)
+  let vus = evalSystem rho us
+  checkSystemsWith ves vus (\alpha ve vAlpha ->
+    unlessM (eqFun ve vAlpha === (vu `face` alpha)) $
+      throwError $ "Transport of glueElem (for compU) component " ++ show vAlpha ++
                    " doesn't match " ++ show vu)
   checkCompSystem vus
 

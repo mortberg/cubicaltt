@@ -105,7 +105,7 @@ References and notes
  * [Cubical Type Theory: a constructive interpretation of the
    univalence
    axiom](http://www.math.ias.edu/~amortberg/papers/cubicaltt.pdf),
-   Cyril Cohen, Thierry Coquand, Simon Huber, and Anders Mörtberg
+   Cyril Cohen, Thierry Coquand, Simon Huber, and Anders MÃ¶rtberg
 
  * [Cubical Type
    Theory](http://www.cse.chalmers.se/~coquand/face.pdf) - The

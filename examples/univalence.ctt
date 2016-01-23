@@ -6,7 +6,6 @@
 module univalence where
 
 import equiv
-import bool
 
 ------------------------------------------------------------------------------
 -- Proof of univalence using unglue:
@@ -42,16 +41,14 @@ isPathContr (A:U) (cA:isContr A) (x y:A) : isContr (Id A x y) =  (p0,q)
 isEquivContr (A B:U) (cA:isContr A) (cB:isContr B) (f:A->B) : isEquiv A B f =
  \ (y:B) -> sigIsContr A (\ (x:A) -> Id B y (f x)) cA (\ (x:A) -> isPathContr B cB y (f x))
 
-sig (A:U) (B:A->U) : U = (x:A) * B x
-
-totalFun (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (w:sig A B) : sig A C =
+totalFun (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (w:Sigma A B) : Sigma A C =
  (w.1,f (w.1) (w.2))
 
 funFib1  (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (x0:A) (z0:C x0) (u:fiber (B x0) (C x0) (f x0) z0) :
- fiber (sig A B) (sig A C) (totalFun A B C f) (x0,z0) =  ((x0,u.1),<i>(x0,u.2@i))
+ fiber (Sigma A B) (Sigma A C) (totalFun A B C f) (x0,z0) =  ((x0,u.1),<i>(x0,u.2@i))
 
 funFib2  (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (x0:A) (z0:C x0)
-         (w : fiber (sig A B) (sig A C) (totalFun A B C f) (x0,z0)) : fiber (B x0) (C x0) (f x0) z0 = (b0,s)
+         (w : fiber (Sigma A B) (Sigma A C) (totalFun A B C f) (x0,z0)) : fiber (B x0) (C x0) (f x0) z0 = (b0,s)
  where
   x : A = w.1.1
   b : B x = w.1.2
@@ -71,18 +68,17 @@ retFunFib (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (x0:A) (z0:C x0) (u:fiber
                                       (i = 0) -> <j> z0,
                                       (i = 1) -> <j> f x0 (comp (<k> B x0) u.1 [ (j = 0) -> <k> u.1, (l=1) -> <k>u.1 ]) ])
 
-equivFunFib (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (cB : isContr (sig A B)) (cC : isContr (sig A C)) (x:A)
+equivFunFib (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (cB : isContr (Sigma A B)) (cC : isContr (Sigma A C)) (x:A)
   : isEquiv (B x) (C x) (f x) =
- \ (z:C x) -> retIsContr (fiber (B x) (C x) (f x) z) (fiber (sig A B) (sig A C) (totalFun A B C f) (x,z))
+ \ (z:C x) -> retIsContr (fiber (B x) (C x) (f x) z) (fiber (Sigma A B) (Sigma A C) (totalFun A B C f) (x,z))
                          (funFib1 A B C f x z)
                          (funFib2 A B C f x z)
                          (retFunFib A B C f x z)
-                         (isEquivContr (sig A B) (sig A C) cB cC (totalFun A B C f) (x,z))
+                         (isEquivContr (Sigma A B) (Sigma A C) cB cC (totalFun A B C f) (x,z))
 
 -- test normal form
--- equivFunFib (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (cB : isContr (sig A B)) (cC : isContr (sig A C)) (x:A)
---   : isEquiv (B x) (C x) (f x) =
---  \ (z:C x) ->  ((comp (<i> B (comp (<j> A) cC.1.1 [ (i = 0) -> <j> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ j).1, (i = 1) -> <j> (cC.2 ((x,z)) @ j).1 ])) cB.1.2 [],<i> comp (<j> C (comp (<k> A) cC.1.1 [ (i = 0) -> <k> (cC.2 ((x,z)) @ k).1, (i = 1)(j = 0) -> <k> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ k).1, (j = 1) -> <k> (cC.2 ((x,z)) @ k).1 ])) (comp (<j> C (comp (<k> A) cC.1.1 [ (i = 0) -> <k> (cC.2 ((x,z)) @ (j /\ k)).1, (i = 1) -> <k> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (j /\ k)).1, (j = 0) -> <k> cC.1.1 ])) cC.1.2 [ (i = 0) -> <j> (cC.2 ((x,z)) @ j).2, (i = 1) -> <j> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ j).2 ]) [ (i = 0) -> <j> z, (i = 1) -> <j> f (comp (<k> A) cC.1.1 [ (j = 0) -> <k> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ k).1, (j = 1) -> <k> (cC.2 ((x,z)) @ k).1 ]) (comp (<k> B (comp (<i> A) cC.1.1 [ (j = 0) -> <i> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ i).1, (j = 1)(k = 1) -> <i> (cC.2 ((x,z)) @ i).1, (k = 0) -> <i> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ i).1 ])) cB.1.2 [ (j = 0) -> <k> cB.1.2 ]) ]),\(x0 : sig (B x) (\(x0 : B x) -> IdP (<i> C x) z (f x x0))) -> <i> (comp (<j> B x) (comp (<j> B (comp (<k> A) cC.1.1 [ (i = 0) -> <k> comp (<l> A) cC.1.1 [ (j = 0) -> <l> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (k /\ l)).1, (j = 1) -> <l> (cC.2 ((x,z)) @ (k /\ l)).1, (k = 0) -> <l> cC.1.1 ], (i = 1) -> <k> (cC.2 ((x,x0.2 @ -j)) @ k).1, (j = 0) -> <k> (cC.2 (((cB.2 ((x,x0.1)) @ i).1,f (cB.2 ((x,x0.1)) @ i).1 (cB.2 ((x,x0.1)) @ i).2)) @ k).1, (j = 1) -> <k> (cC.2 ((x,z)) @ k).1 ])) (cB.2 ((x,x0.1)) @ i).2 []) [ (i = 0) -> <j> comp (<i> B (comp (<k> A) cC.1.1 [ (i = 0) -> <k> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ k).1, (i = 1) -> <k> (cC.2 ((x,z)) @ k).1 ])) cB.1.2 [], (i = 1) -> <j> comp (<k> B x) x0.1 [ (j = 1) -> <k> x0.1 ] ],<k> comp (<l> C x) (comp (<l> C (comp (<j> A) cC.1.1 [ (i = 0) -> <j> comp (<m> A) cC.1.1 [ (j = 0) -> <m> cC.1.1, (k = 0) -> <m> (cC.2 ((x,z)) @ (j /\ m)).1, (k = 1)(l = 0) -> <m> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (j /\ m)).1, (l = 1) -> <m> (cC.2 ((x,z)) @ (j /\ m)).1 ], (i = 1) -> <j> (cC.2 ((x,x0.2 @ (-l /\ k))) @ j).1, (k = 0) -> <j> (cC.2 ((x,z)) @ j).1, (k = 1)(l = 0) -> <j> (cC.2 (((cB.2 ((x,x0.1)) @ i).1,f (cB.2 ((x,x0.1)) @ i).1 (cB.2 ((x,x0.1)) @ i).2)) @ j).1, (l = 1) -> <j> (cC.2 ((x,z)) @ j).1 ])) (comp (<l> C (comp (<j> A) cC.1.1 [ (i = 0) -> <j> comp (<m> A) cC.1.1 [ (j = 0) -> <m> cC.1.1, (k = 0) -> <m> (cC.2 ((x,z)) @ (l /\ j /\ m)).1, (k = 1) -> <m> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (l /\ j /\ m)).1, (l = 0) -> <m> cC.1.1 ], (i = 1) -> <j> (cC.2 ((x,x0.2 @ k)) @ (l /\ j)).1, (k = 0) -> <j> (cC.2 ((x,z)) @ (l /\ j)).1, (k = 1) -> <j> (cC.2 (((cB.2 ((x,x0.1)) @ i).1,f (cB.2 ((x,x0.1)) @ i).1 (cB.2 ((x,x0.1)) @ i).2)) @ (l /\ j)).1, (l = 0) -> <j> cC.1.1 ])) cC.1.2 [ (i = 0) -> <l> comp (<j> C (comp (<m> A) cC.1.1 [ (j = 0) -> <m> cC.1.1, (k = 0) -> <m> (cC.2 ((x,z)) @ (l /\ j /\ m)).1, (k = 1) -> <m> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (l /\ j /\ m)).1, (l = 0) -> <m> cC.1.1 ])) cC.1.2 [ (k = 0) -> <j> (cC.2 ((x,z)) @ (l /\ j)).2, (k = 1) -> <j> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (l /\ j)).2, (l = 0) -> <j> cC.1.2 ], (i = 1) -> <l> (cC.2 ((x,x0.2 @ k)) @ l).2, (k = 0) -> <l> (cC.2 ((x,z)) @ l).2, (k = 1) -> <l> (cC.2 (((cB.2 ((x,x0.1)) @ i).1,f (cB.2 ((x,x0.1)) @ i).1 (cB.2 ((x,x0.1)) @ i).2)) @ l).2 ]) [ (k = 0) -> <l> z, (k = 1) -> <l> f (comp (<k> A) cC.1.1 [ (i = 0) -> <k> comp (<j> A) cC.1.1 [ (k = 0) -> <j> cC.1.1, (l = 0) -> <j> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (k /\ j)).1, (l = 1) -> <j> (cC.2 ((x,z)) @ (k /\ j)).1 ], (i = 1) -> <k> (cC.2 ((x,x0.2 @ -l)) @ k).1, (l = 0) -> <k> (cC.2 (((cB.2 ((x,x0.1)) @ i).1,f (cB.2 ((x,x0.1)) @ i).1 (cB.2 ((x,x0.1)) @ i).2)) @ k).1, (l = 1) -> <k> (cC.2 ((x,z)) @ k).1 ]) (comp (<k> B (comp (<j> A) cC.1.1 [ (i = 0) -> <j> comp (<m> A) cC.1.1 [ (j = 0) -> <m> cC.1.1, (k = 0) -> <m> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (j /\ m)).1, (k = 1)(l = 1) -> <m> (cC.2 ((x,z)) @ (j /\ m)).1, (l = 0) -> <m> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (j /\ m)).1 ], (i = 1) -> <j> (cC.2 ((x,x0.2 @ (-l \/ -k))) @ j).1, (k = 0) -> <j> (cC.2 (((cB.2 ((x,x0.1)) @ i).1,f (cB.2 ((x,x0.1)) @ i).1 (cB.2 ((x,x0.1)) @ i).2)) @ j).1, (k = 1)(l = 1) -> <j> (cC.2 ((x,z)) @ j).1, (l = 0) -> <j> (cC.2 (((cB.2 ((x,x0.1)) @ i).1,f (cB.2 ((x,x0.1)) @ i).1 (cB.2 ((x,x0.1)) @ i).2)) @ j).1 ])) (cB.2 ((x,x0.1)) @ i).2 [ (l = 0) -> <k> (cB.2 ((x,x0.1)) @ i).2 ]) ]) [ (i = 0) -> <l> comp (<j> C (comp (<i> A) cC.1.1 [ (j = 0)(k = 1) -> <i> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ i).1, (j = 1) -> <i> (cC.2 ((x,z)) @ i).1, (k = 0) -> <i> (cC.2 ((x,z)) @ i).1 ])) (comp (<j> C (comp (<i> A) cC.1.1 [ (j = 0) -> <i> cC.1.1, (k = 0) -> <i> (cC.2 ((x,z)) @ (j /\ i)).1, (k = 1) -> <i> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (j /\ i)).1 ])) cC.1.2 [ (k = 0) -> <j> (cC.2 ((x,z)) @ j).2, (k = 1) -> <j> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ j).2 ]) [ (k = 0) -> <j> z, (k = 1) -> <j> f (comp (<l> A) cC.1.1 [ (j = 0) -> <l> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ l).1, (j = 1) -> <l> (cC.2 ((x,z)) @ l).1 ]) (comp (<l> B (comp (<i> A) cC.1.1 [ (j = 0) -> <i> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ i).1, (j = 1)(l = 1) -> <i> (cC.2 ((x,z)) @ i).1, (l = 0) -> <i> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ i).1 ])) cB.1.2 [ (j = 0) -> <l> cB.1.2 ]) ], (i = 1) -> <l> comp (<j> C x) (x0.2 @ k) [ (k = 0) -> <j> z, (k = 1) -> <j> f x (comp (<k> B x) x0.1 [ (j = 0) -> <k> x0.1, (l = 1) -> <k> x0.1 ]), (l = 1) -> <j> x0.2 @ k ], (k = 0) -> <l> z, (k = 1) -> <l> f x (comp (<k> B x) (comp (<l> B (comp (<k> A) cC.1.1 [ (i = 0) -> <k> comp (<j> A) cC.1.1 [ (k = 0) -> <j> cC.1.1, (l = 0) -> <j> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (k /\ j)).1, (l = 1) -> <j> (cC.2 ((x,z)) @ (k /\ j)).1 ], (i = 1) -> <k> (cC.2 ((x,x0.2 @ -l)) @ k).1, (l = 0) -> <k> (cC.2 (((cB.2 ((x,x0.1)) @ i).1,f (cB.2 ((x,x0.1)) @ i).1 (cB.2 ((x,x0.1)) @ i).2)) @ k).1, (l = 1) -> <k> (cC.2 ((x,z)) @ k).1 ])) (cB.2 ((x,x0.1)) @ i).2 []) [ (i = 0) -> <k> comp (<i> B (comp (<k> A) cC.1.1 [ (i = 0) -> <k> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ k).1, (i = 1) -> <k> (cC.2 ((x,z)) @ k).1 ])) cB.1.2 [], (i = 1) -> <k> comp (<j> B x) x0.1 [ (k = 1)(l = 1) -> <j> x0.1 ], (l = 0) -> <k> comp (<l> B (comp (<k> A) cC.1.1 [ (i = 0) -> <k> comp (<j> A) cC.1.1 [ (k = 0) -> <j> cC.1.1, (l = 0) -> <j> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (k /\ j)).1, (l = 1) -> <j> (cC.2 ((x,z)) @ (k /\ j)).1 ], (i = 1) -> <k> (cC.2 ((x,x0.2 @ -l)) @ k).1, (l = 0) -> <k> (cC.2 (((cB.2 ((x,x0.1)) @ i).1,f (cB.2 ((x,x0.1)) @ i).1 (cB.2 ((x,x0.1)) @ i).2)) @ k).1, (l = 1) -> <k> (cC.2 ((x,z)) @ k).1 ])) (cB.2 ((x,x0.1)) @ i).2 [] ]) ]))
+-- nequivFunFib : (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (cB : isContr (Sigma A B)) (cC : isContr (Sigma A C)) (x:A) ->isEquiv (B x) (C x) (f x) = \(A : U) -> \(B C : A -> U) -> \(f : (x : A) -> (B x) -> (C x)) -> \(cB : Sigma (Sigma A (\(x : A) -> B x)) (\(x : Sigma A (\(x : A) -> B x)) -> (y : Sigma A (\(x0 : A) -> B x0)) -> IdP (<!0> Sigma A (\(x0 : A) -> B x0)) x y)) -> \(cC : Sigma (Sigma A (\(x : A) -> C x)) (\(x : Sigma A (\(x : A) -> C x)) -> (y : Sigma A (\(x0 : A) -> C x0)) -> IdP (<!0> Sigma A (\(x0 : A) -> C x0)) x y)) -> \(x : A) -> \(z : C x) -> ((comp (<!0> B (comp (<!1> A) cC.1.1 [ (!0 = 0) -> <!1> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !1).1, (!0 = 1) -> <!1> (cC.2 ((x,z)) @ !1).1 ])) cB.1.2 [],<!0> comp (<!1> C (comp (<!2> A) cC.1.1 [ (!0 = 0) -> <!2> (cC.2 ((x,z)) @ !2).1, (!0 = 1)(!1 = 0) -> <!2> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !2).1, (!1 = 1) -> <!2> (cC.2 ((x,z)) @ !2).1 ])) (comp (<!1> C (comp (<!2> A) cC.1.1 [ (!0 = 0) -> <!2> (cC.2 ((x,z)) @ (!1 /\ !2)).1, (!0 = 1) -> <!2> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!1 /\ !2)).1, (!1 = 0) -> <!2> cC.1.1 ])) cC.1.2 [ (!0 = 0) -> <!1> (cC.2 ((x,z)) @ !1).2, (!0 = 1) -> <!1> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !1).2 ]) [ (!0 = 0) -> <!1> z, (!0 = 1) -> <!1> f (comp (<!2> A) cC.1.1 [ (!1 = 0) -> <!2> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !2).1, (!1 = 1) -> <!2> (cC.2 ((x,z)) @ !2).1 ]) (comp (<!2> B (comp (<!3> A) cC.1.1 [ (!1 = 0) -> <!3> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !3).1, (!1 = 1)(!2 = 1) -> <!3> (cC.2 ((x,z)) @ !3).1, (!2 = 0) -> <!3> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !3).1 ])) cB.1.2 [ (!1 = 0) -> <!2> cB.1.2 ]) ]),\(x0 : Sigma (B x) (\(x0 : B x) -> IdP (<!0> C x) z (f x x0))) -> <!0> (comp (<!1> B x) (comp (<!1> B (comp (<!2> A) cC.1.1 [ (!0 = 0) -> <!2> comp (<!3> A) cC.1.1 [ (!1 = 0) -> <!3> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!2 /\ !3)).1, (!1 = 1) -> <!3> (cC.2 ((x,z)) @ (!2 /\ !3)).1, (!2 = 0) -> <!3> cC.1.1 ], (!0 = 1) -> <!2> (cC.2 ((x,x0.2 @ -!1)) @ !2).1, (!1 = 0) -> <!2> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !2).1, (!1 = 1) -> <!2> (cC.2 ((x,z)) @ !2).1 ])) (cB.2 ((x,x0.1)) @ !0).2 []) [ (!0 = 0) -> <!1> comp (<!0> B (comp (<!1> A) cC.1.1 [ (!0 = 0) -> <!1> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !1).1, (!0 = 1) -> <!1> (cC.2 ((x,z)) @ !1).1 ])) cB.1.2 [], (!0 = 1) -> <!1> comp (<!2> B x) x0.1 [ (!1 = 1) -> <!2> x0.1 ] ],<!2> comp (<!3> C x) (comp (<!3> C (comp (<!4> A) cC.1.1 [ (!0 = 0) -> <!4> comp (<!5> A) cC.1.1 [ (!2 = 0) -> <!5> (cC.2 ((x,z)) @ (!4 /\ !5)).1, (!2 = 1)(!3 = 0) -> <!5> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!4 /\ !5)).1, (!3 = 1) -> <!5> (cC.2 ((x,z)) @ (!4 /\ !5)).1, (!4 = 0) -> <!5> cC.1.1 ], (!0 = 1) -> <!4> (cC.2 ((x,x0.2 @ (!2 /\ -!3))) @ !4).1, (!2 = 0) -> <!4> (cC.2 ((x,z)) @ !4).1, (!2 = 1)(!3 = 0) -> <!4> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !4).1, (!3 = 1) -> <!4> (cC.2 ((x,z)) @ !4).1 ])) (comp (<!3> C (comp (<!4> A) cC.1.1 [ (!0 = 0) -> <!4> comp (<!5> A) cC.1.1 [ (!2 = 0) -> <!5> (cC.2 ((x,z)) @ (!3 /\ !4 /\ !5)).1, (!2 = 1) -> <!5> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!3 /\ !4 /\ !5)).1, (!3 = 0) -> <!5> cC.1.1, (!4 = 0) -> <!5> cC.1.1 ], (!0 = 1) -> <!4> (cC.2 ((x,x0.2 @ !2)) @ (!3 /\ !4)).1, (!2 = 0) -> <!4> (cC.2 ((x,z)) @ (!3 /\ !4)).1, (!2 = 1) -> <!4> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ (!3 /\ !4)).1, (!3 = 0) -> <!4> cC.1.1 ])) cC.1.2 [ (!0 = 0) -> <!3> comp (<!4> C (comp (<!5> A) cC.1.1 [ (!2 = 0) -> <!5> (cC.2 ((x,z)) @ (!3 /\ !4 /\ !5)).1, (!2 = 1) -> <!5> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!3 /\ !4 /\ !5)).1, (!3 = 0) -> <!5> cC.1.1, (!4 = 0) -> <!5> cC.1.1 ])) cC.1.2 [ (!2 = 0) -> <!4> (cC.2 ((x,z)) @ (!3 /\ !4)).2, (!2 = 1) -> <!4> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!3 /\ !4)).2, (!3 = 0) -> <!4> cC.1.2 ], (!0 = 1) -> <!3> (cC.2 ((x,x0.2 @ !2)) @ !3).2, (!2 = 0) -> <!3> (cC.2 ((x,z)) @ !3).2, (!2 = 1) -> <!3> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !3).2 ]) [ (!2 = 0) -> <!3> z, (!2 = 1) -> <!3> f (comp (<!4> A) cC.1.1 [ (!0 = 0) -> <!4> comp (<!5> A) cC.1.1 [ (!3 = 0) -> <!5> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!4 /\ !5)).1, (!3 = 1) -> <!5> (cC.2 ((x,z)) @ (!4 /\ !5)).1, (!4 = 0) -> <!5> cC.1.1 ], (!0 = 1) -> <!4> (cC.2 ((x,x0.2 @ -!3)) @ !4).1, (!3 = 0) -> <!4> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !4).1, (!3 = 1) -> <!4> (cC.2 ((x,z)) @ !4).1 ]) (comp (<!4> B (comp (<!5> A) cC.1.1 [ (!0 = 0) -> <!5> comp (<!6> A) cC.1.1 [ (!3 = 0) -> <!6> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!5 /\ !6)).1, (!3 = 1)(!4 = 1) -> <!6> (cC.2 ((x,z)) @ (!5 /\ !6)).1, (!4 = 0) -> <!6> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!5 /\ !6)).1, (!5 = 0) -> <!6> cC.1.1 ], (!0 = 1) -> <!5> (cC.2 ((x,x0.2 @ (-!3 \/ -!4))) @ !5).1, (!3 = 0) -> <!5> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !5).1, (!3 = 1)(!4 = 1) -> <!5> (cC.2 ((x,z)) @ !5).1, (!4 = 0) -> <!5> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !5).1 ])) (cB.2 ((x,x0.1)) @ !0).2 [ (!3 = 0) -> <!4> (cB.2 ((x,x0.1)) @ !0).2 ]) ]) [ (!0 = 0) -> <!3> comp (<!3> C (comp (<!4> A) cC.1.1 [ (!2 = 0) -> <!4> (cC.2 ((x,z)) @ !4).1, (!2 = 1)(!3 = 0) -> <!4> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !4).1, (!3 = 1) -> <!4> (cC.2 ((x,z)) @ !4).1 ])) (comp (<!3> C (comp (<!4> A) cC.1.1 [ (!2 = 0) -> <!4> (cC.2 ((x,z)) @ (!3 /\ !4)).1, (!2 = 1) -> <!4> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!3 /\ !4)).1, (!3 = 0) -> <!4> cC.1.1 ])) cC.1.2 [ (!2 = 0) -> <!3> (cC.2 ((x,z)) @ !3).2, (!2 = 1) -> <!3> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !3).2 ]) [ (!2 = 0) -> <!3> z, (!2 = 1) -> <!3> f (comp (<!4> A) cC.1.1 [ (!3 = 0) -> <!4> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !4).1, (!3 = 1) -> <!4> (cC.2 ((x,z)) @ !4).1 ]) (comp (<!4> B (comp (<!5> A) cC.1.1 [ (!3 = 0) -> <!5> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !5).1, (!3 = 1)(!4 = 1) -> <!5> (cC.2 ((x,z)) @ !5).1, (!4 = 0) -> <!5> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !5).1 ])) cB.1.2 [ (!3 = 0) -> <!4> cB.1.2 ]) ], (!0 = 1) -> <!3> comp (<!4> C x) (x0.2 @ !2) [ (!2 = 0) -> <!4> z, (!2 = 1) -> <!4> f x (comp (<!5> B x) x0.1 [ (!3 = 1) -> <!5> x0.1, (!4 = 0) -> <!5> x0.1 ]), (!3 = 1) -> <!4> x0.2 @ !2 ], (!2 = 0) -> <!3> z, (!2 = 1) -> <!3> f x (comp (<!4> B x) (comp (<!1> B (comp (<!2> A) cC.1.1 [ (!0 = 0) -> <!2> comp (<!3> A) cC.1.1 [ (!1 = 0) -> <!3> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!2 /\ !3)).1, (!1 = 1) -> <!3> (cC.2 ((x,z)) @ (!2 /\ !3)).1, (!2 = 0) -> <!3> cC.1.1 ], (!0 = 1) -> <!2> (cC.2 ((x,x0.2 @ -!1)) @ !2).1, (!1 = 0) -> <!2> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !2).1, (!1 = 1) -> <!2> (cC.2 ((x,z)) @ !2).1 ])) (cB.2 ((x,x0.1)) @ !0).2 []) [ (!0 = 0) -> <!4> comp (<!0> B (comp (<!1> A) cC.1.1 [ (!0 = 0) -> <!1> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !1).1, (!0 = 1) -> <!1> (cC.2 ((x,z)) @ !1).1 ])) cB.1.2 [], (!0 = 1) -> <!4> comp (<!5> B x) x0.1 [ (!3 = 1)(!4 = 1) -> <!5> x0.1 ], (!3 = 0) -> <!4> comp (<!1> B (comp (<!2> A) cC.1.1 [ (!0 = 0) -> <!2> comp (<!3> A) cC.1.1 [ (!1 = 0) -> <!3> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!2 /\ !3)).1, (!1 = 1) -> <!3> (cC.2 ((x,z)) @ (!2 /\ !3)).1, (!2 = 0) -> <!3> cC.1.1 ], (!0 = 1) -> <!2> (cC.2 ((x,x0.2 @ -!1)) @ !2).1, (!1 = 0) -> <!2> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !2).1, (!1 = 1) -> <!2> (cC.2 ((x,z)) @ !2).1 ])) (cB.2 ((x,x0.1)) @ !0).2 [] ]) ]))
+
 
 lem1 (B:U) : isContr ((X:U) * equiv X B) =
  ((B,idEquiv B)
@@ -96,27 +92,29 @@ lem1 (B:U) : isContr ((X:U) * equiv X B) =
               ,unglueElemB
               ,\(b : B)
                -> let center : fiber glueB B unglueElemB b
-                             = (glueElem (comp (<_> B) b [(i=0) -> <_> b
+                             = (glueElem (comp (<j> B) b [(i=0) -> <j> b
                                                          ,(i=1) -> (w.2.2 b).1.2])
                                          [(i=0) -> b
                                          ,(i=1) -> (w.2.2 b).1.1]
-                               ,fill (<_> B) b [(i=0) -> <_> b
+                               ,fill (<j> B) b [(i=0) -> <j> b
                                                ,(i=1) -> (w.2.2 b).1.2])
                       contr (v : fiber glueB B unglueElemB b)
                             : Id (fiber glueB B unglueElemB b) center v
-                            = <j> (glueElem (comp (<_> B) b [(i=0) -> <k> v.2 @ (j /\ k)
+                            = <j> (glueElem (comp (<j> B) b [(i=0) -> <k> v.2 @ (j /\ k)
                                                             ,(i=1) -> ((w.2.2 b).2 v @ j).2
-                                                            ,(j=0) -> fill (<_> B) b [(i=0) -> <_> b
+                                                            ,(j=0) -> fill (<j> B) b [(i=0) -> <j> b
                                                                                      ,(i=1) -> (w.2.2 b).1.2]
                                                             ,(j=1) -> v.2])
                                             [(i=0) -> v.2 @ j
                                             ,(i=1) -> ((w.2.2 b).2 v @ j).1]
-                                  ,fill (<_> B) b [(i=0) -> <l> v.2 @ (j /\ l)
+                                  ,fill (<j> B) b [(i=0) -> <l> v.2 @ (j /\ l)
                                                   ,(i=1) -> ((w.2.2 b).2 v @ j).2
-                                                  ,(j=0) -> fill (<_> B) b [(i=0) -> <_> b
+                                                  ,(j=0) -> fill (<j> B) b [(i=0) -> <j> b
                                                                            ,(i=1) -> (w.2.2 b).1.2]
                                                   ,(j=1) -> v.2])
                   in (center,contr)))
+
+-- nlem1 (B:U) : isContr ((X:U) * equiv X B) = ((B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> IdP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))),\(w : Sigma U (\(X : U) -> Sigma (X -> B) (\(f : X -> B) -> (y : B) -> Sigma (Sigma X (\(x : X) -> IdP (<!0> B) y (f x))) (\(x : Sigma X (\(x : X) -> IdP (<!0> B) y (f x))) -> (y0 : Sigma X (\(x0 : X) -> IdP (<!0> B) y (f x0))) -> IdP (<!0> Sigma X (\(x0 : X) -> IdP (<!0> B) y (f x0))) x y0)))) -> <!0> (glue B [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> IdP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ],(\(g : glue B [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> IdP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ]) -> unglueElem g [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> IdP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ],\(b : B) -> ((glueElem (comp (<!1> B) b [ (!0 = 0) -> <!1> b, (!0 = 1) -> <!1> (w.2.2 b).1.2 @ !1 ]) [ (!0 = 0) -> b, (!0 = 1) -> (w.2.2 b).1.1 ],<!1> comp (<!2> B) b [ (!0 = 0) -> <!2> b, (!0 = 1) -> <!2> (w.2.2 b).1.2 @ (!1 /\ !2), (!1 = 0) -> <!2> b ]),\(v : Sigma (glue B [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> IdP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ]) (\(x : glue B [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> IdP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ]) -> IdP (<!1> B) b (unglueElem x [ (!0 = 0) -> (B,(\(x0 : B) -> x0,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x0 : B) -> IdP (<!0> B) a x0)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ]))) -> <!1> (glueElem (comp (<!2> B) b [ (!0 = 0) -> <!2> v.2 @ (!1 /\ !2), (!0 = 1) -> <!2> ((w.2.2 b).2 v @ !1).2 @ !2, (!1 = 0) -> <!2> comp (<!3> B) b [ (!0 = 0) -> <!3> b, (!0 = 1) -> <!3> (w.2.2 b).1.2 @ (!2 /\ !3), (!2 = 0) -> <!3> b ], (!1 = 1) -> <!2> v.2 @ !2 ]) [ (!0 = 0) -> v.2 @ !1, (!0 = 1) -> ((w.2.2 b).2 v @ !1).1 ],<!2> comp (<!3> B) b [ (!0 = 0) -> <!3> v.2 @ (!1 /\ !2 /\ !3), (!0 = 1) -> <!3> ((w.2.2 b).2 v @ !1).2 @ (!2 /\ !3), (!1 = 0) -> <!3> comp (<!4> B) b [ (!0 = 0) -> <!4> b, (!0 = 1) -> <!4> (w.2.2 b).1.2 @ (!2 /\ !3 /\ !4), (!2 = 0) -> <!4> b, (!3 = 0) -> <!4> b ], (!1 = 1) -> <!3> v.2 @ (!2 /\ !3), (!2 = 0) -> <!3> b ])))))
 
 contrSingl' (A : U) (a b : A) (p : Id A a b) :
   Id ((x:A) * Id A x b) (b,refl A b) (a,p) = <i> (p @ -i,<j> p @ -i\/j)
@@ -144,100 +142,86 @@ corrUniv' (A B : U) : equiv (Id U A B) (equiv A B) =
   (transEquiv' B A,univalence B A)
 
 
--- Some tests of normal forms:
-testUniv1 (A : U) : Id U A A =
-  trans (equiv A A) (Id U A A) (<i> corrUniv A A @ -i) (idEquiv A)
+-- -- Some tests of normal forms:
+-- testUniv1 (A : U) : Id U A A =
+--   trans (equiv A A) (Id U A A) (<i> corrUniv A A @ -i) (idEquiv A)
 
--- obtained by normal form
-ntestUniv1 (A:U) : Id U A A =
- <i> comp (<_>U)
-      (comp (<_>U) A
-         [ (i = 0) -> <l> comp (<_>U) A [ (l = 0) -> <i> glue A [ (i = 0) -> (A,(\(x : A) -> x,\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i))))), (i = 1) -> (A,(comp (<l> A -> A) (\(x : A) -> x) [],comp (<l> (y : A) ->
-  ((x : ((x : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x []) [ (l = 0) -> <j> comp (<k> A) x [ (j = 1) -> <k> x ] ]))) *    (y0 : ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) -> IdP (<j> ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) x y0)) (\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i)))) [])) ], (l = 1) -> <i> glue A [ (i = 0) -> (A,(\(x : A) -> x,\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i))))), (i = 1) -> (A,(comp (<l> A -> A) (\(x : A) -> x) [],comp (<l> (y : A) ->
-        ((x : ((x : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x []) [ (l = 0) -> <j> comp (<k> A) x [ (j = 1) -> <k> x ] ]))) * (y0 : ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) -> IdP (<j> ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) x y0)) (\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i)))) [])) ] ], (i = 1) -> <l> A ]) [ (i = 0) -> <l> A, (i = 1) -> <l> A ]
+-- -- obtained by normal form
+-- ntestUniv1 (A:U) : Id U A A =
+--  <i> comp (<_>U)
+--       (comp (<_>U) A
+--          [ (i = 0) -> <l> comp (<_>U) A [ (l = 0) -> <i> glue A [ (i = 0) -> (A,(\(x : A) -> x,\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i))))), (i = 1) -> (A,(comp (<l> A -> A) (\(x : A) -> x) [],comp (<l> (y : A) ->
+--   ((x : ((x : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x []) [ (l = 0) -> <j> comp (<k> A) x [ (j = 1) -> <k> x ] ]))) *    (y0 : ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) -> IdP (<j> ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) x y0)) (\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i)))) [])) ], (l = 1) -> <i> glue A [ (i = 0) -> (A,(\(x : A) -> x,\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i))))), (i = 1) -> (A,(comp (<l> A -> A) (\(x : A) -> x) [],comp (<l> (y : A) ->
+--         ((x : ((x : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x []) [ (l = 0) -> <j> comp (<k> A) x [ (j = 1) -> <k> x ] ]))) * (y0 : ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) -> IdP (<j> ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) x y0)) (\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i)))) [])) ] ], (i = 1) -> <l> A ]) [ (i = 0) -> <l> A, (i = 1) -> <l> A ]
 
-testUniv2 : bool = trans bool bool (ntestUniv1 bool) true
+-- testUniv2 : bool = trans bool bool (ntestUniv1 bool) true
 
-ntestUniv2 : bool =
- comp (<i> comp (<_>U) (comp (<_>U) bool [ (i = 0) -> <j> comp (<_>U) bool [ (j = 0) -> <i> glue bool [ (i = 0) -> (bool,(\(x : bool) -> x,\(a : bool) -> ((a,<i> a),\(z : ((x : bool) * IdP (<i> bool) a x)) -> <i> (z.2 @ i,<j> z.2 @ (i /\ j))))), (i = 1) -> (bool,(comp (<i> bool -> bool) (\(x : bool) -> x) [],comp (<i> (y : bool) ->
-  ((x : ((x : bool) * IdP (<j> bool) y (comp (<j> bool) (comp (<i> bool) x []) [ (i = 0) -> <j> comp (<k> bool) x [ (j = 1) -> <k> x ] ]))) * (y0 : ((x0 : bool) * IdP (<j> bool) y (comp (<j> bool) (comp (<i> bool) x0 []) [ (i = 0) -> <j> comp (<k> bool) x0 [ (j = 1) -> <k> x0 ] ]))) -> IdP (<j> ((x0 : bool) * IdP (<k> bool) y (comp (<j> bool) (comp (<i> bool) x0 []) [ (i = 0) -> <j> comp (<k> bool) x0 [ (j = 1) -> <k> x0 ] ]))) x y0)) (\(a : bool) -> ((a,<i> a),\(z : ((x : bool) * IdP (<i> bool) a x)) -> <i> (z.2 @ i,<j> z.2 @ (i /\ j)))) [])) ], (j = 1) -> <i> glue bool [ (i = 0) -> (bool,(\(x : bool) -> x,\(a : bool) -> ((a,<i> a),\(z : ((x : bool) * IdP (<i> bool) a x)) -> <i> (z.2 @ i,<j> z.2 @ (i /\ j))))), (i = 1) -> (bool,(comp (<i> bool -> bool) (\(x : bool) -> x) [],comp (<i> (y : bool) ->
-  ((x : ((x : bool) * IdP (<j> bool) y (comp (<j> bool) (comp (<i> bool) x []) [ (i = 0) -> <j> comp (<k> bool) x [ (j = 1) -> <k> x ] ]))) * (y0 : ((x0 : bool) * IdP (<j> bool) y (comp (<j> bool) (comp (<i> bool) x0 []) [ (i = 0) -> <j> comp (<k> bool) x0 [ (j = 1) -> <k> x0 ] ]))) -> IdP (<j> ((x0 : bool) * IdP (<k> bool) y (comp (<j> bool) (comp (<i> bool) x0 []) [ (i = 0) -> <j> comp (<k> bool) x0 [ (j = 1) -> <k> x0 ] ]))) x y0)) (\(a : bool) -> ((a,<i> a),\(z : ((x : bool) * IdP (<i> bool) a x)) -> <i> (z.2 @ i,<j> z.2 @ (i /\ j)))) [])) ] ], (i = 1) -> <j> bool ]) [ (i = 0) -> <j> bool, (i = 1) -> <j> bool ]) true []
-
-
--- A small test of univalence using boolean negation
-isEquivNegBool : isEquiv bool bool negBool =
- gradLemma bool bool negBool negBool negBoolK negBoolK
-
-eqBool : Id U bool bool = 
- trans (equiv bool bool) (Id U bool bool)
-       (<i> corrUniv bool bool @ -i) (negBool,isEquivNegBool)
-
-test1 : bool = trans bool bool eqBool true
-test2 : bool = trans bool bool eqBool false
+-- ntestUniv2 : bool =
+--  comp (<i> comp (<_>U) (comp (<_>U) bool [ (i = 0) -> <j> comp (<_>U) bool [ (j = 0) -> <i> glue bool [ (i = 0) -> (bool,(\(x : bool) -> x,\(a : bool) -> ((a,<i> a),\(z : ((x : bool) * IdP (<i> bool) a x)) -> <i> (z.2 @ i,<j> z.2 @ (i /\ j))))), (i = 1) -> (bool,(comp (<i> bool -> bool) (\(x : bool) -> x) [],comp (<i> (y : bool) ->
+--   ((x : ((x : bool) * IdP (<j> bool) y (comp (<j> bool) (comp (<i> bool) x []) [ (i = 0) -> <j> comp (<k> bool) x [ (j = 1) -> <k> x ] ]))) * (y0 : ((x0 : bool) * IdP (<j> bool) y (comp (<j> bool) (comp (<i> bool) x0 []) [ (i = 0) -> <j> comp (<k> bool) x0 [ (j = 1) -> <k> x0 ] ]))) -> IdP (<j> ((x0 : bool) * IdP (<k> bool) y (comp (<j> bool) (comp (<i> bool) x0 []) [ (i = 0) -> <j> comp (<k> bool) x0 [ (j = 1) -> <k> x0 ] ]))) x y0)) (\(a : bool) -> ((a,<i> a),\(z : ((x : bool) * IdP (<i> bool) a x)) -> <i> (z.2 @ i,<j> z.2 @ (i /\ j)))) [])) ], (j = 1) -> <i> glue bool [ (i = 0) -> (bool,(\(x : bool) -> x,\(a : bool) -> ((a,<i> a),\(z : ((x : bool) * IdP (<i> bool) a x)) -> <i> (z.2 @ i,<j> z.2 @ (i /\ j))))), (i = 1) -> (bool,(comp (<i> bool -> bool) (\(x : bool) -> x) [],comp (<i> (y : bool) ->
+--   ((x : ((x : bool) * IdP (<j> bool) y (comp (<j> bool) (comp (<i> bool) x []) [ (i = 0) -> <j> comp (<k> bool) x [ (j = 1) -> <k> x ] ]))) * (y0 : ((x0 : bool) * IdP (<j> bool) y (comp (<j> bool) (comp (<i> bool) x0 []) [ (i = 0) -> <j> comp (<k> bool) x0 [ (j = 1) -> <k> x0 ] ]))) -> IdP (<j> ((x0 : bool) * IdP (<k> bool) y (comp (<j> bool) (comp (<i> bool) x0 []) [ (i = 0) -> <j> comp (<k> bool) x0 [ (j = 1) -> <k> x0 ] ]))) x y0)) (\(a : bool) -> ((a,<i> a),\(z : ((x : bool) * IdP (<i> bool) a x)) -> <i> (z.2 @ i,<j> z.2 @ (i /\ j)))) [])) ] ], (i = 1) -> <j> bool ]) [ (i = 0) -> <j> bool, (i = 1) -> <j> bool ]) true []
 
 
+-- ------------------------------------------------------------------------------
+-- -- The direct proof of univalence using transEquiv which is too slow
+-- -- to normalize:
 
+-- -- transEquiv is an equiv
+-- transEquivIsEquiv (A B : U)
+--   : isEquiv (Id U A B) (equiv A B) (transEquiv A B)
+--   = gradLemma (Id U A B) (equiv A B) (transEquiv A B)
+--       (transEquivToId A B) (idToId A B) (eqToEq A B)
 
-------------------------------------------------------------------------------
--- The direct proof of univalence using transEquiv which is too slow
--- to normalize:
+-- -- Univalence proved using transEquiv
+-- univalenceTrans (A B:U) : Id U (Id U A B) (equiv A B) = 
+--  isoId (Id U A B) (equiv A B) (transEquiv A B)
+--        (transEquivToId A B) (idToId A B) (eqToEq A B)
 
--- transEquiv is an equiv
-transEquivIsEquiv (A B : U)
-  : isEquiv (Id U A B) (equiv A B) (transEquiv A B)
-  = gradLemma (Id U A B) (equiv A B) (transEquiv A B)
-      (transEquivToId A B) (idToId A B) (eqToEq A B)
+-- univalenceTrans' (A B : U) : equiv (Id U A B) (equiv A B) =
+--   (transEquiv A B,transEquivIsEquiv A B)
 
--- Univalence proved using transEquiv
-univalenceTrans (A B:U) : Id U (Id U A B) (equiv A B) = 
- isoId (Id U A B) (equiv A B) (transEquiv A B)
-       (transEquivToId A B) (idToId A B) (eqToEq A B)
+-- -- univalenceTrans takes extremely much memory when normalizing
 
-univalenceTrans' (A B : U) : equiv (Id U A B) (equiv A B) =
-  (transEquiv A B,transEquivIsEquiv A B)
-
--- univalenceTrans takes extremely much memory when normalizing
-
--- This also takes too long to normalize:
-slowtest (A : U) : Id (equiv A A)
-  (transEquiv A A (transEquivToId A A (idEquiv A))) (idEquiv A) =
-    idToId A A (idEquiv A)
+-- -- This also takes too long to normalize:
+-- slowtest (A : U) : Id (equiv A A)
+--   (transEquiv A A (transEquivToId A A (idEquiv A))) (idEquiv A) =
+--     idToId A A (idEquiv A)
 
 
 
 
-------------------------------------------------------------------------------
--- TODO: Adapt this to new definition of equiv
+-- ------------------------------------------------------------------------------
+-- -- TODO: Adapt this to new definition of equiv
 
--- The canonical map defined using J
--- canIdToEquiv (A : U) : (B : U) -> Id U A B -> equiv A B =
---   J U A (\ (B : U) (_ : Id U A B) -> equiv A B) (idEquiv A)
+-- -- The canonical map defined using J
+-- -- canIdToEquiv (A : U) : (B : U) -> Id U A B -> equiv A B =
+-- --   J U A (\ (B : U) (_ : Id U A B) -> equiv A B) (idEquiv A)
 
--- canDiagTrans (A : U) : Id (A -> A) (canIdToEquiv A A (<_> A)).1 (idfun A) =
---   <i> fill (<_> A -> A) (idfun A) [] @ -i
+-- -- canDiagTrans (A : U) : Id (A -> A) (canIdToEquiv A A (<_> A)).1 (idfun A) =
+-- --   <i> fill (<_> A -> A) (idfun A) [] @ -i
 
--- transDiagTrans (A : U) : Id (A -> A) (idfun A) (trans A A (<_> A)) =
---   <i> \ (a : A) -> fill (<_> A) a [] @ i
+-- -- transDiagTrans (A : U) : Id (A -> A) (idfun A) (trans A A (<_> A)) =
+-- --   <i> \ (a : A) -> fill (<_> A) a [] @ i
 
--- canIdToEquivLem (A : U) : (B : U) (p : Id U A B) ->
---   Id (A -> B) (canIdToEquiv A B p).1 (transEquiv A B p).1
---   = J U A
---       (\ (B : U) (p : Id U A B) ->
---         Id (A -> B) (canIdToEquiv A B p).1 (transEquiv A B p).1)
---       (compId (A -> A)
---         (canIdToEquiv A A (<_> A)).1 (idfun A) (trans A A (<_> A))
---         (canDiagTrans A) (transDiagTrans A))
+-- -- canIdToEquivLem (A : U) : (B : U) (p : Id U A B) ->
+-- --   Id (A -> B) (canIdToEquiv A B p).1 (transEquiv A B p).1
+-- --   = J U A
+-- --       (\ (B : U) (p : Id U A B) ->
+-- --         Id (A -> B) (canIdToEquiv A B p).1 (transEquiv A B p).1)
+-- --       (compId (A -> A)
+-- --         (canIdToEquiv A A (<_> A)).1 (idfun A) (trans A A (<_> A))
+-- --         (canDiagTrans A) (transDiagTrans A))
 
--- canIdToEquivIsTransEquiv (A B : U) :
---   Id (Id U A B -> equiv A B) (canIdToEquiv A B) (transEquiv A B) =
---   <i> \ (p : Id U A B) ->
---         equivLemma A B (canIdToEquiv A B p) (transEquiv A B p)
---           (canIdToEquivLem A B p) @ i
+-- -- canIdToEquivIsTransEquiv (A B : U) :
+-- --   Id (Id U A B -> equiv A B) (canIdToEquiv A B) (transEquiv A B) =
+-- --   <i> \ (p : Id U A B) ->
+-- --         equivLemma A B (canIdToEquiv A B p) (transEquiv A B p)
+-- --           (canIdToEquivLem A B p) @ i
 
--- -- The canonical map is an equivalence
--- univalenceJ (A B : U) : isEquiv (Id U A B) (equiv A B) (canIdToEquiv A B) =
---   substInv (Id U A B -> equiv A B)
---     (isEquiv (Id U A B) (equiv A B))
---      (canIdToEquiv A B) (transEquiv A B)
---      (canIdToEquivIsTransEquiv A B)
---      (transEquivIsEquiv A B)
+-- -- -- The canonical map is an equivalence
+-- -- univalenceJ (A B : U) : isEquiv (Id U A B) (equiv A B) (canIdToEquiv A B) =
+-- --   substInv (Id U A B -> equiv A B)
+-- --     (isEquiv (Id U A B) (equiv A B))
+-- --      (canIdToEquiv A B) (transEquiv A B)
+-- --      (canIdToEquivIsTransEquiv A B)
+-- --      (transEquivIsEquiv A B)

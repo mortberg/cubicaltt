@@ -182,6 +182,7 @@ check a t = case (a,t) of
       throwError $ "check: lam types don't match"
         ++ "\nlambda type annotation: " ++ show a'
         ++ "\ndomain of Pi: " ++ show a
+        ++ "\nnormal form of type: " ++ show (normal ns a)
     let var = mkVarNice ns x a
     local (addTypeVal (x,a)) $ check (app f var) t
   (VSigma a f, Pair t1 t2) -> do
@@ -209,6 +210,10 @@ check a t = case (a,t) of
     check va u
     vu <- evalTyping u
     checkGlueElem vu ts us
+  (VCompU va ves,GlueElem u us) -> do
+    check va u
+    vu <- evalTyping u
+    checkGlueElemU vu ves us
   _ -> do
     v <- infer t
     unlessM (v === a) $
@@ -268,6 +273,21 @@ checkGlueElem vu ts us = do
   checkSystemsWith ts vus (\alpha vt vAlpha ->
     unlessM (app (equivFun vt) vAlpha === (vu `face` alpha)) $
       throwError $ "Image of glueElem component " ++ show vAlpha ++
+                   " doesn't match " ++ show vu)
+  checkCompSystem vus
+
+-- Check a glueElem against VComp _ ves
+checkGlueElemU :: Val -> System Val -> System Ter -> Typing ()
+checkGlueElemU vu ves us = do
+  unless (keys ves == keys us)
+    (throwError ("Keys don't match in " ++ show ves ++ " and " ++ show us))
+  rho <- asks env
+  checkSystemsWith ves us
+    (\alpha ve u -> local (faceEnv alpha) $ check (ve @@ One) u)
+  let vus = evalSystem rho us
+  checkSystemsWith ves vus (\alpha ve vAlpha ->
+    unlessM (eqFun ve vAlpha === (vu `face` alpha)) $
+      throwError $ "Transport of glueElem (for compU) component " ++ show vAlpha ++
                    " doesn't match " ++ show vu)
   checkCompSystem vus
 
@@ -376,7 +396,10 @@ checkPathSystem t0 va ps = do
       unlessM (a0 === eval rhoAlpha t0) $
         throwError $ "Incompatible system " ++ showSystem ps ++
                      ", component\n " ++ show pAlpha ++
-                     "\nincompatible  with\n " ++ show t0
+                     "\nincompatible with\n " ++ show t0 ++
+                     "\na0 = " ++ show a0 ++
+                     "\nt0alpha = " ++ show (eval rhoAlpha t0) ++
+                     "\nva = " ++ show va
       return a1) ps
   checkCompSystem (evalSystem rho ps)
   return v

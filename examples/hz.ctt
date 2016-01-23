@@ -1,3 +1,5 @@
+-- Z defined as a quotient of nat * nat by the relation: 
+--   (x1,x2) ~ (y1,y2) := (x1 + y2 = x2 + y1)
 module hz where
 
 import nat
@@ -58,5 +60,8 @@ discretehz : discrete hz = isdiscretesetquot nat2 rel rem
   rem (x y : nat2) : isdecprop (rel.1 x y).1 = 
     (natSet (add x.1 y.2) (add x.2 y.1),natDec (add x.1 y.2) (add x.2 y.1))
 
+-- Use the decision procedure to compute if "0 = 1":
 test01 : bool = discretetobool hz discretehz zeroz onez
+
+-- Use the decision procedure to compute if "1 = 1":
 test11 : bool = discretetobool hz discretehz onez onez

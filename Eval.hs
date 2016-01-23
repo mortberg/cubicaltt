@@ -274,10 +274,9 @@ v @@ phi                   = error $ "(@@): " ++ show v ++ " should be neutral."
 (VPath i u) @@@ j = u `swap` (i,j)
 v @@@ j           = VAppFormula v (toFormula j)
 
+
 -------------------------------------------------------------------------------
 -- Composition and filling
-
-
 
 comp :: Name -> Val -> Val -> System Val -> Val
 comp i a u ts | eps `member` ts = (ts ! eps) `face` (i ~> 1)
@@ -430,7 +429,6 @@ transpHIT i a@(Ter (HSum _ _ nass) env) u =
       mapWithKey (\alpha vAlpha ->
                    VPath j $ transpHIT j (aij `face` alpha) (vAlpha @@ j)) vs
   _ -> error $ "transpHIT: neutral " ++ show u
-
 
 -- given u(i) of type a(i) "squeezeHIT i a u" connects in the direction i
 -- transHIT i a u(i=0) to u(i=1) in a(1)
@@ -737,8 +735,6 @@ lemEq eq b aps = (a,VPath i (compNeg j (eq @@ j) p1 thetas'))
 --                   insertSystem (i ~> 1) (transFillNeg j ej u) $ ws
 --         theta   = compNeg j ej u xs
 
-
-
 -- Old version:
 -- gradLemmaU :: Val -> Val -> System Val -> Val -> (Val, Val)
 -- gradLemmaU b eq us v = (u, VPath i theta'')
@@ -831,8 +827,8 @@ instance Convertible Val where
       (VHComp a u ts,VHComp a' u' ts')    -> conv ns (a,u,ts) (a',u',ts')
       (VGlue v equivs,VGlue v' equivs')   -> conv ns (v,equivs) (v',equivs')
       (VGlueElem u us,VGlueElem u' us')   -> conv ns (u,us) (u',us')
-      (VUnGlueElemU u _ _,VUnGlueElemU u' _ _) -> conv ns u u'  -- Is this correct?
-      (VUnGlueElem u ts,VUnGlueElem u' ts') -> conv ns (u,ts) (u',ts')
+      (VUnGlueElemU u _ _,VUnGlueElemU u' _ _) -> conv ns u u'
+      (VUnGlueElem u ts,VUnGlueElem u' ts')    -> conv ns (u,ts) (u',ts')
       (VCompU u es,VCompU u' es')              -> conv ns (u,es) (u',es')
       _                                        -> False
 
@@ -893,8 +889,6 @@ instance Normal Val where
     VUnGlueElem u us    -> unglueElem (normal ns u) (normal ns us)
     VUnGlueElemU e u us -> unGlueU (normal ns e) (normal ns u) (normal ns us)
     VCompU a ts         -> VCompU (normal ns a) (normal ns ts)
-    -- TODO: Shouldn't we do:
-    -- VCompU u es         -> compUniv (normal ns u) (normal ns es)
     VVar x t            -> VVar x t -- (normal ns t)
     VFst t              -> fstVal (normal ns t)
     VSnd t              -> sndVal (normal ns t)

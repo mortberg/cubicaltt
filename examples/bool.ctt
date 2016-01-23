@@ -170,3 +170,23 @@ eqBool : Id U bool bool =
 
 testf : bool = trans bool bool eqBool true
 testt : bool = trans bool bool eqBool false
+
+-- Some tests of normal forms of univalence:
+testUniv1 (A : U) : Id U A A =
+  trans (equiv A A) (Id U A A) (<i> corrUniv A A @ -i) (idEquiv A)
+
+-- obtained by normal form
+ntestUniv1 (A:U) : Id U A A =
+ <i> comp (<_>U)
+      (comp (<_>U) A
+         [ (i = 0) -> <l> comp (<_>U) A [ (l = 0) -> <i> glue A [ (i = 0) -> (A,(\(x : A) -> x,\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i))))), (i = 1) -> (A,(comp (<l> A -> A) (\(x : A) -> x) [],comp (<l> (y : A) ->
+  ((x : ((x : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x []) [ (l = 0) -> <j> comp (<k> A) x [ (j = 1) -> <k> x ] ]))) *    (y0 : ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) -> IdP (<j> ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) x y0)) (\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i)))) [])) ], (l = 1) -> <i> glue A [ (i = 0) -> (A,(\(x : A) -> x,\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i))))), (i = 1) -> (A,(comp (<l> A -> A) (\(x : A) -> x) [],comp (<l> (y : A) ->
+        ((x : ((x : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x []) [ (l = 0) -> <j> comp (<k> A) x [ (j = 1) -> <k> x ] ]))) * (y0 : ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) -> IdP (<j> ((x0 : A) * IdP (<j> A) y (comp (<j> A) (comp (<i> A) x0 []) [ (l = 0) -> <j> comp (<k> A) x0 [ (j = 1) -> <k> x0 ] ]))) x y0)) (\(a : A) -> ((a,<l> a),\(z : ((x : A) * IdP (<l> A) a x)) -> <l> (z.2 @ l,<i> z.2 @ (l /\ i)))) [])) ] ], (i = 1) -> <l> A ]) [ (i = 0) -> <l> A, (i = 1) -> <l> A ]
+
+testUniv2 : bool = trans bool bool (ntestUniv1 bool) true
+
+ntestUniv2 : bool =
+ comp (<i> comp (<_>U) (comp (<_>U) bool [ (i = 0) -> <j> comp (<_>U) bool [ (j = 0) -> <i> glue bool [ (i = 0) -> (bool,(\(x : bool) -> x,\(a : bool) -> ((a,<i> a),\(z : ((x : bool) * IdP (<i> bool) a x)) -> <i> (z.2 @ i,<j> z.2 @ (i /\ j))))), (i = 1) -> (bool,(comp (<i> bool -> bool) (\(x : bool) -> x) [],comp (<i> (y : bool) ->
+  ((x : ((x : bool) * IdP (<j> bool) y (comp (<j> bool) (comp (<i> bool) x []) [ (i = 0) -> <j> comp (<k> bool) x [ (j = 1) -> <k> x ] ]))) * (y0 : ((x0 : bool) * IdP (<j> bool) y (comp (<j> bool) (comp (<i> bool) x0 []) [ (i = 0) -> <j> comp (<k> bool) x0 [ (j = 1) -> <k> x0 ] ]))) -> IdP (<j> ((x0 : bool) * IdP (<k> bool) y (comp (<j> bool) (comp (<i> bool) x0 []) [ (i = 0) -> <j> comp (<k> bool) x0 [ (j = 1) -> <k> x0 ] ]))) x y0)) (\(a : bool) -> ((a,<i> a),\(z : ((x : bool) * IdP (<i> bool) a x)) -> <i> (z.2 @ i,<j> z.2 @ (i /\ j)))) [])) ], (j = 1) -> <i> glue bool [ (i = 0) -> (bool,(\(x : bool) -> x,\(a : bool) -> ((a,<i> a),\(z : ((x : bool) * IdP (<i> bool) a x)) -> <i> (z.2 @ i,<j> z.2 @ (i /\ j))))), (i = 1) -> (bool,(comp (<i> bool -> bool) (\(x : bool) -> x) [],comp (<i> (y : bool) ->
+  ((x : ((x : bool) * IdP (<j> bool) y (comp (<j> bool) (comp (<i> bool) x []) [ (i = 0) -> <j> comp (<k> bool) x [ (j = 1) -> <k> x ] ]))) * (y0 : ((x0 : bool) * IdP (<j> bool) y (comp (<j> bool) (comp (<i> bool) x0 []) [ (i = 0) -> <j> comp (<k> bool) x0 [ (j = 1) -> <k> x0 ] ]))) -> IdP (<j> ((x0 : bool) * IdP (<k> bool) y (comp (<j> bool) (comp (<i> bool) x0 []) [ (i = 0) -> <j> comp (<k> bool) x0 [ (j = 1) -> <k> x0 ] ]))) x y0)) (\(a : bool) -> ((a,<i> a),\(z : ((x : bool) * IdP (<i> bool) a x)) -> <i> (z.2 @ i,<j> z.2 @ (i /\ j)))) [])) ] ], (i = 1) -> <j> bool ]) [ (i = 0) -> <j> bool, (i = 1) -> <j> bool ]) true []
+

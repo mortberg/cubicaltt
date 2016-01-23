@@ -1,3 +1,4 @@
+-- Formalization of (impredicative) set quotients
 module setquot where
 
 import bool

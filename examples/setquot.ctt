@@ -164,7 +164,7 @@ setquotl0 (X : U) (R : eqrel X) (c : setquot X R.1) (x : carrier X c.1) :
   p (A : hsubtypes X) : prop (iseqclass X R.1 A) = propiseqclass X R.1 A
   rem : Id (hsubtypes X) (setquotpr X R x.1).1 c.1 = <i> \(x : X) -> (rem' x) @ i -- inlined use of funext
     where rem' (a : X) : Id hProp ((setquotpr X R x.1).1 a) (c.1 a) =
-            uahp ((setquotpr X R x.1).1 a) (c.1 a) l2r r2l   -- This is where uahp appears
+            uahp' ((setquotpr X R x.1).1 a) (c.1 a) l2r r2l   -- This is where uahp appears
               where
               l2r (r : ((setquotpr X R x.1).1 a).1) : (c.1 a).1 = eqax1 X R.1 c.1 c.2 x.1 a r x.2
               r2l : (c.1 a).1 -> ((setquotpr X R x.1).1 a).1 = eqax2 X R.1 c.1 c.2 x.1 a x.2
@@ -198,7 +198,7 @@ iscompsetquotpr (X : U) (R : eqrel X) (x x' : X) (a : (R.1 x x').1) :
   rem2 : Id (hsubtypes X) (setquotpr X R x).1 (setquotpr X R x').1 =
     <i> \(x0 : X) -> rem x0 @ i
     where
-    rem (x0 : X) : Id hProp (R.1 x x0) (R.1 x' x0) = uahp (R.1 x x0) (R.1 x' x0) f g
+    rem (x0 : X) : Id hProp (R.1 x x0) (R.1 x' x0) = uahp' (R.1 x x0) (R.1 x' x0) f g
       where
       f (r0 : (R.1 x x0).1) : (R.1 x' x0).1 =
         eqreltrans X R x' x x0 (eqrelsymm X R x x' a) r0

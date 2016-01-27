@@ -58,7 +58,7 @@ transEquiv (A B:U) (p:Id U A B) : equiv A B = (f,p)
 lemSinglContr (A:U) (a:A) : isContr ((x:A) * Id A a x) =
  ((a,refl A a),\ (z:(x:A) * Id A a x) -> contrSingl A a z.1 z.2)
 
-idEquiv (A:U) : equiv A A =  (\ (x:A) -> x, lemSinglContr A)
+idEquiv (A:U) : equiv A A = (\ (x:A) -> x, lemSinglContr A)
 
 transEquiv (A X:U) (p:Id U A X) : equiv A X =
  substTrans U (equiv A) A X p (idEquiv A)
@@ -158,3 +158,7 @@ isoId (A B : U) (f : A -> B) (g : B -> A)
       (t : (x : A) -> Id A (g (f x)) x) : Id U A B =
        <i> glue B [ (i = 0) -> (A,f,gradLemma A B f g s t)
                   , (i = 1) -> (B,idfun B,idIsEquiv B) ]
+
+idIsEquivGrad (A : U) : isEquiv A A (idfun A) =
+  gradLemma A A (idfun A) (idfun A) (\(a : A) -> <i> a) (\(a : A) -> <i> a)
+

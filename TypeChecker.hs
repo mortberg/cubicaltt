@@ -405,12 +405,13 @@ checkPathSystem t0 va ps = do
   return v
 
 checks :: (Tele,Env) -> [Ter] -> Typing ()
-checks _              []     = return ()
+checks ([],_)         []     = return ()
 checks ((x,a):xas,nu) (e:es) = do
   check (eval nu a) e
   v' <- evalTyping e
   checks (xas,upd (x,v') nu) es
-checks _              _      = throwError "checks"
+checks _              _      =
+  throwError "checks: incorrect number of arguments"
 
 -- infer the type of e
 infer :: Ter -> Typing Val

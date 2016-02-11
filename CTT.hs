@@ -281,21 +281,22 @@ showEnv :: Bool -> Env -> Doc
 showEnv b e =
   let -- This decides if we should print "x = " or not
       names x = if b then text x <+> equals else PP.empty
-
+      par   x = if b then parens x else x
+      com     = if b then comma else PP.empty
       showEnv1 e = case e of
         (Upd x env,u:us,fs)   ->
-          showEnv1 (env,us,fs) <+> names x <+> showVal1 u
+          showEnv1 (env,us,fs) <+> names x <+> showVal1 u <> com
         (Sub i env,us,phi:fs) ->
-          showEnv1 (env,us,fs) <+> names (show i) <+> text (show phi)
+          showEnv1 (env,us,fs) <+> names (show i) <+> text (show phi) <> com
         (Def _ env,vs,fs)     -> showEnv1 (env,vs,fs)
         _                     -> showEnv b e
   in case e of
     (Empty,_,_)           -> PP.empty
     (Def _ env,vs,fs)     -> showEnv b (env,vs,fs)
     (Upd x env,u:us,fs)   ->
-      showEnv1 (env,us,fs) <+> names x <+> showVal u
+      par $ showEnv1 (env,us,fs) <+> names x <+> showVal u
     (Sub i env,us,phi:fs) ->
-      showEnv1 (env,us,fs) <+> names (show i) <+> text (show phi)
+      par $ showEnv1 (env,us,fs) <+> names (show i) <+> text (show phi)
 
 instance Show Loc where
   show = render . showLoc

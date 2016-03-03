@@ -435,7 +435,6 @@ transpHIT i a@(Ter (HSum _ _ nass) env) u =
 squeezeHIT :: Name -> Val -> Val -> Val
 squeezeHIT i a@(Ter (HSum _ _ nass) env) u =
  let j = fresh (a,u)
-     aij = swap a (i,j)
  in
  case u of
   VCon n us -> case lookupLabel n nass of
@@ -444,10 +443,14 @@ squeezeHIT i a@(Ter (HSum _ _ nass) env) u =
   VPCon c _ ws0 phis -> case lookupLabel c nass of
     Just as -> pcon c (a `face` (i ~> 1)) (squeezes i as env ws0) phis
     Nothing -> error $ "squeezeHIT: missing path constructor " ++ c
-  VHComp _ v vs ->
-    hComp (a `face` (i ~> 1)) (squeezeHIT i a v) $
-      mapWithKey (\alpha vAlpha ->
-                   VPath j $ squeezeHIT j (aij `face` alpha) (vAlpha @@ j)) vs
+  VHComp _ v vs -> hComp (a `face` (i ~> 1)) (squeezeHIT i a v) $
+      mapWithKey
+        (\alpha vAlpha -> case Map.lookup i alpha of
+          Nothing   -> VPath j $ squeezeHIT i (a `face` alpha) (vAlpha @@ j)
+          Just Zero -> VPath j $ transpHIT i
+                         (a `face` (Map.delete i alpha)) (vAlpha @@ j)
+          Just One  -> vAlpha)
+        vs
   _ -> error $ "squeezeHIT: neutral " ++ show u
 
 hComp :: Val -> Val -> System Val -> Val

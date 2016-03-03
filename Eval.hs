@@ -386,7 +386,7 @@ squeeze i a u = comp j (a `disj` (i,j)) u $ mkSystem [ (i ~> 1, ui1) ]
 
 squeezes :: Name -> [(Ident,Ter)] -> Env -> [Val] -> [Val]
 squeezes i xas e us = comps j xas (e `disj` (i,j)) us'
-  where j   = fresh (us,e)
+  where j   = fresh (us,e,Atom i)
         us' = [ (mkSystem [(i ~> 1, u `face` (i ~> 1))],u) | u <- us ]
 
 

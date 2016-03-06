@@ -1,6 +1,7 @@
 module prop where
 
 import prelude
+import equiv
 
 lemProp (A B : U) (f : A -> B) (g : B -> A)
       (s : (y:B) -> Id B (f (g y)) y)

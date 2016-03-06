@@ -1,10 +1,13 @@
 module collection where
 
+import prelude
+import equiv
+import univalence
 import sigma
 import pi
-import testContr
+-- import testContr
 
-propIsContr (A:U) (z0 z1:isContr A) : Id (isContr A) z0 z1 =
+propIsContr (A:U) (z0 z1 : isContr A) : Id (isContr A) z0 z1 =
  <j>(p0 a1@j,
      \ (x:A) -> 
         <i>comp (<_>A) (lem1 x@i@j) [ (i=0) -> <k>p0 a1@j, (i=1) -> <k>p0 x@(j\/k),
@@ -33,7 +36,7 @@ lem5 (A B : U) (gB:groupoid B) (t u:equiv A B) : set (Id (equiv A B) t u)
  = substInv U set  (Id (equiv A B) t u) (Id (A -> B) t.1 u.1) (lem3 A B t u) (groupoidFun A B gB t.1 u.1)
 
 lem6 (A B : U) (sB : set B) : set (Id U A B) = 
- substInv U set (Id U A B)  (equiv A B) (corrUniv B A) (lem4 A B sB)
+ substInv U set (Id U A B)  (equiv A B) (corrUniv A B   ) (lem4 A B sB)
 
 -- the collection of all sets
 

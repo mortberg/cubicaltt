@@ -1,6 +1,8 @@
 module groupoidTrunc where
 
 import prelude
+import equiv
+
 
 data gTrunc (A : U)
   = inc (a : A)

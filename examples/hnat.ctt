@@ -1,6 +1,7 @@
 module hnat where
 
 import nat
+import equiv
 
 -- Non-standard nat:
 hdata hnat = nzero

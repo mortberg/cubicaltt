@@ -1,6 +1,8 @@
 module interval where
 
 import gradLemma
+import equiv
+
 
 data I = zero | one | seg <i> [(i = 0) -> zero, (i = 1) -> one]
 

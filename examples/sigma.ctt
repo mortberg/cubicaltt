@@ -1,6 +1,7 @@
 module sigma where
 
 import prelude
+import equiv
 
 -- application of this fact
 

@@ -82,13 +82,6 @@ loopIt : Z -> loopS1 = split
  inl n -> itLoopNeg n
  inr n -> itLoop n
 
-test1 (n:nat) : loopS1 = transport (<i>Id S1 base (loop{S1} @ i)) (itLoop n)
-
-test (n:nat) : Z = transport (<x> helix (itLoop (suc n) @ x)) (inr zero)
-
-lemItNat (n:nat) : Id loopS1 (itLoop (suc n)) (transport (<i>Id S1 base (loop{S1} @ i)) (itLoop n)) = 
- refl loopS1 (itLoop (suc n))
-
 lemItNeg : (n:nat) -> Id loopS1  (transport (<i>Id S1 base (loop{S1} @ i)) (loopIt (inl n))) (loopIt (sucZ (inl n))) = split
  zero ->  lemInv S1 base base loop1
  suc n -> lemCompInv S1 base base base (itLoopNeg n) invLoop
@@ -111,23 +104,6 @@ lem1ItNeg : (n:nat) -> Id loopS1  (loopIt (sucZ (inl n))) (oneTurn (loopIt (inl 
 lem1It : (n:Z) -> Id loopS1 (loopIt (sucZ n)) (oneTurn  (loopIt n)) = split
  inl n -> lem1ItNeg n
  inr n -> lem1ItPos n
-
-lemItPos : (n:nat) -> Id loopS1 (oneTurn (loopIt (predZ (inr n)))) (loopIt (inr n)) = split
- zero -> lemInv S1 base base loop1
- suc n -> refl loopS1 (loopIt (inr (suc n)))
-
-lemItNeg (n:nat) : Id loopS1  (oneTurn (loopIt (predZ (inl n)))) (loopIt (inl n)) = 
- lemCompInv S1 base base base (loopIt (inl n)) invLoop
-
-lemIt : (n:Z) -> Id loopS1 (oneTurn (loopIt (predZ n)))  (loopIt n) = split
- inl n -> lemItNeg n
- inr n -> lemItPos n
-
-T : U = Z -> loopS1
-p : Id U T T = <j> helix (loop{S1}@j) -> Id S1 base (loop{S1}@j)
-
-test1 : Z -> loopS1 = \ (n:Z) -> transport p loopIt n
-
 
 decode : (x:S1) -> helix x -> Id S1 base x = split
  base -> loopIt

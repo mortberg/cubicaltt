@@ -47,7 +47,6 @@ JEq (A : U) (a : A) (C : (x : A) -> Id A a x -> U) (d : C a (refl A a))
   substEq (singl A a) T (a, refl A a) d
     where T (z : singl A a) : U = C (z.1) (z.2)
 
-
 inv (A : U) (a b : A) (p : Id A a b) : Id A b a = <i> p @ -i
 
 compId (A : U) (a b c : A) (p : Id A a b) (q : Id A b c) : Id A a c =

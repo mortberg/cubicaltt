@@ -30,19 +30,23 @@ transC (A:U) (a:A) : A = comp (<_>A) a []
 lemTransC (A:U) (a:A) : Id A (transC A a) a = <i>comp (<_>A) a [(i=1) -> <_>a]
 
 lemFib1 (A:U) (F G : A -> U) (a:A) (fa : F a -> G a) :
-   (x:A) (p : Id A a x) -> (fx : F x -> G x) -> ((u:F a) -> Id (G x) (subst A G a x p (fa u)) (fx (subst A F a x p u))) ->
-         IdP (<i>F (p@i) -> G (p@i)) fa fx =
- J A a (\ (x:A) (p : Id A a x) -> (fx : F x -> G x) -> ((u:F a) -> Id (G x) (subst A G a x p (fa u)) (fx (subst A F a x p u))) ->
-                IdP (<i>F (p@i) -> G (p@i)) fa fx) rem
+   (x:A) (p : Id A a x) -> (fx : F x -> G x) -> 
+     Id U (Id (F a -> G x) (\ (u:F a) -> subst A G a x p (fa u)) (\ (u:F a) -> fx (subst A F a x p u)))
+          (IdP (<i>F (p@i) -> G (p@i)) fa fx) =
+ J A a (\ (x:A) (p : Id A a x) -> (fx : F x -> G x) -> 
+     Id U (Id (F a -> G x) (\ (u:F a) -> subst A G a x p (fa u)) (\ (u:F a) -> fx (subst A F a x p u)))
+          (IdP (<i>F (p@i) -> G (p@i)) fa fx)) rem
  where
-   rem (ga : F a -> G a) (h: (u : F a) -> Id (G a) (transC (G a) (fa u)) (ga (transC (F a) u))) : Id (F a -> G a) fa ga =
-    <i> \ (u:F a) -> comp (<j>Id (G a) (lemTransC (G a) (fa u)@j) (ga (lemTransC (F a) u@j))) (h u) []@i
+   rem (ga : F a -> G a) : Id U (Id (F a -> G a) (\ (u:F a) -> transC (G a) (fa u)) (\ (u:F a) -> ga (transC (F a) u))) 
+                                (Id (F a -> G a) fa ga) =
+    <j>Id (F a -> G a) (\ (u:F a) -> lemTransC (G a) (fa u)@j) (\ (u : F a) -> ga (lemTransC (F a) u@j))
 
 -- special case
 
-corFib1 (A:U) (F G : A -> U) (a:A) (fa ga : F a -> G a) (p:Id A a a) :
-  ((u:F a) -> Id (G a) (subst A G a a p (fa u)) (ga (subst A F a a p u))) -> IdP (<i>F (p@i) -> G (p@i)) fa ga =
- lemFib1 A F G a fa a p ga 
+corFib1 (A:U) (F G : A -> U) (a:A) (fa ga : F a -> G a) (p:Id A a a)
+  (h : (u:F a) -> Id (G a) (subst A G a a p (fa u)) (ga (subst A F a a p u))) : IdP (<i>F (p@i) -> G (p@i)) fa ga =
+ comp (lemFib1 A F G a fa a p ga) (<i>\ (u:F a) -> h u@i) []
+
 
 compIdL (A:U) (a b:A) (p : Id A a b) : Id (Id A a b) p (compId A a b b p (<_>b)) =
  <j i>comp (<_>A) (p @ i) [(i=0) -> <_> a, (i = 1) -> <_>b, (j=0) -> <_>(p@i) ]   
@@ -307,10 +311,15 @@ loopInvS1 : U = Id S1 (invS1 base) (invS1 base)
 rePar (l: loopInvS1) : loopS1 = transport (<i>Id S1 (lem@i) (lem@i)) l
 
 test2 : Z = winding (rePar (<i>invS1 (loop2@i)))
+-- EVAL: inl (suc zero)                Time: 1m26.400s
 test21 : Z = winding (rePar (<i>invS1 (compS1 loop2 loop1 @i)))
+-- EVAL: inl (suc (suc zero))          Time: 4m30.717s
 test12 : Z = winding (rePar (<i>invS1 (compS1 loop1 loop2 @i)))
+-- EVAL: inl (suc (suc zero))          Time: 9m40.535s
 test4 : Z = winding (rePar (<i>invS1 (compS1 loop2 loop2 @i)))
+-- EVAL: inl (suc (suc (suc zero)))    Time: 14m5.128s
 test0 : Z = winding (rePar (<i>invMult (loop2@i) (loop2@i)))
+-- EVAL: inr zero                      Time: 1m39.599s
 
 -- Alternative proof that loopS1 is a set (requires retract.ctt):
 -- setLoop' : set loopS1 = retractSet loopS1 Z (encode base) (decode base) (enoceDecode base) ZSet

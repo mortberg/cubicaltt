@@ -1,5 +1,66 @@
 module torsor where
+import prelude
 import circle
+import univalence
+
+setPi (A : U) (B : A -> U) (h : (x : A) -> set (B x))
+       (f0 f1 : (x : A) -> B x)
+       (p1 p2 : Id ((x : A) -> B x) f0 f1)
+       : Id (Id ((x : A) -> B x) f0 f1) p1 p2
+  = <i j> \(x : A) -> (h x (f0 x) (f1 x) (<i> (p1@i) x) (<i> (p2@i) x)) @ i @ j
+
+lemIdPProp (A B : U) (AProp : prop A) (p : Id U A B) : (x : A) -> (y : B) -> IdP p x y
+  = J U A (\(B : U) -> \(p : Id U A B) -> (x : A) -> (y : B) -> IdP p x y) AProp B p
+
+lemIdPSet (A B : U) (ASet : set A) (p : Id U A B) : (x : A) (y : B) (s t : IdP p x y) -> Id (IdP p x y) s t
+  = J U A (\(B : U) -> \(p : Id U A B) -> (x : A) (y : B) (s t : IdP p x y) -> Id (IdP p x y) s t) ASet B p
+
+lemIdPSet2 (A B : U) (ASet : set A) (p1 : Id U A B)
+  : (p2 : Id U A B) -> (p : Id (Id U A B) p1 p2) ->
+    (x : A) -> (y : B) -> (s : IdP p1 x y) -> (t : IdP p2 x y) -> IdP (<i> (IdP (p @ i) x y)) s t
+  = J (Id U A B) p1 (\(p2 : Id U A B) -> \(p : Id (Id U A B) p1 p2) -> (x : A) -> (y : B) -> (s : IdP p1 x y) -> (t : IdP p2 x y) -> IdP (<i> (IdP (p @ i) x y)) s t)
+    (lemIdPSet A B ASet p1)
+
+
+isEquivId (A : U) : isEquiv A A (\(x : A) -> x) = gradLemma A A (\(x : A) -> x) (\(x : A) -> x) (\(x : A) -> <_> x) (\(x : A) -> <_> x)
+
+lem10 (A B : U) (e : equiv A B) (x y : B) (p : Id A (e.2 x).1.1 (e.2 y).1.1) : Id B x y
+  = transport
+    (compId U (Id B (e.1 (e.2 x).1.1) (e.1 (e.2 y).1.1)) (Id B x (e.1 (e.2 y).1.1)) (Id B x y)
+     (<i> Id B (retEq A B e x @ i) (e.1 (e.2 y).1.1)) (<i> Id B x (retEq A B e y @ i)))
+    (mapOnPath A B e.1 (e.2 x).1.1 (e.2 y).1.1 p)
+
+lem10' (A B : U) (e : equiv A B) (x y : A) (p : Id B (e.1 x) (e.1 y)) : Id A x y
+  = transport
+    (compId U (Id A (e.2 (e.1 x)).1.1 (e.2 (e.1 y)).1.1) (Id A x (e.2 (e.1 y)).1.1) (Id A x y)
+     (<i> Id A (secEq A B e x @ i) (e.2 (e.1 y)).1.1) (<i> Id A x (secEq A B e y @ i))
+     )
+    (mapOnPath B A (invEq A B e) (e.1 x) (e.1 y) p)
+
+
+transRefl (A : U) (a : A) : Id A (transport (<_> A) a) a = <i> comp (<_> A) a [(i=1) -> <_>a]
+
+lem11 (A : U) : Id (Id U A A) (univalence A A (\(x : A) -> x, isEquivId A)).1.1 (<_> A) = hole
+  where
+    hole0 : Id (equiv A A)
+               (\(x : A) -> x, isEquivId A)
+               (transEquiv' A A (<_> A))
+                 = <i> ( (transRefl (A->A) (\(x : A) -> x) @ -i)
+                       , lemIdPProp (isEquiv A A (\(x : A) -> x)) (isEquiv A A (transEquiv' A A (<_> A)).1)
+                         (propIsEquiv A A (\(x : A) -> x)) (<j> isEquiv A A (transRefl (A->A) (\(x : A) -> x) @ -j))
+                         (isEquivId A) (transEquiv' A A (<_> A)).2 @ i
+                       )
+    hole1 : Id (equiv A A) (transEquiv' A A (univalence A A (\(x : A) -> x, isEquivId A)).1.1) (\(x : A) -> x, isEquivId A)
+      = retEq (Id U A A) (equiv A A) (corrUniv' A A) (\(x : A) -> x, isEquivId A)
+    hole : Id (Id U A A) (univalence A A (\(x : A) -> x, isEquivId A)).1.1 (<_> A)
+      = lem10' (Id U A A) (equiv A A) (corrUniv' A A)
+        (univalence A A (\(x : A) -> x, isEquivId A)).1.1 (<_> A)
+        (compId (equiv A A) (transEquiv' A A (univalence A A (\(x : A) -> x, isEquivId A)).1.1) (\(x : A) -> x, isEquivId A) (transEquiv' A A (<_> A)) hole1 hole0)
+
+substIdP (A B : U) (p : Id U A B) (x : A) (y : B) (q : Id B (transport p x) y) : IdP p x y
+  = transport (<i> IdP p x (q@i)) hole
+  where
+    hole : IdP p x (transport p x) = <i> comp (<j> p @ (i /\ j)) x [(i=0) -> <_> x]
 
 lemIdSig (A:U) (B : A -> U) (t u : Sigma A B) :
  Id U (Id (Sigma A B) t u) ((p : Id A t.1 u.1) * IdP (<i> B (p @ i)) t.2 u.2) =
@@ -26,167 +87,170 @@ ishinh (X : U) : hProp = (ishinh_UU X,propishinh X)
 hinhpr (X : U) : X -> (ishinh X).1 =
   \(x : X) (P : hProp) (f : X -> P.1) -> f x
 
+inhPropContr (A : U) (x : prop A) (y : ishinh_UU A) : isContr A = y (isContr A, propIsContr A) (\(z : A) -> (z, x z))
+
 --
 
--- A : U = undefined
--- B : U = undefined
--- F : A -> B = undefined
+P1 (A B : U) (F : A -> B) : U = (x y : A) -> isEquiv (Id A x y) (Id B (F x) (F y)) (mapOnPath A B F x y)
+P2 (A B : U) (F : A -> B) : U = (x : A) -> isContr ((y : A) * Id B (F x) (F y))
+P3 (A B : U) (F : A -> B) : U = (x : B) -> prop ((y : A) * Id B x (F y))
 
--- P1 : U = (x y : A) -> isEquiv (Id A x y) (Id B (F x) (F y)) (mapOnPath A B F x y)
--- P2 : U = (x : A) -> isContr ((y : A) * Id B (F x) (F y))
--- P3 : U = (x : B) -> prop ((y : A) * Id B x (F y))
+propP1 (A B : U) (F : A -> B) : prop (P1 A B F)
+  = propPi A (\(x : A) -> (y : A) -> isEquiv (Id A x y) (Id B (F x) (F y)) (mapOnPath A B F x y))
+    (\(x : A) -> propPi A (\(y : A) -> isEquiv (Id A x y) (Id B (F x) (F y)) (mapOnPath A B F x y))
+    (\(y : A) -> propIsEquiv (Id A x y) (Id B (F x) (F y)) (mapOnPath A B F x y)))
 
--- propP1 : prop P1 = propPi A (\(x : A) -> (y : A) -> isEquiv (Id A x y) (Id B (F x) (F y)) (mapOnPath A B F x y))
---                    (\(x : A) -> propPi A (\(y : A) -> isEquiv (Id A x y) (Id B (F x) (F y)) (mapOnPath A B F x y))
---                    (\(y : A) -> propIsEquiv (Id A x y) (Id B (F x) (F y)) (mapOnPath A B F x y)))
+propP2 (A B : U) (F : A -> B) : prop (P2 A B F)
+  = propPi A (\(x : A) -> isContr ((y : A) * Id B (F x) (F y)))
+    (\(x : A) -> propIsContr ((y : A) * Id B (F x) (F y)))
 
--- propP2 : prop P2 = propPi A (\(x : A) -> isContr ((y : A) * Id B (F x) (F y)))
---                    (\(x : A) -> propIsContr ((y : A) * Id B (F x) (F y)))
+propP3 (A B : U) (F : A -> B) : prop (P3 A B F)
+  = propPi B (\(x : B) -> prop ((y : A) * Id B x (F y)))
+    (\(x : B) -> propIsProp ((y : A) * Id B x (F y)))
 
--- propP3 : prop P3 = propPi B (\(x : B) -> prop ((y : A) * Id B x (F y)))
---                    (\(x : B) -> propIsProp ((y : A) * Id B x (F y)))
+isoIdProp (A B : U) (AProp : prop A) (BProp : prop B) (F : A -> B) (G : B -> A) : Id U A B =
+  isoId A B F G (\(y : B) -> BProp (F (G y)) y) (\(x : A) -> AProp (G (F x)) x)
 
--- isoIdProp (A B : U) (AProp : prop A) (BProp : prop B) (F : A -> B) (G : B -> A) : Id U A B =
---   isoId A B F G (\(y : B) -> BProp (F (G y)) y) (\(x : A) -> AProp (G (F x)) x)
+equivProp (A B : U) (AProp : prop A) (BProp : prop B) (F : A -> B) (G : B -> A) : equiv A B =
+  (F, gradLemma A B F G (\(y : B) -> BProp (F (G y)) y) (\(x : A) -> AProp (G (F x)) x))
 
--- equivProp (A B : U) (AProp : prop A) (BProp : prop B) (F : A -> B) (G : B -> A) : equiv A B =
---   (F, gradLemma A B F G (\(y : B) -> BProp (F (G y)) y) (\(x : A) -> AProp (G (F x)) x))
+isContrProp (A : U) (p : isContr A) (x y : A) : Id A x y = compId A x p.1 y (<i> p.2 x @ -i) (p.2 y)
 
--- isContrProp (A : U) (p : isContr A) (x y : A) : Id A x y = compId A x p.1 y (<i> p.2 x @ -i) (p.2 y)
+lem2 (A : U) (x : A) : isContr ((y : A) * Id A x y)
+  = ( (x, refl A x)
+    , \(z : (y : A) * Id A x y) ->
+        J A x (\(y : A) -> \(p : Id A x y) -> Id ((y : A) * Id A x y) (x, refl A x) (y, p))
+        (refl ((y : A) * Id A x y) (x, refl A x)) z.1 z.2
+    )
 
--- lem3 (A : U) (x : A) (z : (y : A) * Id A x y) : Id ((y : A) * Id A x y) (x, refl A x) z
---        = J A x (\(y : A) -> \(p : Id A x y) -> Id ((y : A) * Id A x y) (x, refl A x) (y, p)) (refl ((y : A) * Id A x y) (x, refl A x)) z.1 z.2
--- lem2 (A : U) (x : A) : isContr ((y : A) * Id A x y) = ((x, refl A x), lem3 A x)
+lem31192 (A : U) (P : A -> U) (aC : isContr A) : Id U (Sigma A P) (P aC.1) =
+  isoId (Sigma A P) (P aC.1) F G FG GF
+  where
+    F (a : Sigma A P) : P aC.1 = transport (<i> P ((aC.2 a.1) @ -i)) a.2
+    G (a : P aC.1) : Sigma A P = (aC.1, a)
+    FG (a : P aC.1) : Id (P aC.1) (transport (<i> P ((aC.2 aC.1) @ -i)) a) a = hole
+      where
+        prf : Id (Id A aC.1 aC.1) (aC.2 aC.1) (<_> aC.1) = propSet A (isContrProp A aC) aC.1 aC.1 (aC.2 aC.1) (<_> aC.1)
+        hole1 : Id (P aC.1) (transport (<_> P aC.1) a) a = transRefl (P aC.1) a
+        hole : Id (P aC.1) (transport (<i> P ((aC.2 aC.1) @ -i)) a) a
+          = transport (<i> Id (P aC.1) (transport (<j> P ((prf @ -i) @ -j)) a) a) hole1
+    GF (a : Sigma A P) : Id (Sigma A P) (aC.1, transport (<i> P ((aC.2 a.1) @ -i)) a.2) a = hole
+      where
+        hole2 : Id A aC.1 a.1 = aC.2 a.1
+        hole1 : IdP (<i> P (hole2 @ i)) (transport (<i> P ((aC.2 a.1) @ -i)) a.2) a.2
+              = <i> comp (<j> P (hole2 @ i \/ -j)) a.2 [(i=1) -> <_> a.2]
+        hole : Id (Sigma A P) (aC.1, transport (<i> P ((aC.2 a.1) @ -i)) a.2) a
+             = transport (<i> (lemIdSig A P (aC.1, transport (<i> P ((aC.2 a.1) @ -i)) a.2) a) @ -i) (hole2, hole1)
 
-transRefl (A : U) (a : A) : Id A (transport (<_> A) a) a = <i> comp (<_> A) a [(i=1) -> <_>a]
+total (A : U) (P Q : A -> U) (f : (x : A) -> P x -> Q x) (a : (x : A) * P x) : (x : A) * Q x = (a.1, f a.1 a.2)
 
--- lem31192 (A : U) (P : A -> U) (aC : isContr A) : Id U (Sigma A P) (P aC.1) =
---   isoId (Sigma A P) (P aC.1) F G FG GF
---   where
---     F (a : Sigma A P) : P aC.1 = transport (<i> P ((aC.2 a.1) @ -i)) a.2
---     G (a : P aC.1) : Sigma A P = (aC.1, a)
---     FG (a : P aC.1) : Id (P aC.1) (transport (<i> P ((aC.2 aC.1) @ -i)) a) a = hole
---       where
---         prf : Id (Id A aC.1 aC.1) (aC.2 aC.1) (<_> aC.1) = propSet A (isContrProp A aC) aC.1 aC.1 (aC.2 aC.1) (<_> aC.1)
---         hole1 : Id (P aC.1) (transport (<_> P aC.1) a) a = transRefl (P aC.1) a
---         hole : Id (P aC.1) (transport (<i> P ((aC.2 aC.1) @ -i)) a) a
---           = transport (<i> Id (P aC.1) (transport (<j> P ((prf @ -i) @ -j)) a) a) hole1
---     GF (a : Sigma A P) : Id (Sigma A P) (aC.1, transport (<i> P ((aC.2 a.1) @ -i)) a.2) a = hole
---       where
---         hole2 : Id A aC.1 a.1 = aC.2 a.1
---         hole1 : IdP (<i> P (hole2 @ i)) (transport (<i> P ((aC.2 a.1) @ -i)) a.2) a.2
---               = <i> comp (<j> P (hole2 @ i \/ -j)) a.2 [(i=1) -> <_> a.2]
---         hole : Id (Sigma A P) (aC.1, transport (<i> P ((aC.2 a.1) @ -i)) a.2) a
---              = transport (<i> (lemIdSig A P (aC.1, transport (<i> P ((aC.2 a.1) @ -i)) a.2) a) @ -i) (hole2, hole1)
+ex210 (A : U) (B : A -> U) (C : (x : A) -> B x -> U) : Id U ((x : A) * (y : B x) * C x y) ((x : Sigma A B) * C x.1 x.2)
+  = isoId ((x : A) * (y : B x) * C x y) ((x : Sigma A B) * C x.1 x.2) F G FG GF
+  where
+    F (a : (x : A) * (y : B x) * C x y) : ((x : Sigma A B) * C x.1 x.2) = ((a.1, a.2.1), a.2.2)
+    G (a : (x : Sigma A B) * C x.1 x.2) : ((x : A) * (y : B x) * C x y) = (a.1.1, (a.1.2, a.2))
+    FG (a : (x : Sigma A B) * C x.1 x.2) : Id ((x : Sigma A B) * C x.1 x.2) (F (G a)) a = <_> a
+    GF (a : (x : A) * (y : B x) * C x y) : Id ((x : A) * (y : B x) * C x y) (G (F a)) a = <_> a
 
--- total (A : U) (P Q : A -> U) (f : (x : A) -> P x -> Q x) (a : (x : A) * P x) : (x : A) * Q x = (a.1, f a.1 a.2)
+cSigma (A : U) (B : U) (C : A -> B -> U) : Id U ((x : A) * (y : B) * C x y) ((y : B) * (x : A) * C x y) =
+  isoId ((x : A) * (y : B) * C x y) ((y : B) * (x : A) * C x y)
+  (\(a : (x : A) * (y : B) * C x y) -> (a.2.1, (a.1, a.2.2)))
+  (\(a : (y : B) * (x : A) * C x y) -> (a.2.1, (a.1, a.2.2)))
+  (\(a : (y : B) * (x : A) * C x y) -> <_> a)
+  (\(a : (x : A) * (y : B) * C x y) -> <_> a)
 
--- ex210 (A : U) (B : A -> U) (C : (x : A) -> B x -> U) : Id U ((x : A) * (y : B x) * C x y) ((x : Sigma A B) * C x.1 x.2)
---   = isoId ((x : A) * (y : B x) * C x y) ((x : Sigma A B) * C x.1 x.2) F G FG GF
---   where
---     F (a : (x : A) * (y : B x) * C x y) : ((x : Sigma A B) * C x.1 x.2) = ((a.1, a.2.1), a.2.2)
---     G (a : (x : Sigma A B) * C x.1 x.2) : ((x : A) * (y : B x) * C x y) = (a.1.1, (a.1.2, a.2))
---     FG (a : (x : Sigma A B) * C x.1 x.2) : Id ((x : Sigma A B) * C x.1 x.2) (F (G a)) a = <_> a
---     GF (a : (x : A) * (y : B x) * C x y) : Id ((x : A) * (y : B x) * C x y) (G (F a)) a = <_> a
+th476 (A : U) (P Q : A -> U) (f : (x : A) -> P x -> Q x) (x : A) (v : Q x)
+  : Id U (fiber (Sigma A P) (Sigma A Q) (total A P Q f) (x, v)) (fiber (P x) (Q x) (f x) v)
+  = hole
+  where
+    A1 : U = (w : Sigma A P) * Id (Sigma A Q) (x, v) (total A P Q f w)
+    A2 : U = (a : A) * (u : P a) * Id (Sigma A Q) (x, v) (a, f a u)
+    A3 : U = (a : A) * (u : P a) * (p : Id A x a) * IdP (<i> Q (p @ i)) v (f a u)
+    A4 : U = (a : A) * (p : Id A x a) * (u : P a) * IdP (<i> Q (p @ i)) v (f a u)
+    A5 : U = (w : (a : A) * Id A x a) * (u : P w.1) * IdP (<i> Q (w.2 @ i)) v (f w.1 u)
+    A6 : U = (u : P x) * Id (Q x) v (f x u)
+    E12 : Id U A1 A2 = <i> (ex210 A P (\(a : A) -> \(b : P a) -> Id (Sigma A Q) (x, v) (a, f a b))) @ -i
+    E23 : Id U A2 A3 = <i> (a : A) * (u : P a) * (lemIdSig A Q (x, v) (a, f a u)) @ i
+    E34 : Id U A3 A4 = <i> (a : A) * (cSigma (P a) (Id A x a) (\(u : P a) -> \(p : Id A x a) -> IdP (<j> Q (p @ j)) v (f a u))) @ i
+    E45 : Id U A4 A5 = ex210 A (Id A x) (\(a : A) -> \(p : Id A x a) -> (u : P a) * IdP (<i> Q (p @ i)) v (f a u))
+    E56 : Id U A5 A6 = lem31192 ((a : A) * Id A x a) (\(w : (a : A) * Id A x a) -> (u : P w.1) * IdP (<i> Q (w.2 @ i)) v (f w.1 u))
+                       (lem2 A x)
+    hole : Id U A1 A6 = compId U A1 A2 A6 E12 (compId U A2 A3 A6 E23 (compId U A3 A4 A6 E34 (compId U A4 A5 A6 E45 E56)))
 
--- cSigma (A : U) (B : U) (C : A -> B -> U) : Id U ((x : A) * (y : B) * C x y) ((y : B) * (x : A) * C x y) =
---   isoId ((x : A) * (y : B) * C x y) ((y : B) * (x : A) * C x y)
---   (\(a : (x : A) * (y : B) * C x y) -> (a.2.1, (a.1, a.2.2)))
---   (\(a : (y : B) * (x : A) * C x y) -> (a.2.1, (a.1, a.2.2)))
---   (\(a : (y : B) * (x : A) * C x y) -> <_> a)
---   (\(a : (x : A) * (y : B) * C x y) -> <_> a)
+thm477 (A : U) (P Q : A -> U) (f : (x : A) -> P x -> Q x)
+  : Id U ((x : A) -> isEquiv (P x) (Q x) (f x)) (isEquiv ((x : A) * P x) ((x : A) * Q x) (total A P Q f))
+  = hole
+  where
+    AProp : prop ((x : A) -> isEquiv (P x) (Q x) (f x))
+          = propPi A (\(x : A) -> isEquiv (P x) (Q x) (f x)) (\(x : A) -> propIsEquiv (P x) (Q x) (f x))
+    BProp : prop (isEquiv ((x : A) * P x) ((x : A) * Q x) (total A P Q f)) = propIsEquiv ((x : A) * P x) ((x : A) * Q x) (total A P Q f)
+    F (a : (x : A) -> isEquiv (P x) (Q x) (f x)) (y : (x : A) * Q x) : isContr (fiber (Sigma A P) (Sigma A Q) (total A P Q f) y)
+      = transport (<i> isContr (th476 A P Q f y.1 y.2 @ -i)) (a y.1 y.2)
+    G (a : isEquiv ((x : A) * P x) ((x : A) * Q x) (total A P Q f)) (x : A) (y : Q x) : isContr (fiber (P x) (Q x) (f x) y)
+      = transport (<i> isContr (th476 A P Q f x y @ i)) (a (x, y))
+    hole : Id U ((x : A) -> isEquiv (P x) (Q x) (f x)) (isEquiv ((x : A) * P x) ((x : A) * Q x) (total A P Q f))
+      = isoIdProp ((x : A) -> isEquiv (P x) (Q x) (f x)) (isEquiv ((x : A) * P x) ((x : A) * Q x) (total A P Q f)) AProp BProp F G
 
--- th476 (A : U) (P Q : A -> U) (f : (x : A) -> P x -> Q x) (x : A) (v : Q x)
---   : Id U (fiber (Sigma A P) (Sigma A Q) (total A P Q f) (x, v)) (fiber (P x) (Q x) (f x) v)
---   = hole
---   where
---     A1 : U = (w : Sigma A P) * Id (Sigma A Q) (x, v) (total A P Q f w)
---     A2 : U = (a : A) * (u : P a) * Id (Sigma A Q) (x, v) (a, f a u)
---     A3 : U = (a : A) * (u : P a) * (p : Id A x a) * IdP (<i> Q (p @ i)) v (f a u)
---     A4 : U = (a : A) * (p : Id A x a) * (u : P a) * IdP (<i> Q (p @ i)) v (f a u)
---     A5 : U = (w : (a : A) * Id A x a) * (u : P w.1) * IdP (<i> Q (w.2 @ i)) v (f w.1 u)
---     A6 : U = (u : P x) * Id (Q x) v (f x u)
---     E12 : Id U A1 A2 = <i> (ex210 A P (\(a : A) -> \(b : P a) -> Id (Sigma A Q) (x, v) (a, f a b))) @ -i
---     E23 : Id U A2 A3 = <i> (a : A) * (u : P a) * (lemIdSig A Q (x, v) (a, f a u)) @ i
---     E34 : Id U A3 A4 = <i> (a : A) * (cSigma (P a) (Id A x a) (\(u : P a) -> \(p : Id A x a) -> IdP (<j> Q (p @ j)) v (f a u))) @ i
---     E45 : Id U A4 A5 = ex210 A (Id A x) (\(a : A) -> \(p : Id A x a) -> (u : P a) * IdP (<i> Q (p @ i)) v (f a u))
---     E56 : Id U A5 A6 = lem31192 ((a : A) * Id A x a) (\(w : (a : A) * Id A x a) -> (u : P w.1) * IdP (<i> Q (w.2 @ i)) v (f w.1 u))
---                        (lem2 A x)
---     hole : Id U A1 A6 = compId U A1 A2 A6 E12 (compId U A2 A3 A6 E23 (compId U A3 A4 A6 E34 (compId U A4 A5 A6 E45 E56)))
+F12 (A B : U) (F : A -> B) (p1 : P1 A B F) (x : A) : isContr ((y : A) * Id B (F x) (F y)) = hole
+  where
+    hole3 : ((y : A) * Id A x y) -> ((y : A) * Id B (F x) (F y))
+          = total A (\(y : A) -> Id A x y) (\(y : A) -> Id B (F x) (F y)) (mapOnPath A B F x)
+    hole2 : isEquiv ((y : A) * Id A x y) ((y : A) * Id B (F x) (F y)) hole3
+          = transport (thm477 A (\(y : A) -> Id A x y) (\(y : A) -> Id B (F x) (F y)) (mapOnPath A B F x)) (p1 x)
+    hole4 : Id U ((y : A) * Id A x y) ((y : A) * Id B (F x) (F y)) = equivId ((y : A) * Id A x y) ((y : A) * Id B (F x) (F y)) hole3 hole2
+    hole  : isContr ((y : A) * Id B (F x) (F y)) = transport (<i> isContr (hole4@i)) (lem2 A x)
 
--- thm477 (A : U) (P Q : A -> U) (f : (x : A) -> P x -> Q x)
---   : Id U ((x : A) -> isEquiv (P x) (Q x) (f x)) (isEquiv ((x : A) * P x) ((x : A) * Q x) (total A P Q f))
---   = hole
---   where
---     AProp : prop ((x : A) -> isEquiv (P x) (Q x) (f x))
---           = propPi A (\(x : A) -> isEquiv (P x) (Q x) (f x)) (\(x : A) -> propIsEquiv (P x) (Q x) (f x))
---     BProp : prop (isEquiv ((x : A) * P x) ((x : A) * Q x) (total A P Q f)) = propIsEquiv ((x : A) * P x) ((x : A) * Q x) (total A P Q f)
---     F (a : (x : A) -> isEquiv (P x) (Q x) (f x)) (y : (x : A) * Q x) : isContr (fiber (Sigma A P) (Sigma A Q) (total A P Q f) y)
---       = transport (<i> isContr (th476 A P Q f y.1 y.2 @ -i)) (a y.1 y.2)
---     G (a : isEquiv ((x : A) * P x) ((x : A) * Q x) (total A P Q f)) (x : A) (y : Q x) : isContr (fiber (P x) (Q x) (f x) y)
---       = transport (<i> isContr (th476 A P Q f x y @ i)) (a (x, y))
---     hole : Id U ((x : A) -> isEquiv (P x) (Q x) (f x)) (isEquiv ((x : A) * P x) ((x : A) * Q x) (total A P Q f))
---       = isoIdProp ((x : A) -> isEquiv (P x) (Q x) (f x)) (isEquiv ((x : A) * P x) ((x : A) * Q x) (total A P Q f)) AProp BProp F G
+contrEquiv (A B : U) (aC : isContr A) (bC : isContr B) : equiv A B
+  = (\(_ : A) -> bC.1, gradLemma A B (\(_ : A) -> bC.1) (\(_ : B) -> aC.1) (\(x : B) -> bC.2 x) (\(x : A) -> aC.2 x))
 
--- F12 (p1 : P1) (x : A) : isContr ((y : A) * Id B (F x) (F y)) = hole
---   where
---     hole3 : ((y : A) * Id A x y) -> ((y : A) * Id B (F x) (F y))
---           = total A (\(y : A) -> Id A x y) (\(y : A) -> Id B (F x) (F y)) (mapOnPath A B F x)
---     hole2 : isEquiv ((y : A) * Id A x y) ((y : A) * Id B (F x) (F y)) hole3
---           = transport (thm477 A (\(y : A) -> Id A x y) (\(y : A) -> Id B (F x) (F y)) (mapOnPath A B F x)) (p1 x)
---     hole4 : Id U ((y : A) * Id A x y) ((y : A) * Id B (F x) (F y)) = equivId ((y : A) * Id A x y) ((y : A) * Id B (F x) (F y)) hole3 hole2
---     hole  : isContr ((y : A) * Id B (F x) (F y)) = transport (<i> isContr (hole4@i)) (lem2 A x)
+F21 (A B : U) (F : A -> B) (p2 : P2 A B F) (x y : A) : isEquiv (Id A x y) (Id B (F x) (F y)) (mapOnPath A B F x y) = hole3 y
+  where
+    hole0 : ((y : A) * Id A x y) -> ((y : A) * Id B (F x) (F y))
+          = total A (\(y : A) -> Id A x y) (\(y : A) -> Id B (F x) (F y)) (mapOnPath A B F x)
+    hole2 : isEquiv ((y : A) * Id A x y) ((y : A) * Id B (F x) (F y)) hole0
+          = (equivProp ((y : A) * Id A x y) ((y : A) * Id B (F x) (F y))
+             (isContrProp ((y : A) * Id A x y) (lem2 A x))
+             (isContrProp ((y : A) * Id B (F x) (F y)) (p2 x))
+             hole0 (\(_ : (y : A) * Id B (F x) (F y)) -> (x, <_> x))).2
+    hole4 : Id U ((y : A) -> isEquiv (Id A x y) (Id B (F x) (F y)) (mapOnPath A B F x y)) (isEquiv ((y : A) * Id A x y) ((y : A) * Id B (F x) (F y)) hole0)
+          = thm477 A (\(y : A) -> Id A x y) (\(y : A) -> Id B (F x) (F y)) (mapOnPath A B F x)
+    hole3 : (y : A) -> isEquiv (Id A x y) (Id B (F x) (F y)) (mapOnPath A B F x y)
+          = transport (<i> hole4 @ -i) hole2
 
--- contrEquiv (A B : U) (aC : isContr A) (bC : isContr B) : equiv A B
---   = (\(_ : A) -> bC.1, gradLemma A B (\(_ : A) -> bC.1) (\(_ : B) -> aC.1) (\(x : B) -> bC.2 x) (\(x : A) -> aC.2 x))
+F32 (A B : U) (F : A -> B) (p3 : P3 A B F) (x : A) : isContr ((y : A) * Id B (F x) (F y))
+  = ((x, refl B (F x)), \(q : ((y : A) * Id B (F x) (F y))) -> p3 (F x) (x, refl B (F x)) q)
 
--- F21 (p2 : P2) (x y : A) : isEquiv (Id A x y) (Id B (F x) (F y)) (mapOnPath A B F x y) = hole3 y
---   where
---     hole0 : ((y : A) * Id A x y) -> ((y : A) * Id B (F x) (F y))
---           = total A (\(y : A) -> Id A x y) (\(y : A) -> Id B (F x) (F y)) (mapOnPath A B F x)
---     hole2 : isEquiv ((y : A) * Id A x y) ((y : A) * Id B (F x) (F y)) hole0
---           = (equivProp ((y : A) * Id A x y) ((y : A) * Id B (F x) (F y))
---              (isContrProp ((y : A) * Id A x y) (lem2 A x))
---              (isContrProp ((y : A) * Id B (F x) (F y)) (p2 x))
---              hole0 (\(_ : (y : A) * Id B (F x) (F y)) -> (x, <_> x))).2
---     hole4 : Id U ((y : A) -> isEquiv (Id A x y) (Id B (F x) (F y)) (mapOnPath A B F x y)) (isEquiv ((y : A) * Id A x y) ((y : A) * Id B (F x) (F y)) hole0)
---           = thm477 A (\(y : A) -> Id A x y) (\(y : A) -> Id B (F x) (F y)) (mapOnPath A B F x)
---     hole3 : (y : A) -> isEquiv (Id A x y) (Id B (F x) (F y)) (mapOnPath A B F x y)
---           = transport (<i> hole4 @ -i) hole2
+lemReflComp (A : U) (a b : A) (p : Id A a b) : Id (Id A a b) (compId A a a b (<_> a) p) p =
+  <j i> comp (<k> A) (p @ i /\ j) [(i=0) -> <_> a, (j=1) -> <_> p @ i, (i=1) -> <k> p @ k \/ j ]
 
--- F32 (p3 : P3) (x : A) : isContr ((y : A) * Id B (F x) (F y))
---   = ((x, refl B (F x)), \(q : ((y : A) * Id B (F x) (F y))) -> p3 (F x) (x, refl B (F x)) q)
+F23 (A B : U) (F : A -> B) (p2 : P2 A B F) (x : B) (a b : (y : A) * Id B x (F y)) : Id ((y : A) * Id B x (F y)) a b = hole
+  where
+    hole2 : Id ((y : A) * Id B (F a.1) (F y)) (a.1, refl B (F a.1)) (b.1, compId B (F a.1) x (F b.1) (<i> a.2 @ -i) b.2)
+      = isContrProp ((y : A) * Id B (F a.1) (F y)) (p2 (a.1)) (a.1, refl B (F a.1)) (b.1, compId B (F a.1) x (F b.1) (<i> a.2 @ -i) b.2)
+    hole3 : (Id ((y : A) * Id B x (F y)) a (b.1, compId B x x (F b.1) (<_> x) b.2))
+      = transport
+          (<i> Id ((y : A) * Id B (a.2 @ -i) (F y)) (a.1, <j> a.2 @ -i \/ j) (b.1, compId B (a.2 @ -i) x (F b.1) (<j> a.2 @ -i /\ -j) b.2))
+          hole2
+    hole : Id ((y : A) * Id B x (F y)) a b
+      = transport
+          (<i> Id ((y : A) * Id B x (F y)) a (b.1, (lemReflComp B x (F b.1) b.2) @ i))
+          hole3
 
--- lemReflComp (A : U) (a b : A) (p : Id A a b) : Id (Id A a b) (compId A a a b (<_> a) p) p =
---   <j i> comp (<k> A) (p @ i /\ j) [(i=0) -> <_> a, (j=1) -> <_> p @ i, (i=1) -> <k> p @ k \/ j ]
-
--- F23 (p2 : P2) (x : B) (a b : (y : A) * Id B x (F y)) : Id ((y : A) * Id B x (F y)) a b = hole
---   where
---     hole2 : Id ((y : A) * Id B (F a.1) (F y)) (a.1, refl B (F a.1)) (b.1, compId B (F a.1) x (F b.1) (<i> a.2 @ -i) b.2)
---       = isContrProp ((y : A) * Id B (F a.1) (F y)) (p2 (a.1)) (a.1, refl B (F a.1)) (b.1, compId B (F a.1) x (F b.1) (<i> a.2 @ -i) b.2)
---     hole3 : (Id ((y : A) * Id B x (F y)) a (b.1, compId B x x (F b.1) (<_> x) b.2))
---       = transport
---           (<i> Id ((y : A) * Id B (a.2 @ -i) (F y)) (a.1, <j> a.2 @ -i \/ j) (b.1, compId B (a.2 @ -i) x (F b.1) (<j> a.2 @ -i /\ -j) b.2))
---           hole2
---     hole : Id ((y : A) * Id B x (F y)) a b
---       = transport
---           (<i> Id ((y : A) * Id B x (F y)) a (b.1, (lemReflComp B x (F b.1) b.2) @ i))
---           hole3
-
--- E12 : Id U P1 P2 = isoIdProp P1 P2 propP1 propP2 F12 F21
--- E23 : Id U P2 P3 = isoIdProp P2 P3 propP2 propP3 F23 F32
+E12 (A B : U) (F : A -> B) : Id U (P1 A B F) (P2 A B F) = isoIdProp (P1 A B F) (P2 A B F) (propP1 A B F) (propP2 A B F) (F12 A B F) (F21 A B F)
+E23 (A B : U) (F : A -> B) : Id U (P2 A B F) (P3 A B F) = isoIdProp (P2 A B F) (P3 A B F) (propP2 A B F) (propP3 A B F) (F23 A B F) (F32 A B F)
+E13 (A B : U) (F : A -> B) : Id U (P1 A B F) (P3 A B F) = compId U (P1 A B F) (P2 A B F) (P3 A B F) (E12 A B F) (E23 A B F)
 
 -- torsor
 
 action (A : U) (shift : equiv A A) (x : A) : Z -> A = split
-  inl n -> actionAux n x
-    where actionAux : nat -> A -> A = split
-      zero  -> invEq A A shift
-      suc n -> \(x : A) -> invEq A A shift (actionAux n x)
-  inr n -> actionAux n x
-    where actionAux : nat -> A -> A = split
-      zero  -> \(x : A) -> x
-      suc n -> \(x : A) -> shift.1 (actionAux n x)
+  inl n -> invEq A A shift (actionAux n)
+    where actionAux : nat -> A = split
+      zero  -> x
+      suc n -> action A shift x (inl n)
+  inr n -> actionAux n
+    where actionAux : nat -> A = split
+      zero  -> x
+      suc n -> shift.1 (action A shift x (inr n))
 
 data BZ = bz (A : U) (ASet : set A) (a : ishinh_UU A)
              (AShift : equiv A A)
@@ -204,26 +268,28 @@ BZNE : (A : BZ) -> ishinh_UU (BZSet A) = split
 BZShift : (A : BZ) -> equiv (BZSet A) (BZSet A) = split
   bz A ASet a AShift AEquiv -> AShift
 
-BZS (A : BZ) : BZSet A -> BZSet A = (BZShift A).1
+BZAction (A : BZ) : BZSet A -> Z -> BZSet A = action (BZSet A) (BZShift A)
 
-BZEquiv : (A : BZ) -> (x : BZSet A) -> isEquiv Z (BZSet A) (action (BZSet A) (BZShift A) x) = split
+BZS (A : BZ) : BZSet A -> BZSet A = (BZShift A).1
+BZP (A : BZ) (a : BZSet A) : BZSet A = ((BZShift A).2 a).1.1
+
+BZEquiv : (A : BZ) -> (x : BZSet A) -> isEquiv Z (BZSet A) (BZAction A x) = split
   bz A ASet a AShift AEquiv -> AEquiv
 
-lemIdPProp (A B : U) (AProp : prop A) (p : Id U A B) : (x : A) -> (y : B) -> IdP p x y
-  = J U A (\(B : U) -> \(p : Id U A B) -> (x : A) -> (y : B) -> IdP p x y) AProp B p
-
-lemBZ : (BA BB : BZ) -> (p : Id U (BZSet BA) (BZSet BB)) ->
-        (pS : IdP (<i> p@i -> p@i) (BZS BA) (BZS BB)) -> Id BZ BA BB = split
+lemBZ : (BA BB : BZ) ->
+         equiv ((p : Id U (BZSet BA) (BZSet BB)) * IdP (<i> p@i -> p@i) (BZS BA) (BZS BB)) (Id BZ BA BB) = split
   bz A ASet a AShift AEquiv -> hole
     where
       BA : BZ = bz A ASet a AShift AEquiv
-      hole : (BB : BZ) -> (p : Id U (BZSet BA) (BZSet BB)) ->
-             (pS : IdP (<i> p@i -> p@i) (BZS BA) (BZS BB)) -> Id BZ BA BB = split
+      hole : (BB : BZ) ->
+             equiv ((p : Id U (BZSet BA) (BZSet BB)) * IdP (<i> p@i -> p@i) (BZS BA) (BZS BB)) (Id BZ BA BB) = split
         bz B BSet b BShift BEquiv -> hole
           where
             BB : BZ = bz B BSet b BShift BEquiv
-            hole (p : Id U A B) (pS : IdP (<i> p@i -> p@i) (BZS BA) (BZS BB)) : Id BZ BA BB = hole
+            F (w : (p : Id U A B) * IdP (<i> p@i -> p@i) (BZS BA) (BZS BB)) : Id BZ BA BB = hole
               where
+                p : Id U A B = w.1
+                pS : IdP (<i> p@i -> p@i) (BZS BA) (BZS BB) = w.2
                 pASet  : IdP (<i> set (p@i)) ASet BSet
                        = lemIdPProp (set A) (set B) (setIsProp A) (<i> set (p@i)) ASet BSet
                 pNE   : IdP (<i> ishinh_UU (p@i)) a b
@@ -246,52 +312,221 @@ lemBZ : (BA BB : BZ) -> (p : Id U (BZSet BA) (BZSet BB)) ->
                          (<i> (x : p@i) -> isEquiv Z (p@i) (action (p@i) (pShift@i) x))
                          AEquiv BEquiv
                 hole : Id BZ BA BB = <i> bz (p@i) (pASet@i) (pNE@i) (pShift@i) (pEquiv@i)
+            G (q : Id BZ BA BB) : (p : Id U A B) * IdP (<i> p@i -> p@i) (BZS BA) (BZS BB) = (<i> BZSet (q @ i), <i> (BZShift (q@i)).1)
+            GF (w : (p : Id U A B) * IdP (<i> p@i -> p@i) (BZS BA) (BZS BB))
+              : Id ((p : Id U A B) * IdP (<i> p@i -> p@i) (BZS BA) (BZS BB)) (<i> BZSet (F w @ i), <i> (BZShift (F w @ i)).1) w
+              = <_> w
+            FG (q : Id BZ BA BB) : Id (Id BZ BA BB) (F (<i> BZSet (q@i), <i> (BZShift (q@i)).1)) q = hole
+              where
+                p  : Id U A B = <i> BZSet (q@i)
+                p2 : IdP (<i> p@i -> p@i) (BZS BA) (BZS BB) = <i> (BZShift (q@i)).1
+                q2 : Id BZ BA BB = F (p, p2)
+                pASet  : Id (IdP (<i> set (p@i)) ASet BSet) (<i> BZASet (q2@i)) (<i> BZASet (q@i))
+                       = lemIdPSet (set A) (set B) (propSet (set A) (setIsProp A)) (<i> set (p@i)) ASet BSet (<i> BZASet (q2@i)) (<i> BZASet (q@i))
+                pNE    : Id (IdP (<i> ishinh_UU (p@i)) a b) (<i> BZNE (q2@i)) (<i> BZNE (q@i))
+                       = lemIdPSet (ishinh_UU A) (ishinh_UU B) (propSet (ishinh_UU A) (propishinh A)) (<i> ishinh_UU (p@i)) a b (<i> BZNE (q2@i)) (<i> BZNE (q@i))
+                pShift : Id (IdP (<i> equiv (p@i) (p@i)) AShift BShift) (<i> BZShift (q2@i)) (<i> BZShift (q@i)) =
+                       <j i> ( p2 @ i
+                             , (lemIdPSet
+                                (isEquiv A A AShift.1)
+                                (isEquiv B B BShift.1)
+                                (propSet (isEquiv A A AShift.1) (propIsEquiv A A AShift.1))
+                                (<i> isEquiv (p@i) (p@i) (p2@i))
+                                AShift.2 BShift.2
+                                (<i> (BZShift (q2@i)).2) (<i> (BZShift (q@i)).2)) @ j @ i
+                             )
+                pEquiv : IdP (<j> IdP (<i> (x : p@i) -> isEquiv Z (p@i) (action (p@i) (pShift@j@i) x)) AEquiv BEquiv) (<i> BZEquiv (q2@i)) (<i> BZEquiv (q@i))
+                       = lemIdPSet2
+                         ((x : A) -> isEquiv Z A (action A AShift x))
+                         ((x : B) -> isEquiv Z B (action B BShift x))
+                         (propSet ((x : A) -> isEquiv Z A (action A AShift x))
+                           (propPi A (\(x : A) -> isEquiv Z A (action A AShift x))
+                            (\(x : A) -> propIsEquiv Z A (action A AShift x))))
+                         (<i> (x : p@i) -> isEquiv Z (p@i) (action (p@i) (pShift@0@i) x))
+                         (<i> (x : p@i) -> isEquiv Z (p@i) (action (p@i) (pShift@1@i) x))
+                         (<j i> (x : p@i) -> isEquiv Z (p@i) (action (p@i) (pShift@j@i) x))
+                         AEquiv BEquiv (<i> BZEquiv (q2@i)) (<i> BZEquiv (q@i))
+                hole0  : Id (Id BZ BA BB) q2 (<i> bz (BZSet (q @ i)) (BZASet (q @ i)) (BZNE (q @ i)) (BZShift (q @ i)) (BZEquiv (q @ i)))
+                       = <j i> bz (p@i) (pASet@j@i) (pNE@j@i) (pShift@j@i) (pEquiv@j@i)
+                hole1 : Id (Id BZ BA BB) (<i> bz (BZSet (q @ i)) (BZASet (q @ i)) (BZNE (q @ i)) (BZShift (q @ i)) (BZEquiv (q @ i))) q
+                      = undefined
+                hole : Id (Id BZ BA BB) q2 q = compId (Id BZ BA BB) q2 (<i> bz (BZSet (q @ i)) (BZASet (q @ i)) (BZNE (q @ i)) (BZShift (q @ i)) (BZEquiv (q @ i))) q hole0 hole1
+            hole : equiv ((p : Id U (BZSet BA) (BZSet BB)) * IdP (<i> p@i -> p@i) (BZS BA) (BZS BB)) (Id BZ BA BB)
+                 = (F, gradLemma ((p : Id U (BZSet BA) (BZSet BB)) * IdP (<i> p@i -> p@i) (BZS BA) (BZS BB)) (Id BZ BA BB) F G FG GF)
 
--- negZ : Z -> Z = split
---   inl n -> inr (suc n)
---   inr n -> negAux n
---     where negAux : nat -> Z = split
---       zero  -> inr zero
---       suc n -> inl n
+transConstN (A : U) (a : A) : (n : nat) -> A = split
+  zero -> a
+  suc n -> transport (<_> A) (transConstN A a n)
+
+transConstNRefl (A : U) (a : A) : (n : nat) -> Id A (transConstN A a n) a = split
+  zero  -> <_> a
+  suc n -> compId A (transport (<_> A) (transConstN A a n)) (transConstN A a n) a
+           (transRefl A (transConst N A a n)) (transConstNRefl A a n)
+
+lem0 (A B : U) (f : A -> B) (e : isEquiv A B f) (x : A)
+  : Id B (transport (univalence B A (f, e)).1.1 x) (f x)
+  = transConstNRefl B (f x) (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero)))))))))))
+
+lem1 (A B : U) (f : A -> B) (e : isEquiv A B f) (x : B)
+  : Id A (transport (<i> (univalence B A (f, e)).1.1 @ -i) x) (e x).1.1
+  = compId A
+    (transConstN A (e (transConstN B x (suc (suc (suc (suc (suc (suc (suc (suc zero)))))))))).1.1 (suc (suc (suc zero))))
+    (transConstN A (e x).1.1 (suc (suc (suc zero))))
+    (e x).1.1
+    (<i> transConstN A (e (transConstNRefl B x (suc (suc (suc (suc (suc (suc (suc (suc zero)))))))) @ i)).1.1 (suc (suc (suc zero))))
+    (transConstNRefl A (e x).1.1 (suc (suc (suc zero))))
+
+lem2 (A : BZ) (a : BZSet A) : (x : Z) -> Id (BZSet A) (BZS A (BZAction A a x)) (BZAction A a (sucZ x)) = split
+  inl n -> lem2Aux n
+    where
+      lem2Aux : (n : nat) -> Id (BZSet A) (BZS A (BZAction A a (inl n))) (BZAction A a (sucZ (inl n))) = split
+        zero  -> retEq (BZSet A) (BZSet A) (BZShift A) a
+        suc n -> retEq (BZSet A) (BZSet A) (BZShift A) (BZAction A a (inl n))
+  inr n -> lem2Aux n
+    where
+      lem2Aux : (n : nat) -> Id (BZSet A) (BZS A (BZAction A a (inr n))) (BZAction A a (sucZ (inr n))) = split
+        zero  -> <_> BZS A a
+        suc n -> <_> BZS A (BZAction A a (inr (suc n)))
 
 ZBZ : BZ = bz Z ZSet (hinhpr Z zeroZ) ZShift ZEquiv
   where
     ZShift : equiv Z Z = (sucZ, gradLemma Z Z sucZ predZ sucpredZ predsucZ)
     ZEquiv (x : Z) : isEquiv Z Z (action Z ZShift x) = hole
       where
-        lem (x y : Z) : Id Z (action Z ZShift x (sucZ y)) (sucZ (action Z ZShift x y)) = undefined
         hole : isEquiv Z Z (action Z ZShift x) = undefined
 
-lem5 (A B : U) (p : Id U A B) (a : A) (b : B) (q : Id B (transport p a) b) : IdP p a b = undefined
+-- action (A : U) (shift : equiv A A) (x : A) : Z -> A = split
+--   inl n -> invEq A A shift (actionAux n)
+--     where actionAux : nat -> A = split
+--       zero  -> x
+--       suc n -> action A shift x (inl n)
+--   inr n -> actionAux n
+--     where actionAux : nat -> A = split
+--       zero  -> x
+--       suc n -> shift.1 (action A shift x (inr n))
 
-loopZ : Id BZ ZBZ ZBZ = lemBZ ZBZ ZBZ sucIdZ q
+
+prf : Id (equiv Z Z) (BZAction ZBZ zeroZ, BZEquiv ZBZ zeroZ) (\(x : Z) -> x, isEquivId Z)
+  = hole
   where
-    q : IdP (<i> (sucIdZ@i) -> (sucIdZ@i)) sucZ sucZ = undefined
-    hole : U = U
+    hole0 : (x : Z) -> Id Z (BZAction ZBZ zeroZ x) x = split
+      inl n -> hole1 n
+        where
+          hole1 : (n : nat) -> Id Z (BZAction ZBZ zeroZ (inl n)) (inl n) = split
+            zero -> <_> inl zero
+            suc n -> mapOnPath Z Z predZ (BZAction ZBZ zeroZ (inl n)) (inl n) (hole1 n)
+      inr n -> hole1 n
+        where
+          hole1 : (n : nat) -> Id Z (BZAction ZBZ zeroZ (inr n)) (inr n) = split
+            zero -> <_> inr zero
+            suc n -> mapOnPath Z Z sucZ (BZAction ZBZ zeroZ (inr n)) (inr n) (hole1 n)
+    hole : Id (equiv Z Z) (BZAction ZBZ zeroZ, BZEquiv ZBZ zeroZ) (\(x : Z) -> x, isEquivId Z)
+      = <i> (\(x : Z) -> hole0 x @ i,
+             lemIdPProp
+             (isEquiv Z Z (BZAction ZBZ zeroZ)) (isEquiv Z Z (\(x : Z) -> x))
+             (propIsEquiv Z Z (BZAction ZBZ zeroZ))
+             (<j> isEquiv Z Z (\(x : Z) -> hole0 x @ j))
+             (BZEquiv ZBZ zeroZ) (isEquivId Z) @ i
+            )
+
+transportIsoId (A B : U) (f : A -> B) (g : B -> A)
+               (s : (y : B) -> Id B (f (g y)) y)
+               (t : (x : A) -> Id A (g (f x)) x)
+               (x : A)
+               : Id B (transport (isoId A B f g s t) x) (f x)
+               = compId B (transport (<_> B) (transport (<_> B) (f x))) (transport (<_> B) (f x)) (f x)
+                 (<i> transport (<_> B) (transRefl B (f x) @ i)) (transRefl B (f x))
+
+transportIsoId' (A B : U) (f : A -> B) (g : B -> A)
+               (s : (y : B) -> Id B (f (g y)) y)
+               (t : (x : A) -> Id A (g (f x)) x)
+               (x : B)
+               : Id A (transport (<i> isoId A B f g s t @ -i) x) (g x)
+               = compId A (transport (<_> A) (g (transport (<_> B) x))) (transport (<_> A) (g x)) (g x)
+                 (<i> transport (<_> A) (g (transRefl B x @ i))) (transRefl A (g x))
+
+loopZ : Id BZ ZBZ ZBZ = (lemBZ ZBZ ZBZ).1 (sucIdZ, hole)
+  where
+    hole1 (x : Z) : Id Z (transport sucIdZ (sucZ (transport (<j> sucIdZ @ -j) x))) (sucZ (sucZ (predZ x))) =
+      compId Z (transport sucIdZ (sucZ (transport (<j> sucIdZ @ -j) x))) (transport sucIdZ (sucZ (predZ x))) (sucZ (sucZ (predZ x)))
+      (<i> transport sucIdZ (sucZ (transportIsoId' Z Z sucZ predZ sucpredZ predsucZ x @ i))) (transportIsoId Z Z sucZ predZ sucpredZ predsucZ (sucZ (predZ x)))
+    hole2 (x : Z) : Id Z (sucZ (sucZ (predZ x))) (sucZ x) = <i> sucZ (sucpredZ x @ i)
+    hole3 : Id (Z->Z) (transport (<i> (sucIdZ@i) -> (sucIdZ@i)) sucZ) sucZ
+      = <i> \(x : Z) -> compId Z (transport sucIdZ (sucZ (transport (<j> sucIdZ @ -j) x))) (sucZ (sucZ (predZ x))) (sucZ x)
+                        (hole1 x) (hole2 x) @ i
+    hole : IdP (<i> (sucIdZ@i) -> (sucIdZ@i)) sucZ sucZ = substIdP (Z->Z) (Z->Z) (<i> (sucIdZ@i) -> (sucIdZ@i)) sucZ sucZ hole3
 
 F : S1 -> BZ = split
   base -> ZBZ
   loop @ i -> loopZ @ i
 
+encode (A : BZ) (p : Id BZ ZBZ A) : BZSet A = transport (<i> BZSet (p@i)) zeroZ
+
+decode (A : BZ) (a : BZSet A) : Id BZ ZBZ A = (lemBZ ZBZ A).1 (<i> p @ -i, <i> q @ -i)
+  where
+    p1 : isEquiv Z (BZSet A) (BZAction A a) = BZEquiv A a
+    p : Id U (BZSet A) Z = <i> (univalence (BZSet A) Z (BZAction A a, p1)).1.1 @ -i
+    hole1 (x : Z) : Id Z (transport p (BZS A (transport (<i> p @ -i) x)))
+                    (p1 (BZS A (BZAction A a x))).1.1
+      = compId Z (transport p (BZS A (transport (<i> p @ -i) x)))
+                 (transport p (BZS A (BZAction A a x)))
+                 (p1 (BZS A (BZAction A a x))).1.1
+                 (<i> transport p (BZS A (lem0 Z (BZSet A) (BZAction A a) p1 x @ i)))
+                 (lem1 Z (BZSet A) (BZAction A a) p1 (BZS A (BZAction A a x)))
+    hole2 (x : Z) : Id Z (p1 (BZS A (BZAction A a x))).1.1 (sucZ x)
+      = compId Z (p1 (BZS A (BZAction A a x))).1.1 (p1 (BZAction A a (sucZ x))).1.1 (sucZ x)
+        (<i> (p1 (lem2 A a x @ i)).1.1)
+        (secEq Z (BZSet A) (BZAction A a, p1) (sucZ x))
+    hole : Id (Z->Z) (\(x : Z) -> transport p (BZS A (transport (<i> p @ -i) x))) sucZ
+      = <i> \(x : Z) -> compId Z (transport p (BZS A (transport (<i> p @ -i) x))) (p1 (BZS A (BZAction A a x))).1.1 (sucZ x)
+                        (hole1 x) (hole2 x) @ i
+    q : IdP (<i> (p@i) -> (p@i)) (BZS A) sucZ = substIdP (BZSet A -> BZSet A) (Z -> Z) (<i> (p@i) -> (p@i)) (BZS A) sucZ hole
+
 LoopsZBZ : Id U (Id BZ ZBZ ZBZ) Z = isoId (Id BZ ZBZ ZBZ) Z (encode ZBZ) (decode ZBZ) (encodeDecode ZBZ) (decodeEncode ZBZ)
   where
-    encode (A : BZ) (p : Id BZ ZBZ A) : BZSet A = transport (<i> BZSet (p@i)) zeroZ
-    decode (A : BZ) (x : BZSet A) : Id BZ ZBZ A = lemBZ ZBZ A p q
-      where
-        p : Id U Z (BZSet A) = equivId Z (BZSet A) (action (BZSet A) (BZShift A) x) (BZEquiv A x)
-        q : IdP (<i> (p@i) -> (p@i)) sucZ (BZS A) = undefined
-    decodeEncodeRefl : Id (Id BZ ZBZ ZBZ) (decode ZBZ zeroZ) (<_> ZBZ) = undefined
+    decodeEncodeRefl0
+      : Id (Id U Z Z) (univalence Z Z (BZAction ZBZ zeroZ, BZEquiv ZBZ zeroZ)).1.1 (<_> Z)
+      = transport (<i> Id (Id U Z Z) (univalence Z Z (prf @ -i)).1.1 (<_> Z)) (lem11 Z)
+    decodeEncodeRefl1
+      : IdP (<j> (IdP (<i> decodeEncodeRefl0@j@i -> decodeEncodeRefl0@j@i) sucZ sucZ))
+            (<i> (BZShift (decode ZBZ zeroZ@i)).1) (<_> sucZ)
+      = lemIdPSet2 (Z->Z) (Z->Z) (setPi Z (\(_ : Z) -> Z) (\(_ : Z) -> ZSet))
+        (<j> decodeEncodeRefl0@0@j -> decodeEncodeRefl0@0@j)
+        (<j> decodeEncodeRefl0@1@j -> decodeEncodeRefl0@1@j)
+        (<i j> decodeEncodeRefl0@i@j -> decodeEncodeRefl0@i@j)
+        sucZ sucZ (<i> (BZShift (decode ZBZ zeroZ@i)).1) (<_> sucZ)
+    decodeEncodeRefl2 : Id ((p : Id U Z Z) * IdP (<i> p@i -> p@i) sucZ sucZ) ((lemBZ ZBZ ZBZ).2 (decode ZBZ zeroZ)).1.1 ((lemBZ ZBZ ZBZ).2 (<_> ZBZ)).1.1
+      = <i> (decodeEncodeRefl0 @ i, decodeEncodeRefl1 @ i)
+    decodeEncodeRefl : Id (Id BZ ZBZ ZBZ) (decode ZBZ zeroZ) (<_> ZBZ)
+      = lem10 ((p : Id U Z Z) * IdP (<i> p@i -> p@i) sucZ sucZ) (Id BZ ZBZ ZBZ) (lemBZ ZBZ ZBZ) (decode ZBZ zeroZ) (<_> ZBZ) decodeEncodeRefl2
     decodeEncode : (A : BZ) -> (p : Id BZ ZBZ A) -> Id (Id BZ ZBZ A) (decode A (encode A p)) p
       = J BZ ZBZ (\(A : BZ) -> \(p : Id BZ ZBZ A) -> Id (Id BZ ZBZ A) (decode A (encode A p)) p) decodeEncodeRefl
-    encodeDecode (A : BZ) (p : BZSet A) : Id (BZSet A) (transport (<_> BZSet A) (transport (<_> BZSet A) p)) p
-      = compId (BZSet A) (transport (<_> BZSet A) (transport (<_> BZSet A) p)) (transport (<_> BZSet A) p) p
-        (<i> transport (<_> BZSet A) (transRefl (BZSet A) p @ i)) (transRefl (BZSet A) p)
+    encodeDecode (A : BZ) (p : BZSet A) : Id (BZSet A) (transport (univalence (BZSet A) Z (BZAction A p, BZEquiv A p)).1.1 zeroZ) p
+      = lem0 Z (BZSet A) (BZAction A p) (BZEquiv A p) zeroZ
 
-F_fullyFaithful (x y : S1) : isEquiv (Id S1 x y) (Id BZ (F x) (F y)) (mapOnPath S1 BZ F x y) = undefined
+F_fullyFaithful (x y : S1) : isEquiv (Id S1 x y) (Id BZ (F x) (F y)) (mapOnPath S1 BZ F x y)
+  = hole
+  where
+    hole : isEquiv (Id S1 x y) (Id BZ (F x) (F y)) (mapOnPath S1 BZ F x y) = undefined
+
 
 F_essentiallySurjective (y : BZ) : (x : S1) * Id BZ y (F x) = hole
   where
-    hInh   : ishinh_UU ((x : S1) * Id BZ y (F x)) = undefined
-    hProp  : prop ((x : S1) * Id BZ y (F x)) = undefined
-    hContr : isContr ((x : S1) * Id BZ y (F x)) = undefined
+    hInh   : (y : BZ) -> ishinh_UU ((x : S1) * Id BZ y (F x)) = split
+      bz A ASet a AShift AEquiv -> hole
+        where
+          y : BZ = bz A ASet a AShift AEquiv
+          hole2 (a : A) : (x : S1) * Id BZ y (F x) = (base, <i> decode y a @ -i)
+          hole1 (a : A) : ishinh_UU ((x : S1) * Id BZ y (F x)) = hinhpr ((x : S1) * Id BZ y (F x)) (hole2 a)
+          hole : ishinh_UU ((x : S1) * Id BZ y (F x)) = a (ishinh_UU ((x : S1) * Id BZ y (F x)), propishinh ((x : S1) * Id BZ y (F x))) hole1
+    hProp  : prop ((x : S1) * Id BZ y (F x))      = transport (E13 S1 BZ F) (F_fullyFaithful) y
+    hContr : isContr ((x : S1) * Id BZ y (F x))   = inhPropContr ((x : S1) * Id BZ y (F x)) hProp (hInh y)
     hole   : (x : S1) * Id BZ y (F x) = hContr.1
+
+-- -- tensor (x y : BZ) : BZ = hole
+-- --   where
+-- --     Z : U = Id BZ x y
+-- --     ZSet : set Z = undefined
+-- --     z : ishinh_UU Z = undefined
+-- --     ZShift : equiv Z Z = undefined
+-- --     hole : BZ = undefined

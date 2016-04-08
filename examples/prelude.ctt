@@ -162,12 +162,17 @@ propPi (A : U) (B : A -> U) (h : (x : A) -> prop (B x))
        (f0 f1 : (x : A) -> B x) : Id ((x : A) -> B x) f0 f1
   = <i> \ (x:A) -> (h x (f0 x) (f1 x)) @ i
 
-lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a :A) : 
-          (a1 : A) (p : Id A a a1) (b0 : P a) (b1 : P a1) -> IdP (<i>P (p@i)) b0 b1 =
- J A a (\ (a1 : A) (p : Id A a a1) ->
-          (b0 : P a) (b1 : P a1) -> IdP (<i>P (p@i)) b0 b1)
-   rem
- where rem : (b0 b1:P a) -> Id (P a) b0 b1 = pP a
+lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a0 a1 :A) 
+         (p : Id A a0 a1) (b0 : P a0) (b1 : P a1) : IdP (<i>P (p@i)) b0 b1 =
+ <i>pP (p@i) (comp (<j>P (p@i/\j)) b0 [(i=0) -> <_>b0]) (comp (<j>P (p@i\/-j)) b1 [(i=1) -> <_>b1])@i
+
+-- other proof
+-- lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a :A) : 
+--          (a1 : A) (p : Id A a a1) (b0 : P a) (b1 : P a1) -> IdP (<i>P (p@i)) b0 b1 =
+-- J A a (\ (a1 : A) (p : Id A a a1) ->
+--          (b0 : P a) (b1 : P a1) -> IdP (<i>P (p@i)) b0 b1)
+--   rem
+-- where rem : (b0 b1:P a) -> Id (P a) b0 b1 = pP a
 
 Sigma (A : U) (B : A -> U) : U = (x : A) * B x
 

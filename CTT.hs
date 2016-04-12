@@ -7,6 +7,8 @@ import Data.Maybe
 import Data.Map (Map,(!),filterWithKey,elems)
 import qualified Data.Map as Map
 import Text.PrettyPrint as PP
+import Data.Set (Set)
+import qualified Data.Set as Set
 
 import Connections
 
@@ -34,7 +36,11 @@ data Branch = OBranch LIdent [Ident] Ter
   deriving (Eq,Show)
 
 -- Declarations: x : A = e
-type Decl   = (Ident,(Ter,Ter))
+type Decl  = (Ident,(Ter,Ter))
+data Decls = MutualDecls [Decl]
+           | OpaqueDecl Ident
+           | VisibleDecl Ident
+           deriving Eq
 
 declIdents :: [Decl] -> [Ident]
 declIdents decls = [ x | (x,_) <- decls ]
@@ -80,7 +86,7 @@ lookupBranch x (b:brs) = case b of
 data Ter = App Ter Ter
          | Pi Ter
          | Lam Ident Ter Ter
-         | Where Ter [Decl]
+         | Where Ter Decls
          | Var Ident
          | U
            -- Sigma types:
@@ -123,7 +129,7 @@ mkApps :: Ter -> [Ter] -> Ter
 mkApps (Con l us) vs = Con l (us ++ vs)
 mkApps t ts          = foldl App t ts
 
-mkWheres :: [[Decl]] -> Ter -> Ter
+mkWheres :: [Decls] -> Ter -> Ter
 mkWheres []     e = e
 mkWheres (d:ds) e = Where (mkWheres ds e) d
 
@@ -156,6 +162,7 @@ data Val = VU
 
            -- Neutral values:
          | VVar Ident Val
+         | VOpaque Ident Val
          | VFst Val
          | VSnd Val
          | VSplit Val Val
@@ -167,18 +174,19 @@ data Val = VU
 
 isNeutral :: Val -> Bool
 isNeutral v = case v of
-  Ter Undef{} _  -> True
-  Ter Hole{} _   -> True
-  VVar{}         -> True
-  VComp{}        -> True
-  VFst{}         -> True
-  VSnd{}         -> True
-  VSplit{}       -> True
-  VApp{}         -> True
-  VAppFormula{}  -> True
-  VUnGlueElemU{} -> True
-  VUnGlueElem{}  -> True
-  _              -> False
+  Ter Undef{} _     -> True
+  Ter Hole{} _      -> True
+  VVar{}            -> True
+  VOpaque{}         -> True
+  VComp{}           -> True
+  VFst{}            -> True
+  VSnd{}            -> True
+  VSplit{}          -> True
+  VApp{}            -> True
+  VAppFormula{}     -> True
+  VUnGlueElemU{}    -> True
+  VUnGlueElem{}     -> True
+  _                 -> False
 
 isNeutralSystem :: System Val -> Bool
 isNeutralSystem = any isNeutral . elems
@@ -219,19 +227,22 @@ data Ctxt = Empty
 -- The Idents and Names in the Ctxt refer to the elements in the two
 -- lists. This is more efficient because acting on an environment now
 -- only need to affect the lists and not the whole context.
-type Env = (Ctxt,[Val],[Formula])
+-- The last list is the list of opaque names
+type Env = (Ctxt,[Val],[Formula],Nameless (Set Ident))
 
 emptyEnv :: Env
-emptyEnv = (Empty,[],[])
+emptyEnv = (Empty,[],[],Nameless Set.empty)
 
-def :: [Decl] -> Env -> Env
-def ds (rho,vs,fs) = (Def ds rho,vs,fs)
+def :: Decls -> Env -> Env
+def (MutualDecls ds) (rho,vs,fs,Nameless os) = (Def ds rho,vs,fs,Nameless (os Set.\\ Set.fromList (declIdents ds)))
+def (OpaqueDecl n) (rho,vs,fs,Nameless os) = (rho,vs,fs,Nameless (Set.insert n os))
+def (VisibleDecl n) (rho,vs,fs,Nameless os) = (rho,vs,fs,Nameless (Set.delete n os))
 
 sub :: (Name,Formula) -> Env -> Env
-sub (i,phi) (rho,vs,fs) = (Sub i rho,vs,phi:fs)
+sub (i,phi) (rho,vs,fs,os) = (Sub i rho,vs,phi:fs,os)
 
 upd :: (Ident,Val) -> Env -> Env
-upd (x,v) (rho,vs,fs) = (Upd x rho,v:vs,fs)
+upd (x,v) (rho,vs,fs,Nameless os) = (Upd x rho,v:vs,fs,Nameless (Set.delete x os))
 
 upds :: [(Ident,Val)] -> Env -> Env
 upds xus rho = foldl (flip upd) rho xus
@@ -243,10 +254,10 @@ subs :: [(Name,Formula)] -> Env -> Env
 subs iphis rho = foldl (flip sub) rho iphis
 
 mapEnv :: (Val -> Val) -> (Formula -> Formula) -> Env -> Env
-mapEnv f g (rho,vs,fs) = (rho,map f vs,map g fs)
+mapEnv f g (rho,vs,fs,os) = (rho,map f vs,map g fs,os)
 
 valAndFormulaOfEnv :: Env -> ([Val],[Formula])
-valAndFormulaOfEnv (_,vs,fs) = (vs,fs)
+valAndFormulaOfEnv (_,vs,fs,_) = (vs,fs)
 
 valOfEnv :: Env -> [Val]
 valOfEnv = fst . valAndFormulaOfEnv
@@ -255,7 +266,7 @@ formulaOfEnv :: Env -> [Formula]
 formulaOfEnv = snd . valAndFormulaOfEnv
 
 domainEnv :: Env -> [Name]
-domainEnv (rho,_,_) = domCtxt rho
+domainEnv (rho,_,_,_) = domCtxt rho
   where domCtxt rho = case rho of
           Empty    -> []
           Upd _ e  -> domCtxt e
@@ -265,11 +276,11 @@ domainEnv (rho,_,_) = domCtxt rho
 -- Extract the context from the environment, used when printing holes
 contextOfEnv :: Env -> [String]
 contextOfEnv rho = case rho of
-  (Empty,_,_)              -> []
-  (Upd x e,VVar n t:vs,fs) -> (n ++ " : " ++ show t) : contextOfEnv (e,vs,fs)
-  (Upd x e,v:vs,fs)        -> (x ++ " = " ++ show v) : contextOfEnv (e,vs,fs)
-  (Def _ e,vs,fs)          -> contextOfEnv (e,vs,fs)
-  (Sub i e,vs,phi:fs)      -> (show i ++ " = " ++ show phi) : contextOfEnv (e,vs,fs)
+  (Empty,_,_,_)               -> []
+  (Upd x e,VVar n t:vs,fs,os) -> (n ++ " : " ++ show t) : contextOfEnv (e,vs,fs,os)
+  (Upd x e,v:vs,fs,os)        -> (x ++ " = " ++ show v) : contextOfEnv (e,vs,fs,os)
+  (Def _ e,vs,fs,os)          -> contextOfEnv (e,vs,fs,os)
+  (Sub i e,vs,phi:fs,os)      -> (show i ++ " = " ++ show phi) : contextOfEnv (e,vs,fs,os)
 
 --------------------------------------------------------------------------------
 -- | Pretty printing
@@ -284,19 +295,19 @@ showEnv b e =
       par   x = if b then parens x else x
       com     = if b then comma else PP.empty
       showEnv1 e = case e of
-        (Upd x env,u:us,fs)   ->
-          showEnv1 (env,us,fs) <+> names x <+> showVal1 u <> com
-        (Sub i env,us,phi:fs) ->
-          showEnv1 (env,us,fs) <+> names (show i) <+> text (show phi) <> com
-        (Def _ env,vs,fs)     -> showEnv1 (env,vs,fs)
-        _                     -> showEnv b e
+        (Upd x env,u:us,fs,os)   ->
+          showEnv1 (env,us,fs,os) <+> names x <+> showVal1 u <> com
+        (Sub i env,us,phi:fs,os) ->
+          showEnv1 (env,us,fs,os) <+> names (show i) <+> text (show phi) <> com
+        (Def _ env,vs,fs,os)     -> showEnv1 (env,vs,fs,os)
+        _                        -> showEnv b e
   in case e of
-    (Empty,_,_)           -> PP.empty
-    (Def _ env,vs,fs)     -> showEnv b (env,vs,fs)
-    (Upd x env,u:us,fs)   ->
-      par $ showEnv1 (env,us,fs) <+> names x <+> showVal u
-    (Sub i env,us,phi:fs) ->
-      par $ showEnv1 (env,us,fs) <+> names (show i) <+> text (show phi)
+    (Empty,_,_,_)            -> PP.empty
+    (Def _ env,vs,fs,os)     -> showEnv b (env,vs,fs,os)
+    (Upd x env,u:us,fs,os)   ->
+      par $ showEnv1 (env,us,fs,os) <+> names x <+> showVal u
+    (Sub i env,us,phi:fs,os) ->
+      par $ showEnv1 (env,us,fs,os) <+> names (show i) <+> text (show phi)
 
 instance Show Loc where
   show = render . showLoc
@@ -360,9 +371,12 @@ showTer1 t = case t of
   Snd{}    -> showTer t
   _        -> parens (showTer t)
 
-showDecls :: [Decl] -> Doc
-showDecls defs = hsep $ punctuate comma
-                      [ text x <+> equals <+> showTer d | (x,(_,d)) <- defs ]
+showDecls :: Decls -> Doc
+showDecls (MutualDecls defs) =
+  hsep $ punctuate comma
+  [ text x <+> equals <+> showTer d | (x,(_,d)) <- defs ]
+showDecls (OpaqueDecl i) = text "opaque" <+> text i
+showDecls (VisibleDecl i) = text "visible" <+> text i
 
 instance Show Val where
   show = render . showVal
@@ -389,6 +403,7 @@ showVal v = case v of
   VPath{}           -> char '<' <> showPath v
   VSplit u v        -> showVal u <+> showVal1 v
   VVar x _          -> text x
+  VOpaque x _       -> text ('#':x)
   VFst u            -> showVal1 u <> text ".1"
   VSnd u            -> showVal1 u <> text ".2"
   VIdP v0 v1 v2     -> text "IdP" <+> showVals [v0,v1,v2]

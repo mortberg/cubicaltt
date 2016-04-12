@@ -292,6 +292,14 @@ unions = foldr union []
 unionsMap :: Eq b => (a -> [b]) -> [a] -> [b]
 unionsMap f = unions . map f
 
+newtype Nameless a = Nameless { unNameless :: a }
+                   deriving (Eq, Ord)
+
+instance Nominal (Nameless a) where
+  support _ = []
+  act x _   = x
+  swap x _  = x
+
 instance Nominal () where
   support () = []
   act () _   = ()

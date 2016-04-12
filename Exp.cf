@@ -12,13 +12,15 @@ Module.   Module ::= "module" AIdent "where" "{" [Imp] [Decl] "}" ;
 Import.   Imp ::= "import" AIdent ;
 separator Imp ";" ;
 
-DeclDef.    Decl ::= AIdent [Tele] ":" Exp "=" ExpWhere ;
-DeclData.   Decl ::= "data" AIdent [Tele] "=" [Label] ;
-DeclHData.  Decl ::= "hdata" AIdent [Tele] "=" [Label] ;
-DeclSplit.  Decl ::= AIdent [Tele] ":" Exp "=" "split" "{" [Branch] "}" ;
-DeclUndef.  Decl ::= AIdent [Tele] ":" Exp "=" "undefined" ;
-DeclMutual. Decl ::= "mutual" "{" [Decl] "}" ;
-separator   Decl ";" ;
+DeclDef.     Decl ::= AIdent [Tele] ":" Exp "=" ExpWhere ;
+DeclData.    Decl ::= "data" AIdent [Tele] "=" [Label] ;
+DeclHData.   Decl ::= "hdata" AIdent [Tele] "=" [Label] ;
+DeclSplit.   Decl ::= AIdent [Tele] ":" Exp "=" "split" "{" [Branch] "}" ;
+DeclUndef.   Decl ::= AIdent [Tele] ":" Exp "=" "undefined" ;
+DeclMutual.  Decl ::= "mutual" "{" [Decl] "}" ;
+DeclOpaque.  Decl ::= "opaque" AIdent ;
+DeclVisible. Decl ::= "visible" AIdent ;
+separator    Decl ";" ;
 
 Where.    ExpWhere ::= Exp "where" "{" [Decl] "}" ;
 NoWhere.  ExpWhere ::= Exp ;

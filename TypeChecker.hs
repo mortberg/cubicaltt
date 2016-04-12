@@ -42,12 +42,12 @@ trace s = do
 runTyping :: TEnv -> Typing a -> IO (Either String a)
 runTyping env t = runExceptT $ runReaderT t env
 
-runDecls :: TEnv -> [Decl] -> IO (Either String TEnv)
+runDecls :: TEnv -> Decls -> IO (Either String TEnv)
 runDecls tenv d = runTyping tenv $ do
   checkDecls d
   return $ addDecls d tenv
 
-runDeclss :: TEnv -> [[Decl]] -> IO (Maybe String,TEnv)
+runDeclss :: TEnv -> [Decls] -> IO (Maybe String,TEnv)
 runDeclss tenv []     = return (Nothing, tenv)
 runDeclss tenv (d:ds) = do
   x <- runDecls tenv d
@@ -79,7 +79,7 @@ addBranch :: [(Ident,Val)] -> Env -> TEnv -> TEnv
 addBranch nvs env (TEnv ns ind rho v) =
   TEnv ([n | (_,VVar n _) <- nvs] ++ ns) ind (upds nvs rho) v
 
-addDecls :: [Decl] -> TEnv -> TEnv
+addDecls :: Decls -> TEnv -> TEnv
 addDecls d (TEnv ns ind rho v) = TEnv ns ind (def d rho) v
 
 addTele :: Tele -> TEnv -> TEnv
@@ -184,6 +184,7 @@ check a t = case (a,t) of
         ++ "\ndomain of Pi: " ++ show a
         ++ "\nnormal form of type: " ++ show (normal ns a)
     let var = mkVarNice ns x a
+
     local (addTypeVal (x,a)) $ check (app f var) t
   (VSigma a f, Pair t1 t2) -> do
     check a t1
@@ -220,15 +221,19 @@ check a t = case (a,t) of
       throwError $ "check conv:\n" ++ show v ++ "\n/=\n" ++ show a
 
 -- Check a list of declarations
-checkDecls :: [Decl] -> Typing ()
-checkDecls d = do
+checkDecls :: Decls -> Typing ()
+checkDecls (MutualDecls []) = return ()
+checkDecls (MutualDecls d) = do
+  a <- asks env
   let (idents,tele,ters) = (declIdents d,declTele d,declTers d)
   ind <- asks indent
   trace (replicate ind ' ' ++ "Checking: " ++ unwords idents)
   checkTele tele
-  local (addDecls d) $ do
+  local (addDecls (MutualDecls d)) $ do
     rho <- asks env
     checks (tele,rho) ters
+checkDecls (OpaqueDecl _) = return ()
+checkDecls (VisibleDecl _) = return ()
 
 -- Check a telescope
 checkTele :: Tele -> Typing ()
@@ -416,8 +421,8 @@ checks _              _      =
 -- infer the type of e
 infer :: Ter -> Typing Val
 infer e = case e of
-  U         -> return VU  -- U : U
-  Var n     -> lookType n <$> asks env
+  U           -> return VU  -- U : U
+  Var n       -> lookType n <$> asks env
   App t u -> do
     c <- infer t
     case c of

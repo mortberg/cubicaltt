@@ -234,6 +234,7 @@ checkDecls (MutualDecls d) = do
     checks (tele,rho) ters
 checkDecls (OpaqueDecl _) = return ()
 checkDecls (VisibleDecl _) = return ()
+checkDecls VisibleAllDecl = return ()
 
 -- Check a telescope
 checkTele :: Tele -> Typing ()

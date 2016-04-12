@@ -344,6 +344,7 @@ resolveDecl d = case d of
   DeclVisible i -> do
     resolveVar i
     return (CTT.VisibleDecl (unAIdent i), [])
+  DeclVisibleAll -> return (CTT.VisibleAllDecl, [])
   _ -> do let (f,typ,body,ns) = resolveNonMutualDecl d
           a <- typ
           d <- body

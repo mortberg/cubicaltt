@@ -150,7 +150,7 @@ eval rho@(_,_,_,Nameless os) v = case v of
   U                   -> VU
   App r s             -> app (eval rho r) (eval rho s)
   Var i
-    | i `elem` os     -> VOpaque i t
+    | i `elem` os     -> VOpaque i (lookType i rho)
     | otherwise       -> look i rho
   Pi t@(Lam _ a _)    -> VPi (eval rho a) (eval rho t)
   Sigma t@(Lam _ a _) -> VSigma (eval rho a) (eval rho t)

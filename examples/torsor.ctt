@@ -392,10 +392,8 @@ lemBZ (BA BB : BZ) : equiv ((p : Id U (BZSet BA) (BZSet BB)) * IdP (<i> p@i -> p
           pS : IdP (<i> p@i -> p@i) (BZS BA) (BZS BB) = w.2
           pASet  : IdP (<i> set (p@i)) ASet BSet
                  = lemIdPProp (set A) (set B) (setIsProp A) (<i> set (p@i)) ASet BSet
-          opaque pASet
           pNE   : IdP (<i> ishinh_UU (p@i)) a b
                 = lemIdPProp (ishinh_UU A) (ishinh_UU B) (propishinh A) (<i> ishinh_UU (p@i)) a b
-          opaque pNE
           pShift : IdP (<i> equiv (p@i) (p@i)) AShift BShift =
             <i> ( pS @ i
                 , (lemIdPProp
@@ -413,7 +411,6 @@ lemBZ (BA BB : BZ) : equiv ((p : Id U (BZSet BA) (BZSet BB)) * IdP (<i> p@i -> p
                     (\(x : A) -> propIsEquiv Z A (action A AShift x)))
                     (<i> (x : p@i) -> isEquiv Z (p@i) (action (p@i) (pShift@i) x))
                    AEquiv BEquiv
-          opaque pEquiv
           hole : Id BZ BA BB = <i> (p@i, (pASet@i, (pNE@i, (pShift@i, pEquiv@i))))
       G (q : Id BZ BA BB) : (p : Id U A B) * IdP (<i> p@i -> p@i) (BZS BA) (BZS BB) = (<i> BZSet (q @ i), <i> (BZShift (q@i)).1)
       GF (w : (p : Id U A B) * IdP (<i> p@i -> p@i) (BZS BA) (BZS BB))
@@ -426,10 +423,8 @@ lemBZ (BA BB : BZ) : equiv ((p : Id U (BZSet BA) (BZSet BB)) * IdP (<i> p@i -> p
           q2 : Id BZ BA BB = F (p, p2)
           pASet  : Id (IdP (<i> set (p@i)) ASet BSet) (<i> BZASet (q2@i)) (<i> BZASet (q@i))
                  = lemIdPSet (set A) (set B) (propSet (set A) (setIsProp A)) (<i> set (p@i)) ASet BSet (<i> BZASet (q2@i)) (<i> BZASet (q@i))
-          opaque pASet
           pNE    : Id (IdP (<i> ishinh_UU (p@i)) a b) (<i> BZNE (q2@i)) (<i> BZNE (q@i))
                  = lemIdPSet (ishinh_UU A) (ishinh_UU B) (propSet (ishinh_UU A) (propishinh A)) (<i> ishinh_UU (p@i)) a b (<i> BZNE (q2@i)) (<i> BZNE (q@i))
-          opaque pNE
           pShift : Id (IdP (<i> equiv (p@i) (p@i)) AShift BShift) (<i> BZShift (q2@i)) (<i> BZShift (q@i)) =
                  <j i> ( p2 @ i
                        , (lemIdPSet
@@ -440,7 +435,6 @@ lemBZ (BA BB : BZ) : equiv ((p : Id U (BZSet BA) (BZSet BB)) * IdP (<i> p@i -> p
                           AShift.2 BShift.2
                           (<i> (BZShift (q2@i)).2) (<i> (BZShift (q@i)).2)) @ j @ i
                        )
-          opaque pShift
           pEquiv : IdP (<j> IdP (<i> (x : p@i) -> isEquiv Z (p@i) (action (p@i) (pShift@j@i) x)) AEquiv BEquiv) (<i> BZEquiv (q2@i)) (<i> BZEquiv (q@i))
                  = lemIdPSet2
                    ((x : A) -> isEquiv Z A (action A AShift x))
@@ -452,7 +446,6 @@ lemBZ (BA BB : BZ) : equiv ((p : Id U (BZSet BA) (BZSet BB)) * IdP (<i> p@i -> p
                    (<i> (x : p@i) -> isEquiv Z (p@i) (action (p@i) (pShift@1@i) x))
                    (<j i> (x : p@i) -> isEquiv Z (p@i) (action (p@i) (pShift@j@i) x))
                    AEquiv BEquiv (<i> BZEquiv (q2@i)) (<i> BZEquiv (q@i))
-          opaque pEquiv
           hole : Id (Id BZ BA BB) q2 q = <j i> (p@i, (pASet@j@i, (pNE@j@i, (pShift@j@i, pEquiv@j@i))))
       hole : equiv ((p : Id U (BZSet BA) (BZSet BB)) * IdP (<i> p@i -> p@i) (BZS BA) (BZS BB)) (Id BZ BA BB)
            = (F, gradLemma ((p : Id U (BZSet BA) (BZSet BB)) * IdP (<i> p@i -> p@i) (BZS BA) (BZS BB)) (Id BZ BA BB) F G FG GF)
@@ -580,29 +573,32 @@ invLoopZ : loopBZ = <i> loopZ @ -i
 
 encodeZ (A : BZ) (p : Id BZ ZBZ A) : BZSet A = transport (<i> BZSet (p@i)) zeroZ
 
-decodeZ (A : BZ) (a : BZSet A) : Id BZ ZBZ A = (lemBZ ZBZ A).1 (<i> p @ -i, q)
-  where
-    p1 : isEquiv Z (BZSet A) (BZAction A a) = BZEquiv A a
-    p : Id U (BZSet A) Z = <i> (univalence (BZSet A) Z (BZAction A a, p1)).1.1 @ -i
-    hole1 (x : Z) : Id Z (transport p (BZS A (transport (<i> p @ -i) x)))
-                    (p1 (BZS A (BZAction A a x))).1.1
-      = compId Z (transport p (BZS A (transport (<i> p @ -i) x)))
-                 (transport p (BZS A (BZAction A a x)))
-                 (p1 (BZS A (BZAction A a x))).1.1
-                 (<i> transport p (BZS A (lem0 Z (BZSet A) (BZAction A a) p1 x @ i)))
-                 (lem1 Z (BZSet A) (BZAction A a) p1 (BZS A (BZAction A a x)))
-    opaque hole1
-    hole2 (x : Z) : Id Z (p1 (BZS A (BZAction A a x))).1.1 (sucZ x)
-      = compId Z (p1 (BZS A (BZAction A a x))).1.1 (p1 (BZAction A a (sucZ x))).1.1 (sucZ x)
-        (<i> (p1 (lem2 (BZSet A) (BZShift A) a x @ i)).1.1)
-        (secEq Z (BZSet A) (BZAction A a, p1) (sucZ x))
-    opaque hole2
-    hole : Id (Z->Z) (\(x : Z) -> transport p (BZS A (transport (<i> p @ -i) x))) sucZ
-      = <i> \(x : Z) -> compId Z (transport p (BZS A (transport (<i> p @ -i) x))) (p1 (BZS A (BZAction A a x))).1.1 (sucZ x) (hole1 x) (hole2 x) @ i
-    opaque hole
-    q : IdP (<i> (p@-i) -> (p@-i)) sucZ (BZS A)
-      = <i> substIdP (BZSet A -> BZSet A) (Z -> Z) (<i> (p@i) -> (p@i)) (BZS A) sucZ hole @ -i
-    opaque q
+decodeZP (A : BZ) (a : BZSet A) : Id U (BZSet A) Z = <i> (univalence (BZSet A) Z (BZAction A a, BZEquiv A a)).1.1 @ -i
+
+decodeZ1 (A : BZ) (a : BZSet A) (x : Z) : Id Z (transport (decodeZP A a) (BZS A (transport (<i> (decodeZP A a) @ -i) x)))
+                   (BZEquiv A a (BZS A (BZAction A a x))).1.1
+      = compId Z (transport (decodeZP A a) (BZS A (transport (<i> (decodeZP A a) @ -i) x)))
+                 (transport (decodeZP A a) (BZS A (BZAction A a x)))
+                 (BZEquiv A a (BZS A (BZAction A a x))).1.1
+                 (<i> transport (decodeZP A a) (BZS A (lem0 Z (BZSet A) (BZAction A a) (BZEquiv A a) x @ i)))
+                 (lem1 Z (BZSet A) (BZAction A a) (BZEquiv A a) (BZS A (BZAction A a x)))
+opaque decodeZ1
+
+decodeZ2 (A : BZ) (a : BZSet A) (x : Z) : Id Z (BZEquiv A a (BZS A (BZAction A a x))).1.1 (sucZ x)
+      = compId Z (BZEquiv A a (BZS A (BZAction A a x))).1.1 (BZEquiv A a (BZAction A a (sucZ x))).1.1 (sucZ x)
+        (<i> (BZEquiv A a (lem2 (BZSet A) (BZShift A) a x @ i)).1.1)
+        (secEq Z (BZSet A) (BZAction A a, BZEquiv A a) (sucZ x))
+opaque decodeZ2
+
+decodeZ3 (A : BZ) (a : BZSet A) : Id (Z->Z) (\(x : Z) -> transport (decodeZP A a) (BZS A (transport (<i> (decodeZP A a) @ -i) x))) sucZ
+         = <i> \(x : Z) -> compId Z (transport (decodeZP A a) (BZS A (transport (<i> (decodeZP A a) @ -i) x))) (BZEquiv A a (BZS A (BZAction A a x))).1.1 (sucZ x) (decodeZ1 A a x) (decodeZ2 A a x) @ i
+opaque decodeZ3
+
+decodeZQ (A : BZ) (a : BZSet A) : IdP (<i> ((decodeZP A a)@-i) -> ((decodeZP A a)@-i)) sucZ (BZS A)
+         = <i> substIdP (BZSet A -> BZSet A) (Z -> Z) (<i> ((decodeZP A a)@i) -> ((decodeZP A a)@i)) (BZS A) sucZ (decodeZ3 A a) @ -i
+opaque decodeZQ
+
+decodeZ (A : BZ) (a : BZSet A) : Id BZ ZBZ A = (lemBZ ZBZ A).1 (<i> decodeZP A a @ -i, decodeZQ A a)
 
 prf : Id (equiv Z Z) (BZAction ZBZ zeroZ, BZEquiv ZBZ zeroZ) (\(x : Z) -> x, isEquivId Z) = hole
         where
@@ -721,6 +717,11 @@ GF : (y : S1) -> (x : Id S1 base y) -> Id (Id S1 base y) (G y (mapOnPath S1 BZ F
      (lemHcomp3 (<_> base))
 opaque GF
 
+F_fullyFaithful0 : Id (loopS1 -> loopBZ) (mapOnPath S1 BZ F base base) loopS1equalsLoopBZ'.1
+                 = lemEquiv1 loopS1 loopBZ (mapOnPath S1 BZ F base base) loopS1equalsLoopBZ'.1 loopS1equalsLoopBZ'.2 (GF base)
+opaque F_fullyFaithful0
+
+
 F_fullyFaithful : (x y : S1) -> isEquiv (Id S1 x y) (Id BZ (F x) (F y)) (mapOnPath S1 BZ F x y)
   = lemPropFib (\(x : S1) -> (y : S1) -> isEquiv (Id S1 x y) (Id BZ (F x) (F y)) (mapOnPath S1 BZ F x y))
                (\(x : S1) -> propPi S1 (\(y : S1) -> isEquiv (Id S1 x y) (Id BZ (F x) (F y)) (mapOnPath S1 BZ F x y))
@@ -729,12 +730,8 @@ F_fullyFaithful : (x y : S1) -> isEquiv (Id S1 x y) (Id BZ (F x) (F y)) (mapOnPa
                 (\(y : S1) -> propIsEquiv (Id S1 base y) (Id BZ ZBZ (F y)) (mapOnPath S1 BZ F base y))
                 hole)
   where
-    hole0 : Id (loopS1 -> loopBZ) (mapOnPath S1 BZ F base base) loopS1equalsLoopBZ'.1
-         = lemEquiv1 loopS1 loopBZ (mapOnPath S1 BZ F base base) loopS1equalsLoopBZ'.1 loopS1equalsLoopBZ'.2 (GF base)
-    opaque hole0
     hole : isEquiv loopS1 loopBZ (mapOnPath S1 BZ F base base)
-         = transport (<i> isEquiv loopS1 loopBZ (hole0 @ -i)) loopS1equalsLoopBZ'.2
-    opaque hole
+         = transport (<i> isEquiv loopS1 loopBZ (F_fullyFaithful0 @ -i)) loopS1equalsLoopBZ'.2
 opaque F_fullyFaithful
 
 F_essentiallySurjective (y : BZ) : (x : S1) * Id BZ y (F x) = hole
@@ -752,7 +749,14 @@ S1equalsBZ : Id U S1 BZ = hole
   where
     G (y : BZ) : S1 = (F_essentiallySurjective y).1
     FG (y : BZ) : Id BZ (F (G y)) y = <i> (F_essentiallySurjective y).2 @ -i
-    opaque FG
     GF (x : S1) : Id S1 (G (F x)) x = (F_fullyFaithful (G (F x)) x (FG (F x))).1.1
-    opaque GF
     hole : Id U S1 BZ = isoId S1 BZ F G FG GF
+
+invBZ : BZ -> BZ = transport (<i> S1equalsBZ@i -> S1equalsBZ@i) invS1
+doubleLoopBZ : loopBZ -> loopBZ = transport (<i> loopS1equalsLoopBZ@i -> loopS1equalsLoopBZ@i) doubleLoop
+
+-- > transport (<i> BZSet (doubleLoopBZ loopZ @ i)) zeroZ
+-- EVAL: inr (suc (suc zero))
+-- Time: 0m25.191s
+
+-- visible_all

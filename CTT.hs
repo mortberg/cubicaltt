@@ -40,6 +40,7 @@ type Decl  = (Ident,(Ter,Ter))
 data Decls = MutualDecls [Decl]
            | OpaqueDecl Ident
            | VisibleDecl Ident
+           | VisibleAllDecl
            deriving Eq
 
 declIdents :: [Decl] -> [Ident]
@@ -237,6 +238,7 @@ def :: Decls -> Env -> Env
 def (MutualDecls ds) (rho,vs,fs,Nameless os) = (Def ds rho,vs,fs,Nameless (os Set.\\ Set.fromList (declIdents ds)))
 def (OpaqueDecl n) (rho,vs,fs,Nameless os) = (rho,vs,fs,Nameless (Set.insert n os))
 def (VisibleDecl n) (rho,vs,fs,Nameless os) = (rho,vs,fs,Nameless (Set.delete n os))
+def VisibleAllDecl (rho,vs,fs,Nameless os) = (rho,vs,fs,Nameless Set.empty)
 
 sub :: (Name,Formula) -> Env -> Env
 sub (i,phi) (rho,vs,fs,os) = (Sub i rho,vs,phi:fs,os)
@@ -377,6 +379,7 @@ showDecls (MutualDecls defs) =
   [ text x <+> equals <+> showTer d | (x,(_,d)) <- defs ]
 showDecls (OpaqueDecl i) = text "opaque" <+> text i
 showDecls (VisibleDecl i) = text "visible" <+> text i
+showDecls VisibleAllDecl = text "visible_all"
 
 instance Show Val where
   show = render . showVal

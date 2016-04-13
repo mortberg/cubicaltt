@@ -157,7 +157,7 @@ eval rho@(_,_,_,Nameless os) v = case v of
   Pair a b            -> VPair (eval rho a) (eval rho b)
   Fst a               -> fstVal (eval rho a)
   Snd a               -> sndVal (eval rho a)
-  Where t decls       -> eval (def decls rho) t
+  Where t decls       -> eval (defWhere decls rho) t
   Con name ts         -> VCon name (map (eval rho) ts)
   PCon name a ts phis  ->
     pcon name (eval rho a) (map (eval rho) ts) (map (evalFormula rho) phis)

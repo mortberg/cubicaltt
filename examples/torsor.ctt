@@ -598,6 +598,38 @@ decodeZQ (A : BZ) (a : BZSet A) : IdP (<i> ((decodeZP A a)@-i) -> ((decodeZP A a
          = <i> substIdP (BZSet A -> BZSet A) (Z -> Z) (<i> ((decodeZP A a)@i) -> ((decodeZP A a)@i)) (BZS A) sucZ (decodeZ3 A a) @ -i
 opaque decodeZQ
 
+
+AA : U = (X : U) * (X -> X)
+BZ' : U = (X : AA) * ishinh_UU (Id AA X (Z, sucZ))
+BZequivBZ' : Id U BZ BZ' = isoId BZ BZ' F G FG GF
+  where
+    F (A : BZ) : BZ' = ((BZSet A, BZS A), BZNE A (ishinh (Id AA (BZSet A, BZS A) (Z, sucZ)))
+                        (\(a : BZSet A) -> hinhpr (Id AA (BZSet A, BZS A) (Z, sucZ)) (<i> (decodeZP A a @ i, decodeZQ A a @ -i))))
+    G (A : BZ') : BZ = (A.1.1,
+                       (A.2 (set A.1.1, setIsProp A.1.1) (\(a : Id AA A.1 (Z, sucZ)) -> transport (<i> set (a @ -i).1) ZSet),
+                       (A.2 (ishinh A.1.1) (\(a : Id AA A.1 (Z, sucZ)) -> hinhpr A.1.1 (transport (<i> (a @ -i).1) zeroZ)),
+                       ((A.1.2, SHIFT), EQUIV))))
+                       where
+                         SHIFT : isEquiv A.1.1 A.1.1 A.1.2
+                               = A.2 (isEquiv A.1.1 A.1.1 A.1.2, propIsEquiv A.1.1 A.1.1 A.1.2)
+                                 (\(a : Id AA A.1 (Z, sucZ)) -> transport (<i> isEquiv (a@-i).1 (a@-i).1 (a@-i).2) (gradLemma Z Z sucZ predZ sucpredZ predsucZ))
+                         ZEquiv : (x : Z) -> isEquiv Z Z (action Z (sucZ, gradLemma Z Z sucZ predZ sucpredZ predsucZ) x) = BZEquiv ZBZ
+                         hole (a : Id AA A.1 (Z, sucZ))
+                             : IdP (<i> isEquiv (a@-i).1 (a@-i).1 (a@-i).2) (gradLemma Z Z sucZ predZ sucpredZ predsucZ) SHIFT
+                             = lemIdPProp (isEquiv Z Z sucZ) (isEquiv A.1.1 A.1.1 A.1.2) (propIsEquiv Z Z sucZ)
+                               (<i> isEquiv (a@-i).1 (a@-i).1 (a@-i).2) (gradLemma Z Z sucZ predZ sucpredZ predsucZ) SHIFT
+                         ZEquivEq (a : Id AA A.1 (Z, sucZ))
+                             : Id U ((x : Z) -> isEquiv Z Z (action Z (sucZ, gradLemma Z Z sucZ predZ sucpredZ predsucZ) x))
+                                    ((x : A.1.1) -> isEquiv Z A.1.1 (action A.1.1 (A.1.2, SHIFT) x))
+                             = <i> (x : (a@-i).1) -> isEquiv Z (a@-i).1 (action (a@-i).1 ((a@-i).2, hole a @ i) x)
+                         EQUIV : (x : A.1.1) -> isEquiv Z A.1.1 (action A.1.1 (A.1.2, SHIFT) x)
+                               = A.2 ((x : A.1.1) -> isEquiv Z A.1.1 (action A.1.1 (A.1.2, SHIFT) x)
+                                     , propPi A.1.1 (\(x : A.1.1) -> isEquiv Z A.1.1 (action A.1.1 (A.1.2, SHIFT) x))
+                                       (\(x : A.1.1) -> propIsEquiv Z A.1.1 (action A.1.1 (A.1.2, SHIFT) x)))
+                                     (\(a : Id AA A.1 (Z, sucZ)) -> transport (ZEquivEq a) ZEquiv)
+    FG (A : BZ') : Id BZ' (F (G A)) A = <i> ((A.1.1, A.1.2), propishinh (Id AA (A.1.1, A.1.2) (Z, sucZ)) (F (G A)).2 A.2 @ i)
+    GF (A : BZ) : Id BZ (G (F A)) A = (lemBZ (G (F A)) A).1 (<_> BZSet A, <_> BZS A)
+
 decodeZ (A : BZ) (a : BZSet A) : Id BZ ZBZ A = (lemBZ ZBZ A).1 (<i> decodeZP A a @ -i, decodeZQ A a)
 
 prf : Id (equiv Z Z) (BZAction ZBZ zeroZ, BZEquiv ZBZ zeroZ) (\(x : Z) -> x, isEquivId Z) = hole

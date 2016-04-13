@@ -240,6 +240,12 @@ def (OpaqueDecl n) (rho,vs,fs,Nameless os) = (rho,vs,fs,Nameless (Set.insert n o
 def (VisibleDecl n) (rho,vs,fs,Nameless os) = (rho,vs,fs,Nameless (Set.delete n os))
 def VisibleAllDecl (rho,vs,fs,Nameless os) = (rho,vs,fs,Nameless Set.empty)
 
+defWhere :: Decls -> Env -> Env
+defWhere (MutualDecls ds) (rho,vs,fs,Nameless os) = (Def ds rho,vs,fs,Nameless (os Set.\\ Set.fromList (declIdents ds)))
+defWhere (OpaqueDecl _) rho = rho
+defWhere (VisibleDecl _) rho = rho
+defWhere VisibleAllDecl rho = rho
+
 sub :: (Name,Formula) -> Env -> Env
 sub (i,phi) (rho,vs,fs,os) = (Sub i rho,vs,phi:fs,os)
 

@@ -360,38 +360,35 @@ actionEquiv (A : U) (shift : equiv A A) : (y : Z) -> isEquiv A A (\(x : A) -> ac
       zero -> isEquivId A
       suc n -> isEquivComp A A A (\(x : A) -> action A shift x (inr n)) shift.1 (hole n) shift.2
 
-BZ : U = (A : U) * (ASet : set A) * (a : ishinh_UU A)
+BZ : U = (A : U) * (a : ishinh_UU A)
        * (AShift : equiv A A)
        * ((x : A) -> isEquiv Z A (action A AShift x))
 
 BZSet (x : BZ) : U = x.1
-BZASet (A : BZ) : set (BZSet A) = A.2.1
-BZNE (A : BZ) : ishinh_UU (BZSet A) = A.2.2.1
-BZShift (A : BZ) : equiv (BZSet A) (BZSet A) = A.2.2.2.1
+BZNE (A : BZ) : ishinh_UU (BZSet A) = A.2.1
+BZShift (A : BZ) : equiv (BZSet A) (BZSet A) = A.2.2.1
 BZAction (A : BZ) : BZSet A -> Z -> BZSet A = action (BZSet A) (BZShift A)
 BZS (A : BZ) : BZSet A -> BZSet A = (BZShift A).1
 BZP (A : BZ) (a : BZSet A) : BZSet A = ((BZShift A).2 a).1.1
-BZEquiv (A : BZ) : (x : BZSet A) -> isEquiv Z (BZSet A) (BZAction A x) = A.2.2.2.2
+BZEquiv (A : BZ) : (x : BZSet A) -> isEquiv Z (BZSet A) (BZAction A x) = A.2.2.2
+BZASet (x : BZ) : set (BZSet x) = BZNE x (set (BZSet x), setIsProp (BZSet x))
+                                  (\(a : BZSet x) -> transport (<i> set (equivId Z (BZSet x) (BZAction x a) (BZEquiv x a) @ i)) ZSet)
 
 -- Two Z-torsors are equal if their underlying sets are equal in a way compatible with the actions
 lemBZ (BA BB : BZ) : equiv ((p : Id U (BZSet BA) (BZSet BB)) * IdP (<i> p@i -> p@i) (BZS BA) (BZS BB)) (Id BZ BA BB) = hole
     where
       A : U = BA.1
-      ASet : set A = BA.2.1
-      a : ishinh_UU A = BA.2.2.1
-      AShift : equiv A A = BA.2.2.2.1
-      AEquiv : (x : A) -> isEquiv Z A (BZAction BA x) = BA.2.2.2.2
+      a : ishinh_UU A = BA.2.1
+      AShift : equiv A A = BA.2.2.1
+      AEquiv : (x : A) -> isEquiv Z A (BZAction BA x) = BA.2.2.2
       B : U = BB.1
-      BSet : set B = BB.2.1
-      b : ishinh_UU B = BB.2.2.1
-      BShift : equiv B B = BB.2.2.2.1
-      BEquiv : (x : B) -> isEquiv Z B (BZAction BB x) = BB.2.2.2.2
+      b : ishinh_UU B = BB.2.1
+      BShift : equiv B B = BB.2.2.1
+      BEquiv : (x : B) -> isEquiv Z B (BZAction BB x) = BB.2.2.2
       F (w : (p : Id U A B) * IdP (<i> p@i -> p@i) (BZS BA) (BZS BB)) : Id BZ BA BB = hole
         where
           p : Id U A B = w.1
           pS : IdP (<i> p@i -> p@i) (BZS BA) (BZS BB) = w.2
-          pASet  : IdP (<i> set (p@i)) ASet BSet
-                 = lemIdPProp (set A) (set B) (setIsProp A) (<i> set (p@i)) ASet BSet
           pNE   : IdP (<i> ishinh_UU (p@i)) a b
                 = lemIdPProp (ishinh_UU A) (ishinh_UU B) (propishinh A) (<i> ishinh_UU (p@i)) a b
           pShift : IdP (<i> equiv (p@i) (p@i)) AShift BShift =
@@ -411,7 +408,7 @@ lemBZ (BA BB : BZ) : equiv ((p : Id U (BZSet BA) (BZSet BB)) * IdP (<i> p@i -> p
                     (\(x : A) -> propIsEquiv Z A (action A AShift x)))
                     (<i> (x : p@i) -> isEquiv Z (p@i) (action (p@i) (pShift@i) x))
                    AEquiv BEquiv
-          hole : Id BZ BA BB = <i> (p@i, (pASet@i, (pNE@i, (pShift@i, pEquiv@i))))
+          hole : Id BZ BA BB = <i> (p@i, (pNE@i, (pShift@i, pEquiv@i)))
       G (q : Id BZ BA BB) : (p : Id U A B) * IdP (<i> p@i -> p@i) (BZS BA) (BZS BB) = (<i> BZSet (q @ i), <i> (BZShift (q@i)).1)
       GF (w : (p : Id U A B) * IdP (<i> p@i -> p@i) (BZS BA) (BZS BB))
         : Id ((p : Id U A B) * IdP (<i> p@i -> p@i) (BZS BA) (BZS BB)) (<i> BZSet (F w @ i), <i> (BZShift (F w @ i)).1) w
@@ -421,8 +418,6 @@ lemBZ (BA BB : BZ) : equiv ((p : Id U (BZSet BA) (BZSet BB)) * IdP (<i> p@i -> p
           p  : Id U A B = <i> BZSet (q@i)
           p2 : IdP (<i> p@i -> p@i) (BZS BA) (BZS BB) = <i> (BZShift (q@i)).1
           q2 : Id BZ BA BB = F (p, p2)
-          pASet  : Id (IdP (<i> set (p@i)) ASet BSet) (<i> BZASet (q2@i)) (<i> BZASet (q@i))
-                 = lemIdPSet (set A) (set B) (propSet (set A) (setIsProp A)) (<i> set (p@i)) ASet BSet (<i> BZASet (q2@i)) (<i> BZASet (q@i))
           pNE    : Id (IdP (<i> ishinh_UU (p@i)) a b) (<i> BZNE (q2@i)) (<i> BZNE (q@i))
                  = lemIdPSet (ishinh_UU A) (ishinh_UU B) (propSet (ishinh_UU A) (propishinh A)) (<i> ishinh_UU (p@i)) a b (<i> BZNE (q2@i)) (<i> BZNE (q@i))
           pShift : Id (IdP (<i> equiv (p@i) (p@i)) AShift BShift) (<i> BZShift (q2@i)) (<i> BZShift (q@i)) =
@@ -446,7 +441,7 @@ lemBZ (BA BB : BZ) : equiv ((p : Id U (BZSet BA) (BZSet BB)) * IdP (<i> p@i -> p
                    (<i> (x : p@i) -> isEquiv Z (p@i) (action (p@i) (pShift@1@i) x))
                    (<j i> (x : p@i) -> isEquiv Z (p@i) (action (p@i) (pShift@j@i) x))
                    AEquiv BEquiv (<i> BZEquiv (q2@i)) (<i> BZEquiv (q@i))
-          hole : Id (Id BZ BA BB) q2 q = <j i> (p@i, (pASet@j@i, (pNE@j@i, (pShift@j@i, pEquiv@j@i))))
+          hole : Id (Id BZ BA BB) q2 q = <j i> (p@i, (pNE@j@i, (pShift@j@i, pEquiv@j@i)))
       hole : equiv ((p : Id U (BZSet BA) (BZSet BB)) * IdP (<i> p@i -> p@i) (BZS BA) (BZS BB)) (Id BZ BA BB)
            = (F, gradLemma ((p : Id U (BZSet BA) (BZSet BB)) * IdP (<i> p@i -> p@i) (BZS BA) (BZS BB)) (Id BZ BA BB) F G FG GF)
 
@@ -474,7 +469,7 @@ lem2' (A : U) (shift : equiv A A) (a : A) : (x : Z) -> Id A (shift.2 (action A s
         zero  -> <_> action A shift a (inl zero)
         suc n -> secEq A A shift (action A shift a (inr n))
 
-ZBZ : BZ = (Z, (ZSet, (hinhpr Z zeroZ, (ZShift, ZEquiv))))
+ZBZ : BZ = (Z, (hinhpr Z zeroZ, (ZShift, ZEquiv)))
   where
     ZShift : equiv Z Z = (sucZ, gradLemma Z Z sucZ predZ sucpredZ predsucZ)
     plus : Z -> Z -> Z = action Z ZShift
@@ -598,6 +593,7 @@ decodeZQ (A : BZ) (a : BZSet A) : IdP (<i> ((decodeZP A a)@-i) -> ((decodeZP A a
          = <i> substIdP (BZSet A -> BZSet A) (Z -> Z) (<i> ((decodeZP A a)@i) -> ((decodeZP A a)@i)) (BZS A) sucZ (decodeZ3 A a) @ -i
 opaque decodeZQ
 
+decodeZ (A : BZ) (a : BZSet A) : Id BZ ZBZ A = (lemBZ ZBZ A).1 (<i> decodeZP A a @ -i, decodeZQ A a)
 
 AA : U = (X : U) * (X -> X)
 BZ' : U = (X : AA) * ishinh_UU (Id AA X (Z, sucZ))
@@ -606,9 +602,8 @@ BZequivBZ' : Id U BZ BZ' = isoId BZ BZ' F G FG GF
     F (A : BZ) : BZ' = ((BZSet A, BZS A), BZNE A (ishinh (Id AA (BZSet A, BZS A) (Z, sucZ)))
                         (\(a : BZSet A) -> hinhpr (Id AA (BZSet A, BZS A) (Z, sucZ)) (<i> (decodeZP A a @ i, decodeZQ A a @ -i))))
     G (A : BZ') : BZ = (A.1.1,
-                       (A.2 (set A.1.1, setIsProp A.1.1) (\(a : Id AA A.1 (Z, sucZ)) -> transport (<i> set (a @ -i).1) ZSet),
                        (A.2 (ishinh A.1.1) (\(a : Id AA A.1 (Z, sucZ)) -> hinhpr A.1.1 (transport (<i> (a @ -i).1) zeroZ)),
-                       ((A.1.2, SHIFT), EQUIV))))
+                       ((A.1.2, SHIFT), EQUIV)))
                        where
                          SHIFT : isEquiv A.1.1 A.1.1 A.1.2
                                = A.2 (isEquiv A.1.1 A.1.1 A.1.2, propIsEquiv A.1.1 A.1.1 A.1.2)
@@ -629,8 +624,6 @@ BZequivBZ' : Id U BZ BZ' = isoId BZ BZ' F G FG GF
                                      (\(a : Id AA A.1 (Z, sucZ)) -> transport (ZEquivEq a) ZEquiv)
     FG (A : BZ') : Id BZ' (F (G A)) A = <i> ((A.1.1, A.1.2), propishinh (Id AA (A.1.1, A.1.2) (Z, sucZ)) (F (G A)).2 A.2 @ i)
     GF (A : BZ) : Id BZ (G (F A)) A = (lemBZ (G (F A)) A).1 (<_> BZSet A, <_> BZS A)
-
-decodeZ (A : BZ) (a : BZSet A) : Id BZ ZBZ A = (lemBZ ZBZ A).1 (<i> decodeZP A a @ -i, decodeZQ A a)
 
 prf : Id (equiv Z Z) (BZAction ZBZ zeroZ, BZEquiv ZBZ zeroZ) (\(x : Z) -> x, isEquivId Z) = hole
         where
@@ -687,6 +680,75 @@ encodeDecodeZ (A : BZ) (p : BZSet A) : Id (BZSet A) (transport (univalence (BZSe
   = lem0 Z (BZSet A) (BZAction A p) (BZEquiv A p) zeroZ
 opaque encodeDecodeZ
 
+encodeLoop (x : loopBZ) : Id Z (encodeZ ZBZ (compBZ x loopZ)) (sucZ (encodeZ ZBZ x))
+   = J BZ ZBZ (\(A : BZ) -> \(x : Id BZ ZBZ A) -> Id (BZSet A) (encodeZ A (compId BZ ZBZ A A x (loopA A))) (BZS A (encodeZ A x)))
+     (<_> inr (suc zero)) ZBZ x
+opaque encodeLoop
+
+encodeInvLoop (x : loopBZ) : Id Z (encodeZ ZBZ (compBZ x invLoopZ)) (predZ (encodeZ ZBZ x))
+   = J BZ ZBZ (\(A : BZ) -> \(x : Id BZ ZBZ A) -> Id (BZSet A) (encodeZ A (compId BZ ZBZ A A x (<i> loopA A @ -i))) (BZP A (encodeZ A x)))
+     (<_> inl zero) ZBZ x
+opaque encodeInvLoop
+
+decodeLoop (z : Z) : Id loopBZ (compBZ (decodeZ ZBZ z) loopZ) (decodeZ ZBZ (sucZ z))
+  = transport (<i> Id loopBZ (decodeEncodeZ ZBZ (compBZ (decodeZ ZBZ z) loopZ) @ i) (decodeZ ZBZ (sucZ (encodeDecodeZ ZBZ z @ i))))
+    (<i> decodeZ ZBZ (encodeLoop (decodeZ ZBZ z) @ i))
+opaque decodeLoop
+decodeInvLoop (z : Z) : Id (Id BZ ZBZ ZBZ) (compBZ (decodeZ ZBZ z) invLoopZ) (decodeZ ZBZ (predZ z))
+  = transport (<i> Id loopBZ (decodeEncodeZ ZBZ (compBZ (decodeZ ZBZ z) invLoopZ) @ i) (decodeZ ZBZ (predZ (encodeDecodeZ ZBZ z @ i))))
+    (<i> decodeZ ZBZ (encodeInvLoop (decodeZ ZBZ z) @ i))
+opaque decodeInvLoop
+
+multZ (A B : BZ) : BZ = (T, (TNE, (TShift A B, TEquiv)))
+  where
+    opaque decodeZ
+    opaque loopA
+    T      : U = Id BZ A B
+    TNE    : ishinh_UU T = BZNE A (ishinh T) (\(a : BZSet A) -> BZNE B (ishinh T) (\(b : BZSet B) ->
+                            hinhpr T (compId BZ A ZBZ B (<i> decodeZ A a @ -i) (decodeZ B b))))
+    F (A B : BZ) (x : (Id BZ A B)) : (Id BZ A B) = compId BZ A B B x (loopA B)
+    G (A B : BZ) (x : (Id BZ A B)) : (Id BZ A B) = compId BZ A B B x (<i> loopA B @ -i)
+    FG (A B : BZ) (x : (Id BZ A B)) : Id (Id BZ A B) (F A B (G A B x)) x = lemCompInv BZ A B B x (<i> loopA B @ -i)
+    opaque FG
+    GF (A B : BZ) (x : (Id BZ A B)) : Id (Id BZ A B) (G A B (F A B x)) x = lemCompInv BZ A B B x (loopA B)
+    opaque GF
+    TShift (A B : BZ) : equiv (Id BZ A B) (Id BZ A B) = (F A B, gradLemma (Id BZ A B) (Id BZ A B) (F A B) (G A B) (FG A B) (GF A B))
+    hole : (y : Z) -> Id (Id BZ ZBZ ZBZ) (action (Id BZ ZBZ ZBZ) (TShift ZBZ ZBZ) (<_> ZBZ) y) (decodeZ ZBZ y) = split
+      inl u -> hole0 u
+        where hole0 : (n : nat) -> Id (Id BZ ZBZ ZBZ) (action (Id BZ ZBZ ZBZ) (TShift ZBZ ZBZ) (<_> ZBZ) (inl n)) (decodeZ ZBZ (inl n)) = split
+          zero -> hole1
+            where hole1 : Id (Id BZ ZBZ ZBZ) (compBZ (<_> ZBZ) invLoopZ) (decodeZ ZBZ (inl zero))
+                        = compId loopBZ (compBZ (<_> ZBZ) invLoopZ) (compBZ (decodeZ ZBZ (inr zero)) invLoopZ) (decodeZ ZBZ (inl zero))
+                          (<i> compBZ (decodeEncodeZRefl @ -i) invLoopZ)
+                          (decodeInvLoop (inr zero))
+          suc n -> hole1
+            where hole1 : Id (Id BZ ZBZ ZBZ) (compBZ (action loopBZ (TShift ZBZ ZBZ) (<_> ZBZ) (inl n)) invLoopZ) (decodeZ ZBZ (inl (suc n)))
+                        = compId (Id BZ ZBZ ZBZ) (compBZ (action (Id BZ ZBZ ZBZ) (TShift ZBZ ZBZ) (<_> ZBZ) (inl n)) invLoopZ)
+                          (compBZ (decodeZ ZBZ (inl n)) invLoopZ) (decodeZ ZBZ (inl (suc n)))
+                          (<i> compBZ (hole0 n @ i) invLoopZ)
+                          (decodeInvLoop (inl n))
+      inr u -> hole0 u
+        where hole0 : (n : nat) -> Id (Id BZ ZBZ ZBZ) (action (Id BZ ZBZ ZBZ) (TShift ZBZ ZBZ) (<_> ZBZ) (inr n)) (decodeZ ZBZ (inr n)) = split
+          zero -> <i> decodeEncodeZRefl @ -i
+          suc n -> compId (Id BZ ZBZ ZBZ) (compBZ (action (Id BZ ZBZ ZBZ) (TShift ZBZ ZBZ) (<_> ZBZ) (inr n)) loopZ)
+                          (compBZ (decodeZ ZBZ (inr n)) loopZ) (decodeZ ZBZ (inr (suc n)))
+                          (<i> compBZ (hole0 n @ i) loopZ)
+                          (decodeLoop (inr n))
+    visible decodeZ
+    TEquiv''' : isEquiv Z (Id BZ ZBZ ZBZ) (action (Id BZ ZBZ ZBZ) (TShift ZBZ ZBZ) (<_> ZBZ))
+      = transport (<i> isEquiv Z loopBZ (\(y : Z) -> hole y @ -i)) (gradLemma Z loopBZ (decodeZ ZBZ) (encodeZ ZBZ) (decodeEncodeZ ZBZ) (encodeDecodeZ ZBZ))
+    TEquiv'' (b : BZSet B) (x : Id BZ ZBZ B) : isEquiv Z (Id BZ ZBZ B) (action (Id BZ ZBZ B) (TShift ZBZ B) x)
+      = J BZ ZBZ (\(B : BZ) -> \(x : Id BZ ZBZ B) -> isEquiv Z (Id BZ ZBZ B) (action (Id BZ ZBZ B) (TShift ZBZ B) x))
+        TEquiv''' B x
+    TEquiv' (a : BZSet A) (b : BZSet B) : (x : T) -> isEquiv Z T (action T (TShift A B) x)
+       = J BZ ZBZ (\(A : BZ) -> \(p : Id BZ ZBZ A) -> (x : Id BZ A B) -> isEquiv Z (Id BZ A B) (action (Id BZ A B) (TShift A B) x))
+         (TEquiv'' b) A (decodeZ A a)
+    TEquiv (x : T) : isEquiv Z T (action T (TShift A B) x)
+       = BZNE A (isEquiv Z T (action T (TShift A B) x), propIsEquiv Z T (action T (TShift A B) x))
+         (\(a : BZSet A) -> BZNE B (isEquiv Z T (action T (TShift A B) x), propIsEquiv Z T (action T (TShift A B) x))
+         (\(b : BZSet B) -> TEquiv' a b x))
+visible decodeZ
+
 loopBZequalsZ : Id U loopBZ Z = isoId loopBZ Z (encodeZ ZBZ) (decodeZ ZBZ) (encodeDecodeZ ZBZ) (decodeEncodeZ ZBZ)
 
 loopS1equalsLoopBZ : Id U loopS1 loopBZ = compId U loopS1 Z loopBZ loopS1equalsZ (<i> loopBZequalsZ @ -i)
@@ -706,9 +768,6 @@ G : (y : S1) -> Id BZ ZBZ (F y) -> Id S1 base y = split
     where
       hole4 (x : Z) : Id loopS1 (loopIt (predZ x)) (compS1 (loopIt x) invLoop)
         = lem2It x
-      hole5 (x : loopBZ) : Id Z (encodeZ ZBZ (compBZ x invLoopZ)) (predZ (encodeZ ZBZ x))
-        = J BZ ZBZ (\(A : BZ) -> \(x : Id BZ ZBZ A) -> Id (BZSet A) (encodeZ A (compId BZ ZBZ A A x (<i> loopA A @ -i))) (BZP A (encodeZ A x)))
-          (<_> inl zero) ZBZ x
       hole3 (x : loopBZ)
             : Id loopS1
               (compS1 (decode base (encodeZ ZBZ (compBZ x invLoopZ))) loop1)
@@ -717,7 +776,7 @@ G : (y : S1) -> Id BZ ZBZ (F y) -> Id S1 base y = split
                 (compS1 (decode base (encodeZ ZBZ (compBZ x invLoopZ))) loop1)
                 (compS1 (decode base (predZ (encodeZ ZBZ x))) loop1)
                 (decode base (encodeZ ZBZ x))
-                (<i> compS1 (decode base (hole5 x @ i)) loop1)
+                (<i> compS1 (decode base (encodeInvLoop x @ i)) loop1)
              (compId loopS1
                 (compS1 (decode base (predZ (encodeZ ZBZ x))) loop1)
                 (compS1 (compS1 (decode base (encodeZ ZBZ x)) invLoop) loop1)
@@ -791,4 +850,6 @@ doubleLoopBZ : loopBZ -> loopBZ = transport (<i> loopS1equalsLoopBZ@i -> loopS1e
 -- EVAL: inr (suc (suc zero))
 -- Time: 0m25.191s
 
--- visible_all
+-- > let visible_all in let doubleLoop : Id BZ (multZ ZBZ ZBZ) (multZ ZBZ ZBZ) = <i> multZ (loopZ@-i) (loopZ@i) in transport (<j> BZSet (transport (<i> BZSet (doubleLoop @ i)) (<_> ZBZ) @ j)) zeroZ
+
+visible_all

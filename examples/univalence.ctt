@@ -5,6 +5,7 @@
 -- and don't terminate in reasonable time.
 module univalence where
 
+import retract
 import equiv
 
 ------------------------------------------------------------------------------
@@ -202,3 +203,44 @@ slowtest (A : U) : Id (equiv A A)
 -- --      (canIdToEquiv A B) (transEquiv A B)
 -- --      (canIdToEquivIsTransEquiv A B)
 -- --      (transEquivIsEquiv A B)
+
+
+
+------------------------------------------------------------------------------
+-- Elimination principle for equivalences and isomorphisms
+
+isContrProp (A : U) (h : isContr A) : prop A = p
+  where
+  p (a b : A) : Id A a b = <i> comp (<_> A) h.1 [ (i = 0) -> h.2 a, (i = 1) -> h.2 b ]
+
+idEquiv (A : U) : equiv A A = (idfun A,idIsEquiv A)
+
+contrSinglEquiv (A B : U) (f : equiv A B) :
+  Id ((X : U) * equiv X B) (B,idEquiv B) (A,f) = rem
+  where
+  rem1 : prop ((X : U) * equiv X B) = isContrProp ((X : U) * equiv X B) (lem1 B)
+  rem : Id ((X : U) * equiv X B) (B,idEquiv B) (A,f) = rem1 (B,idEquiv B) (A,f)
+
+elimEquiv (B : U) (P : (A : U) -> (A -> B) -> U) (d : P B (idfun B))
+            (A : U) (f : equiv A B) : P A f.1 = rem
+  where
+  T (z : (X : U) * equiv X B) : U = P z.1 z.2.1
+  rem1 : Id ((X : U) * equiv X B) (B,idEquiv B) (A,f) = contrSinglEquiv A B f
+  rem : P A f.1 = subst ((X : U) * equiv X B) T (B,idEquiv B) (A,f) rem1 d
+
+elimIso (B : U) (Q : (A : U) -> (A -> B) -> (B -> A) -> U)
+        (h1 : Q B (idfun B) (idfun B)) (A : U) (f : A -> B) : (g : B -> A) ->
+        section A B f g -> retract A B f g -> Q A f g = rem1 A f
+ where
+   P (A : U) (f : A -> B) : U = (g : B -> A) -> section A B f g -> retract A B f g -> Q A f g
+
+   rem : P B (idfun B) = \(g : B -> B) (sg : section B B (idfun B) g) (rg : retract B B (idfun B) g) ->
+     substInv (B -> B) (Q B (idfun B)) g (idfun B) (<i> \(b : B) -> (sg b) @ i) h1
+
+   rem1 (A : U) (f : A -> B) : P A f = \(g : B -> A) (sg : section A B f g) (rg : retract A B f g) -> 
+          elimEquiv B P rem A (f,gradLemma A B f g sg rg) g sg rg
+
+elimIsIso (A : U) (Q : (B : U) -> (A -> B) -> (B -> A) -> U)
+         (d : Q A (idfun A) (idfun A)) (B : U) (f : A -> B) (g : B -> A)
+         (sg : section A B f g) (rg : retract A B f g) : Q B f g =
+  elimIso A (\(B : U) (f : B -> A) (g : A -> B) -> Q B g f) d B g f rg sg

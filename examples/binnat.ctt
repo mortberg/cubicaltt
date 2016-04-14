@@ -1,10 +1,7 @@
 module binnat where
 
--- import function
-import hedberg
-import equiv
+import univalence
 import nat
--- import elimEquiv
 
 -- Positive binary numbers like in Coq
 data pos = pos1
@@ -64,198 +61,164 @@ NtoPosSuc : (n : nat) -> neg (Id nat zero n) -> Id pos (NtoPos (suc n)) (sucPos 
   zero -> \(p : neg (Id nat zero zero)) -> efq (Id pos (NtoPos (suc zero)) (sucPos (NtoPos zero))) (p (<_> zero))
   suc n -> \(_ : neg (Id nat zero (suc n))) -> <_> (sucPos (NtoPos' n))
 
--- NtoPosK : retract pos N PosToN NtoPos
--- NtoPosK p = posInd (\p -> Id pos (NtoPos (PosToN p)) p) (refl pos pos1) hS p
---  where
---   hS : (p : pos) ->
---        Id pos (NtoPos (PosToN p)) p ->
---        Id pos (NtoPos (PosToN (sucPos p))) (sucPos p)
---   hS p hp =
---     let H1 : Id pos (NtoPos (PosToN (sucPos p))) (NtoPos (suc (PosToN p)))
---         H1 = mapOnPath N pos NtoPos (PosToN (sucPos p)) (suc (PosToN p)) (sucPosSuc p)
 
---         H2 : Id pos (NtoPos (suc (PosToN p))) (sucPos (NtoPos (PosToN p)))
---         H2 = NtoPosSuc (PosToN p) (zeronPosToN p)
+NtoPosK (p:pos) : Id pos (NtoPos (PosToN p)) p
+ = posInd (\(p:pos) -> Id pos (NtoPos (PosToN p)) p) (refl pos pos1) hS p
+ where
+  hS (p : pos) (hp: Id pos (NtoPos (PosToN p)) p) :  Id pos (NtoPos (PosToN (sucPos p))) (sucPos p)
+   =
+    let H1 : Id pos (NtoPos (PosToN (sucPos p))) (NtoPos (suc (PosToN p)))
+         = mapOnPath nat pos NtoPos (PosToN (sucPos p)) (suc (PosToN p)) (sucPosSuc p)
 
---         H3 : Id pos (sucPos (NtoPos (PosToN p))) (sucPos p)
---         H3 = mapOnPath pos pos sucPos (NtoPos (PosToN p)) p hp
---     in comp pos (NtoPos (PosToN (sucPos p))) (sucPos (NtoPos (PosToN p))) (sucPos p)
---          (comp pos (NtoPos (PosToN (sucPos p))) (NtoPos (suc (PosToN p))) (sucPos (NtoPos (PosToN p))) H1 H2)
---          H3
+        H2 : Id pos (NtoPos (suc (PosToN p))) (sucPos (NtoPos (PosToN p)))
+         = NtoPosSuc (PosToN p) (zeronPosToN p)
 
--- posToNinj : injective pos N PosToN
--- posToNinj = retractInj pos N PosToN NtoPos NtoPosK
+        H3 : Id pos (sucPos (NtoPos (PosToN p))) (sucPos p)
+         = mapOnPath pos pos sucPos (NtoPos (PosToN p)) p hp
+    in compId pos (NtoPos (PosToN (sucPos p))) (sucPos (NtoPos (PosToN p))) (sucPos p)
+         (compId pos (NtoPos (PosToN (sucPos p))) (NtoPos (suc (PosToN p))) (sucPos (NtoPos (PosToN p))) H1 H2)
+         H3
 
--- -- Binary natural numbers
--- binN : U
--- data binN = binN0 | binNpos (p : pos)
+posToNinj : injective pos nat PosToN
+ = \ (p0 p1:pos) (h:Id nat (PosToN p0) (PosToN p1)) ->
+       <i> comp (<_>pos) (NtoPos (h@i)) [(i=0) -> NtoPosK p0,(i=1) -> NtoPosK p1]
 
--- NtoBinN : N -> binN
--- NtoBinN = split
---   zero  -> binN0
---   suc n -> binNpos (NtoPos (suc n))
+-- Binary natural numbers
+data binN = binN0 | binNpos (p : pos)
 
--- BinNtoN : binN -> N
--- BinNtoN = split
---   binN0     -> zero
---   binNpos p -> PosToN p
+NtoBinN : nat -> binN = split
+  zero  -> binN0
+  suc n -> binNpos (NtoPos (suc n))
 
--- NtoBinNK : section binN N BinNtoN NtoBinN
--- NtoBinNK = split
---   zero  -> refl N zero
---   suc n -> PosToNK n
+BinNtoN : binN -> nat = split
+  binN0     -> zero
+  binNpos p -> PosToN p
 
--- rem : (p : pos) -> Id binN (NtoBinN (PosToN (sucPos p))) (binNpos (sucPos p))
--- rem p = comp binN (NtoBinN (PosToN (sucPos p))) (binNpos (NtoPos (suc (PosToN p))))
---                  (binNpos (sucPos p)) rem1 rem2
---      where
---       rem1 : Id binN (NtoBinN (PosToN (sucPos p))) (binNpos (NtoPos (suc (PosToN p))))
---       rem1 = mapOnPath N binN NtoBinN (PosToN (sucPos p)) (suc (PosToN p)) (sucPosSuc p)
+NtoBinNK : (n:nat) -> Id nat (BinNtoN (NtoBinN n)) n = split
+  zero  -> refl nat zero
+  suc n -> PosToNK n
 
---       rem2 : Id binN (binNpos (NtoPos (suc (PosToN p)))) (binNpos (sucPos p))
---       rem2 = mapOnPath pos binN binNpos (NtoPos (suc (PosToN p))) (sucPos p)
---                 (comp pos (NtoPos (suc (PosToN p))) (sucPos (NtoPos (PosToN p))) (sucPos p)
---                 (NtoPosSuc (PosToN p) (zeronPosToN p))
---                 (mapOnPath pos pos sucPos (NtoPos (PosToN p)) p (NtoPosK p)))
+rem (p : pos) : Id binN (NtoBinN (PosToN (sucPos p))) (binNpos (sucPos p)) =
+ compId binN (NtoBinN (PosToN (sucPos p))) (binNpos (NtoPos (suc (PosToN p))))
+                 (binNpos (sucPos p)) rem1 rem2
+     where
+      rem1 : Id binN (NtoBinN (PosToN (sucPos p))) (binNpos (NtoPos (suc (PosToN p))))
+           = mapOnPath nat binN NtoBinN (PosToN (sucPos p)) (suc (PosToN p)) (sucPosSuc p)
 
--- lem1 : (p : pos) -> Id binN (NtoBinN (PosToN p)) (binNpos p)
--- lem1 p = posInd (\p -> Id binN (NtoBinN (PosToN p)) (binNpos p)) (refl binN (binNpos pos1))
---                 (\p _ -> rem p) p
+      rem2 : Id binN (binNpos (NtoPos (suc (PosToN p)))) (binNpos (sucPos p))
+           = <i>binNpos 
+                (compId pos (NtoPos (suc (PosToN p))) (sucPos (NtoPos (PosToN p))) (sucPos p)
+                (NtoPosSuc (PosToN p) (zeronPosToN p))
+                (mapOnPath pos pos sucPos (NtoPos (PosToN p)) p (NtoPosK p))@i)
 
--- BinNtoNK : retract binN N BinNtoN NtoBinN
--- BinNtoNK = split
---   binN0     -> refl binN binN0
---   binNpos p -> lem1 p
+lem1 (p : pos) : Id binN (NtoBinN (PosToN p)) (binNpos p)
+       = posInd (\ (p:pos) -> Id binN (NtoBinN (PosToN p)) (binNpos p)) (refl binN (binNpos pos1))
+                (\ (p:pos) (_:Id binN (NtoBinN (PosToN p)) (binNpos p)) -> rem p) p
 
--- IdbinNN : Id U binN N
--- IdbinNN = isoId binN N BinNtoN NtoBinN NtoBinNK BinNtoNK
+BinNtoNK : (b:binN) -> Id binN (NtoBinN (BinNtoN b)) b = split --  retract binN N BinNtoN NtoBinN = split
+  binN0     -> refl binN binN0
+  binNpos p -> lem1 p
 
--- binNMonoid : Monoid binN
--- binNMonoid = transMonoidInv binN N IdbinNN monoidAddN
+IdbinNN : Id U binN nat
+ = isoId binN nat BinNtoN NtoBinN NtoBinNK BinNtoNK
 
--- zeroBinN : binN
--- zeroBinN = zm binN binNMonoid
+-- Doubling
 
--- addBinN : binN -> binN -> binN
--- addBinN = opm binN binNMonoid
+one : nat   = suc zero
+two : nat   = suc one
+three : nat = suc two
+four : nat  = suc three
+five : nat  = suc four
 
--- addBinNA : (a b c : binN) ->
---            Id binN (addBinN a (addBinN b c)) (addBinN (addBinN a b) c)
--- addBinNA = opmA binN binNMonoid
+-- doublesN n m = 2^n * m
+doublesN : nat -> nat -> nat = split
+  zero  -> \(m:nat) -> m
+  suc n -> \(m:nat) -> doublesN n (doubleN m)
 
--- test : binN
--- test = addBinN (binNpos (x1 (x1 (x0 pos1)))) (binNpos (x0 (x0 (x0 (x1 pos1)))))
+addN (n:nat) : nat -> nat = split
+ zero -> n
+ suc m -> suc (addN n m)
 
--- -- Doubling
+n1024 : nat = doublesN (addN four four) four
 
--- one : N
--- one = suc zero
+doubleBinN : binN -> binN = split
+  binN0     -> binN0
+  binNpos p -> binNpos (x0 p)
 
--- two : N
--- two = suc one
+doublesBinN : nat -> binN -> binN = split
+  zero  -> \(m:binN) -> m
+  suc n -> \(m:binN) -> doublesBinN n (doubleBinN m)
 
--- three : N
--- three = suc two
+-- Doubling structure
+data Double =
+  D (A : U) -- carrier
+    (double : A -> A) -- doubling function computing 2 * x
+    (elt : A) -- element to double
 
--- four : N
--- four = suc three
+carrier : Double -> U 
+ = split D c _ _ -> c
 
--- five : N
--- five = suc four
+double : (D : Double) -> (carrier D -> carrier D)
+ = split D _ op _ -> op
 
--- -- doublesN n m = 2^n * m
--- doublesN : N -> N -> N
--- doublesN = split
---   zero  -> \m -> m
---   suc n -> \m -> doublesN n (doubleN m)
+elt : (D : Double) -> carrier D
+ = split D _ _ e -> e
 
--- n1024 : N
--- n1024 = doublesN (addN four four) four
+DoubleN : Double = D nat doubleN n1024
 
--- doubleBinN : binN -> binN
--- doubleBinN = split
---   binN0     -> binN0
---   binNpos p -> binNpos (x0 p)
+DoubleBinN : Double = D binN doubleBinN (NtoBinN n1024)
 
--- doublesBinN : N -> binN -> binN
--- doublesBinN = split
---   zero  -> \m -> m
---   suc n -> \m -> doublesBinN n (doubleBinN m)
+-- iterate
+iter (A : U) : nat -> (A -> A) -> A -> A = split
+  zero  -> \(f:A->A) (z:A) -> z
+  suc n -> \(f:A->A) (z:A) -> f (iter A n f z)
 
--- -- Doubling structure
--- Double : U
--- data Double =
---   D (A : U) -- carrier
---     (double : A -> A) -- doubling function computing 2 * x
---     (elt : A) -- element to double
+-- 2^10 * e = 2^5 * (2^5 * e)
+propDouble (D : Double) : U
+ = Id (carrier D) (iter (carrier D) (doubleN five) (double D) (elt D))
+                              (iter (carrier D) five (double D) (iter (carrier D) five (double D) (elt D)))
 
--- carrier : Double -> U
--- carrier = split D c _ _ -> c
+-- The property we want to prove that takes long to typecheck:
+-- 2^10 * 1024 = 2^5 * (2^5 * 1024)
+-- propN : propDouble DoubleN
+-- propN = refl N (doublesN (addN five five) n1024)
 
--- double : (D : Double) -> (carrier D -> carrier D)
--- double = split D _ op _ -> op
+-- With binary numbers it is instant
+propBin : propDouble DoubleBinN
+ = refl binN (doublesBinN (addN five five) (elt DoubleBinN))
 
--- elt : (D : Double) -> carrier D
--- elt = split D _ _ e -> e
+-- Define intermediate structure:
+doubleBinN' (b:binN) : binN
+ = NtoBinN (doubleN (BinNtoN b))
 
--- DoubleN : Double
--- DoubleN = D N doubleN n1024
+DoubleBinN' : Double
+ = D binN doubleBinN' (NtoBinN n1024)
 
--- DoubleBinN : Double
--- DoubleBinN = D binN doubleBinN (NtoBinN n1024)
+eqDouble1 : Id Double DoubleN DoubleBinN'
+ = elimIsIso nat (\(B : U) (f : nat -> B) (g : B -> nat) -> Id Double DoubleN (D B (\(b : B) -> f (doubleN (g b))) (f n1024)))
+             (refl Double DoubleN) binN NtoBinN BinNtoN BinNtoNK NtoBinNK
 
--- -- iterate
--- iter : (A : U) -> N -> (A -> A) -> A -> A
--- iter A = split
---   zero  -> \_ z -> z
---   suc n -> \f z -> f (iter A n f z)
+eqDouble2 : Id Double DoubleBinN' DoubleBinN
+ = mapOnPath (binN -> binN) Double F doubleBinN' doubleBinN rem
+  where
+   F (d:binN -> binN) : Double
+    = D binN d (NtoBinN n1024)
 
--- -- 2^10 * e = 2^5 * (2^5 * e)
--- propDouble : (D : Double) -> U
--- propDouble D = Id (carrier D) (iter (carrier D) (doubleN five) (double D) (elt D))
---                               (iter (carrier D) five (double D) (iter (carrier D) five (double D) (elt D)))
+   rem : Id (binN -> binN) doubleBinN' doubleBinN
+    = funExt binN (\(x:binN) -> binN) doubleBinN' doubleBinN rem1
+    where
+     rem1 : (n : binN) -> Id binN (doubleBinN' n) (doubleBinN n)
+      = split
+      binN0     -> refl binN binN0
+      binNpos p ->
+        let p1 : Id binN (NtoBinN (doubleN (PosToN p))) (NtoBinN (PosToN (x0 p)))
+             = mapOnPath nat binN NtoBinN (doubleN (PosToN p)) (PosToN (x0 p)) (refl nat (doubleN (PosToN p)))
+        in compId binN (NtoBinN (doubleN (PosToN p))) (NtoBinN (PosToN (x0 p))) (binNpos (x0 p)) p1 (lem1 (x0 p))
 
--- -- The property we want to prove that takes long to typecheck:
--- -- 2^10 * 1024 = 2^5 * (2^5 * 1024)
--- -- propN : propDouble DoubleN
--- -- propN = refl N (doublesN (addN five five) n1024)
-
--- -- With binary numbers it is instant
--- propBin : propDouble DoubleBinN
--- propBin = refl binN (doublesBinN (addN five five) (elt DoubleBinN))
-
--- -- Define intermediate structure:
--- doubleBinN' : binN -> binN
--- doubleBinN' b = NtoBinN (doubleN (BinNtoN b))
-
--- DoubleBinN' : Double
--- DoubleBinN' = D binN doubleBinN' (NtoBinN n1024)
-
--- eqDouble1 : Id Double DoubleN DoubleBinN'
--- eqDouble1 = elimIsIso N (\B f g -> Id Double DoubleN (D B (\b -> f (doubleN (g b))) (f n1024)))
---                         (refl Double DoubleN) binN NtoBinN BinNtoN BinNtoNK NtoBinNK
-
--- eqDouble2 : Id Double DoubleBinN' DoubleBinN
--- eqDouble2 = mapOnPath (binN -> binN) Double F doubleBinN' doubleBinN rem
---  where
---   F : (binN -> binN) -> Double
---   F d = D binN d (NtoBinN n1024)
-
---   rem : Id (binN -> binN) doubleBinN' doubleBinN
---   rem = funExt binN (\_ -> binN) doubleBinN' doubleBinN rem1
---    where
---     rem1 : (n : binN) -> Id binN (doubleBinN' n) (doubleBinN n)
---     rem1 = split
---       binN0     -> refl binN binN0
---       binNpos p ->
---         let p1 : Id binN (NtoBinN (doubleN (PosToN p))) (NtoBinN (PosToN (x0 p)))
---             p1 = mapOnPath N binN NtoBinN (doubleN (PosToN p)) (PosToN (x0 p)) (refl N (doubleN (PosToN p)))
---         in comp binN (NtoBinN (doubleN (PosToN p))) (NtoBinN (PosToN (x0 p))) (binNpos (x0 p)) p1 (lem1 (x0 p))
-
--- eqDouble : Id Double DoubleN DoubleBinN
--- eqDouble = comp Double DoubleN DoubleBinN' DoubleBinN eqDouble1 eqDouble2
+eqDouble : Id Double DoubleN DoubleBinN
+ = compId Double DoubleN DoubleBinN' DoubleBinN eqDouble1 eqDouble2
 
 -- opaque doubleN
 
--- -- goal : propDouble DoubleN
--- -- goal = substInv Double propDouble DoubleN DoubleBinN eqDouble propBin
+-- goal : propDouble DoubleN = substInv Double propDouble DoubleN DoubleBinN eqDouble propBin
+

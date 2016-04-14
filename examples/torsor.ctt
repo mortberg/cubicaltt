@@ -851,5 +851,11 @@ doubleLoopBZ : loopBZ -> loopBZ = transport (<i> loopS1equalsLoopBZ@i -> loopS1e
 -- Time: 0m25.191s
 
 -- > let visible_all in let doubleLoop : Id BZ (multZ ZBZ ZBZ) (multZ ZBZ ZBZ) = <i> multZ (loopZ@-i) (loopZ@i) in transport (<j> BZSet (transport (<i> BZSet (doubleLoop @ i)) (<_> ZBZ) @ j)) zeroZ
+-- too slow
+
+-- > let visible_all in transport (<j> BZSet (transport (<i> BZSet (multZ (loopZ@-i) (loopZ@i))) (<_> ZBZ) @ j)) zeroZ
+-- EVAL: inr (suc (suc zero))
+
+-- multS1 : S1 -> S1 -> S1 = transport (<i> S1equalsBZ@-i -> S1equalsBZ@-i -> S1equalsBZ@-i) multZ
 
 visible_all

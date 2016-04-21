@@ -1,0 +1,118 @@
+module csystem where
+import prelude
+import equiv
+import nat
+
+precategory : U = (A : U) * (ASet : set A)
+                * (hom : A -> A -> U) * (homSet : (x y : A) -> set (hom x y))
+                * (id : (x : A) -> hom x x) * (c : (x y z : A) -> hom x y -> hom y z -> hom x z)
+                * (cIdL : (x y : A) -> (f : hom x y) -> Id (hom x y) (c x x y (id x) f) f)
+                * (cIdR : (x y : A) -> (f : hom x y) -> Id (hom x y) (c x y y f (id y)) f)
+                * ( (x y z w : A) -> (f : hom x y) -> (g : hom y z) -> (h : hom z w) -> Id (hom x w) (c x z w (c x y z f g) h) (c x y w f (c y z w g h)))
+
+cA (C : precategory) : U = C.1
+cH (C : precategory) : cA C -> cA C -> U = C.2.2.1
+cHS (C : precategory) : (x y : cA C) -> set (cH C x y) = C.2.2.2.1
+cId (C : precategory) : (x : cA C) -> cH C x x = C.2.2.2.2.1
+cC (C : precategory) : (x y z : cA C) -> cH C x y -> cH C y z -> cH C x z = C.2.2.2.2.2.1
+cIdL (C : precategory) : (x y : cA C) -> (f : cH C x y) -> Id (cH C x y) (cC C x x y (cId C x) f) f = C.2.2.2.2.2.2.1
+cIdR (C : precategory) : (x y : cA C) -> (f : cH C x y) -> Id (cH C x y) (cC C x y y f (cId C y)) f = C.2.2.2.2.2.2.2.1
+cAssoc (C : precategory) : (x y z w : cA C) -> (f : cH C x y) -> (g : cH C y z) -> (h : cH C z w) ->
+                           Id (cH C x w) (cC C x z w (cC C x y z f g) h) (cC C x y w f (cC C y z w g h))
+                         = C.2.2.2.2.2.2.2.2
+
+cIsIso (C : precategory) (x y : cA C) (f : cH C x y) : U = (g : cH C y x) * (_ : Id (cH C x x) (cC C x y x f g) (cId C x)) * (Id (cH C y y) (cC C y x y g f) (cId C y))
+cIso (C : precategory) (x y : cA C) : U = (f : cH C x y) * cIsIso C x y f
+
+-- propCIsIso
+-- setCIso
+-- cIsoInv
+
+cIdToIso (C : precategory) (x y : cA C) (p : Id (cA C) x y) : cIso C x y =
+  J (cA C) x (\(y : cA C) -> \(p : Id (cA C) x y) -> cIso C x y) (cId C x, (cId C x, (cIdL C x x (cId C x), cIdL C x x (cId C x)))) y p
+
+functor (C D : precategory) : U = (F : cA C -> cA D)
+                                * (FM : (x y : cA C) -> cH C x y -> cH D (F x) (F y))
+                                * (_ : (x : cA C) -> Id (cH D (F x) (F x)) (FM x x (cId C x)) (cId D (F x)))
+                                * ( (x y z : cA C) -> (f : cH C x y) -> (g : cH C y z) ->
+                                        Id (cH D (F x) (F z)) (FM x z (cC C x y z f g)) (cC D (F x) (F y) (F z) (FM x y f) (FM y z g)))
+
+--         f'
+--    W -----> Z
+--    |        |
+-- g' |        | g
+--    |        |
+--    V        V
+--    Y -----> X
+--        f
+
+cospan (C : precategory) : U = (X Y Z : cA C) * (_ : cH C Y X) * cH C Z X
+cospanCone (C : precategory) (S : cospan C) : U =
+  (W : cA C) * (f : cH C W S.2.1) * (g : cH C W S.2.2.1) * Id (cH C W S.1) (cC C W S.2.1 S.1 f S.2.2.2.1) (cC C W S.2.2.1 S.1 g S.2.2.2.2)
+cospanConeHom (C : precategory) (S : cospan C) (c1 c2 : cospanCone C S) : U
+  = (h : cH C c1.1 c2.1) * (_ : Id (cH C c1.1 S.2.1) (cC C c1.1 c2.1 S.2.1 h c2.2.1) c1.2.1) * Id (cH C c1.1 S.2.2.1) (cC C c1.1 c2.1 S.2.2.1 h c2.2.2.1) c1.2.2.1
+
+isPullback (C : precategory) (S : cospan C) (c : cospanCone C S) : U
+  = (c2 : cospanCone C S) -> isContr (cospanConeHom C S c2 c)
+hasPullback (C : precategory) (S : cospan C) : U = (c : cospanCone C S) * isPullback C S c
+
+isCategory (C : precategory) : U = (x y : cA C) -> isEquiv (Id (cA C) x y) (cIso C x y) (cIdToIso C x y)
+category : U = (C : precategory) * isCategory C
+
+hasFinal (C : precategory) : U = (X : cA C)
+                               * ((Y : cA C) -> isContr (cH C Y X))
+
+--
+
+nzero (n : nat) : U = (m : nat) * Id nat (suc m) n
+
+C0system : U = (C : precategory)
+             * (pt : hasFinal C)
+             * (l : cA C -> nat)
+             * (lPt : Id nat (l pt.1) zero) -- + l x = 0 <-> x = pt.1
+             * (ft : cA C -> cA C)
+             * (p : (x : cA C) -> cH C x (ft x))
+             * (sq : (X : cA C) -> nzero (l X) -> (Y : cA C) -> (f : cH C Y (ft X)) ->
+                     (f' : cA C) * (_ : nzero (l f')) * (ftY : Id (cA C) (ft f') Y)
+                   * (q : cH C f' X)
+                   * (Id (cH C f' (ft X)) (cC C f' Y (ft X) (transport (<i> cH C f' (ftY @ i)) (p f')) f) (cC C f' X (ft X) q (p X)))
+               )
+             * (_ : (X : cA C) -> (nzX : nzero (l X)) ->
+                    (p1 : Id (cA C) (sq X nzX (ft X) (cId C (ft X))).1 X)
+                  * (Id (cH C X X) (transport (<i> cH C (p1 @ i) X) (sq X nzX (ft X) (cId C (ft X))).2.2.2.1) (cId C X))
+               )
+             * ((X Y Z : cA C) -> (nzX : nzero (l X)) ->
+                (f : cH C Y (ft X)) -> (g : cH C Z Y) ->
+                (p1 : Id (cA C)
+                      (sq X nzX Z (cC C Z Y (ft X) g f)).1
+                      (sq (sq X nzX Y f).1 (sq X nzX Y f).2.1 Z (transport (<i> cH C Z ((sq X nzX Y f).2.2.1 @ -i)) g)).1)
+              * (Id (cH C (sq X nzX Z (cC C Z Y (ft X) g f)).1 X)
+                    (sq X nzX Z (cC C Z Y (ft X) g f)).2.2.2.1
+                    (cC C (sq X nzX Z (cC C Z Y (ft X) g f)).1 (sq X nzX Y f).1 X
+                     (transport (<i> cH C (p1@-i) (sq X nzX Y f).1) (sq (sq X nzX Y f).1 (sq X nzX Y f).2.1 Z (transport (<i> cH C Z ((sq X nzX Y f).2.2.1 @ -i)) g)).2.2.2.1)
+                     (sq X nzX Y f).2.2.2.1)
+                ))
+
+isCsystem (C : C0system) : U
+  = (s : (X Y : cA C.1) -> (nzX : nzero (C.2.2.1 X)) -> (f : cH C.1 Y X) ->
+         (let f_star_X : cA C.1 = (C.2.2.2.2.2.2.1 X nzX Y (cC C.1 Y X (C.2.2.2.2.1 X) f (C.2.2.2.2.2.1 X))).1 in
+         (s : cH C.1 Y f_star_X)
+       * (_ : Id (cH C.1 Y Y)
+                 (cC C.1 Y f_star_X Y
+                  s (transport (<i> cH C.1 f_star_X ((C.2.2.2.2.2.2.1 X nzX Y (cC C.1 Y X (C.2.2.2.2.1 X) f (C.2.2.2.2.2.1 X))).2.2.1 @ i)) (C.2.2.2.2.2.1 f_star_X)))
+                  (cId C.1 Y))
+       * (Id (cH C.1 Y X) f
+             (cC C.1 Y f_star_X X s (C.2.2.2.2.2.2.1 X nzX Y (cC C.1 Y X (C.2.2.2.2.1 X) f (C.2.2.2.2.2.1 X))).2.2.2.1))))
+  * ((X Y : cA C.1) -> (nzX : nzero (C.2.2.1 X)) -> (f : cH C.1 Y X) ->
+     (V : cA C.1) -> (nzV : nzero (C.2.2.1 V)) -> (g : cH C.1 (C.2.2.2.2.1 X) (C.2.2.2.2.1 V)) ->
+     (_ : Id (cA C.1) X (C.2.2.2.2.2.2.1 V nzV (C.2.2.2.2.1 X) g).1) ->
+     (let f_star_X : cA C.1 = (C.2.2.2.2.2.2.1 X nzX Y (cC C.1 Y X (C.2.2.2.2.1 X) f (C.2.2.2.2.2.1 X))).1 in
+     (Id (cH C.1 Y f_star_X) (s X Y nzX f).1 ?)))
+
+--
+
+UC : U = (C : category)
+       * (CU : cA C.1) * (CUT : cA C.1)
+       * (p : cH C.1 CUT CU)
+       * (_ : (X : cA C.1) -> (f : cH C.1 X CU) -> hasPullback C.1 (CU, (CUT, (X, (p, f)))))
+       * (hasFinal C.1)

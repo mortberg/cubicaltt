@@ -75,7 +75,6 @@ subset10 (A : U) (sA : set A)
 subsetIso0 (A : U) (sA : set A) : (s0 : subset0 A sA) ->
       Id (subset0 A sA) (subset10 A sA (subset01 A sA s0)) s0
   = \ (s0 : subset0 A sA) -> let
---    TEMP : Id (subset0 A sA) (subset10 A sA (subset01 A sA s0)) s0 = undefined
     s0'
       : subset0 A sA
       = subset10 A sA (subset01 A sA s0)
@@ -114,7 +113,7 @@ subsetIso0 (A : U) (sA : set A) : (s0 : subset0 A sA) ->
       = q.1
     -- Show that sB can be identified with sB'
     idsB : IdP (<i> set (idB @ i)) sB' sB
-      -- = lemPropF U set setIsProp B' B idB sB' sB
+--      = lemPropF U set setIsProp B' B idB sB' sB
       = undefined
     -- Show that f' can be identified with f. This follows from gâˆ˜g' â‡” \x -> x
     -- and that there is a path q.2 between f'âˆ˜gâˆ˜g' and f

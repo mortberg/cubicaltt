@@ -1,4 +1,4 @@
-module csystem3 where
+module csystem where
 import prelude
 import sigma
 import equiv

@@ -603,6 +603,19 @@ ucToC0 (C : uc) : C0System = hole
                = (if_star, pg, qq, hole0)
         in (((pb n X).2 pp).1.1, <i>((pb n X).2 pp).1.2.1@-i, ((pb n X).2 pp).1.2.2)
 
+    sqD (n : nat) (X : ob (suc n)) (Y : obD) (f : homD Y (n, X.1))
+      : (f_star : ob (suc Y.1)) * (ftf : Id obD (Y.1, ft0 Y.1 f_star) Y)
+      * (q : homD (suc Y.1, f_star) (suc n, X))
+      * Id (homD (suc Y.1, f_star) (n, X.1))
+           (cC DC (suc Y.1, f_star) Y (n, X.1) (pD (suc Y.1, f_star) Y ftf) f)
+           (cC DC (suc Y.1, f_star) (suc n, X) (n, X.1) q (pD (suc n, X) (n, X.1) (<_> (n, X.1))))
+      = ((fstar n X Y f).2, <_> Y, (q_ n X Y f).1,
+          transport
+            (<i> Id (homD (fstar n X Y f) (n, X.1))
+              (cC DC (fstar n X Y f) Y (n, X.1) (transRefl (cH DC (fstar n X Y f) Y) (p0 (suc Y.1) (fstar n X Y f).2) @ -i) f)
+              (cC DC (fstar n X Y f) (suc n, X) (n, X.1) (q_ n X Y f).1 (transRefl (cH DC (suc n, X) (n, X.1)) (p0 (suc n) X) @ -i)))
+            (q_ n X Y f).2.1)
+
     qId (n : nat) (X : ob (suc n)) :
         (p0 : Id obD (fstar n X (n, X.1) (cId DC (n, X.1))) (suc n, X))
       * (IdP (<i>cH DC (p0@i) (suc n, X)) (q_ n X (n, X.1) (cId DC (n, X.1))).1 (cId DC (suc n, X)))
@@ -681,7 +694,6 @@ ucToC0 (C : uc) : C0System = hole
                            (pb Z.1 (Z.2, gF)).1.2.2.2
             pp : cospanCone C.1 (cs n X)
                = (if_star, pg, qq, hole0)
-
             f_star2 : obD = fstar Y.1 (fstar n X Y f).2 Z g
             if_star2 : cA C.1 = intD f_star2
             q2 : cH DC f_star2 (fstar n X Y f) = (q_ Y.1 (fstar n X Y f).2 Z g).1
@@ -689,17 +701,14 @@ ucToC0 (C : uc) : C0System = hole
                 = cC DC f_star2 Z (n,X.1) (p0 (suc Z.1) f_star2.2) F
             qq2 : cH C.1 if_star2 VT
                 = (pb Z.1 (Z.2, cC C.1 (intD Z) (intD Y) V g (cC C.1 (intD Y) (int n X.1) V f X.2))).1.2.2.1
-
             p1 : Id obD f_star2 f_star
                = <i> (suc Z.1, Z.2, cIdC C.1 (intD Z) (intD Y) (int n X.1) V g f X.2 @ -i)
-
             pp2 : cospanCone C.1 (cs n X)
                 = (if_star2, pg2, qq2,
                    transport (<i>Id (cH C.1 (intD(p1@-i)) V)
                               (cC C.1 (intD(p1@-i)) (int n X.1) V (cC DC (p1@-i) Z (n,X.1) (p0 (suc Z.1) (p1@-i).2) F) X.2)
                               (cC C.1 (intD(p1@-i)) VT V (pb Z.1 (Z.2, cIdC C.1 (intD Z) (intD Y) (int n X.1) V g f X.2 @ i)).1.2.2.1 p))
                              hole0)
-
             ppId : Id (cospanCone C.1 (cs n X)) pp2 pp
                  = <i> (intD (p1@i),
                         cC DC (p1@i) Z (n,X.1) (p0 (suc Z.1) (p1@i).2) F,
@@ -809,5 +818,24 @@ ucToC0 (C : uc) : C0System = hole
                      (q_ n X Z (cC DC Z Y (n, X.1) g f)).1
                      qId)
 
+    qComp' (n : nat) (X : ob (suc n))
+           (Y : obD) (f : homD Y (n, X.1))
+           (Z : obD) (g : homD Z Y)
+        : (let g' : homD Z Y = transport (<_> homD Z Y) g in
+          (p0 : Id obD (fstar Y.1 (fstar n X Y f).2 Z g')
+                       (fstar n X Z (cC DC Z Y (n, X.1) g f)))
+        * IdP (<i> cH DC (p0@i) (suc n, X))
+              (cC DC (fstar Y.1 (fstar n X Y f).2 Z g') (fstar n X Y f) (suc n, X)
+                (q_ Y.1 (fstar n X Y f).2 Z g').1 (q_ n X Y f).1)
+              (q_ n X Z (cC DC Z Y (n, X.1) g f)).1)
+        = transport
+          (<j> (p0 : Id obD (fstar Y.1 (fstar n X Y f).2 Z (transRefl (homD Z Y) g @ -j))
+                            (fstar n X Z (cC DC Z Y (n, X.1) g f)))
+             * IdP (<i> cH DC (p0@i) (suc n, X))
+                   (cC DC (fstar Y.1 (fstar n X Y f).2 Z (transRefl (homD Z Y) g @ -j)) (fstar n X Y f) (suc n, X)
+                     (q_ Y.1 (fstar n X Y f).2 Z (transRefl (homD Z Y) g @ -j)).1 (q_ n X Y f).1)
+                   (q_ n X Z (cC DC Z Y (n, X.1) g f)).1)
+          (qComp n X Y f Z g)
+
     hole : C0System
-         = (ob, homD, D, obSet, ft0, pD, ?)
+         = (ob, homD, D, obSet, ft0, pD, sqD, qId, qComp')

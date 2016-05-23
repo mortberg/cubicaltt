@@ -1,63 +1,56 @@
-module csystem where
+module csystem3 where
 import prelude
+import sigma
 import equiv
 import nat
 
+lemReflComp (A : U) (a b : A) (p : Id A a b) : Id (Id A a b) (compId A a a b (<_> a) p) p =
+  <j i> comp (<k> A) (p @ i /\ j) [(i=0) -> <_> a, (j=1) -> <_> p @ i, (i=1) -> <k> p @ k \/ j ]
+opaque lemReflComp
+
+lemReflComp' (A : U) (a b : A) (p : Id A a b) : Id (Id A a b) (compId A a b b p (<_> b)) p =
+  <j i> comp (<k> A) (p @ i) [(i=0) -> <_> a, (j=1) -> <_> p @ i, (i=1) -> <_> b ]
+opaque lemReflComp'
+
 lemIdPProp (A B : U) (AProp : prop A) (p : Id U A B) : (x : A) -> (y : B) -> IdP p x y
   = J U A (\(B : U) -> \(p : Id U A B) -> (x : A) -> (y : B) -> IdP p x y) AProp B p
+opaque lemIdPProp
+
+substIdP (A B : U) (p : Id U A B) (x : A) (y : B) (q : Id B (transport p x) y) : IdP p x y
+  = transport (<i> IdP p x (q@i)) hole
+  where
+    hole : IdP p x (transport p x) = <i> comp (<j> p @ (i /\ j)) x [(i=0) -> <_> x]
+opaque substIdP
 
 transRefl (A : U) (a : A) : Id A (transport (<_> A) a) a = <i> comp (<_> A) a [(i=1) -> <_>a]
+opaque transRefl
 
-precategory : U = (A : U) * (ASet : set A)
-                * (hom : A -> A -> U) * (homSet : (x y : A) -> set (hom x y))
+--
+
+categoryData : U = (A : U) * (A -> A -> U)
+
+isPrecategory (C : categoryData) : U =
+               let A : U = C.1
+                   hom : A -> A -> U = C.2
+               in (homSet : (x y : A) -> set (hom x y))
                 * (id : (x : A) -> hom x x) * (c : (x y z : A) -> hom x y -> hom y z -> hom x z)
                 * (cIdL : (x y : A) -> (f : hom x y) -> Id (hom x y) (c x x y (id x) f) f)
                 * (cIdR : (x y : A) -> (f : hom x y) -> Id (hom x y) (c x y y f (id y)) f)
                 * ( (x y z w : A) -> (f : hom x y) -> (g : hom y z) -> (h : hom z w) -> Id (hom x w) (c x z w (c x y z f g) h) (c x y w f (c y z w g h)))
 
-cA (C : precategory) : U = C.1
-cASet (C : precategory) : set (cA C) = C.2.1
-cH (C : precategory) : U = (x y : cA C) * (C.2.2.1 x y)
-cDom (C : precategory) (x : cH C) : cA C = x.1
-cCodom (C : precategory) (x : cH C) : cA C = x.2.1
-cId (C : precategory) (x : cA C) : cH C = (x, (x, C.2.2.2.2.1 x))
-cC (C : precategory) (h1 h2 : cH C) (p : Id (cA C) (cCodom C h1) (cDom C h2)) : cH C
-  = (h1.1, (h2.2.1, C.2.2.2.2.2.1 h1.1 h2.1 h2.2.1 (transport (<i> C.2.2.1 h1.1 (p@i)) h1.2.2) h2.2.2))
-cIdL (C : precategory) (x : cA C) (h : cH C) (p : Id (cA C) x (cDom C h)) : Id (cH C) (cC C (cId C x) h p) h
-  = J (cA C) (cDom C h) (\(x : cA C) -> \(p : Id (cA C) (cDom C h) x) -> Id (cH C) (cC C (cId C x) h (<i>p@-i)) h)
-    (<i> (h.1, (h.2.1, hole @ i))) x (<i>p@-i)
-    where
-      hole : Id (C.2.2.1 h.1 h.2.1) (C.2.2.2.2.2.1 h.1 h.1 h.2.1 (transport (<_>C.2.2.1 h.1 h.1) (C.2.2.2.2.1 h.1)) h.2.2) h.2.2
-        = transport (<i> Id (C.2.2.1 h.1 h.2.1) (C.2.2.2.2.2.1 h.1 h.1 h.2.1 (transRefl (C.2.2.1 h.1 h.1) (C.2.2.2.2.1 h.1) @ -i) h.2.2) h.2.2) (C.2.2.2.2.2.2.1 h.1 h.2.1 h.2.2)
-opaque cIdL
+precategory : U = (C : categoryData) * isPrecategory C
 
-cIdC (C : precategory) (h1 h2 h3 : cH C)
-     (p : Id (cA C) (cCodom C h1) (cDom C h2)) (q : Id (cA C) (cCodom C h2) (cDom C h3))
-  : Id (cH C) (cC C h1 (cC C h2 h3 q) p) (cC C (cC C h1 h2 p) h3 q)
-  = J (cA C) h1.2.1
-      (\(A : cA C) -> \(p : Id (cA C) h1.2.1 A) -> (h2' : C.2.2.1 A h2.2.1) ->
-        Id (cH C) (cC C h1 (cC C (A, (h2.2.1, h2')) h3 q) p) (cC C (cC C h1 (A, (h2.2.1, h2')) p) h3 q))
-      (\(h2' : C.2.2.1 h1.2.1 h2.2.1) ->
-        J (cA C) h2.2.1
-          (\(A : cA C) -> \(q : Id (cA C) h2.2.1 A) -> (h3' : C.2.2.1 A h3.2.1) ->
-            Id (cH C) (cC C h1 (cC C (h1.2.1, (h2.2.1, h2')) (A, (h3.2.1, h3')) q) (<_>h1.2.1))
-                      (cC C (cC C h1 (h1.2.1, (h2.2.1, h2')) (<_>h1.2.1)) (A, (h3.2.1, h3')) q))
-          (\(h3' : C.2.2.1 h2.2.1 h3.2.1) ->
-            transport (<i> Id (cH C) (h1.1, (h3.2.1,
-                                   C.2.2.2.2.2.1 h1.1 h1.2.1 h3.2.1
-                                   (transRefl (C.2.2.1 h1.1 h1.2.1) h1.2.2@-i)
-                                   (C.2.2.2.2.2.1 h1.2.1 h2.2.1 h3.2.1 (transRefl (C.2.2.1 h1.2.1 h2.2.1) h2'@-i) h3')))
-                                   (h1.1, (h3.2.1,
-                                   C.2.2.2.2.2.1 h1.1 h2.2.1 h3.2.1
-                                   (transRefl (C.2.2.1 h1.1 h2.2.1)
-                                    (C.2.2.2.2.2.1 h1.1 h1.2.1 h2.2.1 (transRefl (C.2.2.1 h1.1 h1.2.1) h1.2.2@-i) h2')@-i)
-                                   h3'))
-                       ) (<i>(h1.1, (h3.2.1, C.2.2.2.2.2.2.2.2 h1.1 h1.2.1 h2.2.1 h3.2.1 h1.2.2 h2' h3'@-i)))
-          )
-          (cDom C h3) q h3.2.2
-      )
-      (cDom C h2) p h2.2.2
-opaque cIdC
+cA (C : precategory) : U = C.1.1
+cH (C : precategory) (a b : cA C) : U = C.1.2 a b
+cHSet (C : precategory) (a b : cA C) : set (cH C a b) = C.2.1 a b
+cC (C : precategory) (x y z : cA C) (f : cH C x y) (g : cH C y z) : cH C x z = C.2.2.2.1 x y z f g
+cId (C : precategory) (x : cA C) : cH C x x = C.2.2.1 x
+cIdL (C : precategory) (x y : cA C) (f : cH C x y)
+  : Id (cH C x y) (cC C x x y (cId C x) f) f = C.2.2.2.2.1 x y f
+cIdR (C : precategory) (x y : cA C) (f : cH C x y)
+  : Id (cH C x y) (cC C x y y f (cId C y)) f = C.2.2.2.2.2.1 x y f
+cIdC (C : precategory) (x y z w : cA C) (f : cH C x y) (g : cH C y z) (h : cH C z w)
+  : Id (cH C x w) (cC C x z w (cC C x y z f g) h) (cC C x y w f (cC C y z w g h)) = C.2.2.2.2.2.2 x y z w f g h
 
 --         f'
 --    W -----> Z
@@ -68,184 +61,157 @@ opaque cIdC
 --    Y -----> X
 --        f
 
-
-homTo (C : precategory) (X : cA C) : U = (Y : cA C) * (f : cH C) * (fDom : Id (cA C) (cDom C f) Y) * ( Id (cA C) (cCodom C f) X)
-hom (C : precategory) (X : cA C) (Y : cA C) : U = (f : cH C) * (fDom : Id (cA C) (cDom C f) X) * ( Id (cA C) (cCodom C f) Y)
-
+homTo (C : precategory) (X : cA C) : U = (Y : cA C) * cH C Y X
 cospan (C : precategory) : U
   = (X : cA C) * (_ : homTo C X) * homTo C X
-
 cospanCone (C : precategory) (D : cospan C) : U
-  = (W : cA C) * (f : hom C W D.2.1.1) * (g : hom C W D.2.2.1)
-  * Id (cH C)
-      (cC C f.1 D.2.1.2.1 (compId (cA C) (cCodom C f.1) D.2.1.1 (cDom C D.2.1.2.1) f.2.2 (<i>D.2.1.2.2.1@-i)))
-      (cC C g.1 D.2.2.2.1 (compId (cA C) (cCodom C g.1) D.2.2.1 (cDom C D.2.2.2.1) g.2.2 (<i>D.2.2.2.2.1@-i)))
-
+  = (W : cA C) * (f : cH C W D.2.1.1) * (g : cH C W D.2.2.1)
+  * Id (cH C W D.1)
+      (cC C W D.2.1.1 D.1 f D.2.1.2)
+      (cC C W D.2.2.1 D.1 g D.2.2.2)
 cospanConeHom (C : precategory) (D : cospan C) (E1 E2 : cospanCone C D) : U
-  = (h : cH C) * (hDom : Id (cA C) (cDom C h) E1.1) * (hCodom : Id (cA C) (cCodom C h) E2.1)
-  * (_ : Id (cH C) (cC C h E2.2.1.1 (compId (cA C) (cCodom C h) E2.1 (cDom C E2.2.1.1) hCodom (<i>E2.2.1.2.1@-i))) E1.2.1.1)
-  * Id (cH C) (cC C h E2.2.2.1.1 (compId (cA C) (cCodom C h) E2.1 (cDom C E2.2.2.1.1) hCodom (<i>E2.2.2.1.2.1@-i))) E1.2.2.1.1
-
+  = (h : cH C E1.1 E2.1)
+  * (_ : Id (cH C E1.1 D.2.1.1) (cC C E1.1 E2.1 D.2.1.1 h E2.2.1) E1.2.1)
+  * (Id (cH C E1.1 D.2.2.1) (cC C E1.1 E2.1 D.2.2.1 h E2.2.2.1) E1.2.2.1)
+cospanConeId (C : precategory) (D : cospan C) (E : cospanCone C D) : cospanConeHom C D E E
+  = (cId C E.1, cIdL C E.1 D.2.1.1 E.2.1, cIdL C E.1 D.2.2.1 E.2.2.1)
 isPullback (C : precategory) (D : cospan C) (E : cospanCone C D) : U
   = (h : cospanCone C D) -> isContr (cospanConeHom C D h E)
-
 isPullbackProp (C : precategory) (D : cospan C) (E : cospanCone C D) : prop (isPullback C D E)
   = propPi (cospanCone C D) (\(h : cospanCone C D) -> isContr (cospanConeHom C D h E))
     (\(h : cospanCone C D) -> propIsContr (cospanConeHom C D h E))
-
 hasPullback (C : precategory) (D : cospan C) : U = (E : cospanCone C D) * isPullback C D E
+
 
 --
 
 nzero (n : nat) : U = (m : nat) * Id nat n (suc m)
-nzeroProp : (n : nat) -> prop (nzero n) = undefined
+nzeroProp (n : nat) (x y : nzero n) : Id (nzero n) x y
+  = <i> (pred (compId nat (suc x.1) n (suc y.1) (<i>x.2@-i) y.2 @ i),
+         lemIdPProp (Id nat n (suc x.1))
+                    (Id nat n (suc y.1))
+                    (natSet n (suc x.1))
+                    (<i>Id nat n (suc (pred (compId nat (suc x.1) n (suc y.1) (<i>x.2@-i) y.2 @ i))))
+                    x.2 y.2 @ i)
 
-isC0System (C : precategory) : U
-  = (l : cA C -> nat)
-  * (ft : cA C -> cA C)
-  * (p : cA C -> cH C)
-  * (pDom : (x : cA C) -> Id (cA C) (cDom C (p x)) x)
-  * (pCodom : (x : cA C) -> Id (cA C) (cCodom C (p x)) (ft x))
-  * (sq : (X : cA C) -> nzero (l X) -> (Y : cA C) ->
-          (f : cH C) -> (fDom : Id (cA C) (cDom C f) Y) -> (fCodom : Id (cA C) (cCodom C f) (ft X)) ->
-          (f_star : cA C) * (_ : nzero (l f_star)) * (ftY : Id (cA C) (ft f_star) Y)
-        * (q : cH C) * (qDom : Id (cA C) (cDom C q) f_star) * (qCodom : Id (cA C) (cCodom C q) X)
-        * Id (cH C)
-             (cC C (p f_star) f
-               (compId (cA C) (cCodom C (p f_star)) Y (cDom C f) (compId (cA C) (cCodom C (p f_star)) (ft f_star) Y (pCodom f_star) ftY) (<i> fDom @ -i)))
-             (cC C q (p X)
-               (compId (cA C) (cCodom C q) X (cDom C (p X)) qCodom (<i> pDom X @ -i)))
-    )
-  * ((X : cA C) -> (nzX : nzero (l X)) -> (Y : cA C) ->
-     (f : cH C) -> (fDom : Id (cA C) (cDom C f) Y) -> (fCodom : Id (cA C) (cCodom C f) (ft X)) ->
-     (Z : cA C) -> (g : cH C) -> (gDom : Id (cA C) (cDom C g) Z) -> (gCodom : Id (cA C) (cCodom C g) Y) ->
-     (let f_star : cA C = (sq X nzX Y f fDom fCodom).1
-          nz_f_star : nzero (l f_star) = (sq X nzX Y f fDom fCodom).2.1
-          p0 : Id (cA C) (ft f_star) Y = (sq X nzX Y f fDom fCodom).2.2.1
-          gf : cH C = cC C g f (compId (cA C) (cCodom C g) Y (cDom C f) gCodom (<i>fDom@-i))
-      in
-       (p1 : Id (cA C)
-             (sq f_star nz_f_star Z g gDom (compId (cA C) (cCodom C g) Y (ft f_star) gCodom (<i>p0@-i))).1
-             (sq X nzX Z gf gDom fCodom).1)
-     * Id (cH C)
-           (cC C
-            (sq f_star nz_f_star Z g gDom (compId (cA C) (cCodom C g) Y (ft f_star) gCodom (<i>p0@-i))).2.2.2.1
-            (sq X nzX Y f fDom fCodom).2.2.2.1
-            (compId (cA C)
-             (cCodom C (sq f_star nz_f_star Z g gDom (compId (cA C) (cCodom C g) Y (ft f_star) gCodom (<i>p0@-i))).2.2.2.1)
-             f_star
-             (cDom C (sq X nzX Y f fDom fCodom).2.2.2.1)
-             ((sq f_star nz_f_star Z g gDom (compId (cA C) (cCodom C g) Y (ft f_star) gCodom (<i>p0@-i))).2.2.2.2.2.1)
-             (<i> (sq X nzX Y f fDom fCodom).2.2.2.2.1 @ -i)))
-           (sq X nzX Z gf gDom fCodom).2.2.2.1
-    ))
+mkFt (ob : nat -> U) (ft0 : (n : nat) -> ob (suc n) -> ob n) : (n : nat) -> ob n -> Sigma nat ob = split
+  zero  -> \(x : ob zero) -> (zero, x)
+  suc n -> \(x : ob (suc n)) -> (n, ft0 n x)
 
-C0System : U = (C : precategory) * isC0System C
+isC0System (ob : nat -> U) (hom : Sigma nat ob -> Sigma nat ob -> U) (isC : isPrecategory (Sigma nat ob, hom)) : U
+  = let A : U = Sigma nat ob
+        CD : categoryData = (A,hom)
+        C : precategory = (CD, isC)
+    in (ASet : (n : nat) -> set (ob n))
+     * (ft0 : (n : nat) -> ob (suc n) -> ob n)
+     * (let ft (x : A) : A = mkFt ob ft0 x.1 x.2
+        in
+       (p : (x y : A) -> Id A (ft x) y -> hom x y)
+     * (sq : (n : nat) -> (X : ob (suc n)) -> (Y : A) ->
+             (f : hom Y (n, ft0 n X)) ->
+             (f_star : ob (suc Y.1)) * (ftf : Id A (Y.1, ft0 Y.1 f_star) Y)
+           * (q : hom (suc Y.1, f_star) (suc n, X))
+           * Id (hom (suc Y.1, f_star) (n, ft0 n X))
+                (cC C (suc Y.1, f_star) Y (n, ft0 n X) (p (suc Y.1, f_star) Y ftf) f)
+                (cC C (suc Y.1, f_star) (suc n, X) (n, ft0 n X) q (p (suc n, X) (n, ft0 n X) (<_> (n, ft0 n X))))
+       )
+     * (sqId : (n : nat) -> (X : ob (suc n)) ->
+               (p0 : Id A (suc n, (sq n X (n, ft0 n X) (cId C (n, ft0 n X))).1) (suc n, X))
+             * (IdP (<i>cH C (p0@i) (suc n, X)) (sq n X (n, ft0 n X) (cId C (n, ft0 n X))).2.2.1 (cId C (suc n, X)))
+       )
+     * ((n : nat) -> (X : ob (suc n)) ->
+        (Y : A) -> (f : hom Y (n, ft0 n X)) ->
+        (Z : A) -> (g : hom Z Y) ->
+        (let f_star : ob (suc Y.1) = (sq n X Y f).1
+             g' : hom Z (Y.1, ft0 Y.1 f_star) = transport (<i>cH C Z ((sq n X Y f).2.1@-i)) g
+         in (p0 : Id A (suc Z.1, (sq Y.1 f_star Z g').1)
+                       (suc Z.1, (sq n X Z (cC C Z Y (n, ft0 n X) g f)).1))
+          * IdP (<i> cH C (p0@i) (suc n, X))
+                (cC C (suc Z.1, (sq Y.1 f_star Z g').1) (suc Y.1, f_star) (suc n, X)
+                  (sq Y.1 f_star Z g').2.2.1 (sq n X Y f).2.2.1)
+                (sq n X Z (cC C Z Y (n, ft0 n X) g f)).2.2.1)))
 
-c0L  (C : C0System) : cA C.1 -> nat = C.2.1
-c0Ft (C : C0System) : cA C.1 -> cA C.1 = C.2.2.1
+C0System : U = (ob : nat -> U) * (hom : Sigma nat ob -> Sigma nat ob -> U) * (isC : isPrecategory (Sigma nat ob, hom))
+             * isC0System ob hom isC
 
-c0P (C : C0System) : cA C.1 -> cH C.1 = C.2.2.2.1
-c0PDom (C : C0System) (X : cA C.1) : Id (cA C.1) (cDom C.1 (c0P C X)) X = C.2.2.2.2.1 X
-c0PCodom (C : C0System) (X : cA C.1) : Id (cA C.1) (cCodom C.1 (c0P C X)) (c0Ft C X) = C.2.2.2.2.2.1 X
+c0C (C : C0System) : precategory = ((Sigma nat C.1, C.2.1), C.2.2.1)
+
+-- c0ASet (C : C0System) : set (cA C.1) = undefined
+c0Ft (C : C0System) (x : cA (c0C C)) : cA (c0C C) = mkFt C.1 C.2.2.2.2.1 x.1 x.2
+
+c0P (C : C0System) : (x y : cA (c0C C)) -> Id (cA (c0C C)) (c0Ft C x) y -> C.2.1 x y = C.2.2.2.2.2.1
 
 c0CanSq (C : C0System) : U
-  = (X : cA C.1) * (_ : nzero (c0L C X)) * (Y : cA C.1) * (f : cH C.1) * (fDom : Id (cA C.1) (cDom C.1 f) Y) * ( Id (cA C.1) (cCodom C.1 f) (c0Ft C X))
+  = (n : nat) * (X : C.1 (suc n)) * (Y : cA (c0C C)) * (C.2.1 Y (n, C.2.2.2.2.1 n X))
 
-c0CanSqEq (C : C0System) (T0 T1 : c0CanSq C) (p0 : Id (cA C.1) T0.1 T1.1) (p1 : Id (cH C.1) T0.2.2.2.1 T1.2.2.2.1) : Id (c0CanSq C) T0 T1
-  = <i> (p0@i,
-        (lemIdPProp (nzero (c0L C T0.1)) (nzero (c0L C T1.1)) (nzeroProp (c0L C T0.1)) (<i> nzero (c0L C (p0@i))) T0.2.1 T1.2.1 @i,
-        (pY@i,
-        (p1@i,
-        (lemIdPProp (Id (cA C.1) (cDom C.1 (p1@0)) (pY@0)) (Id (cA C.1) (cDom C.1 (p1@1)) (pY@1))
-                    (cASet C.1 (cDom C.1 (p1@0)) (pY@0))
-                    (<i> Id (cA C.1) (cDom C.1 (p1@i)) (pY@i)) T0.2.2.2.2.1 T1.2.2.2.2.1 @ i,
-        lemIdPProp (Id (cA C.1) (cCodom C.1 T0.2.2.2.1) (c0Ft C (p0@0))) (Id (cA C.1) (cCodom C.1 T1.2.2.2.1) (c0Ft C (p0@1)))
-                   (cASet C.1 (cCodom C.1 T0.2.2.2.1) (c0Ft C (p0@0)))
-                   (<i> Id (cA C.1) (cCodom C.1 (p1@i)) (c0Ft C (p0@i))) T0.2.2.2.2.2 T1.2.2.2.2.2 @ i
-        )))))
-  where
-    pY : Id (cA C.1) T0.2.2.1 T1.2.2.1 = compId (cA C.1) T0.2.2.1 (cDom C.1 (p1@0)) T1.2.2.1 (<i>T0.2.2.2.2.1@-i)
-                                         (compId (cA C.1) (cDom C.1 (p1@0)) (cDom C.1 (p1@1)) T1.2.2.1 (<i> cDom C.1 (p1@i)) T1.2.2.2.2.1)
+-- c0CanSqEq (C : C0System) (T0 T1 : c0CanSq C)
+--           (p0 : Id (cA C.1) T0.1 T1.1)
+--           (p1 : Id (cA C.1) T0.2.2.1 T1.2.2.1)
+--           (p2 : IdP (<i>cH' C.1 (p1@i) (c0Ft C (p0@i))) T0.2.2.2 T1.2.2.2) : Id (c0CanSq C) T0 T1
+--   = <i> (p0@i,
+--          lemIdPProp (nzero (c0L C T0.1)) (nzero (c0L C T1.1)) (nzeroProp (c0L C T0.1)) (<i> nzero (c0L C (p0@i))) T0.2.1 T1.2.1 @i,
+--          p1@i, p2@i)
 
-c0Star (C : C0System) (T : c0CanSq C) : cA C.1
-  = (C.2.2.2.2.2.2.1 T.1 T.2.1 T.2.2.1 T.2.2.2.1 T.2.2.2.2.1 T.2.2.2.2.2).1
-c0NzStar (C : C0System) (T : c0CanSq C) : nzero (c0L C (c0Star C T))
-  = (C.2.2.2.2.2.2.1 T.1 T.2.1 T.2.2.1 T.2.2.2.1 T.2.2.2.2.1 T.2.2.2.2.2).2.1
+c0Star (C : C0System) (T : c0CanSq C) : cA (c0C C)
+  = (suc T.2.2.1.1, (C.2.2.2.2.2.2.1 T.1 T.2.1 T.2.2.1 T.2.2.2).1)
 c0FtStar (C : C0System) (T : c0CanSq C)
-  : Id (cA C.1) (c0Ft C (c0Star C T)) T.2.2.1
-  = (C.2.2.2.2.2.2.1 T.1 T.2.1 T.2.2.1 T.2.2.2.1 T.2.2.2.2.1 T.2.2.2.2.2).2.2.1
+  : Id (cA (c0C C)) (c0Ft C (c0Star C T)) T.2.2.1
+  = (C.2.2.2.2.2.2.1 T.1 T.2.1 T.2.2.1 T.2.2.2).2.1
 
-c0Q (C : C0System) (T : c0CanSq C) : cH C.1
-  = (C.2.2.2.2.2.2.1 T.1 T.2.1 T.2.2.1 T.2.2.2.1 T.2.2.2.2.1 T.2.2.2.2.2).2.2.2.1
-c0QDom (C : C0System) (T : c0CanSq C)
-  : Id (cA C.1) (cDom C.1 (c0Q C T)) (c0Star C T)
-  = (C.2.2.2.2.2.2.1 T.1 T.2.1 T.2.2.1 T.2.2.2.1 T.2.2.2.2.1 T.2.2.2.2.2).2.2.2.2.1
-c0QCodom (C : C0System) (T : c0CanSq C)
-  : Id (cA C.1) (cCodom C.1 (c0Q C T)) T.1
-  = (C.2.2.2.2.2.2.1 T.1 T.2.1 T.2.2.1 T.2.2.2.1 T.2.2.2.2.1 T.2.2.2.2.2).2.2.2.2.2.1
+c0Q (C : C0System) (T : c0CanSq C) : C.2.1 (c0Star C T) (suc T.1, T.2.1)
+  = (C.2.2.2.2.2.2.1 T.1 T.2.1 T.2.2.1 T.2.2.2).2.2.1
 
 c0Square (C : C0System) (T : c0CanSq C)
- : (let f_star : cA C.1 = c0Star C T in
-       Id (cH C.1)
-         (cC C.1 (c0P C f_star) T.2.2.2.1
-          (compId (cA C.1) (cCodom C.1 (c0P C f_star)) T.2.2.1 (cDom C.1 T.2.2.2.1)
-           (compId (cA C.1) (cCodom C.1 (c0P C f_star)) (c0Ft C f_star) T.2.2.1 (c0PCodom C f_star) (c0FtStar C T)) (<i> T.2.2.2.2.1 @ -i)))
-         (cC C.1 (c0Q C T) (c0P C T.1)
-          (compId (cA C.1) (cCodom C.1 (c0Q C T)) T.1 (cDom C.1 (c0P C T.1)) (c0QCodom C T) (<i> c0PDom C T.1 @ -i))))
-  = (C.2.2.2.2.2.2.1 T.1 T.2.1 T.2.2.1 T.2.2.2.1 T.2.2.2.2.1 T.2.2.2.2.2).2.2.2.2.2.2
+  : (let X : cA (c0C C) = (suc T.1, T.2.1) in
+     Id (C.2.1 (c0Star C T) (c0Ft C X))
+        (cC (c0C C) (c0Star C T) T.2.2.1 (c0Ft C X) (c0P C (c0Star C T) T.2.2.1 (c0FtStar C T)) T.2.2.2)
+        (cC (c0C C) (c0Star C T) X (c0Ft C X) (c0Q C T) (c0P C X (c0Ft C X) (<_> (c0Ft C X)))))
+  = (C.2.2.2.2.2.2.1 T.1 T.2.1 T.2.2.1 T.2.2.2).2.2.2
 
-c0FtH (C : C0System) (f : cH C.1) (X : cA C.1) (fCodom : Id (cA C.1) (cCodom C.1 f) X) : cH C.1
-  = cC C.1 f (c0P C X) (compId (cA C.1) (cCodom C.1 f) X (cDom C.1 (c0P C X)) fCodom (<i> c0PDom C X @ -i))
-c0FtHDom (C : C0System) (f : cH C.1) (X : cA C.1) (fCodom : Id (cA C.1) (cCodom C.1 f) X) : Id (cA C.1) (cDom C.1 (c0FtH C f X fCodom)) (cDom C.1 f) = <_> cDom C.1 f
-c0FtHCodom (C : C0System) (f : cH C.1) (X : cA C.1) (fCodom : Id (cA C.1) (cCodom C.1 f) X)
-  : Id (cA C.1) (cCodom C.1 (c0FtH C f X fCodom)) (c0Ft C X) = undefined
+-- c0FtH (C : C0System) (Y X : cA C.1) (f : cH' C.1 Y X) : cH' C.1 Y (c0Ft C X)
+--   = (cC C.1 (Y, X, f) (X, c0Ft C X, c0P C X) (<_> X)).2.2
 
-isCSystem (C : C0System) : U
-  = (s : (X : cA C.1) -> (nzX : nzero (c0L C X)) -> (Y : cA C.1) ->
-         (f : cH C.1) -> (fDom : Id (cA C.1) (cDom C.1 f) Y) -> (fCodom : Id (cA C.1) (cCodom C.1 f) X) ->
-          (let f_star : cA C.1 = c0Star C (X, (nzX, (Y, (c0FtH C f X fCodom, (fDom, c0FtHCodom C f X fCodom)))))
-           in
-           (s : cH C.1) * (sDom : Id (cA C.1) (cDom C.1 s) Y) * (sCodom : Id (cA C.1) (cCodom C.1 s) f_star)
-         * (_ : Id (cH C.1)
-                (cC C.1 s (c0P C f_star) (compId (cA C.1) (cCodom C.1 s) f_star (cDom C.1 (c0P C f_star)) sCodom (<i> c0PDom C f_star @ -i)))
-                (cId C.1 Y))
-         * (Id (cH C.1)
-               f
-               (cC C.1 s (c0Q C (X, (nzX, (Y, (c0FtH C f X fCodom, (fDom, c0FtHCodom C f X fCodom))))))
-                 (compId (cA C.1) (cCodom C.1 s) f_star (cDom C.1 (c0Q C (X, (nzX, (Y, (c0FtH C f X fCodom, (fDom, c0FtHCodom C f X fCodom))))))) sCodom (<i> c0QDom C (X, (nzX, (Y, (c0FtH C f X fCodom, (fDom, c0FtHCodom C f X fCodom))))) @ -i))))))
-  * ((X : cA C.1) -> (nzX : nzero (c0L C X)) -> (Y : cA C.1) ->
-     (f : cH C.1) -> (fDom : Id (cA C.1) (cDom C.1 f) Y) -> (fCodom : Id (cA C.1) (cCodom C.1 f) X) ->
-     (V : cA C.1) -> (nzV : nzero (c0L C V)) ->
-     (g : cH C.1) -> (gDom : Id (cA C.1) (cDom C.1 g) (c0Ft C X)) -> (gCodom : Id (cA C.1) (cCodom C.1 g) (c0Ft C V)) ->
-     (let T0 : c0CanSq C = (V, (nzV, (c0Ft C X, (g, (gDom, gCodom))))) in
-     (p0 : Id (cA C.1) X (c0Star C T0)) ->
-      (let T1 : c0CanSq C = (X, (nzX, (Y, (c0FtH C f X fCodom, (fDom, c0FtHCodom C f X fCodom)))))
-           f_star : cA C.1 = c0Star C T1
-           f' : cH C.1 = cC C.1 f (c0Q C T0)
-                          (compId (cA C.1) (cCodom C.1 f) (c0Star C T0) (cDom C.1 (c0Q C T0))
-                            (compId (cA C.1) (cCodom C.1 f) X (c0Star C T0) fCodom p0)
-                            (<i> c0QDom C T0 @ -i))
-           f'Dom : Id (cA C.1) (cDom C.1 f') Y = fDom
-           f'Codom : Id (cA C.1) (cCodom C.1 f') V = c0QCodom C T0
-       in Id (cH C.1)
-           (s X nzX Y f fDom fCodom).1
-           (s V nzV Y f' f'Dom f'Codom).1
-      )))
+-- isCSystem (C : C0System) : U
+--   = (s : (X : cA C.1) -> (nzX : nzero (c0L C X)) -> (Y : cA C.1) ->
+--          (f : cH' C.1 Y X) ->
+--           (let T : c0CanSq C = (X, nzX, Y, c0FtH C Y X f)
+--                f_star : cA C.1 = c0Star C T
+--            in
+--            (s : cH C.1) * (sDom : Id (cA C.1) (cDom C.1 s) Y) * (sCodom : Id (cA C.1) (cCodom C.1 s) f_star)
+--          * (_ : Id (cH C.1)
+--                 (cC C.1 s (f_star, c0Ft C f_star, c0P C f_star) sCodom)
+--                 (cId C.1 Y))
+--          * (Id (cH C.1)
+--                (Y, X, f)
+--                (cC C.1 s (f_star, X, c0Q C T) sCodom))))
+--   * ((X : cA C.1) -> (nzX : nzero (c0L C X)) -> (Y : cA C.1) ->
+--      (f : cH' C.1 Y X) ->
+--      (V : cA C.1) -> (nzV : nzero (c0L C V)) ->
+--      (g : cH' C.1 (c0Ft C X) (c0Ft C V)) ->
+--      (let T0 : c0CanSq C = (V, nzV, c0Ft C X, g) in
+--      (p0 : Id (cA C.1) X (c0Star C T0)) ->
+--       (let T1 : c0CanSq C = (X, nzX, Y, c0FtH C Y X f)
+--            f_star : cA C.1 = c0Star C T1
+--            f' : cH C.1 = cC C.1 (Y, X, f) (c0Star C T0, V, c0Q C T0) p0
+--        in Id (cH C.1)
+--            (s X nzX Y f).1
+--            (s V nzV Y f'.2.2).1
+--       )))
 
-isCSystem2Cospan (C : C0System) (T : c0CanSq C) : cospan C.1
-  = (c0Ft C T.1,((T.2.2.1,(T.2.2.2.1,(T.2.2.2.2.1,(T.2.2.2.2.2)))),(T.1,(c0P C T.1,(c0PDom C T.1,c0PCodom C T.1)))))
+isCSystem2Cospan (C : C0System) (T : c0CanSq C) : cospan (c0C C)
+  = let X : cA (c0C C) = (suc T.1, T.2.1) in
+    (c0Ft C X,
+     (T.2.2.1, T.2.2.2),
+     (X, c0P C X (c0Ft C X) (<_>c0Ft C X)))
 
-isCSystem2CospanCone (C : C0System) (T : c0CanSq C) : cospanCone C.1 (isCSystem2Cospan C T)
-  = (c0Star C T,(
-     (c0P C (c0Star C T),(c0PDom C (c0Star C T),
-      (compId (cA C.1) (cCodom C.1 (c0P C (c0Star C T))) (c0Ft C (c0Star C T)) T.2.2.1
-       (c0PCodom C (c0Star C T)) (c0FtStar C T)))),(
-     (c0Q C T,(c0QDom C T,c0QCodom C T)),
-     c0Square C T)))
+isCSystem2CospanCone (C : C0System) (T : c0CanSq C) : cospanCone (c0C C) (isCSystem2Cospan C T)
+  = (c0Star C T,
+     c0P C (c0Star C T) T.2.2.1 (c0FtStar C T),
+     c0Q C T,
+     c0Square C T)
 
 isCSystem2Type (C : C0System) (T : c0CanSq C) : U
-  = isPullback C.1
+  = isPullback (c0C C)
       (isCSystem2Cospan C T)
       (isCSystem2CospanCone C T)
 isCSystem2 (C : C0System) : U
@@ -253,319 +219,595 @@ isCSystem2 (C : C0System) : U
 
 isCSystem2Prop (C : C0System) : prop (isCSystem2 C)
   = propPi (c0CanSq C) (\(T : c0CanSq C) -> isCSystem2Type C T)
-    (\(T : c0CanSq C) -> isPullbackProp C.1 (isCSystem2Cospan C T) (isCSystem2CospanCone C T))
+    (\(T : c0CanSq C) -> isPullbackProp (c0C C) (isCSystem2Cospan C T) (isCSystem2CospanCone C T))
 
-isCSystem21 (C : C0System) (D : isCSystem2 C) : isCSystem C = (hole1, hole2)
+-- isCSystem21 (C : C0System) (D : isCSystem2 C) : isCSystem C = (hole1, ?)
+--   where
+--     hole1 (X : cA C.1) (nzX : nzero (c0L C X)) (Y : cA C.1)
+--           (f : cH' C.1 Y X)
+--         : (let T : c0CanSq C = (X, nzX, Y, c0FtH C Y X f) in
+--            (s : cH C.1) * (sDom : Id (cA C.1) (cDom C.1 s) Y) * (sCodom : Id (cA C.1) (cCodom C.1 s) (c0Star C T))
+--          * (_ : Id (cH C.1) (cC C.1 s (c0P C (c0Star C T)) sCodom) (cId C.1 Y))
+--          * (Id (cH C.1) (Y, X, f) (cC C.1 s (c0Q C T) sCodom)))
+--         = let T : c0CanSq C = (X, nzX, Y, c0FtH C Y X f)
+--               YcospanCone : cospanCone C.1 (isCSystem2Cospan C T)
+--                 = (Y, (cId C.1 Y,<_>Y,<_>Y),
+--                       ((Y, X, f),<_> Y,<_> X),
+--                       cIdL C.1 Y (c0FtH C Y X f) (<_> Y))
+--               YcospanConeHom : cospanConeHom C.1 (isCSystem2Cospan C T) YcospanCone (isCSystem2CospanCone C T) = (D T YcospanCone).1
+--           in (YcospanConeHom.1, YcospanConeHom.2.1, YcospanConeHom.2.2.1, YcospanConeHom.2.2.2.1, <i> YcospanConeHom.2.2.2.2 @ -i)
+--     -- hole2 (X : cA C.1) (nzX : nzero (c0L C X)) (Y : cA C.1)
+--     --       (f : cH C.1) (fDom : Id (cA C.1) (cDom C.1 f) Y) (fCodom : Id (cA C.1) (cCodom C.1 f) X)
+--     --       (V : cA C.1) (nzV : nzero (c0L C V))
+--     --       (g : cH C.1) (gDom : Id (cA C.1) (cDom C.1 g) (c0Ft C X)) (gCodom : Id (cA C.1) (cCodom C.1 g) (c0Ft C V))
+--     --     : (let T0 : c0CanSq C = (V, (nzV, (c0Ft C X, (g, (gDom, gCodom))))) in
+--     --        (p0 : Id (cA C.1) X (c0Star C T0)) ->
+--     --         (let T1 : c0CanSq C = (X, (nzX, (Y, (c0FtH C f X fCodom, (fDom, c0FtHCodom C f X fCodom)))))
+--     --              f_star : cA C.1 = c0Star C T1
+--     --              f' : cH C.1 = cC C.1 f (c0Q C T0)
+--     --                              (compId (cA C.1) (cCodom C.1 f) (c0Star C T0) (cDom C.1 (c0Q C T0))
+--     --                              (compId (cA C.1) (cCodom C.1 f) X (c0Star C T0) fCodom p0)
+--     --                              (<i> c0QDom C T0 @ -i))
+--     --              f'Dom : Id (cA C.1) (cDom C.1 f') Y = fDom
+--     --              f'Codom : Id (cA C.1) (cCodom C.1 f') V = c0QCodom C T0
+--     --          in Id (cH C.1)
+--     --              (hole1 X nzX Y f fDom fCodom).1
+--     --              (hole1 V nzV Y f' f'Dom f'Codom).1))
+--     --     = undefined
+--         -- = (let T0 : c0CanSq C = (V, (nzV, (c0Ft C X, (g, (gDom, gCodom))))) in
+--         --    \(p0 : Id (cA C.1) X (c0Star C T0)) ->
+--         --     (let T1 : c0CanSq C = (X, (nzX, (Y, (c0FtH C f X fCodom, (fDom, c0FtHCodom C f X fCodom)))))
+--         --          f_star : cA C.1 = c0Star C T1
+--         --          nz_f_star : nzero (c0L C f_star) = c0NzStar C T1
+--         --          f'Eq : Id (cA C.1) (cCodom C.1 f) (cDom C.1 (c0Q C T0))
+--         --               = (compId (cA C.1) (cCodom C.1 f) (c0Star C T0) (cDom C.1 (c0Q C T0))
+--         --                 (compId (cA C.1) (cCodom C.1 f) X (c0Star C T0) fCodom p0) (<i> c0QDom C T0 @ -i))
+--         --          f' : cH C.1 = cC C.1 f (c0Q C T0) f'Eq
+--         --          f'Dom : Id (cA C.1) (cDom C.1 f') Y = fDom
+--         --          f'Codom : Id (cA C.1) (cCodom C.1 f') V = c0QCodom C T0
+--         --          T2 : c0CanSq C = (V, (nzV, (Y, (c0FtH C f' V f'Codom, (f'Dom, c0FtHCodom C f' V f'Codom)))))
+--         --          f'_star : cA C.1 = c0Star C T2
+--         --          h : cH C.1 = c0FtH C f X fCodom
+--         --          T4 : c0CanSq C = (c0Star C T0, (c0NzStar C T0, (Y, (h, (fDom,
+--         --                            (compId (cA C.1) (cCodom C.1 h) (c0Ft C X) (c0Ft C (c0Star C T0)) (c0PCodom C X)
+--         --                             (<i> (c0FtStar C T0) @ -i)))))))
+--         --          T5 : c0CanSq C
+--         --             = (V, (nzV, (Y,
+--         --                (cC C.1 h g (compId (cA C.1) (cCodom C.1 h) (c0Ft C X) (cDom C.1 g) (c0PCodom C X) (<i>gDom@-i)), (fDom, gCodom)))))
+--         --          p5 : Id (cH C.1)
+--         --                (cC C.1 (c0P C (c0Star C T0)) g
+--         --                 (compId (cA C.1) (cCodom C.1 (c0P C (c0Star C T0))) (c0Ft C X) (cDom C.1 g)
+--         --                  (compId (cA C.1) (cCodom C.1 (c0P C (c0Star C T0))) (c0Ft C (c0Star C T0)) (c0Ft C X) (c0PCodom C (c0Star C T0)) (c0FtStar C T0)) (<i> gDom @ -i)))
+--         --                (cC C.1 (c0Q C T0) (c0P C V)
+--         --                 (compId (cA C.1) (cCodom C.1 (c0Q C T0)) V (cDom C.1 (c0P C V)) (c0QCodom C T0) (<i> c0PDom C V @ -i)))
+--         --             = c0Square C T0
+--         --          p6 : Id (cH C.1) (cC C.1 (c0P C X) g (compId (cA C.1) (cCodom C.1 h) (c0Ft C X) (cDom C.1 g) (c0PCodom C X) (<i>gDom@-i)))
+--         --                           (cC C.1 (c0Q C T0) (c0P C V) (compId (cA C.1) (cCodom C.1 (c0Q C T0)) V (cDom C.1 (c0P C V)) f'Codom (<i> c0PDom C V @ -i)))
+--         --             = transport
+--         --                (<i>
+--         --                 Id (cH C.1)
+--         --                  (cC C.1 (c0P C (p0@-i)) g
+--         --                   (lemIdPProp (Id (cA C.1) (cCodom C.1 (c0P C (c0Star C T0))) (cDom C.1 g))
+--         --                               (Id (cA C.1) (cCodom C.1 (c0P C X)) (cDom C.1 g))
+--         --                               (c0ASet C (cCodom C.1 (c0P C (c0Star C T0))) (cDom C.1 g))
+--         --                               (<i> Id (cA C.1) (cCodom C.1 (c0P C (p0@-i))) (cDom C.1 g))
+--         --                    (compId (cA C.1) (cCodom C.1 (c0P C (c0Star C T0))) (c0Ft C X) (cDom C.1 g)
+--         --                     (compId (cA C.1) (cCodom C.1 (c0P C (c0Star C T0))) (c0Ft C (c0Star C T0)) (c0Ft C X) (c0PCodom C (c0Star C T0)) (c0FtStar C T0)) (<i> gDom @ -i))
+--         --                    (compId (cA C.1) (cCodom C.1 h) (c0Ft C X) (cDom C.1 g) (c0PCodom C X) (<i>gDom@-i))
+--         --                   @ i)
+--         --                  )
+--         --                  (cC C.1 (c0Q C T0) (c0P C V) (compId (cA C.1) (cCodom C.1 (c0Q C T0)) V (cDom C.1 (c0P C V)) f'Codom (<i> c0PDom C V @ -i)))
+--         --                ) p5
+--         --          p7 : Id (cH C.1) (cC C.1
+--         --                            f
+--         --                            (cC C.1 (c0P C X) g (compId (cA C.1) (cCodom C.1 h) (c0Ft C X) (cDom C.1 g) (c0PCodom C X) (<i>gDom@-i)))
+--         --                            (compId (cA C.1) (cCodom C.1 f) X (cDom C.1 (c0P C X)) fCodom (<i> c0PDom C X @ -i)))
+--         --                           (cC C.1
+--         --                            f
+--         --                            (cC C.1 (c0Q C T0) (c0P C V) (compId (cA C.1) (cCodom C.1 (c0Q C T0)) V (cDom C.1 (c0P C V)) f'Codom (<i> c0PDom C V @ -i)))
+--         --                            f'Eq)
+--         --             = <i> cC C.1 f (p6@i)
+--         --                   (lemIdPProp (Id (cA C.1) (cCodom C.1 f) (cDom C.1 (c0P C X)))
+--         --                               (Id (cA C.1) (cCodom C.1 f) (cDom C.1 (c0Q C T0)))
+--         --                               (c0ASet C (cCodom C.1 f) (cDom C.1 (c0P C X)))
+--         --                               (<i> Id (cA C.1) (cCodom C.1 f) (cDom C.1 (p6@i)))
+--         --                               (compId (cA C.1) (cCodom C.1 f) X (cDom C.1 (c0P C X)) fCodom (<i> c0PDom C X @ -i))
+--         --                               f'Eq @ i)
+--         --          p8 : Id (cH C.1) (cC C.1
+--         --                            (cC C.1 f (c0P C X) (compId (cA C.1) (cCodom C.1 f) X (cDom C.1 (c0P C X)) fCodom (<i> c0PDom C X @ -i)))
+--         --                            g
+--         --                            (compId (cA C.1) (cCodom C.1 h) (c0Ft C X) (cDom C.1 g) (c0PCodom C X) (<i>gDom@-i)))
+--         --                           (cC C.1
+--         --                            (cC C.1 f (c0Q C T0) f'Eq)
+--         --                            (c0P C V)
+--         --                            (compId (cA C.1) (cCodom C.1 (c0Q C T0)) V (cDom C.1 (c0P C V)) f'Codom (<i> c0PDom C V @ -i)))
+--         --             = compId (cH C.1)
+--         --               (cC C.1
+--         --                 (cC C.1 f (c0P C X) (compId (cA C.1) (cCodom C.1 f) X (cDom C.1 (c0P C X)) fCodom (<i> c0PDom C X @ -i)))
+--         --                 g
+--         --                 (compId (cA C.1) (cCodom C.1 h) (c0Ft C X) (cDom C.1 g) (c0PCodom C X) (<i>gDom@-i)))
+--         --               (cC C.1
+--         --                f
+--         --                (cC C.1 (c0Q C T0) (c0P C V) (compId (cA C.1) (cCodom C.1 (c0Q C T0)) V (cDom C.1 (c0P C V)) f'Codom (<i> c0PDom C V @ -i)))
+--         --                f'Eq)
+--         --               (cC C.1
+--         --                (cC C.1 f (c0Q C T0) f'Eq)
+--         --                (c0P C V)
+--         --                (compId (cA C.1) (cCodom C.1 (c0Q C T0)) V (cDom C.1 (c0P C V)) f'Codom (<i> c0PDom C V @ -i)))
+--         --               (compId (cH C.1)
+--         --                (cC C.1
+--         --                  (cC C.1 f (c0P C X) (compId (cA C.1) (cCodom C.1 f) X (cDom C.1 (c0P C X)) fCodom (<i> c0PDom C X @ -i)))
+--         --                  g
+--         --                  (compId (cA C.1) (cCodom C.1 h) (c0Ft C X) (cDom C.1 g) (c0PCodom C X) (<i>gDom@-i)))
+--         --                (cC C.1 f
+--         --                 (cC C.1 (c0P C X) g (compId (cA C.1) (cCodom C.1 h) (c0Ft C X) (cDom C.1 g) (c0PCodom C X) (<i>gDom@-i)))
+--         --                 (compId (cA C.1) (cCodom C.1 f) X (cDom C.1 (c0P C X)) fCodom (<i> c0PDom C X @ -i)))
+--         --                (cC C.1
+--         --                 f
+--         --                 (cC C.1 (c0Q C T0) (c0P C V) (compId (cA C.1) (cCodom C.1 (c0Q C T0)) V (cDom C.1 (c0P C V)) f'Codom (<i> c0PDom C V @ -i)))
+--         --                 f'Eq)
+--         --                (<i>cIdC C.1 f (c0P C X) g (compId (cA C.1) (cCodom C.1 f) X (cDom C.1 (c0P C X)) fCodom (<i> c0PDom C X @ -i))
+--         --                    (compId (cA C.1) (cCodom C.1 h) (c0Ft C X) (cDom C.1 g) (c0PCodom C X) (<i>gDom@-i))@-i)
+--         --                p7
+--         --               )
+--         --               (cIdC C.1 f (c0Q C T0) (c0P C V) f'Eq (compId (cA C.1) (cCodom C.1 (c0Q C T0)) V (cDom C.1 (c0P C V)) f'Codom (<i> c0PDom C V @ -i)))
+--         --          T5eqT2 : Id (c0CanSq C) T5 T2 = c0CanSqEq C T5 T2 (<_>V) p8
+--         --          T1eqT4 : Id (c0CanSq C) T1 T4 = c0CanSqEq C T1 T4 p0 (<_>h)
+--         --          p9 : Id (cA C.1) f_star f'_star
+--         --             = compId (cA C.1) f_star (c0Star C T4) f'_star
+--         --              (<i> c0Star C (T1eqT4 @ i))
+--         --              (compId (cA C.1) (c0Star C T4) (c0Star C T5) f'_star
+--         --               (C.2.2.2.2.2.2 V nzV (c0Ft C X) g gDom gCodom Y h fDom (c0PCodom C X)).1
+--         --               (<i> c0Star C (T5eqT2 @ i)))
+--         --          YcospanCone0 : cospanCone C.1 (isCSystem2Cospan C T1)
+--         --            = (Y,
+--         --               ((cId C.1 Y,(<_>Y,<_>Y)),
+--         --               ((f,(fDom,fCodom)),
+--         --               cIdL C.1 Y (c0FtH C f X fCodom) (compId (cA C.1) Y Y (cDom C.1 f) (<_>Y) (<i>fDom@-i)))))
+--         --          YcospanConeHom0 : cospanConeHom C.1 (isCSystem2Cospan C T1) YcospanCone0 (isCSystem2CospanCone C T1) = (D T1 YcospanCone0).1
+--         --          YcospanCone1 : cospanCone C.1 (isCSystem2Cospan C T2)
+--         --            = (Y,
+--         --               ((cId C.1 Y,(<_>Y,<_>Y)),
+--         --               ((f',(f'Dom,f'Codom)),
+--         --               cIdL C.1 Y (c0FtH C f' V f'Codom) (compId (cA C.1) Y Y (cDom C.1 f') (<_>Y) (<i>f'Dom@-i)))))
+--         --          YcospanConeHom1 : cospanConeHom C.1 (isCSystem2Cospan C T2) YcospanCone1 (isCSystem2CospanCone C T2) = (D T2 YcospanCone1).1
+--         --          p1 : Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) f'_star = compId (cA C.1) (cCodom C.1 YcospanConeHom0.1) f_star f'_star YcospanConeHom0.2.2.1 p9
+--         --          hole0 : Id (cH C.1) (cC C.1 YcospanConeHom0.1 (c0P C f'_star)
+--         --                               (compId (cA C.1) (cCodom C.1 YcospanConeHom0.1) f'_star (cDom C.1 (c0P C f'_star)) p1 (<i>c0PDom C f'_star@-i)))
+--         --                              (cId C.1 Y)
+--         --                = compId (cH C.1)
+--         --                           (cC C.1 YcospanConeHom0.1 (c0P C f'_star)
+--         --                            (compId (cA C.1) (cCodom C.1 YcospanConeHom0.1) f'_star (cDom C.1 (c0P C f'_star)) p1 (<i>c0PDom C f'_star@-i)))
+--         --                           (cC C.1 YcospanConeHom0.1 (c0P C f_star)
+--         --                            (compId (cA C.1) (cCodom C.1 YcospanConeHom0.1) f_star (cDom C.1 (c0P C f_star)) YcospanConeHom0.2.2.1 (<i>c0PDom C f_star@-i)))
+--         --                           (cId C.1 Y)
+--         --                           (<i> cC C.1 YcospanConeHom0.1 (c0P C (p9@-i))
+--         --                            (compId (cA C.1) (cCodom C.1 YcospanConeHom0.1) (p9@-i) (cDom C.1 (c0P C (p9@-i))) (hole01@i) (<j>c0PDom C (p9@-i)@-j)))
+--         --                           YcospanConeHom0.2.2.2.1
+--         --               where
+--         --                 hole01 : IdP (<i> Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (p9@-i)) p1 YcospanConeHom0.2.2.1
+--         --                       = lemIdPProp (Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) f'_star) (Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) f_star)
+--         --                                    (c0ASet C (cCodom C.1 YcospanConeHom0.1) f'_star)
+--         --                                    (<i> Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (p9@-i)) p1 YcospanConeHom0.2.2.1
+--         --          l1 : Id (cA C.1) (cCodom C.1 (c0Q C T4)) (cDom C.1 (c0Q C T0))
+--         --             = (compId (cA C.1)
+--         --                    (cCodom C.1 (c0Q C T4)) (c0Star C T0) (cDom C.1 (c0Q C T0))
+--         --                    (c0QCodom C T4) (<i> c0QDom C T0 @ -i))
+--         --          l : cH C.1 = (cC C.1 (c0Q C T4) (c0Q C T0) l1)
+--         --          r7 : Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C T1))
+--         --             = (compId (cA C.1) (cCodom C.1 YcospanConeHom0.1) (c0Star C T1) (cDom C.1 (c0Q C T1))
+--         --                YcospanConeHom0.2.2.1 (<i> c0QDom C T1 @ -i))
+--         --          r3 : Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C T4))
+--         --             = transport (<i> Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C (T1eqT4@i)))) r7
+--         --          r6 : Id (cH C.1) (cC C.1 YcospanConeHom0.1 (c0Q C T1) r7) f
+--         --             = YcospanConeHom0.2.2.2.2
+--         --          r5 : Id (cH C.1) (cC C.1 YcospanConeHom0.1 (c0Q C T4) r3) f
+--         --             = transport
+--         --                (<i> Id (cH C.1)
+--         --                      (cC C.1 YcospanConeHom0.1 (c0Q C (T1eqT4@i))
+--         --                       (lemIdPProp (Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C T1)))
+--         --                                   (Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C T4)))
+--         --                                   (c0ASet C (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C T1)))
+--         --                                   (<i>Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C (T1eqT4@i))))
+--         --                                   r7 r3
+--         --                         @ i)
+--         --                       ) f) r6
+--         --          r4 : Id (cH C.1) (cC C.1 (cC C.1 YcospanConeHom0.1 (c0Q C T4) r3) (c0Q C T0) l1) f'
+--         --             = <i> cC C.1 (r5@i) (c0Q C T0)
+--         --                   (lemIdPProp (Id (cA C.1) (cCodom C.1 (r5@0)) (cDom C.1 (c0Q C T0)))
+--         --                               (Id (cA C.1) (cCodom C.1 (r5@1)) (cDom C.1 (c0Q C T0)))
+--         --                               (c0ASet C (cCodom C.1 (r5@0)) (cDom C.1 (c0Q C T0)))
+--         --                               (<i>Id (cA C.1) (cCodom C.1 (r5@i)) (cDom C.1 (c0Q C T0)))
+--         --                               l1 f'Eq@i)
+--         --          r2 : Id (cH C.1) (cC C.1 YcospanConeHom0.1 l r3) f'
+--         --             = compId (cH C.1) (cC C.1 YcospanConeHom0.1 l r3) (cC C.1 (cC C.1 YcospanConeHom0.1 (c0Q C T4) r3) (c0Q C T0) l1) f'
+--         --               (cIdC C.1 YcospanConeHom0.1 (c0Q C T4) (c0Q C T0) r3 l1)
+--         --               r4
+--         --          r1 : Id (cH C.1) l (c0Q C T5)
+--         --             = (C.2.2.2.2.2.2 V nzV (c0Ft C X) g gDom gCodom Y h fDom (c0PCodom C X)).2
+--         --          r0 : Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C T5))
+--         --             = transport (<i> Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (r1@i))) r3
+--         --          r9 : Id (cH C.1) (cC C.1 YcospanConeHom0.1 (c0Q C T5) r0) f'
+--         --             = transport
+--         --               (<i> Id (cH C.1)
+--         --                    (cC C.1 YcospanConeHom0.1 (r1@i)
+--         --                     (lemIdPProp (Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (r1@0)))
+--         --                                 (Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (r1@1)))
+--         --                                 (c0ASet C (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (r1@0)))
+--         --                                 (<i>Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (r1@i)))
+--         --                                 r3 r0 @ i)
+--         --                    ) f'
+--         --               ) r2
+--         --          hole1 : Id (cH C.1) (cC C.1 YcospanConeHom0.1 (c0Q C T2)
+--         --                               (compId (cA C.1) (cCodom C.1 YcospanConeHom0.1) f'_star (cDom C.1 (c0Q C T2)) p1 (<i>c0QDom C T2@-i))) f'
+--         --                = transport (<i> Id (cH C.1) (cC C.1 YcospanConeHom0.1 (c0Q C (T5eqT2@i))
+--         --                                              (lemIdPProp
+--         --                                               (Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C T5)))
+--         --                                               (Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C T2)))
+--         --                                               (c0ASet C (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C T5)))
+--         --                                               (<i>Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C (T5eqT2@i))))
+--         --                                               r0 (compId (cA C.1) (cCodom C.1 YcospanConeHom0.1) f'_star (cDom C.1 (c0Q C T2)) p1 (<i>c0QDom C T2@-i)) @ i)) f') r9
+--         --          YcospanConeHom1' : cospanConeHom C.1 (isCSystem2Cospan C T2) YcospanCone1 (isCSystem2CospanCone C T2)
+--         --            = (YcospanConeHom0.1, (YcospanConeHom0.2.1, (p1,
+--         --              (hole0, hole1))))
+--         --      in <i> ((D T2 YcospanCone1).2 YcospanConeHom1' @ -i).1))
+
+-- isCSystem12 (C : C0System) (D : isCSystem C) : isCSystem2 C = hole
+--   where
+--     hole (T : c0CanSq C) (h : cospanCone C.1 (isCSystem2Cospan C T))
+--         : isContr (cospanConeHom C.1 (isCSystem2Cospan C T) h (isCSystem2CospanCone C T)) = hole1
+--       where
+--         X : cA C.1 = T.1
+--         nzX : nzero (c0L C X) = T.2.1
+--         Y : cA C.1 = T.2.2.1
+--         f_star : cA C.1 = c0Star C T
+--         nz_f_star : nzero (c0L C f_star) = c0NzStar C T
+--         ft_f_star : Id (cA C.1) (c0Ft C f_star) Y = c0FtStar C T
+--         W : cA C.1 = h.1
+--         g1 : cH C.1 = h.2.1.1
+--         g1Dom : Id (cA C.1) (cDom C.1 g1) W = h.2.1.2.1
+--         g1Codom : Id (cA C.1) (cCodom C.1 g1) Y = h.2.1.2.2
+--         g2 : cH C.1 = h.2.2.1.1
+--         g2Dom : Id (cA C.1) (cDom C.1 g2) W = h.2.2.1.2.1
+--         g2Codom : Id (cA C.1) (cCodom C.1 g2) X = h.2.2.1.2.2
+--         T3 : c0CanSq C = (X, (nzX, (W, (c0FtH C g2 X g2Codom, (g2Dom, c0FtHCodom C g2 X g2Codom)))))
+--         g2_star : cA C.1 = c0Star C T3
+--         sg2 : cH C.1 = (D.1 X nzX W g2 g2Dom g2Codom).1
+--         sg2Codom : Id (cA C.1) (cCodom C.1 sg2) g2_star = (D.1 X nzX W g2 g2Dom g2Codom).2.2.1
+--         T2 : c0CanSq C = (f_star, (nz_f_star, (W, (g1, (g1Dom, compId (cA C.1) (cCodom C.1 g1) Y (c0Ft C f_star) g1Codom (<i>ft_f_star@-i))))))
+--         qg1 : cH C.1 = c0Q C T2
+--         plop : Id (cA C.1)
+--                 (c0Star C T2)
+--                 (c0Star C (X, (nzX, (W, (cC C.1 g1 T.2.2.2.1 (compId (cA C.1) (cCodom C.1 g1) Y (cDom C.1 T.2.2.2.1) g1Codom (<i>T.2.2.2.1@-i)), (g1Dom, T.2.2.2.2))))))
+--              = (C.2.2.2.2.2.2 X nzX Y T.2.2.2 W g1 g1Dom g1Codom).1
+--         plop2 : Id (hom C.1 W (c0Ft C X))
+--                  (cC C.1 g1 T.2.2.2.1 (compId (cA C.1) (cCodom C.1 g1) Y (cDom C.1 T.2.2.2.1) g1Codom (<i>T.2.2.2.1@-i)), (g1Dom, T.2.2.2.2))
+--                  (c0FtH C g2 X g2Codom, (g2Dom, c0FtHCodom C g2 X g2Codom))
+--               = <i> (p0'@i, (p1'@i, p2'@i))
+--           where p0' : Id (cH C.1)
+--                         (cC C.1 g1 T.2.2.2.1 (compId (cA C.1) (cCodom C.1 g1) Y (cDom C.1 T.2.2.2.1) g1Codom (<i>T.2.2.2.1@-i)))
+--                         (c0FtH C g2 X g2Codom)
+--                     = h.2.2.2
+--                 p1' : IdP (<i> Id (cA C.1) (cDom C.1 (p0'@i)) W) g1Dom g2Dom
+--                     = lemIdPProp (Id (cA C.1) (cDom C.1 (p0'@0)) W) (Id (cA C.1) (cDom C.1 (p0'@1)) W)
+--                       (c0ASet C (cDom C.1 (p0'@0)) W)
+--                       (<i> Id (cA C.1) (cDom C.1 (p0'@i)) W) g1Dom g2Dom
+--                 p2' : IdP (<i> Id (cA C.1) (cCodom C.1 (p0'@i)) (c0Ft C X)) T.2.2.2.2 (c0FtHCodom C g2 X g2Codom)
+--                     = lemIdPProp (Id (cA C.1) (cCodom C.1 (p0'@0)) (c0Ft C X)) (Id (cA C.1) (cCodom C.1 (p0'@1)) (c0Ft C X))
+--                       (c0ASet C (cCodom C.1 (p0'@0)) (c0Ft C X))
+--                       (<i> Id (cA C.1) (cCodom C.1 (p0'@i)) (c0Ft C X)) T.2.2.2.2 (c0FtHCodom C g2 X g2Codom)
+--         hole21 : cH C.1
+--                = cC C.1 sg2 qg1
+--                   (compId (cA C.1)
+--                           (cCodom C.1 sg2) g2_star (cDom C.1 qg1) sg2Codom
+--                   (compId (cA C.1)
+--                           g2_star
+--                           (c0Star C (X, (nzX, (W, (cC C.1 g1 T.2.2.2.1 (compId (cA C.1) (cCodom C.1 g1) Y (cDom C.1 T.2.2.2.1) g1Codom (<i>T.2.2.2.1@-i)), (g1Dom, T.2.2.2.2))))))
+--                           (cDom C.1 qg1) (<i> c0Star C (X, (nzX, (W, plop2@-i))))
+--                   (compId (cA C.1)
+--                           (c0Star C (X, (nzX, (W, (cC C.1 g1 T.2.2.2.1 (compId (cA C.1) (cCodom C.1 g1) Y (cDom C.1 T.2.2.2.1) g1Codom (<i>T.2.2.2.1@-i)), (g1Dom, T.2.2.2.2))))))
+--                           (c0Star C T2) (cDom C.1 qg1)
+--                           (<i>plop@-i) (<i>c0QDom C T2@-i))))
+--         hole2 : cospanConeHom C.1 (isCSystem2Cospan C T) h (isCSystem2CospanCone C T)
+--           = (hole21, (?, ?))
+--         hole1 : isContr (cospanConeHom C.1 (isCSystem2Cospan C T) h (isCSystem2CospanCone C T)) = undefined
+
+--
+iso (C : precategory) (A B : cA C) : U
+  = (f : cH C A B) * (g : cH C B A)
+  * (_ : Id (cH C A A) (cC C A B A f g) (cId C A))
+  * (Id (cH C B B) (cC C B A B g f) (cId C B))
+isoId (C : precategory) (A : cA C) : iso C A A = (cId C A, cId C A, cIdL C A A (cId C A), cIdL C A A (cId C A))
+eqToIso (C : precategory) (A B : cA C) (p : Id (cA C) A B) : iso C A B
+  = J (cA C) A (\(B : cA C) -> \(p : Id (cA C) A B) -> iso C A B) (isoId C A) B p
+isCategory (C : precategory) : U = (A B : cA C) -> isEquiv (Id (cA C) A B) (iso C A B) (eqToIso C A B)
+
+isFinal (C : precategory) (A : cA C) : U = (B : cA C) -> isContr (cH C B A)
+hasFinal (C : precategory) : U = (A : cA C) * isFinal C A
+
+uc : U
+   = (C : precategory)
+   * (_ : isCategory C)
+   * (pt : hasFinal C)
+   * (V : cA C) * (VT : cA C) * (p : cH C VT V)
+   * ((f : homTo C V) -> hasPullback C (V, f, VT, p))
+
+ucToC0 (C : uc) : C0System = hole
   where
-    hole1 (X : cA C.1) (nzX : nzero (c0L C X)) (Y : cA C.1)
-          (f : cH C.1) (fDom : Id (cA C.1) (cDom C.1 f) Y) (fCodom : Id (cA C.1) (cCodom C.1 f) X)
-        : (let T : c0CanSq C = (X, (nzX, (Y, (c0FtH C f X fCodom, (fDom, c0FtHCodom C f X fCodom)))))
-               f_star : cA C.1 = c0Star C T
-           in
-           (s : cH C.1) * (sDom : Id (cA C.1) (cDom C.1 s) Y) * (sCodom : Id (cA C.1) (cCodom C.1 s) f_star)
-         * (_ : Id (cH C.1)
-                (cC C.1 s (c0P C f_star) (compId (cA C.1) (cCodom C.1 s) f_star (cDom C.1 (c0P C f_star)) sCodom (<i> c0PDom C f_star @ -i)))
-                (cId C.1 Y))
-         * (Id (cH C.1)
-               f
-               (cC C.1 s (c0Q C (X, (nzX, (Y, (c0FtH C f X fCodom, (fDom, c0FtHCodom C f X fCodom))))))
-                 (compId (cA C.1) (cCodom C.1 s) f_star (cDom C.1 (c0Q C T)) sCodom (<i> c0QDom C T @ -i)))))
-        = let T : c0CanSq C = (X, (nzX, (Y, (c0FtH C f X fCodom, (fDom, c0FtHCodom C f X fCodom)))))
-              f_star : cA C.1 = c0Star C T
-              YcospanCone : cospanCone C.1 (isCSystem2Cospan C T)
-                = (Y,
-                   ((cId C.1 Y,(<_>Y,<_>Y)),
-                   ((f,(fDom,fCodom)),
-                   cIdL C.1 Y (c0FtH C f X fCodom) (compId (cA C.1) Y Y (cDom C.1 f) (<_>Y) (<i>fDom@-i)))))
-              YcospanConeHom : cospanConeHom C.1 (isCSystem2Cospan C T) YcospanCone (isCSystem2CospanCone C T) = (D T YcospanCone).1
-          in (YcospanConeHom.1,(YcospanConeHom.2.1,(YcospanConeHom.2.2.1, (YcospanConeHom.2.2.2.1, <i> YcospanConeHom.2.2.2.2 @ -i))))
-    hole2 (X : cA C.1) (nzX : nzero (c0L C X)) (Y : cA C.1)
-          (f : cH C.1) (fDom : Id (cA C.1) (cDom C.1 f) Y) (fCodom : Id (cA C.1) (cCodom C.1 f) X)
-          (V : cA C.1) (nzV : nzero (c0L C V))
-          (g : cH C.1) (gDom : Id (cA C.1) (cDom C.1 g) (c0Ft C X)) (gCodom : Id (cA C.1) (cCodom C.1 g) (c0Ft C V))
-        : (let T0 : c0CanSq C = (V, (nzV, (c0Ft C X, (g, (gDom, gCodom))))) in
-           (p0 : Id (cA C.1) X (c0Star C T0)) ->
-            (let T1 : c0CanSq C = (X, (nzX, (Y, (c0FtH C f X fCodom, (fDom, c0FtHCodom C f X fCodom)))))
-                 f_star : cA C.1 = c0Star C T1
-                 f' : cH C.1 = cC C.1 f (c0Q C T0)
-                                 (compId (cA C.1) (cCodom C.1 f) (c0Star C T0) (cDom C.1 (c0Q C T0))
-                                 (compId (cA C.1) (cCodom C.1 f) X (c0Star C T0) fCodom p0)
-                                 (<i> c0QDom C T0 @ -i))
-                 f'Dom : Id (cA C.1) (cDom C.1 f') Y = fDom
-                 f'Codom : Id (cA C.1) (cCodom C.1 f') V = c0QCodom C T0
-             in Id (cH C.1)
-                 (hole1 X nzX Y f fDom fCodom).1
-                 (hole1 V nzV Y f' f'Dom f'Codom).1))
-        = (let T0 : c0CanSq C = (V, (nzV, (c0Ft C X, (g, (gDom, gCodom))))) in
-           \(p0 : Id (cA C.1) X (c0Star C T0)) ->
-            (let T1 : c0CanSq C = (X, (nzX, (Y, (c0FtH C f X fCodom, (fDom, c0FtHCodom C f X fCodom)))))
-                 f_star : cA C.1 = c0Star C T1
-                 nz_f_star : nzero (c0L C f_star) = c0NzStar C T1
-                 f'Eq : Id (cA C.1) (cCodom C.1 f) (cDom C.1 (c0Q C T0))
-                      = (compId (cA C.1) (cCodom C.1 f) (c0Star C T0) (cDom C.1 (c0Q C T0))
-                        (compId (cA C.1) (cCodom C.1 f) X (c0Star C T0) fCodom p0) (<i> c0QDom C T0 @ -i))
-                 f' : cH C.1 = cC C.1 f (c0Q C T0) f'Eq
-                 f'Dom : Id (cA C.1) (cDom C.1 f') Y = fDom
-                 f'Codom : Id (cA C.1) (cCodom C.1 f') V = c0QCodom C T0
-                 T2 : c0CanSq C = (V, (nzV, (Y, (c0FtH C f' V f'Codom, (f'Dom, c0FtHCodom C f' V f'Codom)))))
-                 f'_star : cA C.1 = c0Star C T2
+    V : cA C.1 = C.2.2.2.1
+    VT : cA C.1 = C.2.2.2.2.1
+    p : cH C.1 VT V = C.2.2.2.2.2.1
+    mutual
+      ob : (n : nat) -> U = split
+        zero -> Unit
+        suc n -> (A : ob n) * cH C.1 (int n A) V
+      int : (n : nat) -> ob n -> cA C.1 = split
+        zero -> \(_:Unit) -> C.2.2.1.1
+        suc n -> \(X : ob (suc n)) -> (pb n X).1.1
+      F (n : nat) (X : ob (suc n)) : homTo C.1 V = (int n X.1, X.2)
+      cs (n : nat) (X : ob (suc n)) : cospan C.1 = (V, F n X, VT, p)
+      pb (n : nat) (X : ob (suc n)) : hasPullback C.1 (cs n X)
+        = C.2.2.2.2.2.2 (int n X.1, X.2)
+    obSet : (n : nat) -> set (ob n) = split
+      zero -> setUnit
+      suc n -> setSig (ob n) (\(A : ob n) -> cH C.1 (int n A) V) (obSet n) (\(A : ob n) -> C.1.2.1 (int n A) V)
+    obD : U = Sigma nat ob
+    intD (x : obD) : cA C.1 = int x.1 x.2
+    homD (a b : obD) : U = C.1.1.2 (intD a) (intD b)
+    homDSet (a b : obD) : set (homD a b) = C.1.2.1 (intD a) (intD b)
+    DId (a : obD) : homD a a = C.1.2.2.1 (intD a)
+    DC (a b c : obD) (f : homD a b) (g : homD b c) : homD a c = C.1.2.2.2.1 (intD a) (intD b) (intD c) f g
+    DIdL (a b : obD) (g : homD a b) : Id (homD a b) (DC a a b (DId a) g) g = C.1.2.2.2.2.1 (intD a) (intD b) g
+    DIdR (a b : obD) (g : homD a b) : Id (homD a b) (DC a b b g (DId b)) g = C.1.2.2.2.2.2.1 (intD a) (intD b) g
+    DIdC (a b c d : obD) (f : homD a b) (g : homD b c) (h : homD c d)
+         : Id (homD a d) (DC a c d (DC a b c f g) h) (DC a b d f (DC b c d g h))
+         = C.1.2.2.2.2.2.2 (intD a) (intD b) (intD c) (intD d) f g h
+    DD : categoryData = (obD, homD)
+    D : isPrecategory DD
+      = (homDSet, DId, DC, DIdL, DIdR, DIdC)
+    DC : precategory = (DD, D)
 
-                 h : cH C.1 = c0FtH C f X fCodom
-                 T4 : c0CanSq C = (c0Star C T0, (c0NzStar C T0, (Y, (h, (fDom,
-                                   (compId (cA C.1) (cCodom C.1 h) (c0Ft C X) (c0Ft C (c0Star C T0)) (c0PCodom C X)
-                                    (<i> (c0FtStar C T0) @ -i)))))))
-                 T5 : c0CanSq C
-                    = (V, (nzV, (Y,
-                       (cC C.1 h g (compId (cA C.1) (cCodom C.1 h) (c0Ft C X) (cDom C.1 g) (c0PCodom C X) (<i>gDom@-i)), (fDom, gCodom)))))
+    ft0 (n : nat) (x : ob (suc n)) : ob n = x.1
+    ft (x : obD) : obD = mkFt ob ft0 x.1 x.2
+    p0 : (n : nat) -> (x : ob n) -> homD (n, x) (ft (n, x)) = split
+      zero  -> \(A:Unit) -> DId (zero, A)
+      suc n -> \(X:ob (suc n)) -> (pb n X).1.2.1
+    pD (x y : obD) (p : Id obD (ft x) y) : homD x y = transport (<i>homD x (p@i)) (p0 x.1 x.2)
 
-                 p5 : Id (cH C.1)
-                       (cC C.1 (c0P C (c0Star C T0)) g
-                        (compId (cA C.1) (cCodom C.1 (c0P C (c0Star C T0))) (c0Ft C X) (cDom C.1 g)
-                         (compId (cA C.1) (cCodom C.1 (c0P C (c0Star C T0))) (c0Ft C (c0Star C T0)) (c0Ft C X) (c0PCodom C (c0Star C T0)) (c0FtStar C T0)) (<i> gDom @ -i)))
-                       (cC C.1 (c0Q C T0) (c0P C V)
-                        (compId (cA C.1) (cCodom C.1 (c0Q C T0)) V (cDom C.1 (c0P C V)) (c0QCodom C T0) (<i> c0PDom C V @ -i)))
-                    = c0Square C T0
+    fstar (n : nat) (X : ob (suc n)) (Y : obD) (f : homD Y (n, X.1)) : obD
+      = (suc Y.1, Y.2, cC C.1 (intD Y) (int n X.1) V f X.2)
 
-                 p6 : Id (cH C.1) (cC C.1 (c0P C X) g (compId (cA C.1) (cCodom C.1 h) (c0Ft C X) (cDom C.1 g) (c0PCodom C X) (<i>gDom@-i)))
-                                  (cC C.1 (c0Q C T0) (c0P C V) (compId (cA C.1) (cCodom C.1 (c0Q C T0)) V (cDom C.1 (c0P C V)) f'Codom (<i> c0PDom C V @ -i)))
-                    = transport
-                       (<i>
-                        Id (cH C.1)
-                         (cC C.1 (c0P C (p0@-i)) g
-                          (lemIdPProp (Id (cA C.1) (cCodom C.1 (c0P C (c0Star C T0))) (cDom C.1 g))
-                                      (Id (cA C.1) (cCodom C.1 (c0P C X)) (cDom C.1 g))
-                                      (cASet C.1 (cCodom C.1 (c0P C (c0Star C T0))) (cDom C.1 g))
-                                      (<i> Id (cA C.1) (cCodom C.1 (c0P C (p0@-i))) (cDom C.1 g))
-                           (compId (cA C.1) (cCodom C.1 (c0P C (c0Star C T0))) (c0Ft C X) (cDom C.1 g)
-                            (compId (cA C.1) (cCodom C.1 (c0P C (c0Star C T0))) (c0Ft C (c0Star C T0)) (c0Ft C X) (c0PCodom C (c0Star C T0)) (c0FtStar C T0)) (<i> gDom @ -i))
-                           (compId (cA C.1) (cCodom C.1 h) (c0Ft C X) (cDom C.1 g) (c0PCodom C X) (<i>gDom@-i))
-                          @ i)
-                         )
-                         (cC C.1 (c0Q C T0) (c0P C V) (compId (cA C.1) (cCodom C.1 (c0Q C T0)) V (cDom C.1 (c0P C V)) f'Codom (<i> c0PDom C V @ -i)))
-                       ) p5
+    q_ (n : nat) (X : ob (suc n)) (Y : obD) (f : homD Y (n, X.1))
+      : (q : homD (fstar n X Y f) (suc n, X))
+      * (_ : Id (homD (fstar n X Y f) (n, X.1))
+                (cC DC (fstar n X Y f) Y (n, X.1) (p0 (suc Y.1) (fstar n X Y f).2) f)
+                (cC DC (fstar n X Y f) (suc n, X) (n, X.1) q (p0 (suc n) X)))
+      * Id (cH C.1 (intD (fstar n X Y f)) VT)
+           (cC C.1 (intD (fstar n X Y f)) (int (suc n) X) VT q (pb n X).1.2.2.1)
+           (pb Y.1 (Y.2, cC C.1 (intD Y) (int n X.1) V f X.2)).1.2.2.1
+      = let f_star : obD = fstar n X Y f
+            if_star : cA C.1 = intD f_star
+            gF : cH C.1 (intD Y) V = cC C.1 (intD Y) (int n X.1) V f X.2
+            qq : cH C.1 if_star VT = (pb Y.1 (Y.2, gF)).1.2.2.1
+            pg : cH C.1 if_star (int n X.1) = cC C.1 if_star (intD Y) (int n X.1) (p0 (suc Y.1) f_star.2) f
+            hole0 : Id (cH C.1 if_star V)
+                       (cC C.1 if_star (int n X.1) V pg X.2)
+                       (cC C.1 if_star VT V qq p)
+                  = compId (cH C.1 if_star V)
+                           (cC C.1 if_star (int n X.1) V pg X.2)
+                           (cC C.1 if_star (intD Y) V (pb Y.1 (Y.2, gF)).1.2.1 gF)
+                           (cC C.1 if_star VT V qq p)
+                           (cIdC C.1 if_star (intD Y) (int n X.1) V (pb Y.1 (Y.2, gF)).1.2.1 f X.2)
+                           (pb Y.1 (Y.2, gF)).1.2.2.2
+            pp : cospanCone C.1 (cs n X)
+               = (if_star, pg, qq, hole0)
+        in (((pb n X).2 pp).1.1, <i>((pb n X).2 pp).1.2.1@-i, ((pb n X).2 pp).1.2.2)
 
-                 p7 : Id (cH C.1) (cC C.1
-                                   f
-                                   (cC C.1 (c0P C X) g (compId (cA C.1) (cCodom C.1 h) (c0Ft C X) (cDom C.1 g) (c0PCodom C X) (<i>gDom@-i)))
-                                   (compId (cA C.1) (cCodom C.1 f) X (cDom C.1 (c0P C X)) fCodom (<i> c0PDom C X @ -i)))
-                                  (cC C.1
-                                   f
-                                   (cC C.1 (c0Q C T0) (c0P C V) (compId (cA C.1) (cCodom C.1 (c0Q C T0)) V (cDom C.1 (c0P C V)) f'Codom (<i> c0PDom C V @ -i)))
-                                   f'Eq)
-                    = <i> cC C.1 f (p6@i)
-                          (lemIdPProp (Id (cA C.1) (cCodom C.1 f) (cDom C.1 (c0P C X)))
-                                      (Id (cA C.1) (cCodom C.1 f) (cDom C.1 (c0Q C T0)))
-                                      (cASet C.1 (cCodom C.1 f) (cDom C.1 (c0P C X)))
-                                      (<i> Id (cA C.1) (cCodom C.1 f) (cDom C.1 (p6@i)))
-                                      (compId (cA C.1) (cCodom C.1 f) X (cDom C.1 (c0P C X)) fCodom (<i> c0PDom C X @ -i))
-                                      f'Eq @ i)
+    qId (n : nat) (X : ob (suc n)) :
+        (p0 : Id obD (fstar n X (n, X.1) (cId DC (n, X.1))) (suc n, X))
+      * (IdP (<i>cH DC (p0@i) (suc n, X)) (q_ n X (n, X.1) (cId DC (n, X.1))).1 (cId DC (suc n, X)))
+      = let f_star : obD = fstar n X (n, X.1) (cId DC (n, X.1))
+            p1 : Id obD f_star (suc n, X) = <i> (suc n, X.1, cIdL C.1 (int n X.1) V X.2 @ i)
+            if_star : cA C.1 = intD f_star
+            gF : cH C.1 (int n X.1) V = cC C.1 (int n X.1) (int n X.1) V (cId DC (n, X.1)) X.2
+            qq : cH C.1 if_star VT = (pb n (X.1, gF)).1.2.2.1
+            pg : cH C.1 if_star (int n X.1)
+               = cC C.1 if_star (int n X.1) (int n X.1) (p0 (suc n) f_star.2) (cId DC (n, X.1))
+            hole0 : Id (cH C.1 if_star V)
+                       (cC C.1 if_star (int n X.1) V pg X.2)
+                       (cC C.1 if_star VT V qq p)
+                  = compId (cH C.1 if_star V)
+                           (cC C.1 if_star (int n X.1) V pg X.2)
+                           (cC C.1 if_star (int n X.1) V (pb n (X.1, gF)).1.2.1 gF)
+                           (cC C.1 if_star VT V qq p)
+                           (cIdC C.1 if_star (int n X.1) (int n X.1) V (pb n (X.1, gF)).1.2.1 (cId DC (n, X.1)) X.2)
+                           (pb n (X.1, gF)).1.2.2.2
+            pp : cospanCone C.1 (cs n X)
+               = (if_star, pg, qq, hole0)
+            ppId : Id (cospanCone C.1 (cs n X)) pp (pb n X).1
+                 = <i> (intD (p1@i),
+                        cIdR C.1 (intD (p1@i)) (int n X.1) (p0 (suc n) (p1@i).2) @ i,
+                        (pb n (X.1, cIdL C.1 (int n X.1) V X.2 @ i)).1.2.2.1,
+                        lemIdPProp (Id (cH C.1 if_star V) (cC C.1 if_star (int n X.1) V pg X.2) (cC C.1 if_star VT V qq p))
+                                   (Id (cH C.1 (int (suc n) X) V)
+                                     (cC C.1 (int (suc n) X) (int n X.1) V (p0 (suc n) X) X.2)
+                                     (cC C.1 (int (suc n) X) VT V (pb n X).1.2.2.1 p))
+                                   (cHSet C.1 if_star V (cC C.1 if_star (int n X.1) V pg X.2) (cC C.1 if_star VT V qq p))
+                                   (<i>Id (cH C.1 (intD (p1@i)) V)
+                                     (cC C.1 (intD (p1@i)) (int n X.1) V (cIdR C.1 (intD (p1@i)) (int n X.1) (p0 (suc n) (p1@i).2) @ i) X.2)
+                                     (cC C.1 (intD (p1@i)) VT V ((pb n (X.1, cIdL C.1 (int n X.1) V X.2 @ i)).1.2.2.1) p))
+                                   hole0
+                                   (pb n X).1.2.2.2
+                                   @ i
+                       )
+            pph : cospanConeHom C.1 (cs n X) pp (pb n X).1
+                = transport (<i> cospanConeHom C.1 (cs n X) (ppId@-i) (pb n X).1) (cospanConeId C.1 (cs n X) (pb n X).1)
+            pphId : Id (cospanConeHom C.1 (cs n X) pp (pb n X).1) ((pb n X).2 pp).1 pph
+                  = ((pb n X).2 pp).2 pph
+            qId : Id (cH DC f_star (suc n, X)) ((pb n X).2 pp).1.1 (transport (<i> cH C.1 (ppId@-i).1 (int (suc n) X)) (cId DC (suc n, X)))
+                = <i>(pphId@i).1
+        in
+        ( p1
+        , <i> substIdP
+                (cH DC (p1@1) (suc n, X)) (cH DC (p1@0) (suc n, X))
+                (<i>cH DC (p1@-i) (suc n, X)) (cId DC (suc n, X)) (q_ n X (n, X.1) (cId DC (n, X.1))).1
+                (<i>qId@-i)
+                @ -i
+        )
 
-                 p8 : Id (cH C.1) (cC C.1
-                                   (cC C.1 f (c0P C X) (compId (cA C.1) (cCodom C.1 f) X (cDom C.1 (c0P C X)) fCodom (<i> c0PDom C X @ -i)))
-                                   g
-                                   (compId (cA C.1) (cCodom C.1 h) (c0Ft C X) (cDom C.1 g) (c0PCodom C X) (<i>gDom@-i)))
-                                  (cC C.1
-                                   (cC C.1 f (c0Q C T0) f'Eq)
-                                   (c0P C V)
-                                   (compId (cA C.1) (cCodom C.1 (c0Q C T0)) V (cDom C.1 (c0P C V)) f'Codom (<i> c0PDom C V @ -i)))
-                    = compId (cH C.1)
-                      (cC C.1
-                        (cC C.1 f (c0P C X) (compId (cA C.1) (cCodom C.1 f) X (cDom C.1 (c0P C X)) fCodom (<i> c0PDom C X @ -i)))
-                        g
-                        (compId (cA C.1) (cCodom C.1 h) (c0Ft C X) (cDom C.1 g) (c0PCodom C X) (<i>gDom@-i)))
-                      (cC C.1
-                       f
-                       (cC C.1 (c0Q C T0) (c0P C V) (compId (cA C.1) (cCodom C.1 (c0Q C T0)) V (cDom C.1 (c0P C V)) f'Codom (<i> c0PDom C V @ -i)))
-                       f'Eq)
-                      (cC C.1
-                       (cC C.1 f (c0Q C T0) f'Eq)
-                       (c0P C V)
-                       (compId (cA C.1) (cCodom C.1 (c0Q C T0)) V (cDom C.1 (c0P C V)) f'Codom (<i> c0PDom C V @ -i)))
-                      (compId (cH C.1)
-                       (cC C.1
-                         (cC C.1 f (c0P C X) (compId (cA C.1) (cCodom C.1 f) X (cDom C.1 (c0P C X)) fCodom (<i> c0PDom C X @ -i)))
-                         g
-                         (compId (cA C.1) (cCodom C.1 h) (c0Ft C X) (cDom C.1 g) (c0PCodom C X) (<i>gDom@-i)))
-                       (cC C.1 f
-                        (cC C.1 (c0P C X) g (compId (cA C.1) (cCodom C.1 h) (c0Ft C X) (cDom C.1 g) (c0PCodom C X) (<i>gDom@-i)))
-                        (compId (cA C.1) (cCodom C.1 f) X (cDom C.1 (c0P C X)) fCodom (<i> c0PDom C X @ -i)))
-                       (cC C.1
-                        f
-                        (cC C.1 (c0Q C T0) (c0P C V) (compId (cA C.1) (cCodom C.1 (c0Q C T0)) V (cDom C.1 (c0P C V)) f'Codom (<i> c0PDom C V @ -i)))
-                        f'Eq)
-                       (<i>cIdC C.1 f (c0P C X) g (compId (cA C.1) (cCodom C.1 f) X (cDom C.1 (c0P C X)) fCodom (<i> c0PDom C X @ -i))
-                           (compId (cA C.1) (cCodom C.1 h) (c0Ft C X) (cDom C.1 g) (c0PCodom C X) (<i>gDom@-i))@-i)
-                       p7
-                      )
-                      (cIdC C.1 f (c0Q C T0) (c0P C V) f'Eq (compId (cA C.1) (cCodom C.1 (c0Q C T0)) V (cDom C.1 (c0P C V)) f'Codom (<i> c0PDom C V @ -i)))
+    qComp (n : nat) (X : ob (suc n))
+          (Y : obD) (f : homD Y (n, X.1))
+          (Z : obD) (g : homD Z Y)
+        : (p0 : Id obD (fstar Y.1 (fstar n X Y f).2 Z g)
+                       (fstar n X Z (cC DC Z Y (n, X.1) g f)))
+        * IdP (<i> cH DC (p0@i) (suc n, X))
+              (cC DC (fstar Y.1 (fstar n X Y f).2 Z g) (fstar n X Y f) (suc n, X)
+                (q_ Y.1 (fstar n X Y f).2 Z g).1 (q_ n X Y f).1)
+              (q_ n X Z (cC DC Z Y (n, X.1) g f)).1
+      = let F : homD Z (n, X.1) = cC DC Z Y (n, X.1) g f
+            f_star : obD = fstar n X Z F
+            if_star : cA C.1 = intD f_star
+            gF : cH C.1 (intD Z) V = cC C.1 (intD Z) (int n X.1) V F X.2
+            qq : cH C.1 if_star VT = (pb Z.1 (Z.2, gF)).1.2.2.1
+            pg : cH C.1 if_star (int n X.1) = cC C.1 if_star (intD Z) (int n X.1) (p0 (suc Z.1) f_star.2) F
+            hole0 : Id (cH C.1 if_star V)
+                       (cC C.1 if_star (int n X.1) V pg X.2)
+                       (cC C.1 if_star VT V qq p)
+                  = compId (cH C.1 if_star V)
+                           (cC C.1 if_star (int n X.1) V pg X.2)
+                           (cC C.1 if_star (intD Z) V (pb Z.1 (Z.2, gF)).1.2.1 gF)
+                           (cC C.1 if_star VT V qq p)
+                           (cIdC C.1 if_star (intD Z) (int n X.1) V (pb Z.1 (Z.2, gF)).1.2.1 F X.2)
+                           (pb Z.1 (Z.2, gF)).1.2.2.2
+            pp : cospanCone C.1 (cs n X)
+               = (if_star, pg, qq, hole0)
 
-                 T5eqT2 : Id (c0CanSq C) T5 T2 = c0CanSqEq C T5 T2 (<_>V) p8
-                 T1eqT4 : Id (c0CanSq C) T1 T4 = c0CanSqEq C T1 T4 p0 (<_>h)
+            f_star2 : obD = fstar Y.1 (fstar n X Y f).2 Z g
+            if_star2 : cA C.1 = intD f_star2
+            q2 : cH DC f_star2 (fstar n X Y f) = (q_ Y.1 (fstar n X Y f).2 Z g).1
+            pg2 : cH C.1 if_star2 (int n X.1)
+                = cC DC f_star2 Z (n,X.1) (p0 (suc Z.1) f_star2.2) F
+            qq2 : cH C.1 if_star2 VT
+                = (pb Z.1 (Z.2, cC C.1 (intD Z) (intD Y) V g (cC C.1 (intD Y) (int n X.1) V f X.2))).1.2.2.1
 
-                 p9 : Id (cA C.1) f_star f'_star
-                    = compId (cA C.1) f_star (c0Star C T4) f'_star
-                     (<i> c0Star C (T1eqT4 @ i))
-                     (compId (cA C.1) (c0Star C T4) (c0Star C T5) f'_star
-                      (C.2.2.2.2.2.2.2 V nzV (c0Ft C X) g gDom gCodom Y h fDom (c0PCodom C X)).1
-                      (<i> c0Star C (T5eqT2 @ i)))
+            p1 : Id obD f_star2 f_star
+               = <i> (suc Z.1, Z.2, cIdC C.1 (intD Z) (intD Y) (int n X.1) V g f X.2 @ -i)
 
-                 YcospanCone0 : cospanCone C.1 (isCSystem2Cospan C T1)
-                   = (Y,
-                      ((cId C.1 Y,(<_>Y,<_>Y)),
-                      ((f,(fDom,fCodom)),
-                      cIdL C.1 Y (c0FtH C f X fCodom) (compId (cA C.1) Y Y (cDom C.1 f) (<_>Y) (<i>fDom@-i)))))
-                 YcospanConeHom0 : cospanConeHom C.1 (isCSystem2Cospan C T1) YcospanCone0 (isCSystem2CospanCone C T1) = (D T1 YcospanCone0).1
+            pp2 : cospanCone C.1 (cs n X)
+                = (if_star2, pg2, qq2,
+                   transport (<i>Id (cH C.1 (intD(p1@-i)) V)
+                              (cC C.1 (intD(p1@-i)) (int n X.1) V (cC DC (p1@-i) Z (n,X.1) (p0 (suc Z.1) (p1@-i).2) F) X.2)
+                              (cC C.1 (intD(p1@-i)) VT V (pb Z.1 (Z.2, cIdC C.1 (intD Z) (intD Y) (int n X.1) V g f X.2 @ i)).1.2.2.1 p))
+                             hole0)
 
-                 YcospanCone1 : cospanCone C.1 (isCSystem2Cospan C T2)
-                   = (Y,
-                      ((cId C.1 Y,(<_>Y,<_>Y)),
-                      ((f',(f'Dom,f'Codom)),
-                      cIdL C.1 Y (c0FtH C f' V f'Codom) (compId (cA C.1) Y Y (cDom C.1 f') (<_>Y) (<i>f'Dom@-i)))))
-                 YcospanConeHom1 : cospanConeHom C.1 (isCSystem2Cospan C T2) YcospanCone1 (isCSystem2CospanCone C T2) = (D T2 YcospanCone1).1
-                 p1 : Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) f'_star = compId (cA C.1) (cCodom C.1 YcospanConeHom0.1) f_star f'_star YcospanConeHom0.2.2.1 p9
-                 hole0 : Id (cH C.1) (cC C.1 YcospanConeHom0.1 (c0P C f'_star)
-                                      (compId (cA C.1) (cCodom C.1 YcospanConeHom0.1) f'_star (cDom C.1 (c0P C f'_star)) p1 (<i>c0PDom C f'_star@-i)))
-                                     (cId C.1 Y)
-                       = compId (cH C.1)
-                                  (cC C.1 YcospanConeHom0.1 (c0P C f'_star)
-                                   (compId (cA C.1) (cCodom C.1 YcospanConeHom0.1) f'_star (cDom C.1 (c0P C f'_star)) p1 (<i>c0PDom C f'_star@-i)))
-                                  (cC C.1 YcospanConeHom0.1 (c0P C f_star)
-                                   (compId (cA C.1) (cCodom C.1 YcospanConeHom0.1) f_star (cDom C.1 (c0P C f_star)) YcospanConeHom0.2.2.1 (<i>c0PDom C f_star@-i)))
-                                  (cId C.1 Y)
-                                  (<i> cC C.1 YcospanConeHom0.1 (c0P C (p9@-i))
-                                   (compId (cA C.1) (cCodom C.1 YcospanConeHom0.1) (p9@-i) (cDom C.1 (c0P C (p9@-i))) (hole01@i) (<j>c0PDom C (p9@-i)@-j)))
-                                  YcospanConeHom0.2.2.2.1
-                      where
-                        hole01 : IdP (<i> Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (p9@-i)) p1 YcospanConeHom0.2.2.1
-                              = lemIdPProp (Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) f'_star) (Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) f_star)
-                                           (cASet C.1 (cCodom C.1 YcospanConeHom0.1) f'_star)
-                                           (<i> Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (p9@-i)) p1 YcospanConeHom0.2.2.1
-                 l1 : Id (cA C.1) (cCodom C.1 (c0Q C T4)) (cDom C.1 (c0Q C T0))
-                    = (compId (cA C.1)
-                           (cCodom C.1 (c0Q C T4)) (c0Star C T0) (cDom C.1 (c0Q C T0))
-                           (c0QCodom C T4) (<i> c0QDom C T0 @ -i))
-                 l : cH C.1 = (cC C.1 (c0Q C T4) (c0Q C T0) l1)
-                 r7 : Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C T1))
-                    = (compId (cA C.1) (cCodom C.1 YcospanConeHom0.1) (c0Star C T1) (cDom C.1 (c0Q C T1))
-                       YcospanConeHom0.2.2.1 (<i> c0QDom C T1 @ -i))
-                 r3 : Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C T4))
-                    = transport (<i> Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C (T1eqT4@i)))) r7
-                 r6 : Id (cH C.1) (cC C.1 YcospanConeHom0.1 (c0Q C T1) r7) f
-                    = YcospanConeHom0.2.2.2.2
-                 r5 : Id (cH C.1) (cC C.1 YcospanConeHom0.1 (c0Q C T4) r3) f
-                    = transport
-                       (<i> Id (cH C.1)
-                             (cC C.1 YcospanConeHom0.1 (c0Q C (T1eqT4@i))
-                              (lemIdPProp (Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C T1)))
-                                          (Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C T4)))
-                                          (cASet C.1 (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C T1)))
-                                          (<i>Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C (T1eqT4@i))))
-                                          r7 r3
-                                @ i)
-                              ) f) r6
-                 r4 : Id (cH C.1) (cC C.1 (cC C.1 YcospanConeHom0.1 (c0Q C T4) r3) (c0Q C T0) l1) f'
-                    = <i> cC C.1 (r5@i) (c0Q C T0)
-                          (lemIdPProp (Id (cA C.1) (cCodom C.1 (r5@0)) (cDom C.1 (c0Q C T0)))
-                                      (Id (cA C.1) (cCodom C.1 (r5@1)) (cDom C.1 (c0Q C T0)))
-                                      (cASet C.1 (cCodom C.1 (r5@0)) (cDom C.1 (c0Q C T0)))
-                                      (<i>Id (cA C.1) (cCodom C.1 (r5@i)) (cDom C.1 (c0Q C T0)))
-                                      l1 f'Eq@i)
-                 r2 : Id (cH C.1) (cC C.1 YcospanConeHom0.1 l r3) f'
-                    = compId (cH C.1) (cC C.1 YcospanConeHom0.1 l r3) (cC C.1 (cC C.1 YcospanConeHom0.1 (c0Q C T4) r3) (c0Q C T0) l1) f'
-                      (cIdC C.1 YcospanConeHom0.1 (c0Q C T4) (c0Q C T0) r3 l1)
-                      r4
-                 r1 : Id (cH C.1) l (c0Q C T5)
-                    = (C.2.2.2.2.2.2.2 V nzV (c0Ft C X) g gDom gCodom Y h fDom (c0PCodom C X)).2
-                 r0 : Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C T5))
-                    = transport (<i> Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (r1@i))) r3
-                 r9 : Id (cH C.1) (cC C.1 YcospanConeHom0.1 (c0Q C T5) r0) f'
-                    = transport
-                      (<i> Id (cH C.1)
-                           (cC C.1 YcospanConeHom0.1 (r1@i)
-                            (lemIdPProp (Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (r1@0)))
-                                        (Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (r1@1)))
-                                        (cASet C.1 (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (r1@0)))
-                                        (<i>Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (r1@i)))
-                                        r3 r0 @ i)
-                           ) f'
-                      ) r2
-                 hole1 : Id (cH C.1) (cC C.1 YcospanConeHom0.1 (c0Q C T2)
-                                      (compId (cA C.1) (cCodom C.1 YcospanConeHom0.1) f'_star (cDom C.1 (c0Q C T2)) p1 (<i>c0QDom C T2@-i))) f'
-                       = transport (<i> Id (cH C.1) (cC C.1 YcospanConeHom0.1 (c0Q C (T5eqT2@i))
-                                                     (lemIdPProp
-                                                      (Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C T5)))
-                                                      (Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C T2)))
-                                                      (cASet C.1 (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C T5)))
-                                                      (<i>Id (cA C.1) (cCodom C.1 YcospanConeHom0.1) (cDom C.1 (c0Q C (T5eqT2@i))))
-                                                      r0 (compId (cA C.1) (cCodom C.1 YcospanConeHom0.1) f'_star (cDom C.1 (c0Q C T2)) p1 (<i>c0QDom C T2@-i)) @ i)) f') r9
-                 YcospanConeHom1' : cospanConeHom C.1 (isCSystem2Cospan C T2) YcospanCone1 (isCSystem2CospanCone C T2)
-                   = (YcospanConeHom0.1, (YcospanConeHom0.2.1, (p1,
-                     (hole0, hole1))))
-             in <i> ((D T2 YcospanCone1).2 YcospanConeHom1' @ -i).1))
+            ppId : Id (cospanCone C.1 (cs n X)) pp2 pp
+                 = <i> (intD (p1@i),
+                        cC DC (p1@i) Z (n,X.1) (p0 (suc Z.1) (p1@i).2) F,
+                        (pb Z.1 (Z.2, cIdC C.1 (intD Z) (intD Y) (int n X.1) V g f X.2 @ -i)).1.2.2.1,
+                        lemIdPProp
+                         (Id (cH C.1 if_star2 V) (cC C.1 if_star2 (int n X.1) V pg2 X.2) (cC C.1 if_star2 VT V qq2 p))
+                         (Id (cH C.1 if_star V) (cC C.1 if_star (int n X.1) V pg X.2) (cC C.1 if_star VT V qq p))
+                         (cHSet C.1 if_star2 V (cC C.1 if_star2 (int n X.1) V pg2 X.2) (cC C.1 if_star2 VT V qq2 p))
+                         (<i>Id (cH C.1 (intD(p1@i)) V)
+                           (cC C.1 (intD(p1@i)) (int n X.1) V (cC DC (p1@i) Z (n,X.1) (p0 (suc Z.1) (p1@i).2) F) X.2)
+                           (cC C.1 (intD(p1@i)) VT V (pb Z.1 (Z.2, cIdC C.1 (intD Z) (intD Y) (int n X.1) V g f X.2 @ -i)).1.2.2.1 p))
+                         pp2.2.2.2 hole0 @ i)
 
--- stop : nat = U
+            hole3 : Id (cH C.1 if_star2 (int n X.1))
+                       (cC DC f_star2 (suc n, X) (n,X.1)
+                        (cC C.1 if_star2 (intD (fstar n X Y f)) (int (suc n) X) q2 (q_ n X Y f).1)
+                        (p0 (suc n) X)
+                       )
+                       (cC DC f_star2 Z (n,X.1) (p0 (suc Z.1) f_star2.2) F)
+                  -- = undefined
+                  = compId (cH C.1 if_star2 (int n X.1))
+                           (cC DC f_star2 (suc n, X) (n,X.1)
+                             (cC DC f_star2 (fstar n X Y f) (suc n, X) q2 (q_ n X Y f).1)
+                             (p0 (suc n) X))
+                           (cC DC f_star2 (fstar n X Y f) (n,X.1)
+                             q2
+                             (cC DC (fstar n X Y f) (suc n, X) (n, X.1) (q_ n X Y f).1 (p0 (suc n) X)))
+                           (cC DC f_star2 Z (n,X.1) (p0 (suc Z.1) f_star2.2) F)
+                           (cIdC DC f_star2 (fstar n X Y f) (suc n, X) (n,X.1) q2 (q_ n X Y f).1 (p0 (suc n) X))
+                   (compId (cH C.1 if_star2 (int n X.1))
+                           (cC DC f_star2 (fstar n X Y f) (n,X.1)
+                             q2
+                             (cC DC (fstar n X Y f) (suc n, X) (n, X.1) (q_ n X Y f).1 (p0 (suc n) X)))
+                           (cC DC f_star2 (fstar n X Y f) (n,X.1)
+                             q2
+                             (cC DC (fstar n X Y f) Y (n, X.1) (p0 (suc Y.1) (fstar n X Y f).2) f))
+                           (cC DC f_star2 Z (n,X.1) (p0 (suc Z.1) f_star2.2) F)
+                           (<i> cC DC f_star2 (fstar n X Y f) (n,X.1) q2
+                                  ((q_ n X Y f).2.1@-i))
+                   (compId (cH C.1 if_star2 (int n X.1))
+                           (cC DC f_star2 (fstar n X Y f) (n,X.1)
+                             q2
+                             (cC DC (fstar n X Y f) Y (n, X.1) (p0 (suc Y.1) (fstar n X Y f).2) f))
+                           (cC DC f_star2 Y (n,X.1)
+                             (cC DC f_star2 (fstar n X Y f) Y q2 (p0 (suc Y.1) (fstar n X Y f).2))
+                             f)
+                           (cC DC f_star2 Z (n,X.1) (p0 (suc Z.1) f_star2.2) F)
+                           (<i>cIdC DC f_star2 (fstar n X Y f) Y (n, X.1) q2 (p0 (suc Y.1) (fstar n X Y f).2) f@-i)
+                   (compId (cH C.1 if_star2 (int n X.1))
+                           (cC DC f_star2 Y (n,X.1)
+                             (cC DC f_star2 (fstar n X Y f) Y q2 (p0 (suc Y.1) (fstar n X Y f).2))
+                             f)
+                           (cC DC f_star2 Y (n,X.1)
+                             (cC DC f_star2 Z Y (p0 (suc Z.1) f_star2.2) g)
+                             f)
+                           (cC DC f_star2 Z (n,X.1) (p0 (suc Z.1) f_star2.2) F)
+                           (<i>cC DC f_star2 Y (n,X.1)
+                              ((q_ Y.1 (fstar n X Y f).2 Z g).2.1@-i) f)
+                           (cIdC DC f_star2 Z Y (n, X.1) (p0 (suc Z.1) f_star2.2) g f))))
+            opaque hole3
 
-isCSystem12 (C : C0System) (D : isCSystem C) : isCSystem2 C = hole
-  where
-    hole (T : c0CanSq C) (h : cospanCone C.1 (isCSystem2Cospan C T))
-        : isContr (cospanConeHom C.1 (isCSystem2Cospan C T) h (isCSystem2CospanCone C T)) = hole1
-      where
-        X : cA C.1 = T.1
-        nzX : nzero (c0L C X) = T.2.1
-        Y : cA C.1 = T.2.2.1
-        f_star : cA C.1 = c0Star C T
-        nz_f_star : nzero (c0L C f_star) = c0NzStar C T
-        ft_f_star : Id (cA C.1) (c0Ft C f_star) Y = c0FtStar C T
-        W : cA C.1 = h.1
-        g1 : cH C.1 = h.2.1.1
-        g1Dom : Id (cA C.1) (cDom C.1 g1) W = h.2.1.2.1
-        g1Codom : Id (cA C.1) (cCodom C.1 g1) Y = h.2.1.2.2
-        g2 : cH C.1 = h.2.2.1.1
-        g2Dom : Id (cA C.1) (cDom C.1 g2) W = h.2.2.1.2.1
-        g2Codom : Id (cA C.1) (cCodom C.1 g2) X = h.2.2.1.2.2
+            hole4 : Id (cH C.1 if_star2 VT)
+                       (cC C.1 if_star2 (int (suc n) X) VT
+                         (cC C.1 if_star2 (intD (fstar n X Y f)) (int (suc n) X) q2 (q_ n X Y f).1)
+                         (pb n X).1.2.2.1)
+                       (pb Z.1 (Z.2, cC C.1 (intD Z) (intD Y) V g (cC C.1 (intD Y) (int n X.1) V f X.2))).1.2.2.1
+                  -- = undefined
+                  = compId (cH C.1 if_star2 VT)
+                           (cC C.1 if_star2 (int (suc n) X) VT
+                            (cC C.1 if_star2 (intD (fstar n X Y f)) (int (suc n) X) q2 (q_ n X Y f).1)
+                            (pb n X).1.2.2.1)
+                           (cC C.1 if_star2 (intD (fstar n X Y f)) VT
+                            q2
+                            (cC C.1 (intD (fstar n X Y f)) (int (suc n) X) VT (q_ n X Y f).1 (pb n X).1.2.2.1))
+                           (pb Z.1 (Z.2, cC C.1 (intD Z) (intD Y) V g (cC C.1 (intD Y) (int n X.1) V f X.2))).1.2.2.1
+                           (cIdC C.1 if_star2 (intD (fstar n X Y f)) (int (suc n) X) VT q2 (q_ n X Y f).1 (pb n X).1.2.2.1)
+                   (compId (cH C.1 if_star2 VT)
+                           (cC C.1 if_star2 (intD (fstar n X Y f)) VT
+                            q2
+                            (cC C.1 (intD (fstar n X Y f)) (int (suc n) X) VT (q_ n X Y f).1 (pb n X).1.2.2.1))
+                           (cC C.1 if_star2 (intD (fstar n X Y f)) VT
+                            q2
+                            (pb Y.1 (Y.2, cC C.1 (intD Y) (int n X.1) V f X.2)).1.2.2.1)
+                           (pb Z.1 (Z.2, cC C.1 (intD Z) (intD Y) V g (cC C.1 (intD Y) (int n X.1) V f X.2))).1.2.2.1
+                           (<i> cC C.1 if_star2 (intD (fstar n X Y f)) VT q2 ((q_ n X Y f).2.2@i))
+                           (q_ Y.1 (fstar n X Y f).2 Z g).2.2)
+            opaque hole4
 
+            pph : cospanConeHom C.1 (cs n X) pp (pb n X).1
+                = transport
+                  (<i>cospanConeHom C.1 (cs n X) (ppId@i) (pb n X).1)
+                  ( cC C.1 if_star2 (intD (fstar n X Y f)) (int (suc n) X) q2 (q_ n X Y f).1
+                  , hole3
+                  , hole4
+                  )
+            pphId : Id (cospanConeHom C.1 (cs n X) pp (pb n X).1) ((pb n X).2 pp).1 pph
+                  = ((pb n X).2 pp).2 pph
+            qId : Id (cH C.1 if_star (int (suc n) X))
+                     (transport (<i>cH C.1 (intD(p1@i)) (int (suc n) X))
+                       (cC C.1 if_star2 (intD (fstar n X Y f)) (int (suc n) X) q2 (q_ n X Y f).1))
+                     (q_ n X Z (cC DC Z Y (n, X.1) g f)).1
+                = <i>(pphId@-i).1
+        in (p1,
+            substIdP (cH DC (p1@0) (suc n, X)) (cH DC (p1@1) (suc n, X))
+                     (<i> cH DC (p1@i) (suc n, X))
+                     (cC C.1 if_star2 (intD (fstar n X Y f)) (int (suc n) X) q2 (q_ n X Y f).1)
+                     (q_ n X Z (cC DC Z Y (n, X.1) g f)).1
+                     qId)
 
-        T3 : c0CanSq C = (X, (nzX, (W, (c0FtH C g2 X g2Codom, (g2Dom, c0FtHCodom C g2 X g2Codom)))))
-        g2_star : cA C.1 = c0Star C T3
-
-        sg2 : cH C.1 = (D.1 X nzX W g2 g2Dom g2Codom).1
-        sg2Codom : Id (cA C.1) (cCodom C.1 sg2) g2_star = (D.1 X nzX W g2 g2Dom g2Codom).2.2.1
-        T2 : c0CanSq C = (f_star, (nz_f_star, (W, (g1, (g1Dom, compId (cA C.1) (cCodom C.1 g1) Y (c0Ft C f_star) g1Codom (<i>ft_f_star@-i))))))
-        qg1 : cH C.1 = c0Q C T2
-
-        plop : Id (cA C.1)
-                (c0Star C T2)
-                (c0Star C (X, (nzX, (W, (cC C.1 g1 T.2.2.2.1 (compId (cA C.1) (cCodom C.1 g1) Y (cDom C.1 T.2.2.2.1) g1Codom (<i>T.2.2.2.2.1@-i)), (g1Dom, T.2.2.2.2.2))))))
-             = (C.2.2.2.2.2.2.2 X nzX Y T.2.2.2.1 T.2.2.2.2.1 T.2.2.2.2.2 W g1 g1Dom g1Codom).1
-        plop2 : Id (hom C.1 W (c0Ft C X))
-                 (cC C.1 g1 T.2.2.2.1 (compId (cA C.1) (cCodom C.1 g1) Y (cDom C.1 T.2.2.2.1) g1Codom (<i>T.2.2.2.2.1@-i)), (g1Dom, T.2.2.2.2.2))
-                 (c0FtH C g2 X g2Codom, (g2Dom, c0FtHCodom C g2 X g2Codom))
-              = <i> (p0'@i, (p1'@i, p2'@i))
-          where p0' : Id (cH C.1)
-                        (cC C.1 g1 T.2.2.2.1 (compId (cA C.1) (cCodom C.1 g1) Y (cDom C.1 T.2.2.2.1) g1Codom (<i>T.2.2.2.2.1@-i)))
-                        (c0FtH C g2 X g2Codom)
-                    = h.2.2.2
-                p1' : IdP (<i> Id (cA C.1) (cDom C.1 (p0'@i)) W) g1Dom g2Dom
-                    = lemIdPProp (Id (cA C.1) (cDom C.1 (p0'@0)) W) (Id (cA C.1) (cDom C.1 (p0'@1)) W)
-                      (cASet C.1 (cDom C.1 (p0'@0)) W)
-                      (<i> Id (cA C.1) (cDom C.1 (p0'@i)) W) g1Dom g2Dom
-                p2' : IdP (<i> Id (cA C.1) (cCodom C.1 (p0'@i)) (c0Ft C X)) T.2.2.2.2.2 (c0FtHCodom C g2 X g2Codom)
-                    = lemIdPProp (Id (cA C.1) (cCodom C.1 (p0'@0)) (c0Ft C X)) (Id (cA C.1) (cCodom C.1 (p0'@1)) (c0Ft C X))
-                      (cASet C.1 (cCodom C.1 (p0'@0)) (c0Ft C X))
-                      (<i> Id (cA C.1) (cCodom C.1 (p0'@i)) (c0Ft C X)) T.2.2.2.2.2 (c0FtHCodom C g2 X g2Codom)
-
-        hole21 : cH C.1
-               = cC C.1 sg2 qg1
-                  (compId (cA C.1)
-                          (cCodom C.1 sg2) g2_star (cDom C.1 qg1) sg2Codom
-                  (compId (cA C.1)
-                          g2_star
-                          (c0Star C (X, (nzX, (W, (cC C.1 g1 T.2.2.2.1 (compId (cA C.1) (cCodom C.1 g1) Y (cDom C.1 T.2.2.2.1) g1Codom (<i>T.2.2.2.2.1@-i)), (g1Dom, T.2.2.2.2.2))))))
-                          (cDom C.1 qg1) (<i> c0Star C (X, (nzX, (W, plop2@-i))))
-                  (compId (cA C.1)
-                          (c0Star C (X, (nzX, (W, (cC C.1 g1 T.2.2.2.1 (compId (cA C.1) (cCodom C.1 g1) Y (cDom C.1 T.2.2.2.1) g1Codom (<i>T.2.2.2.2.1@-i)), (g1Dom, T.2.2.2.2.2))))))
-                          (c0Star C T2) (cDom C.1 qg1)
-                          (<i>plop@-i) (<i>c0QDom C T2@-i))))
-        hole2 : cospanConeHom C.1 (isCSystem2Cospan C T) h (isCSystem2CospanCone C T)
-          = (hole21, (?, ?))
-        hole1 : isContr (cospanConeHom C.1 (isCSystem2Cospan C T) h (isCSystem2CospanCone C T)) = undefined
+    hole : C0System
+         = (ob, homD, D, obSet, ft0, pD, ?)

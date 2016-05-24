@@ -24,6 +24,12 @@ funExt (A : U) (B : A -> U) (f g : (x : A) -> B x)
 
 For more examples, see "examples/demo.ctt" and "examples/aim.ctt".
 
+The following keywords are reserved:
+
+```
+module, where, let, in, split, mutual, import, data, hdata, undefined,
+IdP, comp, transport, fill, glue, glueElem, unglueElem, U
+```
 
 Install
 -------

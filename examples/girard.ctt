@@ -1,0 +1,45 @@
+module girard where
+
+{-
+Modified from:
+http://code.haskell.org/Agda/test/succeed/Hurkens.agda
+
+There are a number of long lambda expressions in this file.
+These are simply derived from the untyped lambda expressions in Hurkens' proof.
+But since cubicaltt expects explicit types, we have to insert them.
+Luckily cubicaltt can also compute them for us, and we can simply feed cubicaltt its own output.
+-}
+
+bot : U = (A : U) -> A
+
+neg (A : U) : U = A -> bot
+
+P (A : U) : U = A -> U
+
+Set : U = (X : U) -> (P (P X) -> X) -> P (P X)
+
+tau (t : P (P Set)) : Set =
+  \(X : U) (f : P (P X) -> X) (p : X -> U) ->
+    t (\(x : (X0 : U) -> (((X0 -> U) -> U) -> X0) -> ((X0 -> U) -> U)) -> p (f (x X f)))
+
+sigma (s : Set) : P (P Set) = s Set tau
+
+Delta : P Set =
+  \(y : (X : U) -> (((X -> U) -> U) -> X) -> ((X -> U) -> U)) ->
+    neg ((p : P Set) -> sigma y p -> p (tau (sigma y)))
+
+Omega : Set =
+  tau (\(p : ((X : U) -> (((X -> U) -> U) -> X) -> ((X -> U) -> U)) -> U) ->
+    (x : Set) -> sigma x p -> p x
+    )
+
+D : U = (p : P Set) -> sigma Omega p -> p (tau (sigma Omega))
+
+lem1 (p : P Set) (H1 : (x : Set) -> sigma x p -> p x) : p Omega = H1 Omega (\(x : (X : U) -> (((X -> U) -> U) -> X) -> ((X -> U) -> U)) -> H1 (tau (sigma x)))
+
+lem2 : neg D = lem1 Delta (\(x : (X : U) -> (((X -> U) -> U) -> X) -> ((X -> U) -> U)) (H2 : x ((X : U) -> (((X -> U) -> U) -> X) -> ((X -> U) -> U)) (\(t : (((X : U) -> (((X -> U) -> U) -> X) -> ((X -> U) -> U)) -> U) -> U) -> \(X : U) -> \(f : ((X -> U) -> U) -> X) -> \(p : X -> U) -> t (\(x0 : (X0 : U) -> (((X0 -> U) -> U) -> X0) -> ((X0 -> U) -> U)) -> p (f (x0 X f)))) (\(y : (X : U) -> (((X -> U) -> U) -> X) -> ((X -> U) -> U)) -> ((p : ((X : U) -> (((X -> U) -> U) -> X) -> ((X -> U) -> U)) -> U) -> (y ((X : U) -> (((X -> U) -> U) -> X) -> ((X -> U) -> U)) (\(t : (((X : U) -> (((X -> U) -> U) -> X) -> ((X -> U) -> U)) -> U) -> U) -> \(X : U) -> \(f : ((X -> U) -> U) -> X) -> \(p0 : X -> U) -> t (\(x0 : (X0 : U) -> (((X0 -> U) -> U) -> X0) -> ((X0 -> U) -> U)) -> p0 (f (x0 X f)))) p) -> (p (\(X : U) -> \(f : ((X -> U) -> U) -> X) -> \(p0 : X -> U) -> y ((X0 : U) -> (((X0 -> U) -> U) -> X0) -> ((X0 -> U) -> U)) (\(t : (((X0 : U) -> (((X0 -> U) -> U) -> X0) -> ((X0 -> U) -> U)) -> U) -> U) -> \(X0 : U) -> \(f0 : ((X0 -> U) -> U) -> X0) -> \(p1 : X0 -> U) -> t (\(x0 : (X00 : U) -> (((X00 -> U) -> U) -> X00) -> ((X00 -> U) -> U)) -> p1 (f0 (x0 X0 f0)))) (\(x0 : (X0 : U) -> (((X0 -> U) -> U) -> X0) -> ((X0 -> U) -> U)) -> p0 (f (x0 X f)))))) -> ((A : U) -> A))) (H3 : (p : ((X : U) -> (((X -> U) -> U) -> X) -> ((X -> U) -> U)) -> U) -> (x ((X : U) -> (((X -> U) -> U) -> X) -> ((X -> U) -> U)) (\(t : (((X : U) -> (((X -> U) -> U) -> X) -> ((X -> U) -> U)) -> U) -> U) -> \(X : U) -> \(f : ((X -> U) -> U) -> X) -> \(p0 : X -> U) -> t (\(x0 : (X0 : U) -> (((X0 -> U) -> U) -> X0) -> ((X0 -> U) -> U)) -> p0 (f (x0 X f)))) p) -> (p (\(X : U) -> \(f : ((X -> U) -> U) -> X) -> \(p0 : X -> U) -> x ((X0 : U) -> (((X0 -> U) -> U) -> X0) -> ((X0 -> U) -> U)) (\(t : (((X0 : U) -> (((X0 -> U) -> U) -> X0) -> ((X0 -> U) -> U)) -> U) -> U) -> \(X0 : U) -> \(f0 : ((X0 -> U) -> U) -> X0) -> \(p1 : X0 -> U) -> t (\(x0 : (X00 : U) -> (((X00 -> U) -> U) -> X00) -> ((X00 -> U) -> U)) -> p1 (f0 (x0 X0 f0)))) (\(x0 : (X0 : U) -> (((X0 -> U) -> U) -> X0) -> ((X0 -> U) -> U)) -> p0 (f (x0 X f)))))) -> H3 Delta H2 (\(p : ((X : U) -> (((X -> U) -> U) -> X) -> ((X -> U) -> U)) -> U) -> H3 (\(y : (X : U) -> (((X -> U) -> U) -> X) -> ((X -> U) -> U)) -> p (tau (sigma y)))))
+
+lem3 : D = \(p : ((X : U) -> (((X -> U) -> U) -> X) -> ((X -> U) -> U)) -> U) -> lem1 (\(y : (X : U) -> (((X -> U) -> U) -> X) -> ((X -> U) -> U)) -> p (tau (sigma y)))
+
+-- Evaluating "loop" results in a nonterminating computation.
+loop : bot = lem2 lem3

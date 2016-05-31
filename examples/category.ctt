@@ -1,0 +1,333 @@
+module category where
+import prelude
+import sigma
+import equiv
+import nat
+
+lemReflComp (A : U) (a b : A) (p : Id A a b) : Id (Id A a b) (compId A a a b (<_> a) p) p =
+  <j i> comp (<k> A) (p @ i /\ j) [(i=0) -> <_> a, (j=1) -> <_> p @ i, (i=1) -> <k> p @ k \/ j ]
+opaque lemReflComp
+
+lemReflComp' (A : U) (a b : A) (p : Id A a b) : Id (Id A a b) (compId A a b b p (<_> b)) p =
+  <j i> comp (<k> A) (p @ i) [(i=0) -> <_> a, (j=1) -> <_> p @ i, (i=1) -> <_> b ]
+opaque lemReflComp'
+
+lemIdPProp (A B : U) (AProp : prop A) (p : Id U A B) : (x : A) -> (y : B) -> IdP p x y
+  = J U A (\(B : U) -> \(p : Id U A B) -> (x : A) -> (y : B) -> IdP p x y) AProp B p
+opaque lemIdPProp
+
+substIdP (A B : U) (p : Id U A B) (x : A) (y : B) (q : Id B (transport p x) y) : IdP p x y
+  = transport (<i> IdP p x (q@i)) hole
+  where
+    hole : IdP p x (transport p x) = <i> comp (<j> p @ (i /\ j)) x [(i=0) -> <_> x]
+opaque substIdP
+
+transRefl (A : U) (a : A) : Id A (transport (<_> A) a) a = <i> comp (<_> A) a [(i=1) -> <_>a]
+opaque transRefl
+
+isContrProp (A : U) (p : isContr A) (x y : A) : Id A x y = compId A x p.1 y (<i> p.2 x @ -i) (p.2 y)
+
+equivProp (A B : U) (AProp : prop A) (BProp : prop B) (F : A -> B) (G : B -> A) : equiv A B =
+  (F, gradLemma A B F G (\(y : B) -> BProp (F (G y)) y) (\(x : A) -> AProp (G (F x)) x))
+opaque equivProp
+
+idProp (A B : U) (AProp : prop A) (BProp : prop B) (F : A -> B) (G : B -> A) : Id U A B
+  = equivId A B (equivProp A B AProp BProp F G).1 (equivProp A B AProp BProp F G).2
+opaque idProp
+
+--
+
+categoryData : U = (A : U) * (A -> A -> U)
+
+isPrecategory (C : categoryData) : U =
+               let A : U = C.1
+                   hom : A -> A -> U = C.2
+               in (homSet : (x y : A) -> set (hom x y))
+                * (id : (x : A) -> hom x x) * (c : (x y z : A) -> hom x y -> hom y z -> hom x z)
+                * (cIdL : (x y : A) -> (f : hom x y) -> Id (hom x y) (c x x y (id x) f) f)
+                * (cIdR : (x y : A) -> (f : hom x y) -> Id (hom x y) (c x y y f (id y)) f)
+                * ( (x y z w : A) -> (f : hom x y) -> (g : hom y z) -> (h : hom z w) -> Id (hom x w) (c x z w (c x y z f g) h) (c x y w f (c y z w g h)))
+
+precategory : U = (C : categoryData) * isPrecategory C
+
+cA (C : precategory) : U = C.1.1
+cH (C : precategory) (a b : cA C) : U = C.1.2 a b
+cHSet (C : precategory) (a b : cA C) : set (cH C a b) = C.2.1 a b
+cC (C : precategory) (x y z : cA C) (f : cH C x y) (g : cH C y z) : cH C x z = C.2.2.2.1 x y z f g
+cId (C : precategory) (x : cA C) : cH C x x = C.2.2.1 x
+cIdL (C : precategory) (x y : cA C) (f : cH C x y)
+  : Id (cH C x y) (cC C x x y (cId C x) f) f = C.2.2.2.2.1 x y f
+cIdR (C : precategory) (x y : cA C) (f : cH C x y)
+  : Id (cH C x y) (cC C x y y f (cId C y)) f = C.2.2.2.2.2.1 x y f
+cIdC (C : precategory) (x y z w : cA C) (f : cH C x y) (g : cH C y z) (h : cH C z w)
+  : Id (cH C x w) (cC C x z w (cC C x y z f g) h) (cC C x y w f (cC C y z w g h)) = C.2.2.2.2.2.2 x y z w f g h
+
+--
+
+iso (C : precategory) (A B : cA C) : U
+  = (f : cH C A B) * (g : cH C B A)
+  * (_ : Id (cH C A A) (cC C A B A f g) (cId C A))
+  * (Id (cH C B B) (cC C B A B g f) (cId C B))
+
+isoId (C : precategory) (A : cA C) : iso C A A = (cId C A, cId C A, cIdL C A A (cId C A), cIdL C A A (cId C A))
+eqToIso (C : precategory) (A B : cA C) (p : Id (cA C) A B) : iso C A B
+  = J (cA C) A (\(B : cA C) -> \(p : Id (cA C) A B) -> iso C A B) (isoId C A) B p
+isCategory (C : precategory) : U = (A : cA C) -> isContr ((B : cA C) * iso C A B)
+lemIsCategory (C : precategory) (isC : isCategory C) (A B : cA C) (e : iso C A B) : Id (cA C) A B
+  = <i> (isContrProp ((B : cA C) * iso C A B) (isC A) (A, isoId C A) (B, e) @ i).1
+
+--         f'
+--    W -----> Z
+--    |        |
+-- g' |        | g
+--    |        |
+--    V        V
+--    Y -----> X
+--        f
+
+homTo (C : precategory) (X : cA C) : U = (Y : cA C) * cH C Y X
+cospan (C : precategory) : U
+  = (X : cA C) * (_ : homTo C X) * homTo C X
+cospanCone (C : precategory) (D : cospan C) : U
+  = (W : cA C) * (f : cH C W D.2.1.1) * (g : cH C W D.2.2.1)
+  * Id (cH C W D.1)
+      (cC C W D.2.1.1 D.1 f D.2.1.2)
+      (cC C W D.2.2.1 D.1 g D.2.2.2)
+cospanConeHom (C : precategory) (D : cospan C) (E1 E2 : cospanCone C D) : U
+  = (h : cH C E1.1 E2.1)
+  * (_ : Id (cH C E1.1 D.2.1.1) (cC C E1.1 E2.1 D.2.1.1 h E2.2.1) E1.2.1)
+  * (Id (cH C E1.1 D.2.2.1) (cC C E1.1 E2.1 D.2.2.1 h E2.2.2.1) E1.2.2.1)
+cospanConeId (C : precategory) (D : cospan C) (E : cospanCone C D) : cospanConeHom C D E E
+  = (cId C E.1, cIdL C E.1 D.2.1.1 E.2.1, cIdL C E.1 D.2.2.1 E.2.2.1)
+cospanConeComp (C : precategory) (D : cospan C) (X Y Z : cospanCone C D)
+               (F : cospanConeHom C D X Y) (G : cospanConeHom C D Y Z) : cospanConeHom C D X Z
+  = (cC C X.1 Y.1 Z.1 F.1 G.1
+    ,compId (cH C X.1 D.2.1.1)
+            (cC C X.1 Z.1 D.2.1.1 (cC C X.1 Y.1 Z.1 F.1 G.1) Z.2.1)
+            (cC C X.1 Y.1 D.2.1.1 F.1 (cC C Y.1 Z.1 D.2.1.1 G.1 Z.2.1))
+            X.2.1
+            (cIdC C X.1 Y.1 Z.1 D.2.1.1 F.1 G.1 Z.2.1)
+    (compId (cH C X.1 D.2.1.1)
+            (cC C X.1 Y.1 D.2.1.1 F.1 (cC C Y.1 Z.1 D.2.1.1 G.1 Z.2.1))
+            (cC C X.1 Y.1 D.2.1.1 F.1 Y.2.1)
+            X.2.1
+            (<i> cC C X.1 Y.1 D.2.1.1 F.1 (G.2.1 @ i))
+            F.2.1)
+    ,compId (cH C X.1 D.2.2.1)
+            (cC C X.1 Z.1 D.2.2.1 (cC C X.1 Y.1 Z.1 F.1 G.1) Z.2.2.1)
+            (cC C X.1 Y.1 D.2.2.1 F.1 (cC C Y.1 Z.1 D.2.2.1 G.1 Z.2.2.1))
+            X.2.2.1
+            (cIdC C X.1 Y.1 Z.1 D.2.2.1 F.1 G.1 Z.2.2.1)
+    (compId (cH C X.1 D.2.2.1)
+            (cC C X.1 Y.1 D.2.2.1 F.1 (cC C Y.1 Z.1 D.2.2.1 G.1 Z.2.2.1))
+            (cC C X.1 Y.1 D.2.2.1 F.1 Y.2.2.1)
+            X.2.2.1
+            (<i> cC C X.1 Y.1 D.2.2.1 F.1 (G.2.2 @ i))
+            F.2.2))
+
+isPullback (C : precategory) (D : cospan C) (E : cospanCone C D) : U
+  = (h : cospanCone C D) -> isContr (cospanConeHom C D h E)
+isPullbackProp (C : precategory) (D : cospan C) (E : cospanCone C D) : prop (isPullback C D E)
+  = propPi (cospanCone C D) (\(h : cospanCone C D) -> isContr (cospanConeHom C D h E))
+    (\(h : cospanCone C D) -> propIsContr (cospanConeHom C D h E))
+hasPullback (C : precategory) (D : cospan C) : U = (E : cospanCone C D) * isPullback C D E
+
+cospanConePrecategory (C : precategory) (D : cospan C) : precategory
+  = ((cospanCone C D, cospanConeHom C D)
+    ,(\(X Y : cospanCone C D) -> setSig (cH C X.1 Y.1)
+      (\(h : cH C X.1 Y.1) ->
+        (_ : Id (cH C X.1 D.2.1.1) (cC C X.1 Y.1 D.2.1.1 h Y.2.1) X.2.1)
+      * (Id (cH C X.1 D.2.2.1) (cC C X.1 Y.1 D.2.2.1 h Y.2.2.1) X.2.2.1))
+      (cHSet C X.1 Y.1)
+      (\(h : cH C X.1 Y.1) -> setSig (Id (cH C X.1 D.2.1.1) (cC C X.1 Y.1 D.2.1.1 h Y.2.1) X.2.1)
+      (\(_ : Id (cH C X.1 D.2.1.1) (cC C X.1 Y.1 D.2.1.1 h Y.2.1) X.2.1) ->
+        (Id (cH C X.1 D.2.2.1) (cC C X.1 Y.1 D.2.2.1 h Y.2.2.1) X.2.2.1))
+      (propSet (Id (cH C X.1 D.2.1.1) (cC C X.1 Y.1 D.2.1.1 h Y.2.1) X.2.1)
+        (cHSet C X.1 D.2.1.1 (cC C X.1 Y.1 D.2.1.1 h Y.2.1) X.2.1))
+      (\(_ : Id (cH C X.1 D.2.1.1) (cC C X.1 Y.1 D.2.1.1 h Y.2.1) X.2.1) ->
+      (propSet (Id (cH C X.1 D.2.2.1) (cC C X.1 Y.1 D.2.2.1 h Y.2.2.1) X.2.2.1)
+        (cHSet C X.1 D.2.2.1 (cC C X.1 Y.1 D.2.2.1 h Y.2.2.1) X.2.2.1)))))
+     ,cospanConeId C D
+     ,cospanConeComp C D
+     ,\(X Y : cospanCone C D) (F : cospanConeHom C D X Y) ->
+       <i> (cIdL C X.1 Y.1 F.1 @ i
+           ,lemIdPProp (Id (cH C X.1 D.2.1.1) (cC C X.1 Y.1 D.2.1.1 (cIdL C X.1 Y.1 F.1 @ 0) Y.2.1) X.2.1)
+                       (Id (cH C X.1 D.2.1.1) (cC C X.1 Y.1 D.2.1.1 (cIdL C X.1 Y.1 F.1 @ 1) Y.2.1) X.2.1)
+                       (cHSet C X.1 D.2.1.1 (cC C X.1 Y.1 D.2.1.1 (cIdL C X.1 Y.1 F.1 @ 0) Y.2.1) X.2.1)
+                       (<i>Id (cH C X.1 D.2.1.1) (cC C X.1 Y.1 D.2.1.1 (cIdL C X.1 Y.1 F.1 @ i) Y.2.1) X.2.1)
+                       (cospanConeComp C D X X Y (cospanConeId C D X) F).2.1
+                       F.2.1 @ i
+           ,lemIdPProp (Id (cH C X.1 D.2.2.1) (cC C X.1 Y.1 D.2.2.1 (cIdL C X.1 Y.1 F.1 @ 0) Y.2.2.1) X.2.2.1)
+                       (Id (cH C X.1 D.2.2.1) (cC C X.1 Y.1 D.2.2.1 (cIdL C X.1 Y.1 F.1 @ 1) Y.2.2.1) X.2.2.1)
+                       (cHSet C X.1 D.2.2.1 (cC C X.1 Y.1 D.2.2.1 (cIdL C X.1 Y.1 F.1 @ 0) Y.2.2.1) X.2.2.1)
+                       (<i>Id (cH C X.1 D.2.2.1) (cC C X.1 Y.1 D.2.2.1 (cIdL C X.1 Y.1 F.1 @ i) Y.2.2.1) X.2.2.1)
+                       (cospanConeComp C D X X Y (cospanConeId C D X) F).2.2
+                       F.2.2 @ i)
+     ,\(X Y : cospanCone C D) (F : cospanConeHom C D X Y) ->
+       <i> (cIdR C X.1 Y.1 F.1 @ i
+           ,lemIdPProp (Id (cH C X.1 D.2.1.1) (cC C X.1 Y.1 D.2.1.1 (cIdR C X.1 Y.1 F.1 @ 0) Y.2.1) X.2.1)
+                       (Id (cH C X.1 D.2.1.1) (cC C X.1 Y.1 D.2.1.1 (cIdR C X.1 Y.1 F.1 @ 1) Y.2.1) X.2.1)
+                       (cHSet C X.1 D.2.1.1 (cC C X.1 Y.1 D.2.1.1 (cIdR C X.1 Y.1 F.1 @ 0) Y.2.1) X.2.1)
+                       (<i>Id (cH C X.1 D.2.1.1) (cC C X.1 Y.1 D.2.1.1 (cIdR C X.1 Y.1 F.1 @ i) Y.2.1) X.2.1)
+                       (cospanConeComp C D X Y Y F (cospanConeId C D Y)).2.1
+                        F.2.1 @ i
+           ,lemIdPProp (Id (cH C X.1 D.2.2.1) (cC C X.1 Y.1 D.2.2.1 (cIdR C X.1 Y.1 F.1 @ 0) Y.2.2.1) X.2.2.1)
+                       (Id (cH C X.1 D.2.2.1) (cC C X.1 Y.1 D.2.2.1 (cIdR C X.1 Y.1 F.1 @ 1) Y.2.2.1) X.2.2.1)
+                       (cHSet C X.1 D.2.2.1 (cC C X.1 Y.1 D.2.2.1 (cIdR C X.1 Y.1 F.1 @ 0) Y.2.2.1) X.2.2.1)
+                       (<i>Id (cH C X.1 D.2.2.1) (cC C X.1 Y.1 D.2.2.1 (cIdR C X.1 Y.1 F.1 @ i) Y.2.2.1) X.2.2.1)
+                       (cospanConeComp C D X Y Y F (cospanConeId C D Y)).2.2
+                       F.2.2 @ i)
+     ,\(X Y Z W : cospanCone C D) (F : cospanConeHom C D X Y) (G : cospanConeHom C D Y Z) (H : cospanConeHom C D Z W) ->
+       <i> (cIdC C X.1 Y.1 Z.1 W.1 F.1 G.1 H.1 @ i
+           ,lemIdPProp (Id (cH C X.1 D.2.1.1) (cC C X.1 W.1 D.2.1.1 (cIdC C X.1 Y.1 Z.1 W.1 F.1 G.1 H.1 @ 0) W.2.1) X.2.1)
+                       (Id (cH C X.1 D.2.1.1) (cC C X.1 W.1 D.2.1.1 (cIdC C X.1 Y.1 Z.1 W.1 F.1 G.1 H.1 @ 1) W.2.1) X.2.1)
+                       (cHSet C X.1 D.2.1.1 (cC C X.1 W.1 D.2.1.1 (cIdC C X.1 Y.1 Z.1 W.1 F.1 G.1 H.1 @ 0) W.2.1) X.2.1)
+                       (<i>Id (cH C X.1 D.2.1.1) (cC C X.1 W.1 D.2.1.1 (cIdC C X.1 Y.1 Z.1 W.1 F.1 G.1 H.1 @ i) W.2.1) X.2.1)
+                       (cospanConeComp C D X Z W (cospanConeComp C D X Y Z F G) H).2.1
+                       (cospanConeComp C D X Y W F (cospanConeComp C D Y Z W G H)).2.1 @ i
+           ,lemIdPProp (Id (cH C X.1 D.2.2.1) (cC C X.1 W.1 D.2.2.1 (cIdC C X.1 Y.1 Z.1 W.1 F.1 G.1 H.1 @ 0) W.2.2.1) X.2.2.1)
+                       (Id (cH C X.1 D.2.2.1) (cC C X.1 W.1 D.2.2.1 (cIdC C X.1 Y.1 Z.1 W.1 F.1 G.1 H.1 @ 1) W.2.2.1) X.2.2.1)
+                       (cHSet C X.1 D.2.2.1 (cC C X.1 W.1 D.2.2.1 (cIdC C X.1 Y.1 Z.1 W.1 F.1 G.1 H.1 @ 0) W.2.2.1) X.2.2.1)
+                       (<i>Id (cH C X.1 D.2.2.1) (cC C X.1 W.1 D.2.2.1 (cIdC C X.1 Y.1 Z.1 W.1 F.1 G.1 H.1 @ i) W.2.2.1) X.2.2.1)
+                       (cospanConeComp C D X Z W (cospanConeComp C D X Y Z F G) H).2.2
+                       (cospanConeComp C D X Y W F (cospanConeComp C D Y Z W G H)).2.2 @ i))
+
+isCategoryCospanCone (C : precategory) (isC : isCategory C) (D : cospan C)
+                    : isCategory (cospanConePrecategory C D)
+  = undefined
+  -- = \(A : cospanCone C D) ->
+  --     let p (X : (B : cospanCone C D) * iso (cospanConePrecategory C D) A B)
+  --           : Id ((B : cospanCone C D) * iso (cospanConePrecategory C D) A B) (A, isoId (cospanConePrecategory C D) A) X
+  --           = <i> ((?, ?, ?, ?)
+  --                 ,(?, ?, ?, ?))
+  --     in ?
+
+isFinal (C : precategory) (A : cA C) : U = (B : cA C) -> isContr (cH C B A)
+isFinalProp (C : precategory) (A : cA C) : prop (isFinal C A)
+  = propPi (cA C) (\(B : cA C) -> isContr (cH C B A))
+    (\(B : cA C) -> propIsContr (cH C B A))
+
+hasFinal (C : precategory) : U = (A : cA C) * isFinal C A
+
+hasFinalProp (C : precategory) (isC : isCategory C) : prop (hasFinal C)
+  = \(x y : hasFinal C) ->
+      let p : iso C x.1 y.1
+            = ((y.2 x.1).1, (x.2 y.1).1
+              , isContrProp (cH C x.1 x.1) (x.2 x.1) (cC C x.1 y.1 x.1 (y.2 x.1).1 (x.2 y.1).1) (cId C x.1)
+              , isContrProp (cH C y.1 y.1) (y.2 y.1) (cC C y.1 x.1 y.1 (x.2 y.1).1 (y.2 x.1).1) (cId C y.1))
+      in <i> ( lemIsCategory C isC x.1 y.1 p @ i
+             , lemIdPProp (isFinal C x.1)
+                          (isFinal C y.1)
+                          (isFinalProp C x.1)
+                          (<i> isFinal C (lemIsCategory C isC x.1 y.1 p @ i))
+                          x.2 y.2 @ i)
+
+hasPullbackProp (C : precategory) (isC : isCategory C) (D : cospan C) : prop (hasPullback C D)
+  = hasFinalProp (cospanConePrecategory C D) (isCategoryCospanCone C isC D)
+
+isCommutative (CA : precategory)
+              (A B C D : cA CA)
+              (f : cH CA A B) (g : cH CA C D)
+              (h : cH CA A C) (i : cH CA B D)
+            : U = Id (cH CA A D) (cC CA A C D h g) (cC CA A B D f i)
+
+pullbackPasting
+          (CA : precategory)
+          (A B C D E F : cA CA)
+          (f : cH CA A B) (g : cH CA B C)
+          (h : cH CA D E) (i : cH CA E F)
+          (j : cH CA A D) (k : cH CA B E) (l : cH CA C F)
+          (cc1 : isCommutative CA A B D E f h j k)
+          (cc2 : isCommutative CA B C E F g i k l)
+          (cc3 : isCommutative CA A C D F (cC CA A B C f g) (cC CA D E F h i) j l)
+          (pb2 : isPullback CA (F, (E, i), (C, l)) (B, k, g, cc2))
+          (pb3 : isPullback CA (F, (D, cC CA D E F h i), (C, l)) (A, j, cC CA A B C f g, cc3))
+        : isPullback CA (E, (D, h), (B, k)) (A, j, f, cc1)
+        = \(c : cospanCone CA (E, (D, h), (B, k))) ->
+           let hole : Id (cH CA c.1 F)
+                         (cC CA c.1 D F c.2.1 (cC CA D E F h i))
+                         (cC CA c.1 C F (cC CA c.1 B C c.2.2.1 g) l)
+                    = compId (cH CA c.1 F)
+                             (cC CA c.1 D F c.2.1 (cC CA D E F h i))
+                             (cC CA c.1 E F (cC CA c.1 D E c.2.1 h) i)
+                             (cC CA c.1 C F (cC CA c.1 B C c.2.2.1 g) l)
+                             (<n>cIdC CA c.1 D E F c.2.1 h i@-n)
+                     (compId (cH CA c.1 F)
+                             (cC CA c.1 E F (cC CA c.1 D E c.2.1 h) i)
+                             (cC CA c.1 E F (cC CA c.1 B E c.2.2.1 k) i)
+                             (cC CA c.1 C F (cC CA c.1 B C c.2.2.1 g) l)
+                             (<n>cC CA c.1 E F (c.2.2.2@n) i)
+                     (compId (cH CA c.1 F)
+                             (cC CA c.1 E F (cC CA c.1 B E c.2.2.1 k) i)
+                             (cC CA c.1 B F c.2.2.1 (cC CA B E F k i))
+                             (cC CA c.1 C F (cC CA c.1 B C c.2.2.1 g) l)
+                             (cIdC CA c.1 B E F c.2.2.1 k i)
+                     (compId (cH CA c.1 F)
+                             (cC CA c.1 B F c.2.2.1 (cC CA B E F k i))
+                             (cC CA c.1 B F c.2.2.1 (cC CA B C F g l))
+                             (cC CA c.1 C F (cC CA c.1 B C c.2.2.1 g) l)
+                             (<n>cC CA c.1 B F c.2.2.1 (cc2@n))
+                             (<n>cIdC CA c.1 B C F c.2.2.1 g l@-n))))
+               c' : cospanCone CA (F, (D, cC CA D E F h i), (C, l))
+                  = (c.1
+                    ,c.2.1
+                    ,cC CA c.1 B C c.2.2.1 g
+                    ,hole)
+
+               hole2 : Id (cH CA c.1 F)
+                          (cC CA c.1 E F (cC CA c.1 D E c.2.1 h) i)
+                          (cC CA c.1 C F (cC CA c.1 B C c.2.2.1 g) l)
+                    = compId (cH CA c.1 F)
+                             (cC CA c.1 E F (cC CA c.1 D E c.2.1 h) i)
+                             (cC CA c.1 D F c.2.1 (cC CA D E F h i))
+                             (cC CA c.1 C F (cC CA c.1 B C c.2.2.1 g) l)
+                             (cIdC CA c.1 D E F c.2.1 h i)
+                             hole
+               cc : cospanCone CA (F, (E, i), (C, l))
+                  = (c.1, cC CA c.1 D E c.2.1 h, c'.2.2.1, hole2)
+
+               p0 (h' : cH CA c.1 A) (p : Id (cH CA c.1 D) (cC CA c.1 A D h' j) c.2.1)
+                  : Id U (Id (cH CA c.1 B) (cC CA c.1 A B h' f) c.2.2.1)
+                         (Id (cH CA c.1 C) (cC CA c.1 A C h' (cC CA A B C f g)) c'.2.2.1)
+                  = transport
+                    (<i> Id U (Id (cH CA c.1 B) (cC CA c.1 A B h' f) c.2.2.1)
+                              (Id (cH CA c.1 C) (cIdC CA c.1 A B C h' f g @ i) c'.2.2.1))
+                    (idProp (Id (cH CA c.1 B) (cC CA c.1 A B h' f) c.2.2.1)
+                            (Id (cH CA c.1 C) (cIdC CA c.1 A B C h' f g @ 0) c'.2.2.1)
+                            (cHSet CA c.1 B (cC CA c.1 A B h' f) c.2.2.1)
+                            (cHSet CA c.1 C (cIdC CA c.1 A B C h' f g @ 0) c'.2.2.1)
+                            (\(p:Id (cH CA c.1 B) (cC CA c.1 A B h' f) c.2.2.1) ->
+                             <i> cC CA c.1 B C (p@i) g)
+                            (\(p1:Id (cH CA c.1 C) (cIdC CA c.1 A B C h' f g @ 0) c'.2.2.1) ->
+                              let h1 : cospanConeHom CA (F, (E, i), (C, l)) cc (B, k, g, cc2)
+                                     = (cC CA c.1 A B h' f
+                                       ,compId (cH CA c.1 E)
+                                               (cC CA c.1 B E (cC CA c.1 A B h' f) k)
+                                               (cC CA c.1 A E h' (cC CA A B E f k))
+                                               (cC CA c.1 D E c.2.1 h)
+                                               (cIdC CA c.1 A B E h' f k)
+                                       (compId (cH CA c.1 E)
+                                               (cC CA c.1 A E h' (cC CA A B E f k))
+                                               (cC CA c.1 A E h' (cC CA A D E j h))
+                                               (cC CA c.1 D E c.2.1 h)
+                                               (<i>cC CA c.1 A E h' (cc1@-i))
+                                       (compId (cH CA c.1 E)
+                                               (cC CA c.1 A E h' (cC CA A D E j h))
+                                               (cC CA c.1 D E (cC CA c.1 A D h' j) h)
+                                               (cC CA c.1 D E c.2.1 h)
+                                               (<i> cIdC CA c.1 A D E h' j h @ -i)
+                                               (<i> cC CA c.1 D E (p@i) h)))
+                                       ,p1)
+                                  h2 : cospanConeHom CA (F, (E, i), (C, l)) cc (B, k, g, cc2)
+                                     = (c.2.2.1
+                                       ,<i>c.2.2.2@-i
+                                       ,<_>c'.2.2.1)
+                              in <n> (isContrProp (cospanConeHom CA (F, (E, i), (C, l)) cc (B, k, g, cc2)) (pb2 cc) h1 h2 @ n).1
+                             ))
+
+               p : Id U (cospanConeHom CA (F, (D, cC CA D E F h i), (C, l)) c' (A, j, cC CA A B C f g, cc3))
+                        (cospanConeHom CA (E, (D, h), (B, k)) c (A, j, f, cc1))
+                 = <i> (h : cH CA c.1 A)
+                     * (p : Id (cH CA c.1 D) (cC CA c.1 A D h j) c.2.1)
+                     * (p0 h p @ -i)
+           in transport (<i> isContr (p@i)) (pb3 c')

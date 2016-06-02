@@ -4,23 +4,23 @@ import prelude
 
 data pTrunc (A : U)
   = inc (a : A)
-  | truncP (x y : pTrunc A) <i> [(i=0) -> x, (i=1) -> y]
+  | inh (x y : pTrunc A) <i> [(i=0) -> x, (i=1) -> y]
 
 pTruncIsProp (A : U) : prop (pTrunc A) =
- \ (x y : pTrunc A) -> <i> truncP{pTrunc A} x y @ i
+ \ (x y : pTrunc A) -> <i> inh{pTrunc A} x y @ i
 
 pTruncRec (A B : U) (pP : prop B) (f : A -> B) : pTrunc A -> B = split
   inc a -> f a
-  truncP x y @ i -> pP (pTruncRec A B pP f x) (pTruncRec A B pP f y) @ i
+  inh x y @ i -> pP (pTruncRec A B pP f x) (pTruncRec A B pP f y) @ i
 
 pTruncElim (A : U) (B : (pTrunc A) -> U)
            (pP : (x : pTrunc A) -> prop (B x))
            (f : (a : A) -> B (inc a))
            : (x : pTrunc A) -> B x = split
   inc a -> f a
-  truncP x y @ i ->
+  inh x y @ i ->
     lemPropF (pTrunc A) B pP x y
-      (<j> truncP{pTrunc A} x y @ j)
+      (<j> inh{pTrunc A} x y @ j)
       (pTruncElim A B pP f x)
       (pTruncElim A B pP f y)
     @ i

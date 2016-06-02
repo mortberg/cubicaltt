@@ -2,6 +2,14 @@ module propTrunc where
 
 import prelude
 
+{-
+Warning: as of commit ff8a026, recursive HITs with parameters are not
+implemented correctly. Because of that, you may find unexpected results when
+using this module.
+
+See e.g. github issue #35 and pull request #39 for details.
+-}
+
 data pTrunc (A : U)
   = inc (a : A)
   | inh (x y : pTrunc A) <i> [(i=0) -> x, (i=1) -> y]

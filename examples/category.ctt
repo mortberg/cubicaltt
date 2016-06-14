@@ -108,21 +108,7 @@ catIso30 (A B : precategory) : U = (e1 : Id U (cA A) (cA B))
                                            (transport (<i>(e2@i) x y) f)
                                            (transport (<i>(e2@i) y z) g))))
 
-catIso31 (A B : precategory) : U = (e1 : Id U (cA A) (cA B))
-                                 * (e2 : Id ((x y : cA A)->U) (cH A) (\(x y:cA A)->cH B (transport e1 x) (transport e1 y)))
-                                 * (_ : Id ((x:cA A)->cH A x x)
-                                           (cId A)
-                                           (\(x : cA A) -> transport (<j>(e2@-j) x x) (cId B (transport e1 x))))
-                                 * (Id ((x y z:cA A)->cH A x y->cH A y z->cH A x z)
-                                       (\(x y z:cA A)(f:cH A x y)(g:cH A y z)->cC A x y z f g)
-                                       (\(x y z:cA A)(f:cH A x y)(g:cH A y z)->
-                                       transport (<i>(e2@-i) x z)
-                                        (cC B (transport e1 x) (transport e1 y) (transport e1 z)
-                                           (transport (<i>(e2@i) x y) f)
-                                           (transport (<i>(e2@i) y z) g))))
-
-
-eCatIso3 (A B : precategory) : Id U (catIso3 A B) (catIso30 A B)
+eCatIso30 (A B : precategory) : Id U (catIso3 A B) (catIso30 A B)
   = <i> (e1 : Id U (cA A) (cA B))
       * (let e21 : (x y : e1@-i) -> U
                  = comp (<_> (x y : e1@-i) -> U)
@@ -189,6 +175,117 @@ eCatIso3 (A B : precategory) : Id U (catIso3 A B) (catIso30 A B)
                            (<j>transRefl (cH B x z) (cC B x y z (transRefl (cH B x y) f @ j) (transRefl (cH B y z) g @ j)) @ j)
                            @ j) @ j
                    ])))
+
+catIso311 (A B : precategory) (e1:Id U (cA A) (cA B)) : U
+  = Id ((x y : cA A)->U) (cH A) (\(x y:cA A)->cH B (transport e1 x) (transport e1 y))
+catIso312 (A B : precategory) (e1:Id U (cA A) (cA B)) (e2:catIso311 A B e1) : U
+  = Id ((x:cA A)->cH B (transport e1 x) (transport e1 x))
+       (\(x:cA A)->transport (<i> (e2@i) x x) (cId A x))
+       (\(x : cA A) -> cId B (transport e1 x))
+catIso313 (A B : precategory) (e1:Id U (cA A) (cA B)) (e2:catIso311 A B e1) : U
+  = Id ((x y z:cA A)->cH A x y->cH A y z->cH B (transport e1 x) (transport e1 z))
+       (\(x y z:cA A)(f:cH A x y)(g:cH A y z)->transport (<i>(e2@i)x z) (cC A x y z f g))
+       (\(x y z:cA A)(f:cH A x y)(g:cH A y z)->
+         cC B (transport e1 x) (transport e1 y) (transport e1 z)
+         (transport (<i>(e2@i) x y) f)
+         (transport (<i>(e2@i) y z) g))
+catIso31 (A B : precategory) : U = (e1 : Id U (cA A) (cA B))
+                                 * (e2 : catIso311 A B e1)
+                                 * (_ : catIso312 A B e1 e2)
+                                 * ( catIso313 A B e1 e2)
+
+eCatIso31 (A B : precategory) : Id U (catIso30 A B) (catIso31 A B)
+  = <i> (e1 : Id U (cA A) (cA B))
+      * (e2 : Id ((x y : cA A)->U) (cH A) (\(x y:cA A)->cH B (transport e1 x) (transport e1 y)))
+      * (_:comp (<_> U)
+            (Id ((x:cA A)->(e2@i) x x)
+                (\(x:cA A)->transport (<j> (e2@i/\j) x x) (cId A x))
+                (\(x:cA A)->transport (<j> (e2@i\/-j) x x) (cId B (transport e1 x))))
+            [(i=0)-><k>Id ((x:cA A)->cH A x x)
+                          (\(x:cA A)->transRefl (cH A x x) (cId A x) @ k)
+                          (\(x:cA A)->transport (<j> (e2@-j) x x) (cId B (transport e1 x)))
+            ,(i=1)-><k>Id ((x:cA A)->(e2@i) x x)
+                          (\(x:cA A)->transport (<j> (e2@j) x x) (cId A x))
+                          (\(x:cA A)->transRefl ((e2@1) x x) (cId B (transport e1 x)) @ k)
+            ])
+      * (comp (<_> U)
+          (Id ((x y z:cA A)->cH A x y->cH A y z->(e2@i) x z)
+              (\(x y z:cA A)(f:cH A x y)(g:cH A y z)->
+                transport (<j> (e2@i/\j) x z) (cC A x y z f g))
+              (\(x y z:cA A)(f:cH A x y)(g:cH A y z)->
+                transport (<j>(e2@i\/-j) x z)
+                (cC B (transport e1 x) (transport e1 y) (transport e1 z)
+                 (transport (<j>(e2@j) x y) f)
+                 (transport (<j>(e2@j) y z) g))))
+          [(i=0)-><k>Id ((x y z:cA A)->cH A x y->cH A y z->cH A x z)
+                        (\(x y z:cA A)(f:cH A x y)(g:cH A y z)->
+                          transRefl ((e2@0) x z) (cC A x y z f g) @ k)
+                        (\(x y z:cA A)(f:cH A x y)(g:cH A y z)->
+                          transport (<j>(e2@-j) x z)
+                          (cC B (transport e1 x) (transport e1 y) (transport e1 z)
+                           (transport (<j>(e2@j) x y) f)
+                           (transport (<j>(e2@j) y z) g)))
+          ,(i=1)-><k>Id ((x y z:cA A)->cH A x y->cH A y z->(e2@1) x z)
+                        (\(x y z:cA A)(f:cH A x y)(g:cH A y z)->
+                          transport (<j>(e2@j) x z) (cC A x y z f g))
+                        (\(x y z:cA A)(f:cH A x y)(g:cH A y z)->
+                          transRefl ((e2@1) x z)
+                          (cC B (transport e1 x) (transport e1 y) (transport e1 z)
+                           (transport (<j>(e2@j) x y) f)
+                           (transport (<j>(e2@j) y z) g)) @ k)
+          ])
+
+sigEquivLem (A A':U) (B:A->U) (B':A'->U)
+            (e:equiv A A')
+            (f:(x:A)->equiv (B x) (B' (e.1 x)))
+          : equiv (Sigma A B) (Sigma A' B')
+          = undefined
+
+catIso321 (A B : precategory) (e1:Id U (cA A) (cA B)) : U
+  = (x y:cA A) -> Id U (cH A x y) (cH B (transport e1 x) (transport e1 y))
+catIso322 (A B : precategory) (e1:Id U (cA A) (cA B)) (e2:catIso321 A B e1) : U
+  = (x:cA A) -> Id (cH B (transport e1 x) (transport e1 x))
+       (transport (e2 x x) (cId A x))
+       (cId B (transport e1 x))
+catIso323 (A B : precategory) (e1:Id U (cA A) (cA B)) (e2:catIso321 A B e1) : U
+  = (x y z:cA A)(f:cH A x y)(g:cH A y z)->
+    Id (cH B (transport e1 x) (transport e1 z))
+       (transport (e2 x z) (cC A x y z f g))
+       (cC B (transport e1 x) (transport e1 y) (transport e1 z)
+        (transport (e2 x y) f)
+        (transport (e2 y z) g))
+catIso32 (A B : precategory) : U = (e1 : Id U (cA A) (cA B))
+                                 * (e2 : catIso321 A B e1)
+                                 * (_ : catIso322 A B e1 e2)
+                                 * ( catIso323 A B e1 e2)
+
+
+eCatIso32 (A B : precategory) : Id U (catIso31 A B) (catIso32 A B)
+  = <i> (e1 : Id U (cA A) (cA B))
+      * (let F(e2:catIso311 A B e1):catIso321 A B e1 = \(x y:cA A)-><i>(e2@i) x y in
+      transEquivToId
+        ((e2 : catIso311 A B e1) * (_ : catIso312 A B e1 e2) * ( catIso313 A B e1 e2))
+        ((e2 : catIso321 A B e1) * (_ : catIso322 A B e1 e2) * ( catIso323 A B e1 e2))
+        (sigEquivLem (catIso311 A B e1) (catIso321 A B e1)
+         (\(e2 : catIso311 A B e1) -> (_ : catIso312 A B e1 e2) * ( catIso313 A B e1 e2))
+         (\(e2 : catIso321 A B e1) -> (_ : catIso322 A B e1 e2) * ( catIso323 A B e1 e2))
+          (F, gradLemma (catIso311 A B e1) (catIso321 A B e1)
+               F (\(e2:catIso321 A B e1)-><i>\(x y:cA A)->(e2 x y)@i)
+               (\(e2:catIso321 A B e1)-><_>e2) (\(e2:catIso311 A B e1)-><_>e2))
+        (\(e2:catIso311 A B e1)->
+        (sigEquivLem (catIso312 A B e1 e2) (catIso322 A B e1 (F e2))
+         (\(_ : catIso312 A B e1 e2) -> (catIso313 A B e1 e2))
+         (\(_ : catIso322 A B e1 (F e2)) -> (catIso323 A B e1 (F e2)))
+          (let F2(e:catIso312 A B e1 e2):catIso322 A B e1 (F e2)=\(x:cA A)-><i>(e@i)x in
+           (F2, gradLemma (catIso312 A B e1 e2) (catIso322 A B e1 (F e2))
+                 F2 (\(e:catIso322 A B e1 (F e2))-><i>\(x:cA A)->(e x)@i)
+                 (\(e:catIso322 A B e1 (F e2))-><_>e) (\(e:catIso312 A B e1 e2)-><_>e)))
+        (\(_:catIso312 A B e1 e2)->
+         (let F3(e:catIso313 A B e1 e2):catIso323 A B e1 (F e2)=\(x y z:cA A)(f:cH A x y)(g:cH A y z)-><i>(e@i)x y z f g in
+          (F3, gradLemma (catIso313 A B e1 e2) (catIso323 A B e1 (F e2))
+                F3 (\(e:catIso323 A B e1 (F e2))-><i>\(x y z:cA A)(f:cH A x y)(g:cH A y z)->(e x y z f g)@i)
+                (\(e:catIso323 A B e1 (F e2))-><_>e) (\(e:catIso313 A B e1 e2)-><_>e))
+        )))))) @ i
 
 --
 

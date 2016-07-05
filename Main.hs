@@ -28,11 +28,12 @@ import qualified Eval as E
 type Interpreter a = InputT IO a
 
 -- Flag handling
-data Flag = Debug | Help | Version | Time
+data Flag = Debug | Batch | Help | Version | Time
   deriving (Eq,Show)
 
 options :: [OptDescr Flag]
 options = [ Option "d"  ["debug"]   (NoArg Debug)   "run in debugging mode"
+          , Option "b"  ["batch"]   (NoArg Batch)   "run in batch mode"
           , Option ""   ["help"]    (NoArg Help)    "print help"
           , Option "-t" ["time"]    (NoArg Time)    "measure time spent computing"
           , Option ""   ["version"] (NoArg Version) "print version number" ]
@@ -102,8 +103,11 @@ initLoop flags f hist = do
       case merr of
         Just err -> putStrLn $ "Type checking failed: " ++ shrink err
         Nothing  -> putStrLn "File loaded."
-      -- Compute names for auto completion
-      runInputT (settings [n | (n,_) <- names]) (putHistory hist >> loop flags f names tenv)
+      if Batch `elem` flags
+        then return ()
+        else -- Compute names for auto completion
+             runInputT (settings [n | (n,_) <- names])
+               (putHistory hist >> loop flags f names tenv)
 
 -- The main loop
 loop :: [Flag] -> FilePath -> [(CTT.Ident,SymKind)] -> TC.TEnv -> Interpreter ()

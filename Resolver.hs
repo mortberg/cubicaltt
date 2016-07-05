@@ -194,11 +194,11 @@ resolveExp e = case e of
   Split t brs -> do
     t'   <- resolveExp t
     brs' <- mapM resolveBranch brs
-    loc  <- getLoc (case brs of
-                      OBranch (AIdent (l,_)) _ _:_ -> l
-                      PBranch (AIdent (l,_)) _ _ _:_ -> l
-                      _ -> (0,0))
-    return $ CTT.Split "" loc t' brs' -- Do we ever use the name?
+    l@(Loc n (i,j)) <- getLoc (case brs of
+                                  OBranch (AIdent (l,_)) _ _:_ -> l
+                                  PBranch (AIdent (l,_)) _ _ _:_ -> l
+                                  _ -> (0,0))
+    return $ CTT.Split (n ++ "_L" ++ show i ++ "_C" ++ show j) l t' brs'
   Let decls e   -> do
     (rdecls,names) <- resolveDecls decls
     mkWheres rdecls <$> local (insertIdents names) (resolveExp e)

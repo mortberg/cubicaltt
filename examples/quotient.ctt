@@ -1,20 +1,81 @@
 module quotient where
 
 import prelude
+import circle
 
 -- Quotient A by R
 data Quot (A : U) (R : A -> A -> U) =
+    inj (a : A)
+  | quoteq (a b : A) (r : R a b)
+           <i> [ (i = 0) -> inj a, (i = 1) -> inj b ]
+
+quoteq' (A : U) (R : A -> A -> U) (a b : A) (r : R a b)
+  : Id (Quot A R) (inj a) (inj b) = <i> quoteq {Quot A R} a b r @ i
+
+
+-- Test to define circle as a quotient of unit
+RS1 (a b : Unit) : U = Unit
+s1quot : U = Quot Unit RS1
+
+f1 : s1quot -> S1 = split
+  inj _ -> base
+  quoteq a b r @ i -> loop1 @ i
+
+f2 : S1 -> s1quot = split
+  base -> inj tt
+  loop @ i -> quoteq{s1quot} tt tt tt @ i
+
+rem3 : (a : Unit) -> Id s1quot (f2 (f1 (inj a))) (inj a) = split
+   tt -> <i> inj tt
+
+
+test : Id U s1quot S1 =
+  isoId s1quot S1 f1 f2 rem1 rem2
+    where
+    rem1 : (y : S1) -> Id S1 (f1 (f2 y)) y = split
+      base -> <i> base
+      loop @ i -> <j> loop1 @ i
+    rem2 : (x : s1quot) -> Id s1quot (f2 (f1 x)) x = split
+      inj a -> rem3 a
+      quoteq a b r @ i -> ?
+        -- rem4 : (a b : Unit) (r : RS1 a b)->
+        --        Id s1quot (quoteq{s1quot} tt tt tt @ i)
+        --                  (quoteq{s1quot} a b r @ i) = split
+        --   tt -> \(b : Unit) (r : RS1 a b) -> rem5 b r
+        --    where
+        --    rem5 : (b r : Unit) ->
+        --           Id s1quot (quoteq{s1quot} tt tt tt @ i)
+        --                     (quoteq{s1quot} tt b r @ i) = split
+        --      tt -> \(r : Unit) -> rem6 r
+        --       where
+        --       rem6 : (r : Unit) ->
+        --               Id s1quot (quoteq{s1quot} tt tt tt @ i)
+        --                         (quoteq{s1quot} tt tt r @ i) = split
+        --         tt -> ? -- <i> rem3 tt @ i
+
+
+
+
+-- Set quotient of A by R
+data setquot (A : U) (R : A -> A -> U) =
     quot (a : A)
   | identification (a b : A) (r : R a b) <i> [ (i = 0) -> quot a, (i = 1) -> quot b ]
-  | setTruncation (a b : Quot A R) (p q : Id (Quot A R) a b) <i j> 
+  | setTruncation (a b : setquot A R) (p q : Id (setquot A R) a b) <i j>
        [ (i = 0) -> p @ j
        , (i = 1) -> q @ j
        , (j = 0) -> a
        , (j = 1) -> b ]
 
-identQuot (A : U) (R : A -> A -> U) (a b : A) (r : R a b)
-  : Id (Quot A R) (quot a) (quot b) = <i> identification {Quot A R} a b r @ i
 
-setQuot (A : U) (R : A -> A -> U) : set (Quot A R) =
-   \(a b : Quot A R) (p q : Id (Quot A R) a b) ->
-     <i j> setTruncation {Quot A R} a b p q @ i @ j
+{-
+     b
+  p    q
+     a
+-}
+
+identsetquot (A : U) (R : A -> A -> U) (a b : A) (r : R a b)
+  : Id (setquot A R) (quot a) (quot b) = <i> identification {setquot A R} a b r @ i
+
+setsetquot (A : U) (R : A -> A -> U) : set (setquot A R) =
+   \(a b : setquot A R) (p q : Id (setquot A R) a b) ->
+     <i j> setTruncation {setquot A R} a b p q @ i @ j

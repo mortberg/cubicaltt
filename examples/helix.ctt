@@ -171,6 +171,7 @@ decodeEncodeBase : (n : Z) -> Id Z (encode base (decode base n)) n = split
   inl n -> decodeEncodeBaseNeg n
   inr n -> decodeEncodeBasePos n
 
+-- the loop space of the circle is equal to Z
 loopS1equalsZ : Id U loopS1 Z = 
   isoId loopS1 Z (encode base) (decode base) decodeEncodeBase (encodeDecode base)
 

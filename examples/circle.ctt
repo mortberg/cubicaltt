@@ -65,9 +65,12 @@ triv : loopS1 = <i> base
 hmtpy : Id loopS1 (<i> base) (<i> loop{S1} @ (i /\ -i)) =
   <j i> loop{S1} @ j /\ i /\ -i
 
+circleelim (X : U) (x : X) (p : Id X x x) : S1 -> X = split
+  base -> x
+  loop @ i -> p @ i
 
--- the loop space of the circle is equal to Z
-
--- loopS1equalsZ : Id U loopS1 Z = undefined
---  isoId loopS1 Z (encode base) (decode base) decodeEncodeBase (encodeDecode base)
-
+apcircleelim (A B : U) (x : A) (p : Id A x x) (f : A -> B) :
+  (z : S1) -> Id B (f (circleelim A x p z))
+                   (circleelim B (f x) (<i> f (p @ i)) z) = split
+   base -> <_> f x
+   loop @ i -> <_> f (p @ i)

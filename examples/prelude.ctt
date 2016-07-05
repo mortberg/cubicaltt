@@ -216,31 +216,25 @@ propIsContr (A : U) : prop (isContr A) = lemProp (isContr A) rem
 
 data N0 =
 
-efq (A : U) : N0 -> A = split{}
+efq (A : U) : N0 -> A = split {}
 neg (A : U) : U = A -> N0
 
 data Unit = tt
 
-propUnit : prop Unit = rem
- where rem1 : (x:Unit) -> Id Unit x tt = split tt -> refl Unit tt
-       rem (x:Unit) : (y:Unit) -> Id Unit x y = split tt -> rem1 x
+propUnit : prop Unit = split
+ tt -> split@((x:Unit) -> Id Unit tt x) with
+  tt -> <i> tt
 
 setUnit : set Unit = propSet Unit propUnit
 
 data or (A B : U) = inl (a : A)
                   | inr (b : B)
 
-propOr (A B : U) (hA : prop A) (hB : prop B) (h : A -> neg B) : prop (or A B) = rem
-  where
-  rem : (a b : or A B) -> Id (or A B) a b = split
-    inl a' -> rem1
-      where
-      rem1 : (b : or A B) -> Id (or A B) (inl a') b = split
+propOr (A B : U) (hA : prop A) (hB : prop B) (h : A -> neg B) : prop (or A B) = split
+    inl a' -> split@((b : or A B) -> Id (or A B) (inl a') b) with
         inl b' -> <i> inl (hA a' b' @ i)
         inr b' -> efq (Id (or A B) (inl a') (inr b')) (h a' b')
-    inr a' -> rem1
-      where
-      rem1 : (b : or A B) -> Id (or A B) (inr a') b = split
+    inr a' -> split@((b : or A B) -> Id (or A B) (inr a') b) with
         inl b' -> efq (Id (or A B) (inr a') (inl b')) (h b' a')
         inr b' -> <i> inr (hB a' b' @ i)
 

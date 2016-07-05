@@ -3,7 +3,7 @@ entrypoints Module, Exp ;
 comment "--" ;
 comment "{-" "-}" ;
 
-layout "where", "let", "split", "mutual" ;
+layout "where", "let", "split", "mutual", "with" ;
 layout stop "in" ;
 -- Do not use layout toplevel as it makes pExp fail!
 
@@ -26,6 +26,7 @@ NoWhere.  ExpWhere ::= Exp ;
 Let.          Exp  ::= "let" "{" [Decl] "}" "in" Exp ;
 Lam.          Exp  ::= "\\" [PTele] "->" Exp ;
 Path.         Exp  ::= "<" [AIdent] ">" Exp ;
+Split.        Exp  ::= "split@" Exp "with" "{" [Branch] "}" ;
 Fun.          Exp1 ::= Exp2 "->" Exp1 ;
 Pi.           Exp1 ::= [PTele] "->" Exp1 ;
 Sigma.        Exp1 ::= [PTele] "*" Exp1 ;

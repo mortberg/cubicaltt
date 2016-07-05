@@ -191,6 +191,14 @@ resolveExp e = case e of
     e  <- resolveExp t0
     es <- mapM resolveExp ts
     return $ foldr1 CTT.Pair (e:es)
+  Split t brs -> do
+    t'   <- resolveExp t
+    brs' <- mapM resolveBranch brs
+    loc  <- getLoc (case brs of
+                      OBranch (AIdent (l,_)) _ _:_ -> l
+                      PBranch (AIdent (l,_)) _ _ _:_ -> l
+                      _ -> (0,0))
+    return $ CTT.Split "" loc t' brs' -- Do we ever use the name?
   Let decls e   -> do
     (rdecls,names) <- resolveDecls decls
     mkWheres rdecls <$> local (insertIdents names) (resolveExp e)

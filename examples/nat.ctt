@@ -1,6 +1,7 @@
 module nat where
 
 import hedberg
+import bool
 
 data nat = zero | suc (n : nat)
 
@@ -83,3 +84,11 @@ natDec : (n m:nat) -> dec (Id nat n m) = split
                  (sucInj n m) (natDec n m))
 
 natSet : set nat = hedberg nat natDec
+
+equalNat : nat -> nat -> bool = split
+    zero -> split@(nat -> bool) with
+      zero  -> true
+      suc n -> false
+    suc m -> split@(nat -> bool) with
+      zero  -> false
+      suc n -> equalNat m n

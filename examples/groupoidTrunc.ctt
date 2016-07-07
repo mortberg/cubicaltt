@@ -1,12 +1,12 @@
 module groupoidTrunc where
 
-import prelude
 import equiv
-
+import sigma
 
 data gTrunc (A : U)
   = inc (a : A)
-  | squashC (a b : gTrunc A) (p q : Id (gTrunc A) a b) (r s: Id (Id (gTrunc A) a b) p q) <i j k>
+  | squashC (a b : gTrunc A) (p q : Id (gTrunc A) a b)
+            (r s: Id (Id (gTrunc A) a b) p q) <i j k>
        [ (i=0) -> r @ j @ k
        , (i=1) -> s @ j @ k
        , (j=0) -> p @ k
@@ -14,7 +14,8 @@ data gTrunc (A : U)
        , (k=0) -> a
        , (k=1) -> b]
 
-gTr (A:U) (a b : gTrunc A) (p q : Id (gTrunc A) a b) (r s: Id (Id (gTrunc A) a b) p q) : 
+gTr (A:U) (a b : gTrunc A) (p q : Id (gTrunc A) a b)
+    (r s: Id (Id (gTrunc A) a b) p q) : 
  Id (Id (Id (gTrunc A) a b) p q) r s = 
  <i j k> squashC{gTrunc A} a b p q r s@ i @ j @k
 
@@ -84,13 +85,6 @@ gTruncElim : (A : U)
            (B : (gTrunc A) -> U)
            (bG : (z:gTrunc A) -> groupoid (B z))
            (f : (x:A) -> B (inc x)) (z:gTrunc A) -> B z = gTruncElim1 lem
-
-
-
-
-
-
-setGroupoid (A:U) (h:set A) (a b:A) : set (Id A a b) =  propSet (Id A a b) (h a b)
 
 univG (A B:U) (bG:groupoid B) : Id U ((gTrunc A) -> B) (A -> B) = 
    isoId (gTrunc A -> B) (A -> B) F G s t

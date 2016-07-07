@@ -10,7 +10,7 @@ data Quot (A : U) (R : A -> A -> U) =
            <i> [ (i = 0) -> inj a, (i = 1) -> inj b ]
 
 quoteq' (A : U) (R : A -> A -> U) (a b : A) (r : R a b)
-  : Id (Quot A R) (inj a) (inj b) = <i> quoteq {Quot A R} a b r @ i
+  : Path (Quot A R) (inj a) (inj b) = <i> quoteq {Quot A R} a b r @ i
 
 
 -- Test to define circle as a quotient of unit
@@ -25,16 +25,16 @@ f2 : S1 -> s1quot = split
   base -> inj tt
   loop @ i -> quoteq{s1quot} tt tt tt @ i
 
-rem3 : (a : Unit) -> Id s1quot (inj tt) (inj a) = split
+rem3 : (a : Unit) -> Path s1quot (inj tt) (inj a) = split
    tt -> <i> inj tt
 
-test : Id U s1quot S1 =
-  isoId s1quot S1 f1 f2 rem1 rem2
+test : Path U s1quot S1 =
+  isoPath s1quot S1 f1 f2 rem1 rem2
     where
-    rem1 : (y : S1) -> Id S1 (f1 (f2 y)) y = split
+    rem1 : (y : S1) -> Path S1 (f1 (f2 y)) y = split
       base -> <i> base
       loop @ i -> <j> loop1 @ i
-    rem2 : (x : s1quot) -> Id s1quot (f2 (f1 x)) x = split
+    rem2 : (x : s1quot) -> Path s1quot (f2 (f1 x)) x = split
       inj a -> rem3 a
       quoteq a b r @ i -> ?
 
@@ -43,7 +43,7 @@ test : Id U s1quot S1 =
 data setquot (A : U) (R : A -> A -> U) =
     quot (a : A)
   | identification (a b : A) (r : R a b) <i> [ (i = 0) -> quot a, (i = 1) -> quot b ]
-  | setTruncation (a b : setquot A R) (p q : Id (setquot A R) a b) <i j>
+  | setTruncation (a b : setquot A R) (p q : Path (setquot A R) a b) <i j>
        [ (i = 0) -> p @ j
        , (i = 1) -> q @ j
        , (j = 0) -> a
@@ -57,8 +57,8 @@ data setquot (A : U) (R : A -> A -> U) =
 -}
 
 identsetquot (A : U) (R : A -> A -> U) (a b : A) (r : R a b)
-  : Id (setquot A R) (quot a) (quot b) = <i> identification {setquot A R} a b r @ i
+  : Path (setquot A R) (quot a) (quot b) = <i> identification {setquot A R} a b r @ i
 
 setsetquot (A : U) (R : A -> A -> U) : set (setquot A R) =
-   \(a b : setquot A R) (p q : Id (setquot A R) a b) ->
+   \(a b : setquot A R) (p q : Path (setquot A R) a b) ->
      <i j> setTruncation {setquot A R} a b p q @ i @ j

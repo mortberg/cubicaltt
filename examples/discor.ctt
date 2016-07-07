@@ -2,49 +2,49 @@ module discor where
 
 import prelude
 
-inlNotinr (A B:U) (a:A) (b:B) (h: Id (or A B) (inl a) (inr b)) : N0 = 
+inlNotinr (A B:U) (a:A) (b:B) (h: Path (or A B) (inl a) (inr b)) : N0 = 
  subst (or A B) T (inl a) (inr b) h tt
  where
   T : or A B -> U = split
        inl _ -> Unit
        inr _ -> N0
 
-inrNotinl (A B:U) (a:A) (b:B) (h : Id (or A B) (inr b) (inl a)) : N0 = 
+inrNotinl (A B:U) (a:A) (b:B) (h : Path (or A B) (inr b) (inl a)) : N0 = 
  subst (or A B) T (inr b) (inl a) h tt
  where
   T : or A B -> U = split
        inl _ -> N0
        inr _ -> Unit
 
-injInl (A B :U) (x0 x1:A) (h : Id (or A B) (inl x0) (inl x1)) : Id A x0 x1 = 
+injInl (A B :U) (x0 x1:A) (h : Path (or A B) (inl x0) (inl x1)) : Path A x0 x1 = 
  subst (or A B) T (inl x0) (inl x1) h (refl A x0)
  where
    T : or A B -> U = split
-         inl x -> Id A x0 x
+         inl x -> Path A x0 x
          inr _ -> N0
 
-injInr (A B :U) (x0 x1:B) (h: Id (or A B) (inr x0) (inr x1)) : Id B x0 x1 = 
+injInr (A B :U) (x0 x1:B) (h: Path (or A B) (inr x0) (inr x1)) : Path B x0 x1 = 
  subst (or A B) T (inr x0) (inr x1) h (refl B x0)
  where
    T : or A B -> U = split
          inl _ -> N0
-         inr x -> Id B x0 x
+         inr x -> Path B x0 x
 
 -- If A and B are discrete then "A or B" is discrete
 orDisc (A B : U) (dA : discrete A) (dB : discrete B) :
-  (z z1 : or A B) -> dec (Id (or A B) z z1) = split
+  (z z1 : or A B) -> dec (Path (or A B) z z1) = split
   inl a -> rem1
-    where rem1 : (z1:or A B) -> dec (Id (or A B) (inl a) z1) = split
+    where rem1 : (z1:or A B) -> dec (Path (or A B) (inl a) z1) = split
             inl a1 -> rem (dA a a1)
-               where rem : dec (Id A a a1) -> dec (Id (or A B) (inl a) (inl a1)) = split
+               where rem : dec (Path A a a1) -> dec (Path (or A B) (inl a) (inl a1)) = split
                             inl p -> inl (<i> inl (p @ i))
-                            inr h -> inr (\ (p:Id (or A B) (inl a) (inl a1)) -> h (injInl A B a a1 p))
+                            inr h -> inr (\ (p:Path (or A B) (inl a) (inl a1)) -> h (injInl A B a a1 p))
             inr b -> inr (inlNotinr A B a b)
   inr b -> rem1
-   where rem1 : (z1:or A B) -> dec (Id (or A B) (inr b) z1) = split
+   where rem1 : (z1:or A B) -> dec (Path (or A B) (inr b) z1) = split
             inl a -> inr (inrNotinl A B a b)
             inr b1 -> rem (dB b b1)
-               where rem : dec (Id B b b1) -> dec (Id (or A B) (inr b) (inr b1)) = split
+               where rem : dec (Path B b b1) -> dec (Path (or A B) (inr b) (inr b1)) = split
                             inl p -> inl (<i> inr (p @ i))
-                            inr h -> inr (\ (p:Id (or A B) (inr b) (inr b1)) -> h (injInr A B b b1 p))
+                            inr h -> inr (\ (p:Path (or A B) (inr b) (inr b1)) -> h (injInr A B b b1 p))
 

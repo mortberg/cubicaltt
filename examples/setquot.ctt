@@ -7,10 +7,10 @@ import pi
 import univalence
 
 subtypeEquality (A : U) (B : A -> U) (pB : (x : A) -> prop (B x))
-                (s t : (x : A) * B x) : Id A s.1 t.1 -> Id (Sigma A B) s t =
-  trans (Id A s.1 t.1) (Id (Sigma A B) s t) rem
+                (s t : (x : A) * B x) : Path A s.1 t.1 -> Path (Sigma A B) s t =
+  trans (Path A s.1 t.1) (Path (Sigma A B) s t) rem
     where
-    rem : Id U (Id A s.1 t.1) (Id (Sigma A B) s t) =
+    rem : Path U (Path A s.1 t.1) (Path (Sigma A B) s t) =
       <i> lemSigProp A B pB s t @ -i
 
 -- (* Propositions *)
@@ -44,43 +44,43 @@ isEquivprop (A B : U) (f : A -> B) (g : B -> A) (pA : prop A) (pB : prop B) : is
   rem (y : B) : isContr (fiber A B f y) = (s,t)
     where
     s : fiber A B f y = (g y,pB y (f (g y)))
-    t (w : fiber A B f y) : Id ((x :  A) * Id B y (f x)) s w =
-      subtypeEquality A (\(x : A) -> Id B y (f x)) pb s w r1
+    t (w : fiber A B f y) : Path ((x :  A) * Path B y (f x)) s w =
+      subtypeEquality A (\(x : A) -> Path B y (f x)) pb s w r1
        where
-       pb (x : A) : (a b : Id B y (f x)) -> Id (Id B y (f x)) a b = propSet B pB y (f x)
-       r1 : Id A s.1 w.1 = pA s.1 w.1
+       pb (x : A) : (a b : Path B y (f x)) -> Path (Path B y (f x)) a b = propSet B pB y (f x)
+       r1 : Path A s.1 w.1 = pA s.1 w.1
 
 equivhProp (P P' : hProp) (f : P.1 -> P'.1) (g : P'.1 -> P.1) : equiv P.1 P'.1 =
   (f,isEquivprop P.1 P'.1 f g P.2 P'.2)
 
 -- Proof of uahp using full univalence
-uahp' (P P' : hProp) (f : P.1 -> P'.1) (g : P'.1 -> P.1) : Id hProp P P' =
+uahp' (P P' : hProp) (f : P.1 -> P'.1) (g : P'.1 -> P.1) : Path hProp P P' =
   subtypeEquality U prop propIsProp P P' rem
   where
-  rem : Id U P.1 P'.1 = transport (<i> corrUniv P.1 P'.1 @ -i) (equivhProp P P' f g)
+  rem : Path U P.1 P'.1 = transport (<i> corrUniv P.1 P'.1 @ -i) (equivhProp P P' f g)
 
 -- Direct proof of uahp
-uahp (P P' : hProp) (f : P.1 -> P'.1) (g : P'.1 -> P.1) : Id hProp P P' =
+uahp (P P' : hProp) (f : P.1 -> P'.1) (g : P'.1 -> P.1) : Path hProp P P' =
   subtypeEquality U prop propIsProp P P' rem
   where
-  rem : Id U P.1 P'.1 = isoId P.1 P'.1 f g s t
-    where s (y : P'.1) : Id P'.1 (f (g y)) y = P'.2 (f (g y)) y
-          t (x : P.1) : Id P.1 (g (f x)) x = P.2 (g (f x)) x
+  rem : Path U P.1 P'.1 = isoPath P.1 P'.1 f g s t
+    where s (y : P'.1) : Path P'.1 (f (g y)) y = P'.2 (f (g y)) y
+          t (x : P.1) : Path P.1 (g (f x)) x = P.2 (g (f x)) x
 
 -- A short proof that hProp form a set using univalence: (this is not needed!)
 
-propequiv (X Y : U) (H : prop Y) (f g : equiv X Y) : Id (equiv X Y) f g =
+propequiv (X Y : U) (H : prop Y) (f g : equiv X Y) : Path (equiv X Y) f g =
   equivLemma X Y f g (<i> \(x : X) -> H (f.1 x) (g.1 x) @ i)
 
-propidU (X Y : U) : Id U X Y -> prop Y -> prop X = substInv U prop X Y
+propidU (X Y : U) : Path U X Y -> prop Y -> prop X = substInv U prop X Y
 
-sethProp (P P' : hProp) : prop (Id hProp P P') =
-  propidU (Id hProp P P') (equiv P.1 P'.1) rem (propequiv P.1 P'.1 P'.2)
+sethProp (P P' : hProp) : prop (Path hProp P P') =
+  propidU (Path hProp P P') (equiv P.1 P'.1) rem (propequiv P.1 P'.1 P'.2)
   where
-   rem1 : Id U (Id hProp P P') (Id U P.1 P'.1) = lemSigProp U prop propIsProp P P'
-   rem2 : Id U (Id U P.1 P'.1) (equiv P.1 P'.1) = corrUniv P.1 P'.1
-   rem : Id U (Id hProp P P') (equiv P.1 P'.1) =
-     compId U (Id hProp P P') (Id U P.1 P'.1) (equiv P.1 P'.1) rem1 rem2
+   rem1 : Path U (Path hProp P P') (Path U P.1 P'.1) = lemSigProp U prop propIsProp P P'
+   rem2 : Path U (Path U P.1 P'.1) (equiv P.1 P'.1) = corrUniv P.1 P'.1
+   rem : Path U (Path hProp P P') (equiv P.1 P'.1) =
+     compPath U (Path hProp P P') (Path U P.1 P'.1) (equiv P.1 P'.1) rem1 rem2
 
 -- (* Sets *)
 
@@ -118,12 +118,12 @@ propiseqclass (X : U) (R : hrel X) (A : hsubtypes X) : prop (iseqclass X R A) =
 
   -- This proof is quite cool, but it looks ugly...
   p2 (f g : (x1 x2 : X) -> (R x1 x2).1 -> (A x1).1 -> (A x2).1) :
-   Id ((x1 x2 : X) -> (R x1 x2).1 -> (A x1).1 -> (A x2).1) f g =
+   Path ((x1 x2 : X) -> (R x1 x2).1 -> (A x1).1 -> (A x2).1) f g =
     <i> \(x1 x2 : X) (h1 : (R x1 x2).1) (h2 : (A x1).1) ->
          (A x2).2 (f x1 x2 h1 h2) (g x1 x2 h1 h2) @ i
 
   p3 (f g : (x1 x2 : X) -> (A x1).1 -> (A x2).1 -> (R x1 x2).1) :
-    Id ((x1 x2 : X) -> (A x1).1 -> (A x2).1 -> (R x1 x2).1) f g =
+    Path ((x1 x2 : X) -> (A x1).1 -> (A x2).1 -> (R x1 x2).1) f g =
    <i> \(x1 x2 : X) (h1 : (A x1).1) (h2 : (A x2).1) ->
         (R x1 x2).2 (f x1 x2 h1 h2) (g x1 x2 h1 h2) @ i
 
@@ -160,11 +160,11 @@ setquotpr (X : U) (R : eqrel X) (X0 : X) : setquot X R.1 = (A,((p1,p2),p3))
    p3 (x1 x2 : X) (X1 : (A x1).1) (X2 : (A x2).1) : (R.1 x1 x2).1 = tax x1 X0 x2 (sax X0 x1 X1) X2
 
 setquotl0 (X : U) (R : eqrel X) (c : setquot X R.1) (x : carrier X c.1) :
-  Id (setquot X R.1) (setquotpr X R x.1) c = subtypeEquality (hsubtypes X) (iseqclass X R.1) p (setquotpr X R x.1) c rem
+  Path (setquot X R.1) (setquotpr X R x.1) c = subtypeEquality (hsubtypes X) (iseqclass X R.1) p (setquotpr X R x.1) c rem
   where
   p (A : hsubtypes X) : prop (iseqclass X R.1 A) = propiseqclass X R.1 A
-  rem : Id (hsubtypes X) (setquotpr X R x.1).1 c.1 = <i> \(x : X) -> (rem' x) @ i -- inlined use of funext
-    where rem' (a : X) : Id hProp ((setquotpr X R x.1).1 a) (c.1 a) =
+  rem : Path (hsubtypes X) (setquotpr X R x.1).1 c.1 = <i> \(x : X) -> (rem' x) @ i -- inlined use of funext
+    where rem' (a : X) : Path hProp ((setquotpr X R x.1).1 a) (c.1 a) =
             uahp' ((setquotpr X R x.1).1 a) (c.1 a) l2r r2l   -- This is where uahp appears
               where
               l2r (r : ((setquotpr X R x.1).1 a).1) : (c.1 a).1 = eqax1 X R.1 c.1 c.2 x.1 a r x.2
@@ -174,7 +174,7 @@ setquotunivprop (X : U) (R : eqrel X) (P : setquot X R.1 -> hProp)
   (ps : (x : X) -> (P (setquotpr X R x)).1) (c : setquot X R.1) : (P c).1 = hinhuniv (carrier X c.1) (P c) f rem
   where
    f (x : carrier X c.1) : (P c).1 =
-     let e : Id (setquot X R.1) (setquotpr X R x.1) c = setquotl0 X R c x
+     let e : Path (setquot X R.1) (setquotpr X R x.1) c = setquotl0 X R c x
      in subst (setquot X R.1) (\(w : setquot X R.1) -> (P w).1) (setquotpr X R x.1) c e (ps x.1)
    rem : (ishinh (carrier X c.1)).1 = eqax0 X R.1 c.1 c.2
 
@@ -192,14 +192,14 @@ setsetquot (X : U) (R : hrel X) : set (setquot X R) =
     sB (x : hsubtypes X) : set (iseqclass X R x) = propSet (iseqclass X R x) (propiseqclass X R x)
 
 iscompsetquotpr (X : U) (R : eqrel X) (x x' : X) (a : (R.1 x x').1) :
-  Id (setquot X R.1) (setquotpr X R x) (setquotpr X R x') =
+  Path (setquot X R.1) (setquotpr X R x) (setquotpr X R x') =
   subtypeEquality (hsubtypes X) (iseqclass X R.1) rem1 (setquotpr X R x) (setquotpr X R x') rem2
   where
   rem1 (x : hsubtypes X) : prop (iseqclass X R.1 x) = propiseqclass X R.1 x
-  rem2 : Id (hsubtypes X) (setquotpr X R x).1 (setquotpr X R x').1 =
+  rem2 : Path (hsubtypes X) (setquotpr X R x).1 (setquotpr X R x').1 =
     <i> \(x0 : X) -> rem x0 @ i
     where
-    rem (x0 : X) : Id hProp (R.1 x x0) (R.1 x' x0) = uahp' (R.1 x x0) (R.1 x' x0) f g
+    rem (x0 : X) : Path hProp (R.1 x x0) (R.1 x' x0) = uahp' (R.1 x x0) (R.1 x' x0) f g
       where
       f (r0 : (R.1 x x0).1) : (R.1 x' x0).1 =
         eqreltrans X R x' x x0 (eqrelsymm X R x x' a) r0
@@ -207,24 +207,24 @@ iscompsetquotpr (X : U) (R : eqrel X) (x x' : X) (a : (R.1 x x').1) :
         eqreltrans X R x x' x0 a r0
 
 weqpathsinsetquot (X : U) (R : eqrel X) (x x' : X) :
-  equiv (R.1 x x').1 (Id (setquot X R.1) (setquotpr X R x) (setquotpr X R x')) =
+  equiv (R.1 x x').1 (Path (setquot X R.1) (setquotpr X R x) (setquotpr X R x')) =
   (iscompsetquotpr X R x x',rem)
   where
   rem : isEquiv (R.1 x x').1
-                (Id (setquot X R.1) (setquotpr X R x) (setquotpr X R x'))
+                (Path (setquot X R.1) (setquotpr X R x) (setquotpr X R x'))
                 (iscompsetquotpr X R x x') =
     isEquivprop (R.1 x x').1
-                (Id (setquot X R.1) (setquotpr X R x) (setquotpr X R x'))
+                (Path (setquot X R.1) (setquotpr X R x) (setquotpr X R x'))
                 (iscompsetquotpr X R x x')
                 g pA pB
-   where g (e : Id (setquot X R.1) (setquotpr X R x) (setquotpr X R x')) :
+   where g (e : Path (setquot X R.1) (setquotpr X R x) (setquotpr X R x')) :
              (R.1 x x').1 = transport (<i> (rem1 @ i).1) rem
            where
            rem : (R.1 x' x').1 = eqrelrefl X R x'
-           rem2 : Id hProp (R.1 x x') (R.1 x' x') = <i> (e @ i).1 x'
-           rem1 : Id hProp (R.1 x' x') (R.1 x x') = <i> rem2 @ -i
+           rem2 : Path hProp (R.1 x x') (R.1 x' x') = <i> (e @ i).1 x'
+           rem1 : Path hProp (R.1 x' x') (R.1 x x') = <i> rem2 @ -i
          pA : prop (R.1 x x').1 = (R.1 x x').2
-         pB : prop (Id (setquot X R.1) (setquotpr X R x) (setquotpr X R x')) =
+         pB : prop (Path (setquot X R.1) (setquotpr X R x) (setquotpr X R x')) =
                 setsetquot X R.1 (setquotpr X R x) (setquotpr X R x')
 
 isdecprop (X : U) : U = and (prop X) (dec X)
@@ -235,12 +235,12 @@ propisdecprop (X : U): prop (isdecprop X) =
   rem1 : prop (prop X) = propIsProp X
   rem2 : prop X -> prop (dec X) = propDec X
 
-isdeceqif (X : U) (h : (x x' : X) -> isdecprop (Id X x x')) : discrete X =
+isdeceqif (X : U) (h : (x x' : X) -> isdecprop (Path X x x')) : discrete X =
   \(x x' : X) -> (h x x').2
 
 propEquiv (X Y : U) (w : equiv X Y) : prop X -> prop Y = subst U prop X Y rem
   where
-  rem : Id U X Y = transport (<i> corrUniv X Y @ -i) w
+  rem : Path U X Y = transport (<i> corrUniv X Y @ -i) w
 
 isdecpropweqf (X Y : U) (w : equiv X Y) (hX : isdecprop X) : isdecprop Y = (rem1,rem2 hX.2)
   where
@@ -252,18 +252,18 @@ isdecpropweqf (X Y : U) (w : equiv X Y) (hX : isdecprop X) : isdecprop Y = (rem1
 isdiscretesetquot (X : U) (R : eqrel X) (is : (x x' : X) -> isdecprop (R.1 x x').1) :
   discrete (setquot X R.1) = isdeceqif (setquot X R.1) rem
   where
-  rem : (x x' : setquot X R.1) -> isdecprop (Id (setquot X R.1) x x') =
+  rem : (x x' : setquot X R.1) -> isdecprop (Path (setquot X R.1) x x') =
     setquotuniv2prop X R
-      (\(x0 x0' : setquot X R.1) -> (isdecprop (Id (setquot X R.1) x0 x0'),
-                                     propisdecprop (Id (setquot X R.1) x0 x0'))) rem'
+      (\(x0 x0' : setquot X R.1) -> (isdecprop (Path (setquot X R.1) x0 x0'),
+                                     propisdecprop (Path (setquot X R.1) x0 x0'))) rem'
     where
-    rem' (x0 x0' : X) : isdecprop (Id (setquot X R.1) (setquotpr X R x0) (setquotpr X R x0')) =
-      isdecpropweqf (R.1 x0 x0').1 (Id (setquot X R.1) (setquotpr X R x0) (setquotpr X R x0'))
+    rem' (x0 x0' : X) : isdecprop (Path (setquot X R.1) (setquotpr X R x0) (setquotpr X R x0')) =
+      isdecpropweqf (R.1 x0 x0').1 (Path (setquot X R.1) (setquotpr X R x0) (setquotpr X R x0'))
                     (weqpathsinsetquot X R x0 x0') (is x0 x0')
 
 discretetobool (X : U) (h : discrete X) (x y : X) : bool = rem (h x y)
   where
-  rem : dec (Id X x y) -> bool = split
+  rem : dec (Path X x y) -> bool = split
     inl _ -> true
     inr _ -> false
 
@@ -271,86 +271,86 @@ discretetobool (X : U) (h : discrete X) (x y : X) : bool = rem (h x y)
 
 R : eqrel bool = (r1,r2)
   where
-  r1 : hrel bool = \(x y : bool) -> (Id bool x y,setbool x y)
-  r2 : iseqrel bool r1 = ((compId bool,refl bool),inv bool)
+  r1 : hrel bool = \(x y : bool) -> (Path bool x y,setbool x y)
+  r2 : iseqrel bool r1 = ((compPath bool,refl bool),inv bool)
 
 bool' : U = setquot bool R.1
 true' : bool' = setquotpr bool R true
 false' : bool' = setquotpr bool R false
 
 P' (t : bool') : hProp =
-  hdisj (Id bool' t true') (Id bool' t false')
+  hdisj (Path bool' t true') (Path bool' t false')
 
 K' (t : bool') : (P' t).1 = setquotunivprop bool R P' ps t
   where
   ps : (x : bool) -> (P' (setquotpr bool R x)).1 = split
-    false -> hdisj_in2 (Id bool' false' true')
-                       (Id bool' false' false') (<_> false')
-    true  -> hdisj_in1 (Id bool' true' true')
-                       (Id bool' true' false') (<_> true')
+    false -> hdisj_in2 (Path bool' false' true')
+                       (Path bool' false' false') (<_> false')
+    true  -> hdisj_in1 (Path bool' true' true')
+                       (Path bool' true' false') (<_> true')
 
-test : (P' true').1 = hdisj_in1 (Id bool' true' true')
-                                (Id bool' true' false') (<_> true')
+test : (P' true').1 = hdisj_in1 (Path bool' true' true')
+                                (Path bool' true' false') (<_> true')
 test' : (P' true').1 = K' true'
 
--- test'' : Id (P' true').1 test test' = (P' true').2 test test'
+-- test'' : Path (P' true').1 test test' = (P' true').2 test test'
 
 -- These two terms are not convertible:
--- test' : Id (P' true').1 (K' true')
---           (hdisj_in1 (Id (setquot bool R.1) true' true') (Id (setquot bool R.1) true' false') (<_> true')) =
+-- test' : Path (P' true').1 (K' true')
+--           (hdisj_in1 (Path (setquot bool R.1) true' true') (Path (setquot bool R.1) true' false') (<_> true')) =
 --   <_> K' true'
 
 
 -- Another test:
 
-true'neqfalse' (H : Id bool' true' false') : N0 = falseNeqTrue rem1
+true'neqfalse' (H : Path bool' true' false') : N0 = falseNeqTrue rem1
   where
-  rem : Id U (Id bool true true) (Id bool false true) = <i> ((H @ i).1 true).1
-  rem1 : Id bool false true = comp rem (<_> true) []
+  rem : Path U (Path bool true true) (Path bool false true) = <i> ((H @ i).1 true).1
+  rem1 : Path bool false true = comp rem (<_> true) []
 
-test1 (x : bool') (H1 : Id bool' x true') (H2 : Id bool' x false') : N0 = true'neqfalse' rem
+test1 (x : bool') (H1 : Path bool' x true') (H2 : Path bool' x false') : N0 = true'neqfalse' rem
   where
-  rem : Id bool' true' false' = <i> comp (<_> bool') x [(i = 0) -> H1, (i = 1) -> H2]
+  rem : Path bool' true' false' = <i> comp (<_> bool') x [(i = 0) -> H1, (i = 1) -> H2]
 
-test2 (x : bool') (p1 : (ishinh (Id bool' x true')).1)
-                  (p2 : (ishinh (Id bool' x false')).1) : N0 =
-  hinhuniv (Id bool' x true') (N0,propN0) rem p1
+test2 (x : bool') (p1 : (ishinh (Path bool' x true')).1)
+                  (p2 : (ishinh (Path bool' x false')).1) : N0 =
+  hinhuniv (Path bool' x true') (N0,propN0) rem p1
   where
-  rem (H1 : Id bool' x true') : N0 =
-    hinhuniv (Id bool' x false') (N0,propN0)
-             (\(H2 : Id bool' x false') -> test1 x H1 H2) p2
+  rem (H1 : Path bool' x true') : N0 =
+    hinhuniv (Path bool' x false') (N0,propN0)
+             (\(H2 : Path bool' x false') -> test1 x H1 H2) p2
 
 -- shorthand for this big type
-T (x : bool') : U = or (ishinh (Id bool' x true')).1 (ishinh (Id bool' x false')).1
+T (x : bool') : U = or (ishinh (Path bool' x true')).1 (ishinh (Path bool' x false')).1
 
 -- test3 (x : bool') : prop (T x)
-test3 (x : bool') : (a b : T x) -> Id (T x) a b = split
+test3 (x : bool') : (a b : T x) -> Path (T x) a b = split
   inl a' -> rem
     where
-    rem : (b : T x) -> Id (T x) (inl a') b = split
-      inl b' -> <i> inl (propishinh (Id bool' x true') a' b' @ i)
-      inr b' -> efq (Id (T x) (inl a') (inr b')) (test2 x a' b')
+    rem : (b : T x) -> Path (T x) (inl a') b = split
+      inl b' -> <i> inl (propishinh (Path bool' x true') a' b' @ i)
+      inr b' -> efq (Path (T x) (inl a') (inr b')) (test2 x a' b')
   inr a' -> rem
     where
-    rem : (b : T x) -> Id (T x) (inr a') b = split
-      inl b' -> efq (Id (T x) (inr a') (inl b')) (test2 x b' a')
-      inr b' -> <i> inr (propishinh (Id bool' x false') a' b' @ i)
+    rem : (b : T x) -> Path (T x) (inr a') b = split
+      inl b' -> efq (Path (T x) (inr a') (inl b')) (test2 x b' a')
+      inr b' -> <i> inr (propishinh (Path bool' x false') a' b' @ i)
 
-f (x : bool') : or (ishinh (Id bool' x true')).1 (ishinh (Id bool' x false')).1 -> bool = split
+f (x : bool') : or (ishinh (Path bool' x true')).1 (ishinh (Path bool' x false')).1 -> bool = split
   inl _ -> true
   inr _ -> false
 
-bar (x : bool') : or (Id bool' x true') (Id bool' x false') ->
-  or (ishinh (Id bool' x true')).1 (ishinh (Id bool' x false')).1 = split
-  inl p -> inl (hinhpr (Id bool' x true') p)
-  inr p -> inr (hinhpr (Id bool' x false') p)
+bar (x : bool') : or (Path bool' x true') (Path bool' x false') ->
+  or (ishinh (Path bool' x true')).1 (ishinh (Path bool' x false')).1 = split
+  inl p -> inl (hinhpr (Path bool' x true') p)
+  inr p -> inr (hinhpr (Path bool' x false') p)
 
 -- finally the map:
 foo (x : bool') (x' : (P' x).1) : bool = f x rem
   where
-  rem : or (ishinh (Id bool' x true')).1 (ishinh (Id bool' x false')).1 =
-    hinhuniv (or (Id bool' x true') (Id bool' x false'))
-             (or (ishinh (Id bool' x true')).1 (ishinh (Id bool' x false')).1,test3 x)
+  rem : or (ishinh (Path bool' x true')).1 (ishinh (Path bool' x false')).1 =
+    hinhuniv (or (Path bool' x true') (Path bool' x false'))
+             (or (ishinh (Path bool' x true')).1 (ishinh (Path bool' x false')).1,test3 x)
              (bar x) x'
 
 -- > :n testfoo
@@ -358,15 +358,15 @@ foo (x : bool') (x' : (P' x).1) : bool = f x rem
 -- Time: 0m0.490s
 testfoo : bool = foo true' (K' true')
 
-testfoo' : Id bool (foo true' (K' true')) true = <i> foo true' (K' true')
+testfoo' : Path bool (foo true' (K' true')) true = <i> foo true' (K' true')
 
 
 -- Tests of checking normal forms:
 
-ntrue' : bool' = (\(x : bool) -> (IdP (<i0> bool) true x,lem8 x),((\(P : Sigma U (\(X : U) -> (a b : X) -> IdP (<i0> X) a b)) -> \(f : (Sigma bool (\(x : bool) -> IdP (<i0> bool) true x)) -> P.1) -> f ((true,<i0> true)),\(x1 x2 : bool) -> \(X1 : IdP (<i0> bool) x1 x2) -> \(X2 : IdP (<i0> bool) true x1) -> <i0> comp (<i1> bool) (X2 @ i0) [ (i0 = 0) -> <i1> true, (i0 = 1) -> <i1> X1 @ i1 ]),\(x1 x2 : bool) -> \(X1 : IdP (<i0> bool) true x1) -> \(X2 : IdP (<i0> bool) true x2) -> <i0> comp (<i1> bool) (X1 @ -i0) [ (i0 = 0) -> <i1> x1, (i0 = 1) -> <i1> X2 @ i1 ]))
+ntrue' : bool' = (\(x : bool) -> (PathP (<i0> bool) true x,lem8 x),((\(P : Sigma U (\(X : U) -> (a b : X) -> PathP (<i0> X) a b)) -> \(f : (Sigma bool (\(x : bool) -> PathP (<i0> bool) true x)) -> P.1) -> f ((true,<i0> true)),\(x1 x2 : bool) -> \(X1 : PathP (<i0> bool) x1 x2) -> \(X2 : PathP (<i0> bool) true x1) -> <i0> comp (<i1> bool) (X2 @ i0) [ (i0 = 0) -> <i1> true, (i0 = 1) -> <i1> X1 @ i1 ]),\(x1 x2 : bool) -> \(X1 : PathP (<i0> bool) true x1) -> \(X2 : PathP (<i0> bool) true x2) -> <i0> comp (<i1> bool) (X1 @ -i0) [ (i0 = 0) -> <i1> x1, (i0 = 1) -> <i1> X2 @ i1 ]))
 
 
 nhdisj_in1 : (P Q : U) (X : P) -> (hdisj P Q).1 =
-  \(P Q : U) -> \(X : P) -> \(P0 : Sigma U (\(X0 : U) -> (a b : X0) -> IdP (<!0> X0) a b)) -> \(f : or P Q -> P0.1) -> f (inl X)
+  \(P Q : U) -> \(X : P) -> \(P0 : Sigma U (\(X0 : U) -> (a b : X0) -> PathP (<!0> X0) a b)) -> \(f : or P Q -> P0.1) -> f (inl X)
 
-ntest : (P' true').1 = \(P : Sigma U (\(X : U) -> (a b : X) -> IdP (<!0> X) a b)) -> \(f : or (IdP (<!0> Sigma (bool -> (Sigma U (\(X : U) -> (a b : X) -> IdP (<!0> X) a b))) (\(A : bool -> (Sigma U (\(X : U) -> (a b : X) -> IdP (<!0> X) a b))) -> Sigma (Sigma ((P0 : Sigma U (\(X : U) -> (a b : X) -> IdP (<!0> X) a b)) -> ((Sigma bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) (\(_ : (P0 : Sigma U (\(X : U) -> (a b : X) -> IdP (<!0> X) a b)) -> ((Sigma bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) -> (x1 x2 : bool) -> (IdP (<!0> bool) x1 x2) -> ((A x1).1 -> (A x2).1))) (\(_ : Sigma ((P0 : Sigma U (\(X : U) -> (a b : X) -> IdP (<!0> X) a b)) -> ((Sigma bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) (\(_ : (P0 : Sigma U (\(X : U) -> (a b : X) -> IdP (<!0> X) a b)) -> ((Sigma bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) -> (x1 x2 : bool) -> (IdP (<!0> bool) x1 x2) -> ((A x1).1 -> (A x2).1))) -> (x1 x2 : bool) -> (A x1).1 -> ((A x2).1 -> (IdP (<!0> bool) x1 x2))))) ((\(x : bool) -> (IdP (<!0> bool) true x,lem8 x),((\(P0 : Sigma U (\(X : U) -> (a b : X) -> IdP (<!0> X) a b)) -> \(f : (Sigma bool (\(x : bool) -> IdP (<!0> bool) true x)) -> P0.1) -> f ((true,<!0> true)),\(x1 x2 : bool) -> \(X1 : IdP (<!0> bool) x1 x2) -> \(X2 : IdP (<!0> bool) true x1) -> <!0> comp (<!1> bool) (X2 @ !0) [ (!0 = 0) -> <!1> true, (!0 = 1) -> <!1> X1 @ !1 ]),\(x1 x2 : bool) -> \(X1 : IdP (<!0> bool) true x1) -> \(X2 : IdP (<!0> bool) true x2) -> <!0> comp (<!1> bool) (X1 @ -!0) [ (!0 = 0) -> <!1> x1, (!0 = 1) -> <!1> X2 @ !1 ]))) ((\(x : bool) -> (IdP (<!0> bool) true x,lem8 x),((\(P0 : Sigma U (\(X : U) -> (a b : X) -> IdP (<!0> X) a b)) -> \(f : (Sigma bool (\(x : bool) -> IdP (<!0> bool) true x)) -> P0.1) -> f ((true,<!0> true)),\(x1 x2 : bool) -> \(X1 : IdP (<!0> bool) x1 x2) -> \(X2 : IdP (<!0> bool) true x1) -> <!0> comp (<!1> bool) (X2 @ !0) [ (!0 = 0) -> <!1> true, (!0 = 1) -> <!1> X1 @ !1 ]),\(x1 x2 : bool) -> \(X1 : IdP (<!0> bool) true x1) -> \(X2 : IdP (<!0> bool) true x2) -> <!0> comp (<!1> bool) (X1 @ -!0) [ (!0 = 0) -> <!1> x1, (!0 = 1) -> <!1> X2 @ !1 ])))) IdP (<!0> Sigma (bool -> (Sigma U (\(X : U) -> (a b : X) -> IdP (<!0> X) a b))) (\(A : bool -> (Sigma U (\(X : U) -> (a b : X) -> IdP (<!0> X) a b))) -> Sigma (Sigma ((P0 : Sigma U (\(X : U) -> (a b : X) -> IdP (<!0> X) a b)) -> ((Sigma bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) (\(_ : (P0 : Sigma U (\(X : U) -> (a b : X) -> IdP (<!0> X) a b)) -> ((Sigma bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) -> (x1 x2 : bool) -> (IdP (<!0> bool) x1 x2) -> ((A x1).1 -> (A x2).1))) (\(_ : Sigma ((P0 : Sigma U (\(X : U) -> (a b : X) -> IdP (<!0> X) a b)) -> ((Sigma bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) (\(_ : (P0 : Sigma U (\(X : U) -> (a b : X) -> IdP (<!0> X) a b)) -> ((Sigma bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) -> (x1 x2 : bool) -> (IdP (<!0> bool) x1 x2) -> ((A x1).1 -> (A x2).1))) -> (x1 x2 : bool) -> (A x1).1 -> ((A x2).1 -> (IdP (<!0> bool) x1 x2))))) ((\(x : bool) -> (IdP (<!0> bool) true x,lem8 x),((\(P0 : Sigma U (\(X : U) -> (a b : X) -> IdP (<!0> X) a b)) -> \(f : (Sigma bool (\(x : bool) -> IdP (<!0> bool) true x)) -> P0.1) -> f ((true,<!0> true)),\(x1 x2 : bool) -> \(X1 : IdP (<!0> bool) x1 x2) -> \(X2 : IdP (<!0> bool) true x1) -> <!0> comp (<!1> bool) (X2 @ !0) [ (!0 = 0) -> <!1> true, (!0 = 1) -> <!1> X1 @ !1 ]),\(x1 x2 : bool) -> \(X1 : IdP (<!0> bool) true x1) -> \(X2 : IdP (<!0> bool) true x2) -> <!0> comp (<!1> bool) (X1 @ -!0) [ (!0 = 0) -> <!1> x1, (!0 = 1) -> <!1> X2 @ !1 ]))) ((\(x : bool) -> (IdP (<!0> bool) false x,lem7 x),((\(P0 : Sigma U (\(X : U) -> (a b : X) -> IdP (<!0> X) a b)) -> \(f : (Sigma bool (\(x : bool) -> IdP (<!0> bool) false x)) -> P0.1) -> f ((false,<!0> false)),\(x1 x2 : bool) -> \(X1 : IdP (<!0> bool) x1 x2) -> \(X2 : IdP (<!0> bool) false x1) -> <!0> comp (<!1> bool) (X2 @ !0) [ (!0 = 0) -> <!1> false, (!0 = 1) -> <!1> X1 @ !1 ]),\(x1 x2 : bool) -> \(X1 : IdP (<!0> bool) false x1) -> \(X2 : IdP (<!0> bool) false x2) -> <!0> comp (<!1> bool) (X1 @ -!0) [ (!0 = 0) -> <!1> x1, (!0 = 1) -> <!1> X2 @ !1 ]))) -> P.1) -> f (inl (<!0> (\(x : bool) -> (IdP (<!0> bool) true x,lem8 x),((\(P0 : Sigma U (\(X : U) -> (a b : X) -> IdP (<!0> X) a b)) -> \(f0 : (Sigma bool (\(x : bool) -> IdP (<!0> bool) true x)) -> P0.1) -> f0 ((true,<!0> true)),\(x1 x2 : bool) -> \(X1 : IdP (<!0> bool) x1 x2) -> \(X2 : IdP (<!0> bool) true x1) -> <!0> comp (<!1> bool) (X2 @ !0) [ (!0 = 0) -> <!1> true, (!0 = 1) -> <!1> X1 @ !1 ]),\(x1 x2 : bool) -> \(X1 : IdP (<!0> bool) true x1) -> \(X2 : IdP (<!0> bool) true x2) -> <!0> comp (<!1> bool) (X1 @ -!0) [ (!0 = 0) -> <!1> x1, (!0 = 1) -> <!1> X2 @ !1 ]))))
+ntest : (P' true').1 = \(P : Sigma U (\(X : U) -> (a b : X) -> PathP (<!0> X) a b)) -> \(f : or (PathP (<!0> Sigma (bool -> (Sigma U (\(X : U) -> (a b : X) -> PathP (<!0> X) a b))) (\(A : bool -> (Sigma U (\(X : U) -> (a b : X) -> PathP (<!0> X) a b))) -> Sigma (Sigma ((P0 : Sigma U (\(X : U) -> (a b : X) -> PathP (<!0> X) a b)) -> ((Sigma bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) (\(_ : (P0 : Sigma U (\(X : U) -> (a b : X) -> PathP (<!0> X) a b)) -> ((Sigma bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) -> (x1 x2 : bool) -> (PathP (<!0> bool) x1 x2) -> ((A x1).1 -> (A x2).1))) (\(_ : Sigma ((P0 : Sigma U (\(X : U) -> (a b : X) -> PathP (<!0> X) a b)) -> ((Sigma bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) (\(_ : (P0 : Sigma U (\(X : U) -> (a b : X) -> PathP (<!0> X) a b)) -> ((Sigma bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) -> (x1 x2 : bool) -> (PathP (<!0> bool) x1 x2) -> ((A x1).1 -> (A x2).1))) -> (x1 x2 : bool) -> (A x1).1 -> ((A x2).1 -> (PathP (<!0> bool) x1 x2))))) ((\(x : bool) -> (PathP (<!0> bool) true x,lem8 x),((\(P0 : Sigma U (\(X : U) -> (a b : X) -> PathP (<!0> X) a b)) -> \(f : (Sigma bool (\(x : bool) -> PathP (<!0> bool) true x)) -> P0.1) -> f ((true,<!0> true)),\(x1 x2 : bool) -> \(X1 : PathP (<!0> bool) x1 x2) -> \(X2 : PathP (<!0> bool) true x1) -> <!0> comp (<!1> bool) (X2 @ !0) [ (!0 = 0) -> <!1> true, (!0 = 1) -> <!1> X1 @ !1 ]),\(x1 x2 : bool) -> \(X1 : PathP (<!0> bool) true x1) -> \(X2 : PathP (<!0> bool) true x2) -> <!0> comp (<!1> bool) (X1 @ -!0) [ (!0 = 0) -> <!1> x1, (!0 = 1) -> <!1> X2 @ !1 ]))) ((\(x : bool) -> (PathP (<!0> bool) true x,lem8 x),((\(P0 : Sigma U (\(X : U) -> (a b : X) -> PathP (<!0> X) a b)) -> \(f : (Sigma bool (\(x : bool) -> PathP (<!0> bool) true x)) -> P0.1) -> f ((true,<!0> true)),\(x1 x2 : bool) -> \(X1 : PathP (<!0> bool) x1 x2) -> \(X2 : PathP (<!0> bool) true x1) -> <!0> comp (<!1> bool) (X2 @ !0) [ (!0 = 0) -> <!1> true, (!0 = 1) -> <!1> X1 @ !1 ]),\(x1 x2 : bool) -> \(X1 : PathP (<!0> bool) true x1) -> \(X2 : PathP (<!0> bool) true x2) -> <!0> comp (<!1> bool) (X1 @ -!0) [ (!0 = 0) -> <!1> x1, (!0 = 1) -> <!1> X2 @ !1 ])))) PathP (<!0> Sigma (bool -> (Sigma U (\(X : U) -> (a b : X) -> PathP (<!0> X) a b))) (\(A : bool -> (Sigma U (\(X : U) -> (a b : X) -> PathP (<!0> X) a b))) -> Sigma (Sigma ((P0 : Sigma U (\(X : U) -> (a b : X) -> PathP (<!0> X) a b)) -> ((Sigma bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) (\(_ : (P0 : Sigma U (\(X : U) -> (a b : X) -> PathP (<!0> X) a b)) -> ((Sigma bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) -> (x1 x2 : bool) -> (PathP (<!0> bool) x1 x2) -> ((A x1).1 -> (A x2).1))) (\(_ : Sigma ((P0 : Sigma U (\(X : U) -> (a b : X) -> PathP (<!0> X) a b)) -> ((Sigma bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) (\(_ : (P0 : Sigma U (\(X : U) -> (a b : X) -> PathP (<!0> X) a b)) -> ((Sigma bool (\(x : bool) -> (A x).1)) -> P0.1) -> P0.1) -> (x1 x2 : bool) -> (PathP (<!0> bool) x1 x2) -> ((A x1).1 -> (A x2).1))) -> (x1 x2 : bool) -> (A x1).1 -> ((A x2).1 -> (PathP (<!0> bool) x1 x2))))) ((\(x : bool) -> (PathP (<!0> bool) true x,lem8 x),((\(P0 : Sigma U (\(X : U) -> (a b : X) -> PathP (<!0> X) a b)) -> \(f : (Sigma bool (\(x : bool) -> PathP (<!0> bool) true x)) -> P0.1) -> f ((true,<!0> true)),\(x1 x2 : bool) -> \(X1 : PathP (<!0> bool) x1 x2) -> \(X2 : PathP (<!0> bool) true x1) -> <!0> comp (<!1> bool) (X2 @ !0) [ (!0 = 0) -> <!1> true, (!0 = 1) -> <!1> X1 @ !1 ]),\(x1 x2 : bool) -> \(X1 : PathP (<!0> bool) true x1) -> \(X2 : PathP (<!0> bool) true x2) -> <!0> comp (<!1> bool) (X1 @ -!0) [ (!0 = 0) -> <!1> x1, (!0 = 1) -> <!1> X2 @ !1 ]))) ((\(x : bool) -> (PathP (<!0> bool) false x,lem7 x),((\(P0 : Sigma U (\(X : U) -> (a b : X) -> PathP (<!0> X) a b)) -> \(f : (Sigma bool (\(x : bool) -> PathP (<!0> bool) false x)) -> P0.1) -> f ((false,<!0> false)),\(x1 x2 : bool) -> \(X1 : PathP (<!0> bool) x1 x2) -> \(X2 : PathP (<!0> bool) false x1) -> <!0> comp (<!1> bool) (X2 @ !0) [ (!0 = 0) -> <!1> false, (!0 = 1) -> <!1> X1 @ !1 ]),\(x1 x2 : bool) -> \(X1 : PathP (<!0> bool) false x1) -> \(X2 : PathP (<!0> bool) false x2) -> <!0> comp (<!1> bool) (X1 @ -!0) [ (!0 = 0) -> <!1> x1, (!0 = 1) -> <!1> X2 @ !1 ]))) -> P.1) -> f (inl (<!0> (\(x : bool) -> (PathP (<!0> bool) true x,lem8 x),((\(P0 : Sigma U (\(X : U) -> (a b : X) -> PathP (<!0> X) a b)) -> \(f0 : (Sigma bool (\(x : bool) -> PathP (<!0> bool) true x)) -> P0.1) -> f0 ((true,<!0> true)),\(x1 x2 : bool) -> \(X1 : PathP (<!0> bool) x1 x2) -> \(X2 : PathP (<!0> bool) true x1) -> <!0> comp (<!1> bool) (X2 @ !0) [ (!0 = 0) -> <!1> true, (!0 = 1) -> <!1> X1 @ !1 ]),\(x1 x2 : bool) -> \(X1 : PathP (<!0> bool) true x1) -> \(X2 : PathP (<!0> bool) true x2) -> <!0> comp (<!1> bool) (X1 @ -!0) [ (!0 = 0) -> <!1> x1, (!0 = 1) -> <!1> X2 @ !1 ]))))

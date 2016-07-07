@@ -11,7 +11,7 @@ data int = pos (n : nat)
          | zeroP <i> [(i=0) -> pos zero, (i=1) -> neg zero]
 
 -- Nice version of the zero constructor:
-zeroZ : Id int (pos zero) (neg zero) = <i> zeroP {int} @ i
+zeroZ : Path int (pos zero) (neg zero) = <i> zeroP {int} @ i
 
 sucInt : int -> int = split
   pos n -> pos (suc n)
@@ -41,36 +41,36 @@ fromZ : Z -> int = split
   inl n -> neg (suc n)
   inr n -> pos n
 
-toZK : (a : Z) -> Id Z (toZ (fromZ a)) a = split
+toZK : (a : Z) -> Path Z (toZ (fromZ a)) a = split
   inl n -> refl Z (inl n)
   inr n -> refl Z (inr n)
 
-fromZK : (a : int) -> Id int (fromZ (toZ a)) a = split
+fromZK : (a : int) -> Path int (fromZ (toZ a)) a = split
   pos n -> refl int (pos n)
   neg n -> rem n
-    where rem : (n : nat) -> Id int (fromZ (toZ (neg n))) (neg n) = split
+    where rem : (n : nat) -> Path int (fromZ (toZ (neg n))) (neg n) = split
       zero -> zeroZ
       suc m -> refl int (neg (suc m))
   zeroP @ i -> <j> zeroZ @ i /\ j
 
-isoIntZ : Id U Z int = isoId Z int fromZ toZ fromZK toZK
+isoIntZ : Path U Z int = isoPath Z int fromZ toZ fromZK toZK
 
 intSet : set int = subst U set Z int isoIntZ ZSet
 
 -- a concrete instance
 
-T : U = Id int (pos zero) (pos zero)
+T : U = Path int (pos zero) (pos zero)
 p0 : T = refl int (pos zero)
-p1 : T = compId int (pos zero) (neg zero) (pos zero) zeroZ (<i>zeroZ@-i)
+p1 : T = compPath int (pos zero) (neg zero) (pos zero) zeroZ (<i>zeroZ@-i)
 
-test0 : Id (Id Z (inr zero) (inr zero)) (refl Z (inr zero)) (refl Z (inr zero)) =
+test0 : Path (Path Z (inr zero) (inr zero)) (refl Z (inr zero)) (refl Z (inr zero)) =
   ZSet (inr zero) (inr zero) (refl Z (inr zero)) (refl Z (inr zero))
 
 -- Tests for normal forms:
-test1 : Id T p0 p1 = intSet (pos zero) (pos zero) p0 p1
-test2 : Id T p0 p0 = intSet (pos zero) (pos zero) p0 p0
+test1 : Path T p0 p1 = intSet (pos zero) (pos zero) p0 p1
+test2 : Path T p0 p0 = intSet (pos zero) (pos zero) p0 p0
 
-ntest1 : Id T p0 p1 = <i1 i2> comp (<_> int) (pos zero) [ (i1 = 0) -> <i3> pos zero, (i1 = 1) -> <i3> comp (<_> int) (zeroP {int} @ (i2 /\ i3)) [ (i2 = 0) -> <i4> pos zero, (i2 = 1) -> <i4> zeroP {int} @ (-i4 /\ i3), (i3 = 0) -> <i4> pos zero, (i3 = 1) -> <i4> comp (<_> int) (zeroP {int} @ i2) [ (i2 = 0) -> <i5> pos zero, (i2 = 1) -> <i5> zeroP {int} @ (-i4 \/ -i5), (i4 = 0) -> <i5> zeroP {int} @ i2 ] ], (i2 = 0) -> <i3> pos zero, (i2 = 1) -> <i3> pos zero ]
+ntest1 : Path T p0 p1 = <i1 i2> comp (<_> int) (pos zero) [ (i1 = 0) -> <i3> pos zero, (i1 = 1) -> <i3> comp (<_> int) (zeroP {int} @ (i2 /\ i3)) [ (i2 = 0) -> <i4> pos zero, (i2 = 1) -> <i4> zeroP {int} @ (-i4 /\ i3), (i3 = 0) -> <i4> pos zero, (i3 = 1) -> <i4> comp (<_> int) (zeroP {int} @ i2) [ (i2 = 0) -> <i5> pos zero, (i2 = 1) -> <i5> zeroP {int} @ (-i4 \/ -i5), (i4 = 0) -> <i5> zeroP {int} @ i2 ] ], (i2 = 0) -> <i3> pos zero, (i2 = 1) -> <i3> pos zero ]
 
-ntest2 : Id T p0 p0 = <i1 i2> comp (<_> int) (pos zero) [ (i1 = 0) -> <i3> pos zero, (i1 = 1) -> <i3> pos zero, (i2 = 0) -> <i3> pos zero, (i2 = 1) -> <i3> pos zero ]
+ntest2 : Path T p0 p0 = <i1 i2> comp (<_> int) (pos zero) [ (i1 = 0) -> <i3> pos zero, (i1 = 1) -> <i3> pos zero, (i2 = 0) -> <i3> pos zero, (i2 = 1) -> <i3> pos zero ]
 

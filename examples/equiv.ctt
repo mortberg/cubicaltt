@@ -5,7 +5,7 @@ module equiv where
 import prelude
 
 fiber (A B : U) (f : A -> B) (y : B) : U =
-  (x : A) * Id B y (f x)
+  (x : A) * Path B y (f x)
 
 isEquiv (A B : U) (f : A -> B) : U = (y : B) -> isContr (fiber A B f y)
 
@@ -17,62 +17,62 @@ propIsEquiv (A B : U) (f : A -> B)
      <i> \ (y:B) -> propIsContr (fiber A B f y) (u0 y) (u1 y) @ i
 
 equivLemma (A B : U)
-  : (v w : equiv A B) -> Id (A -> B) v.1 w.1 -> Id (equiv A B) v w
+  : (v w : equiv A B) -> Path (A -> B) v.1 w.1 -> Path (equiv A B) v w
   = lemSig (A -> B) (isEquiv A B) (propIsEquiv A B)
 
 idIsEquiv (A : U) : isEquiv A A (idfun A) =
   \(a : A) -> ((a, refl A a)
               ,\(z : fiber A A (idfun A) a) -> contrSingl A a z.1 z.2)
 
-equivId (T A : U) (f : T -> A) (p : isEquiv T A f) : Id U T A =
+equivPath (T A : U) (f : T -> A) (p : isEquiv T A f) : Path U T A =
   <i> glue A [ (i=0) -> (T,f,p), (i=1) -> (A,idfun A, idIsEquiv A)]
 
 -- for univalence
 invEq (A B:U) (w:equiv A B) (y:B) : A = (w.2 y).1.1
 
-retEq (A B:U) (w:equiv A B) (y:B) : Id B (w.1 (invEq A B w y)) y =
+retEq (A B:U) (w:equiv A B) (y:B) : Path B (w.1 (invEq A B w y)) y =
  <i>(w.2 y).1.2@-i
 
-secEq (A B:U) (w:equiv A B) (x:A) : Id A (invEq A B w (w.1 x)) x =
+secEq (A B:U) (w:equiv A B) (x:A) : Path A (invEq A B w (w.1 x)) x =
  <i> ((w.2 (w.1 x)).2 (x,<j>w.1 x)@i).1
 
-transEquiv (A B:U) (p:Id U A B) : equiv A B = (f,p)
+transEquiv (A B:U) (p:Path U A B) : equiv A B = (f,p)
  where
   f (x:A) : B = comp p x []
   g (y:B) : A = comp (<i>p@-i) y []
-  lem1 (x:A) : IdP p x (f x) = <i>comp (<j>p@(i/\j)) x [(i=0) -> <j>x]
-  lem2 (y:B) : IdP p (g y) y = <i>comp (<j>p@(i\/-j)) y [(i=1) -> <j>y]
-  lem3 (y:B) : Id B y (f (g y)) = <i>comp p (g y) [(i=0) -> lem2 y,(i=1) -> lem1 (g y)]
-  lem4 (y:B) : IdP (<i>Id (p@i) (lem2 y@i) (lem1 (g y)@i)) (<j>g y) (lem3 y) =
+  lem1 (x:A) : PathP p x (f x) = <i>comp (<j>p@(i/\j)) x [(i=0) -> <j>x]
+  lem2 (y:B) : PathP p (g y) y = <i>comp (<j>p@(i\/-j)) y [(i=1) -> <j>y]
+  lem3 (y:B) : Path B y (f (g y)) = <i>comp p (g y) [(i=0) -> lem2 y,(i=1) -> lem1 (g y)]
+  lem4 (y:B) : PathP (<i>Path (p@i) (lem2 y@i) (lem1 (g y)@i)) (<j>g y) (lem3 y) =
     <j i>fill p (g y) [(i=0) -> lem2 y,(i=1) -> lem1 (g y)] @ j
-  lem5 (y:B) (x:A) (q:Id B y (f x)) : Id A (g y) x =
+  lem5 (y:B) (x:A) (q:Path B y (f x)) : Path A (g y) x =
     <i>comp (<j>p@-j) (q@i) [(i=0) -> <j>lem2 y@-j,(i=1) -> <j>lem1 x@-j]
-  lem6 (y:B) (x:A) (q:Id B y (f x)) : IdP (<i>Id (p@i) (lem2 y@i) (lem1 x@i)) (lem5 y x q) q =
+  lem6 (y:B) (x:A) (q:Path B y (f x)) : PathP (<i>Path (p@i) (lem2 y@i) (lem1 x@i)) (lem5 y x q) q =
     <j i>fill (<j>p@-j) (q@i) [(i=0) -> <k>lem2 y@-k,(i=1) -> <k>lem1 x@-k] @ -j
-  lem7 (y:B) (x:A) (q:Id B y (f x)) : IdP (<i>Id B y (f (lem5 y x q@i))) (lem3 y) q =
+  lem7 (y:B) (x:A) (q:Path B y (f x)) : PathP (<i>Path B y (f (lem5 y x q@i))) (lem3 y) q =
     <j i>comp p (lem5 y x q@i/\j) [(i=0) -> lem2 y, (i=1) -> lem1 (lem5 y x q@j),(j=0) -> <k>lem4 y@k@i,(j=1) -> <k>lem6 y x q@k@i]
   lem8 (y:B) : fiber A B f y = (g y,lem3 y)
-  lem9 (y:B) (z:fiber A B f y) : Id (fiber A B f y) (lem8 y) z =
+  lem9 (y:B) (z:fiber A B f y) : Path (fiber A B f y) (lem8 y) z =
     <i>(lem5 y z.1 z.2@i,lem7 y z.1 z.2@i)
   p (y:B) : isContr (fiber A B f y) = (lem8 y,lem9 y)
 
-lemSinglContr (A:U) (a:A) : isContr ((x:A) * Id A a x) =
- ((a,refl A a),\ (z:(x:A) * Id A a x) -> contrSingl A a z.1 z.2)
+lemSinglContr (A:U) (a:A) : isContr ((x:A) * Path A a x) =
+ ((a,refl A a),\ (z:(x:A) * Path A a x) -> contrSingl A a z.1 z.2)
 
 idEquiv (A:U) : equiv A A = (\ (x:A) -> x, lemSinglContr A)
 
-transEquiv (A X:U) (p:Id U A X) : equiv A X =
+transEquiv (A X:U) (p:Path U A X) : equiv A X =
  substTrans U (equiv A) A X p (idEquiv A)
 
 transDelta (A:U) : equiv A A = transEquiv A A (<i>A)
 
-transEquivToId (A B : U) (w : equiv A B) : Id U A B =
+transEquivToPath (A B : U) (w : equiv A B) : Path U A B =
   <i> glue B [ (i = 1) -> (B,eB)
              , (i = 0) -> (A,w) ]
  where eB : equiv B B = transDelta B
 
-eqToEq (A B : U) (p : Id U A B)
-  : Id (Id U A B) (transEquivToId A B (transEquiv A B p)) p
+eqToEq (A B : U) (p : Path U A B)
+  : Path (Path U A B) (transEquivToPath A B (transEquiv A B p)) p
   = <j i> let e : equiv A B = transEquiv A B p
               f : equiv B B = transDelta B
               Ai : U = p@i
@@ -82,36 +82,36 @@ eqToEq (A B : U) (p : Id U A B)
            , (i = 1) -> (B,f)
            , (j = 1) -> (p@i,g)]
 
-transIdFun (A B : U) (w : equiv A B)
-  : Id (A -> B) w.1 (transEquiv A B (transEquivToId A B w)).1 =
+transPathFun (A B : U) (w : equiv A B)
+  : Path (A -> B) w.1 (transEquiv A B (transEquivToPath A B w)).1 =
  <i> \ (a:A) ->
    let b : B = w.1 a
        u : A = comp (<j>A) a []
-       q : Id B (w.1 u) b = <i>w.1 (comp (<j>A) a [(i=1) -> <j>a])
+       q : Path B (w.1 u) b = <i>w.1 (comp (<j>A) a [(i=1) -> <j>a])
    in comp (<j> B)
         (comp (<j> B) (comp (<j> B) (comp (<j> B) (w.1 u) [(i=0)->q]) [(i=0)-><k>b]) [(i=0)-><k>b]) [(i=0)-><k>b]
 
-idToId (A B : U) (w : equiv A B)
-  : Id (equiv A B) (transEquiv A B (transEquivToId A B w)) w
-  = equivLemma A B (transEquiv A B (transEquivToId A B w)) w
-      (<i>transIdFun A B w@-i)
+idToPath (A B : U) (w : equiv A B)
+  : Path (equiv A B) (transEquiv A B (transEquivToPath A B w)) w
+  = equivLemma A B (transEquiv A B (transEquivToPath A B w)) w
+      (<i>transPathFun A B w@-i)
 
 
 -- The grad lemma
 
 lemIso (A B : U) (f : A -> B) (g : B -> A)
-       (s : (y : B) -> Id B (f (g y)) y)
-       (t : (x : A) -> Id A (g (f x)) x)
-       (y : B) (x0 x1 : A) (p0 : Id B y (f x0)) (p1 : Id B y (f x1)) :
-       Id (fiber A B f y) (x0,p0) (x1,p1) = <i> (p @ i,sq1 @ i)
+       (s : (y : B) -> Path B (f (g y)) y)
+       (t : (x : A) -> Path A (g (f x)) x)
+       (y : B) (x0 x1 : A) (p0 : Path B y (f x0)) (p1 : Path B y (f x1)) :
+       Path (fiber A B f y) (x0,p0) (x1,p1) = <i> (p @ i,sq1 @ i)
   where
-    rem0 : Id A (g y) x0 =
+    rem0 : Path A (g y) x0 =
       <i> comp (<k> A) (g (p0 @ i)) [ (i = 1) -> t x0, (i = 0) -> <k> g y ]
 
-    rem1 : Id A (g y) x1 =
+    rem1 : Path A (g y) x1 =
       <i> comp (<k> A) (g (p1 @ i)) [ (i = 1) -> t x1, (i = 0) -> <k> g y ]
 
-    p : Id A x0 x1 =
+    p : Path A x0 x1 =
      <i> comp (<k> A) (g y) [ (i = 0) -> rem0
                             , (i = 1) -> rem1 ]
 
@@ -149,14 +149,14 @@ lemIso (A B : U) (f : A -> B) (g : B -> A)
                                          , (j = 0) -> s y ]
 
 gradLemma (A B : U) (f : A -> B) (g : B -> A)
-       (s : (y : B) -> Id B (f (g y)) y)
-       (t : (x : A) -> Id A (g (f x)) x) : isEquiv A B f =
+       (s : (y : B) -> Path B (f (g y)) y)
+       (t : (x : A) -> Path A (g (f x)) x) : isEquiv A B f =
   \(y:B) -> ((g y,<i>s y@-i),\ (z:fiber A B f y) ->
     lemIso A B f g s t y (g y) z.1 (<i>s y@-i) z.2)
 
-isoId (A B : U) (f : A -> B) (g : B -> A)
-      (s : (y : B) -> Id B (f (g y)) y)
-      (t : (x : A) -> Id A (g (f x)) x) : Id U A B =
+isoPath (A B : U) (f : A -> B) (g : B -> A)
+      (s : (y : B) -> Path B (f (g y)) y)
+      (t : (x : A) -> Path A (g (f x)) x) : Path U A B =
        <i> glue B [ (i = 0) -> (A,f,gradLemma A B f g s t)
                   , (i = 1) -> (B,idfun B,idIsEquiv B) ]
 

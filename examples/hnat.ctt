@@ -13,7 +13,7 @@ test0 : hnat = comp (<_> hnat) nzero []
 -- This reduces to "zero"
 test1 : nat = comp (<_> nat) zero []
 
-test2 : Id hnat nzero (comp (<_> hnat) nzero []) =
+test2 : Path hnat nzero (comp (<_> hnat) nzero []) =
   fill (<_> hnat) nzero []
 
 toNat : hnat -> nat = split
@@ -24,16 +24,16 @@ fromNat : nat -> hnat = split
   zero -> nzero
   suc n -> nsuc (fromNat n)
 
-toNatK : (n : hnat) -> Id hnat (fromNat (toNat n)) n = split
+toNatK : (n : hnat) -> Path hnat (fromNat (toNat n)) n = split
   nzero -> <_> nzero
   nsuc n -> <i> nsuc (toNatK n @ i)
 
-fromNatK : (n : nat) -> Id nat (toNat (fromNat n)) n = split
+fromNatK : (n : nat) -> Path nat (toNat (fromNat n)) n = split
   zero -> <_> zero
   suc n -> <i> suc (fromNatK n @ i)
 
-hnatEqNat : Id U hnat nat =
-  isoId hnat nat toNat fromNat fromNatK toNatK
+hnatEqNat : Path U hnat nat =
+  isoPath hnat nat toNat fromNat fromNatK toNatK
 
 -- This is zero
 test3 : nat = trans hnat nat hnatEqNat test0
@@ -42,7 +42,7 @@ test3 : nat = trans hnat nat hnatEqNat test0
 test4 : hnat = trans nat hnat (<i> hnatEqNat @ -i) zero
 
 -- This is "hComp (hnat) (hComp (hnat) nzero []) []"
-test5 : hnat = trans hnat hnat (compId U hnat nat hnat hnatEqNat (<i> hnatEqNat @ -i)) nzero
+test5 : hnat = trans hnat hnat (compPath U hnat nat hnat hnatEqNat (<i> hnatEqNat @ -i)) nzero
 
 hnatSet : set hnat = subst U set nat hnat (<i> hnatEqNat @ -i) natSet
 

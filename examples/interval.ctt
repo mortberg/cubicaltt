@@ -7,8 +7,8 @@ import equiv
 data I = zero | one | seg <i> [(i = 0) -> zero, (i = 1) -> one]
 
 -- Proof of funext from the interval
-fext (A B : U) (f g : A -> B) (p : (x : A) -> Id B (f x) (g x)) :
-     Id (A -> B) f g = <j> (\(x : A) -> htpy x (seg{I} @ j))
+fext (A B : U) (f g : A -> B) (p : (x : A) -> Path B (f x) (g x)) :
+     Path (A -> B) f g = <j> (\(x : A) -> htpy x (seg{I} @ j))
   where htpy (x : A) : I -> B = split
           zero    -> f x
           one     -> g x
@@ -23,21 +23,21 @@ toUnit : I -> Unit = split
 fromUnit : Unit -> I = split
   tt -> zero
 
-toUnitK : (a : Unit) -> Id Unit (toUnit (fromUnit a)) a = split
+toUnitK : (a : Unit) -> Path Unit (toUnit (fromUnit a)) a = split
   tt -> <i> tt
 
-fromUnitK : (a : I) -> Id I (fromUnit (toUnit a)) a = split
+fromUnitK : (a : I) -> Path I (fromUnit (toUnit a)) a = split
   zero -> <i> zero
   one -> <i> seg {I} @ i
   seg @ i -> <j> seg {I} @ i /\ j
 
-unitEqI : Id U Unit I = isoId Unit I fromUnit toUnit fromUnitK toUnitK
+unitEqI : Path U Unit I = isoPath Unit I fromUnit toUnit fromUnitK toUnitK
 
 propI : prop I = subst U prop Unit I unitEqI propUnit
 
 setI : set I = subst U set Unit I unitEqI setUnit
 
-T : U = Id I zero zero
+T : U = Path I zero zero
 p0 : T = refl I zero
 test : T = propI zero zero
 

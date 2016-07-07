@@ -6,14 +6,14 @@ data NoPoints =
   p <i> []
 
 propNoPoints : prop NoPoints = split
-  p @ i -> let rem : (b : NoPoints) -> Id NoPoints (p{NoPoints} @ i) b = split
+  p @ i -> let rem : (b : NoPoints) -> Path NoPoints (p{NoPoints} @ i) b = split
     p @ j -> <k> p{NoPoints} @ (i /\ -k) \/ (j /\ k)
            in rem
   
 point0 : NoPoints = p{NoPoints} @ 0
 point1 : NoPoints = p{NoPoints} @ 1
 
-p' : Id NoPoints point0 point1 = <i> p{NoPoints} @ i
+p' : Path NoPoints point0 point1 = <i> p{NoPoints} @ i
 
 f1 : NoPoints -> Unit = split
   p @ i -> tt
@@ -21,15 +21,15 @@ f1 : NoPoints -> Unit = split
 f2 : Unit -> NoPoints = split
   tt -> point0
 
-test : Id U NoPoints Unit =
-  isoId NoPoints Unit f1 f2 rem1 rem2
+test : Path U NoPoints Unit =
+  isoPath NoPoints Unit f1 f2 rem1 rem2
     where
-    rem1 : (y : Unit) -> Id Unit (f1 (f2 y)) y = split
+    rem1 : (y : Unit) -> Path Unit (f1 (f2 y)) y = split
       tt -> <i> tt
-    rem2 : (x : NoPoints) -> Id NoPoints (f2 (f1 x)) x = split
+    rem2 : (x : NoPoints) -> Path NoPoints (f2 (f1 x)) x = split
       p @ i -> <j> p{NoPoints} @ j /\ i
 
-fext (A B : U) (f g : A -> B) (h : (x : A) -> Id B (f x) (g x)) :
-     Id (A -> B) f g = <j> (\(x : A) -> htpy x (p{NoPoints} @ j))
+fext (A B : U) (f g : A -> B) (h : (x : A) -> Path B (f x) (g x)) :
+     Path (A -> B) f g = <j> (\(x : A) -> htpy x (p{NoPoints} @ j))
   where htpy (x : A) : NoPoints -> B = split
           p @ i -> h x @ i

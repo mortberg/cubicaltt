@@ -31,7 +31,7 @@ O2 (n:nat) : ord2 -> U = split
  zero -> Unit
  succ z -> O2 n z
  lim f -> (p:nat) -> O2 n (f p)
- lim2 f -> (x:ord) -> and (O2 n (f x)) (Id ord (G2 (f x) n) (G2 (f (inj0 (G1 x n))) n))
+ lim2 f -> (x:ord) -> and (O2 n (f x)) (Path ord (G2 (f x) n) (G2 (f (inj0 (G1 x n))) n))
 
 inj12 : ord -> ord2 = split
  zero -> zero
@@ -50,15 +50,15 @@ H2 : ord2 -> ord -> ord = split
  lim2 f -> \ (x:ord) -> H2 (f x) x
 
 collapsing (n:nat) : 
- (x:ord2) (y:ord) -> O2 n x -> Id nat (G1 (H2 x y) n) (H1 (G2 x n) (G1 y n)) = split
+ (x:ord2) (y:ord) -> O2 n x -> Path nat (G1 (H2 x y) n) (H1 (G2 x n) (G1 y n)) = split
   zero -> \ (y:ord) (h:O2 n zero) -> <i>G1 y n
   succ z -> \ (y:ord) (h:O2 n (succ z)) -> collapsing n z (succ y) h
   lim f ->  \ (y:ord) (h:O2 n (lim f)) -> collapsing n (f n) y (h n)
   lim2 f -> \ (y:ord) (h:O2 n (lim2 f)) -> 
          let
-           rem : Id ord (G2 (f y) n) (G2 (f (inj0 (G1 y n))) n) = (h y).2
-           rem1 : Id nat (G1 (H2 (f y) y) n) (H1 (G2 (f y) n) (G1 y n)) = collapsing n (f y) y (h y).1
-         in comp (<i>Id nat (G1 (H2 (f y) y) n) (H1 (rem@i) (G1 y n))) rem1 []
+           rem : Path ord (G2 (f y) n) (G2 (f (inj0 (G1 y n))) n) = (h y).2
+           rem1 : Path nat (G1 (H2 (f y) y) n) (H1 (G2 (f y) n) (G1 y n)) = collapsing n (f y) y (h y).1
+         in comp (<i>Path nat (G1 (H2 (f y) y) n) (H1 (rem@i) (G1 y n))) rem1 []
 
 -- an application
 
@@ -71,33 +71,33 @@ lemOmega1 (n:nat) : O2 n omega1 = \ (x:ord) -> (rem x,rem1 x)
          zero -> tt
          succ z -> rem z
          lim f -> \ (p:nat) -> rem (f p)
-       rem1 : (x:ord) -> Id ord (G2 (inj12 x) n) (G2 (inj12 (inj0 (G1 x n))) n) = split
+       rem1 : (x:ord) -> Path ord (G2 (inj12 x) n) (G2 (inj12 (inj0 (G1 x n))) n) = split
          zero -> <i>zero
          succ z -> <i>succ ((rem1 z)@i)
          lim f -> rem1 (f n)
    
-corr1 (n:nat) : Id nat (G1 (H2 omega1 omega) n) (H1 (G2 omega1 n) (G1 omega n)) =
+corr1 (n:nat) : Path nat (G1 (H2 omega1 omega) n) (H1 (G2 omega1 n) (G1 omega n)) =
  collapsing n omega1 omega (lemOmega1 n)
 
-lem : (n p:nat) -> Id nat (G1 (inj0 n) p) n = split
+lem : (n p:nat) -> Path nat (G1 (inj0 n) p) n = split
  zero -> \ (p:nat) -> <i>zero
  succ q -> \ (p:nat) -> <i> succ (lem q p@i)
 
-lem1 (n:nat) : Id nat (G1 omega n) n = lem n n
+lem1 (n:nat) : Path nat (G1 omega n) n = lem n n
 
-lem2 : (n p:nat) -> Id ord (G2 (inj12 (inj0 n)) p) (inj0 n) = split
+lem2 : (n p:nat) -> Path ord (G2 (inj12 (inj0 n)) p) (inj0 n) = split
  zero -> \ (p:nat) -> <i>inj0 zero
  succ q -> \ (p:nat) -> <i> succ (lem2 q p@i)
 
 test (n:nat) : ord = G2 omega1 n
 
-lem3 (n:nat) : Id ord (G2 (inj12 (inj0 n)) n) (inj0 n) = lem2 n n
+lem3 (n:nat) : Path ord (G2 (inj12 (inj0 n)) n) (inj0 n) = lem2 n n
 
-lem4 (n:nat) : Id nat (H1 (G2 omega1 n) n) (H1 omega n) =
+lem4 (n:nat) : Path nat (H1 (G2 omega1 n) n) (H1 omega n) =
  <i>H1 (lem3 n@i) n
 
 -- the G1 and H1 hierarchy coincides: G1 (H2 omega1 omega) and H1 omega are the same function
 
-corr2 : Id (nat -> nat) (G1 (H2 omega1 omega)) (H1 omega) =
+corr2 : Path (nat -> nat) (G1 (H2 omega1 omega)) (H1 omega) =
  <i>\ (n:nat) -> comp (<_>nat) (H1 (G2 omega1 n) ((lem1 n)@i)) [(i=0) -> <j>corr1 n@-j,(i=1) -> lem4 n]
 

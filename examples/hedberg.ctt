@@ -2,61 +2,61 @@ module hedberg where
 
 import prelude
 
-hedbergLemma (A: U) (a b:A) (f : (x : A) -> Id A a x -> Id A a x) (p : Id A a b) :
+hedbergLemma (A: U) (a b:A) (f : (x : A) -> Path A a x -> Path A a x) (p : Path A a b) :
             Square A a a a b (refl A a) p (f a (refl A a)) (f b p) = 
  comp (<i> Square A a a a (p @ i) (<_> a) (<j> p @ i /\ j)
                  (f a (<_> a)) (f (p @ i) (<j> p @ i /\ j)))
       (<i> f a (<_> a)) []
 
-hedbergStable (A : U) (a b : A) (h : (x : A) -> stable (Id A a x))
-        (p q : Id A a b) : Id (Id A a b) p q =
+hedbergStable (A : U) (a b : A) (h : (x : A) -> stable (Path A a x))
+        (p q : Path A a b) : Path (Path A a b) p q =
  <j i> comp (<_> A) a [ (j = 0) -> rem2 @ i
                       , (j = 1) -> rem3 @ i
                       , (i = 0) -> r
                       , (i = 1) -> rem4 @ j]
  where 
-   ra : Id A a a = <_> a 
-   rem1 (x : A) : exConst (Id A a x) = stableConst (Id A a x) (h x)
-   f (x : A) : Id A a x -> Id A a x  = (rem1 x).1
-   fIsConst (x : A) : const (Id A a x) (f x) = (rem1 x).2
+   ra : Path A a a = <_> a 
+   rem1 (x : A) : exConst (Path A a x) = stableConst (Path A a x) (h x)
+   f (x : A) : Path A a x -> Path A a x  = (rem1 x).1
+   fIsConst (x : A) : const (Path A a x) (f x) = (rem1 x).2
    rem4 : Square A a a b b ra (refl A b) (f b p) (f b q)  = fIsConst b p q
-   r : Id A a a = f a ra
+   r : Path A a a = f a ra
    rem2 : Square A a a a b ra p r (f b p) = hedbergLemma A a b f p
    rem3 : Square A a a a b ra q r (f b q) = hedbergLemma A a b f q
 
-hedbergS (A:U) (h : (a x:A) -> stable (Id A a x)) : set A =
+hedbergS (A:U) (h : (a x:A) -> stable (Path A a x)) : set A =
  \(a b : A) -> hedbergStable A a b (h a)
 
 hedberg (A : U) (h : discrete A) : set A =
- \(a b : A) -> hedbergStable A a b (\(b : A) -> decStable (Id A a b) (h a b))
+ \(a b : A) -> hedbergStable A a b (\(b : A) -> decStable (Path A a b) (h a b))
 
 
 
 
 -- Alternative version:
 
--- hedbergLemma (A: U) (f : (a b : A) -> Id A a b -> Id A a b) (a :A) :
---   (b : A) (p : Id A a b) ->
---             Id (Id A a b) (compId A a a b (f a a (refl A a)) p) (f a b p) =
---   J A a (\ (b:A) (p:Id A a b) -> Id (Id A a b) (compId A a a b (f a a (refl A a)) p) (f a b p))
---     (refl (Id A a a) (f a a (refl A a)))
+-- hedbergLemma (A: U) (f : (a b : A) -> Path A a b -> Path A a b) (a :A) :
+--   (b : A) (p : Path A a b) ->
+--             Path (Path A a b) (compPath A a a b (f a a (refl A a)) p) (f a b p) =
+--   J A a (\ (b:A) (p:Path A a b) -> Path (Path A a b) (compPath A a a b (f a a (refl A a)) p) (f a b p))
+--     (refl (Path A a a) (f a a (refl A a)))
 
--- hedberg (A : U) (h : discrete A) : set A = \(a b : A) (p q : Id A a b) ->
---    let rem1 (x y : A) : exConst (Id A x y) = decConst (Id A x y) (h x y)
+-- hedberg (A : U) (h : discrete A) : set A = \(a b : A) (p q : Path A a b) ->
+--    let rem1 (x y : A) : exConst (Path A x y) = decConst (Path A x y) (h x y)
 
---        f (x y : A) : Id A x y -> Id A x y = (rem1 x y).1
+--        f (x y : A) : Path A x y -> Path A x y = (rem1 x y).1
 
---        fIsConst (x y : A) : const (Id A x y) (f x y) = (rem1 x y).2
+--        fIsConst (x y : A) : const (Path A x y) (f x y) = (rem1 x y).2
 
---        r : Id A a a = f a a (refl A a)
+--        r : Path A a a = f a a (refl A a)
 
---        rem2 : Id (Id A a b) (compId A a a b r p) (f a b p) = hedbergLemma A f a b p
+--        rem2 : Path (Path A a b) (compPath A a a b r p) (f a b p) = hedbergLemma A f a b p
 
---        rem3 : Id (Id A a b) (compId A a a b r q) (f a b q) = hedbergLemma A f a b q
+--        rem3 : Path (Path A a b) (compPath A a a b r q) (f a b q) = hedbergLemma A f a b q
 
---        rem4 : Id (Id A a b) (f a b p) (f a b q) = fIsConst a b p q
+--        rem4 : Path (Path A a b) (f a b p) (f a b q) = fIsConst a b p q
 
---        rem5 : Id (Id A a b) (compId A a a b r p) (compId A a a b r q) =
---          compDown (Id A a b) (compId A a a b r p) (f a b p) (compId A a a b r q)
+--        rem5 : Path (Path A a b) (compPath A a a b r p) (compPath A a a b r q) =
+--          compDown (Path A a b) (compPath A a a b r p) (f a b p) (compPath A a a b r q)
 --                   (f a b q) rem2 rem3 rem4
 --   in lemSimpl A a a b r p q rem5

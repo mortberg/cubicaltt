@@ -10,14 +10,14 @@ lemPropFib (P:S1 -> U) (pP:(x:S1) -> prop (P x)) (bP: P base) : (x:S1) -> P x = 
  base -> bP
  loop @ i -> (lemPropF S1 P pP base base loop1 bP bP) @ i
 
-idL : (x : S1) -> Id S1 (mult base x) x = split
+idL : (x : S1) -> Path S1 (mult base x) x = split
        base -> refl S1 base
        loop @ i -> <j> loop1 @ i
 
 multIsEquiv : (x:S1) -> isEquiv S1 S1 (mult x) =  lemPropFib P pP bP 
  where P (x:S1) : U            = isEquiv S1 S1 (mult x)
        pP (x:S1) : prop (P x)  = propIsEquiv S1 S1 (mult x)
-       rem : Id (S1 -> S1) (idfun S1) (mult base) = <i>\ (x:S1) -> idL x @ -i
+       rem : Path (S1 -> S1) (idfun S1) (mult base) = <i>\ (x:S1) -> idL x @ -i
        bP : P base = subst (S1->S1) (isEquiv S1 S1)  (idfun S1) (mult base) rem (idIsEquiv S1)
 
 -- inverse of multiplication by x
@@ -29,14 +29,14 @@ invS1 (x:S1) : S1 = invMult x base
 pt0 : S1 = mapOnPath S1 S1 invS1 base base loop2@0
 test1 : S1 = mapOnPath S1 S1 invS1 base base loop2@1
 
-test2 : Id S1 pt0 pt0 = mapOnPath S1 S1 invS1 base base loop2
+test2 : Path S1 pt0 pt0 = mapOnPath S1 S1 invS1 base base loop2
 
-ntest2 : Id S1 pt0 pt0 = 
+ntest2 : Path S1 pt0 pt0 = 
   <i> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) []) [ (i = 0) -> <j> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) [ (j = 1) -> <k> comp (<_>S1) (comp (<_>S1) base []) [] ], (i = 1) -> <j> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base [ (j = 0) -> <k> comp (<_>S1) base [ (k = 0) -> <l> base ], (j = 1) -> <k> comp (<_>S1) base [ (k = 0) -> <l> base ] ]) [ (j = 0) -> <k> comp (<_>S1) (comp (<_>S1) base []) [ (k = 0) -> <l> comp (<_>S1) base [] ], (j = 1) -> <k> comp (<_>S1) (comp (<_>S1) base []) [ (k = 0) -> <l> comp (<_>S1) base [] ] ]) [ (j = 0) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) [ (k = 0) -> <l> comp (<_>S1) (comp (<_>S1) base []) [] ], (j = 1) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) [ (k = 0) -> <l> comp (<_>S1) (comp (<_>S1) base []) [] ] ]) [ (j = 0) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) [], (j = 1) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) []) [ (k = 0) -> <l> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) [] ] ] ]) [ (i = 0) -> <j> comp (<_>S1) (comp (<_>S1) base []) [ (j = 1) -> <k> comp (<_>S1) base [] ], (i = 1) -> <j> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) [ (j = 1) -> <k> comp (<_>S1) base [] ]) []) [] ]) [ (i = 0) -> <j> comp (<_>S1) (comp (<_>S1) base []) [ (j = 0) -> <k> comp (<_>S1) base [] ], (i = 1) -> <j> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (loop {S1} @ -j) []) []) []) [ (j = 0) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) [] ] ]) [ (i = 0) -> <j> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) [ (j = 0) -> <k> comp (<_>S1) (comp (<_>S1) base []) [] ], (i = 1) -> <j> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base [ (j = 0) -> <k> comp (<_>S1) base [ (k = 0) -> <l> base ], (j = 1) -> <k> comp (<_>S1) base [ (k = 0) -> <l> base ] ]) [ (j = 0) -> <k> comp (<_>S1) (comp (<_>S1) base []) [ (k = 0) -> <l> comp (<_>S1) base [] ], (j = 1) -> <k> comp (<_>S1) (comp (<_>S1) base []) [ (k = 0) -> <l> comp (<_>S1) base [] ] ]) [ (j = 0) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) [ (k = 0) -> <l> comp (<_>S1) (comp (<_>S1) base []) [] ], (j = 1) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) [ (k = 0) -> <l> comp (<_>S1) (comp (<_>S1) base []) [] ] ]) [ (j = 0) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) []) [ (k = 0) -> <l> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) [] ], (j = 1) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) []) [ (k = 0) -> <l> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) [] ] ]) [ (j = 0) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) []) [], (j = 1) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) []) []) [ (k = 0) -> <l> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) []) [] ] ] ]) [ (i = 0) -> <j> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) []) [ (j = 0) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) [] ], (i = 1) -> <j> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) []) []) [ (j = 1) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) []) [] ] ]) [ (i = 0) -> <j> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) [ (j = 1) -> <k> comp (<_>S1) base [] ]) []) [], (i = 1) -> <j> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) []) [ (j = 1) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) [] ] ]) [ (i = 0) -> <j> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base [ (j = 1) -> <k> base ]) []) [], (i = 1) -> <j> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base [ (j = 1) -> <k> base ]) []) []) [ (j = 0) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) [ (k = 1) -> <l> comp (<_>S1) (comp (<_>S1) base []) [] ], (j = 1) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base [ (k = 0) -> <l> comp (<_>S1) base [ (l = 0) -> <m> base ], (k = 1) -> <l> comp (<_>S1) base [ (l = 0) -> <m> base ] ]) [ (k = 0) -> <l> comp (<_>S1) (comp (<_>S1) base []) [ (l = 0) -> <m> comp (<_>S1) base [] ], (k = 1) -> <l> comp (<_>S1) (comp (<_>S1) base []) [ (l = 0) -> <m> comp (<_>S1) base [] ] ]) [ (k = 0) -> <l> comp (<_>S1) (comp (<_>S1) base []) [], (k = 1) -> <l> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) [ (l = 0) -> <m> comp (<_>S1) (comp (<_>S1) base []) [] ] ] ]) [ (j = 0) -> <k> comp (<_>S1) (comp (<_>S1) base []) [ (k = 1) -> <l> comp (<_>S1) base [] ], (j = 1) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base [ (k = 1) -> <l> base ]) []) [] ]) [ (j = 0) -> <k> comp (<_>S1) (comp (<_>S1) base []) [ (k = 0) -> <l> comp (<_>S1) base [] ], (j = 1) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (loop {S1} @ -k) []) []) [ (k = 0) -> <l> comp (<_>S1) (comp (<_>S1) base []) [] ] ]) [ (j = 0) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) [ (k = 0) -> <l> comp (<_>S1) (comp (<_>S1) base []) [] ], (j = 1) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base [ (k = 0) -> <l> comp (<_>S1) base [ (l = 0) -> <m> base ], (k = 1) -> <l> comp (<_>S1) base [ (l = 0) -> <m> base ] ]) [ (k = 0) -> <l> comp (<_>S1) (comp (<_>S1) base []) [ (l = 0) -> <m> comp (<_>S1) base [] ], (k = 1) -> <l> comp (<_>S1) (comp (<_>S1) base []) [ (l = 0) -> <m> comp (<_>S1) base [] ] ]) [ (k = 0) -> <l> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) [ (l = 0) -> <m> comp (<_>S1) (comp (<_>S1) base []) [] ], (k = 1) -> <l> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) [ (l = 0) -> <m> comp (<_>S1) (comp (<_>S1) base []) [] ] ]) [ (k = 0) -> <l> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) [], (k = 1) -> <l> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) []) [ (l = 0) -> <m> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) [] ] ] ]) [ (j = 0) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) []) [ (k = 0) -> <l> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) [] ], (j = 1) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) []) [ (k = 1) -> <l> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) [] ] ]) [ (j = 0) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) [ (k = 1) -> <l> comp (<_>S1) base [] ]) []) [], (j = 1) -> <k> comp (<_>S1) (comp (<_>S1) (comp (<_>S1) base []) []) [ (k = 1) -> <l> comp (<_>S1) (comp (<_>S1) base []) [] ] ] ]
 
 -- invsone : sone -> sone  = subst U (\ (X:U) -> X -> X) <_>S1 sone (<i>s1EqCircle@-i) inv<_>S1
 
--- cSone : Id U sone sone = <_>sone
+-- cSone : Path U sone sone = <_>sone
 
 -- pt1 : sone = 
 --  transport cSone
@@ -50,7 +50,7 @@ ntest2 : Id S1 pt0 pt0 =
 --         (transport cSone
 --          (transport cSone (transport cSone north))))))))))
 
--- lemPt1 : Id sone north pt1 =
+-- lemPt1 : Path sone north pt1 =
 --  <i> comp cSone
 --  (comp cSone
 --   (comp cSone
@@ -62,8 +62,8 @@ ntest2 : Id S1 pt0 pt0 =
 --         (comp cSone
 --          (comp cSone (comp cSone north [(i=0)-><_>north]) [(i=0)-><_>north]) [(i=0)-><_>north]) [(i=0)-><_>north]) [(i=0)-><_>north]) [(i=0)-><_>north]) [(i=0)-><_>north]) [(i=0)-><_>north]) [(i=0)-><_>north]) [(i=0)-><_>north]) [(i=0)-><_>north]
 
--- transpSone (l:Id sone pt1 pt1) : Id sone north north =
---  compId sone north pt1 north lemPt1 (compId sone pt1 pt1 north l (<i>lemPt1@-i))
+-- transpSone (l:Path sone pt1 pt1) : Path sone north north =
+--  compPath sone north pt1 north lemPt1 (compPath sone pt1 pt1 north l (<i>lemPt1@-i))
 
 -- -- take a lot of time and memory
 
@@ -72,9 +72,9 @@ ntest2 : Id S1 pt0 pt0 =
 -- test5 : Z = windingS (transpSone (<i>invsone (loop2S@i)))
 
 {- take a lot of time to type-check
-loopM2 : Id <_>S1 pt0 test1 = mapOnPath S1 S1 invS1 base base loop2
+loopM2 : Path <_>S1 pt0 test1 = mapOnPath S1 S1 invS1 base base loop2
 
-loopM0 : Id S1 pt0 pt0 = <i>invMult (loop2@i) (loop2@i)
+loopM0 : Path S1 pt0 pt0 = <i>invMult (loop2@i) (loop2@i)
 -}
 
 
@@ -89,38 +89,38 @@ invS : S1 -> S1 = split
  loop @ i -> loop1 @ -i
 
 test (x:S1) : S1 = mult x (invS x)
-testL : Id S1 base base = <i>test (loop{S1} @ i)
+testL : Path S1 base base = <i>test (loop{S1} @ i)
 test1 (x:S1) : S1 = mult (invS x) x
 
 -- test0S : Z = winding (<i>mult (loop2@i) (invS (loop2@i)))
 -- loop4 : loopS1 = compS1 loop2 loop2
 -- test00S : Z = winding (<i>mult (loop4@i) (invS (loop4@i)))
 
--- lemInv1 : (x:S1) -> Id S1 (mult (invS x) x) base = split
+-- lemInv1 : (x:S1) -> Path S1 (mult (invS x) x) base = split
 -- base -> refl S1 base
 -- loop @ i -> <j> base -- loop1 @ -i\/i\/j
 
 test2 : loopS1 = <i> mult (loop1@i) (loop1@-i)
--- test1 : IdP (<i>Id S1 (mult (loop1@i) base) (mult (loop1@i) base)) loop1 loop1 = <i j> mult (loop1@i) (loop1@j)
+-- test1 : PathP (<i>Path S1 (mult (loop1@i) base) (mult (loop1@i) base)) loop1 loop1 = <i j> mult (loop1@i) (loop1@j)
 test3 : loopS1 = <i> mult (loop1@i) (loop1@i)
--- test3 : Id loopS1 test2 (compS1 loop1 loop1) = refl loopS1 test2
+-- test3 : Path loopS1 test2 (compS1 loop1 loop1) = refl loopS1 test2
 
--- lemBase (y:S1) : Id S1 (mult base (mult base y)) y = 
--- compId S1 (mult base (mult base y)) (mult base y) y (idL (mult base y)) (idL y)
+-- lemBase (y:S1) : Path S1 (mult base (mult base y)) y = 
+-- compPath S1 (mult base (mult base y)) (mult base y) y (idL (mult base y)) (idL y)
 
--- corrInv (x y : S1) : Id S1 (mult x (mult (invS x) y)) y =
---  compId S1 (mult x (mult (invS x) y)) (mult (mult x (invS x)) y) y rem1 rem
---  where rem1 : Id S1 (mult x (mult (invS x) y)) (mult (mult x (invS x)) y) = multAssoc x (invS x) y
+-- corrInv (x y : S1) : Path S1 (mult x (mult (invS x) y)) y =
+--  compPath S1 (mult x (mult (invS x) y)) (mult (mult x (invS x)) y) y rem1 rem
+--  where rem1 : Path S1 (mult x (mult (invS x) y)) (mult (mult x (invS x)) y) = multAssoc x (invS x) y
 
---        rem : Id S1 (mult (mult x (invS x)) y) y =
---         compId S1 (mult (mult x (invS x)) y) (mult base y) y  (<i>mult (lemInv x @i) y) (idL y)
+--        rem : Path S1 (mult (mult x (invS x)) y) y =
+--         compPath S1 (mult (mult x (invS x)) y) (mult base y) y  (<i>mult (lemInv x @i) y) (idL y)
 
--- corrInv1 (x y : S1) : Id S1 (mult (invS x) (mult x y)) y =
---  compId S1 (mult (invS x) (mult x y)) (mult (mult (invS x) x) y) y rem1 rem
---  where rem1 : Id S1 (mult (invS x) (mult x y)) (mult (mult (invS x) x) y) = multAssoc (invS x) x y
+-- corrInv1 (x y : S1) : Path S1 (mult (invS x) (mult x y)) y =
+--  compPath S1 (mult (invS x) (mult x y)) (mult (mult (invS x) x) y) y rem1 rem
+--  where rem1 : Path S1 (mult (invS x) (mult x y)) (mult (mult (invS x) x) y) = multAssoc (invS x) x y
 
---        rem : Id S1 (mult (mult (invS x) x) y) y =
---         compId S1 (mult (mult (invS x) x) y) (mult base y) y (<i>mult (lemInv1 x@i) y) (idL y)
+--        rem : Path S1 (mult (mult (invS x) x) y) y =
+--         compPath S1 (mult (mult (invS x) x) y) (mult base y) y (<i>mult (lemInv1 x@i) y) (idL y)
 
--- eqS1 (x:S1) : Id U S1 S1 = isoId S1 S1 (mult x) (mult (invS x)) (corrInv x) (corrInv1 x)
+-- eqS1 (x:S1) : Path U S1 S1 = isoPath S1 S1 (mult x) (mult (invS x)) (corrInv x) (corrInv1 x)
 

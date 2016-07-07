@@ -17,27 +17,27 @@ isC0System (ob : nat -> U) (hom : Sigma nat ob -> Sigma nat ob -> U) (isC : isPr
      * (ft0 : (n : nat) -> ob (suc n) -> ob n)
      * (let ft (x : A) : A = mkFt ob ft0 x.1 x.2
         in
-       (p : (x y : A) -> Id A (ft x) y -> hom x y)
+       (p : (x y : A) -> Path A (ft x) y -> hom x y)
      * (sq : (n : nat) -> (X : ob (suc n)) -> (Y : A) ->
              (f : hom Y (n, ft0 n X)) ->
-             (f_star : ob (suc Y.1)) * (ftf : Id A (Y.1, ft0 Y.1 f_star) Y)
+             (f_star : ob (suc Y.1)) * (ftf : Path A (Y.1, ft0 Y.1 f_star) Y)
            * (q : hom (suc Y.1, f_star) (suc n, X))
-           * Id (hom (suc Y.1, f_star) (n, ft0 n X))
+           * Path (hom (suc Y.1, f_star) (n, ft0 n X))
                 (cC C (suc Y.1, f_star) Y (n, ft0 n X) (p (suc Y.1, f_star) Y ftf) f)
                 (cC C (suc Y.1, f_star) (suc n, X) (n, ft0 n X) q (p (suc n, X) (n, ft0 n X) (<_> (n, ft0 n X))))
        )
-     * (sqId : (n : nat) -> (X : ob (suc n)) ->
-               (p0 : Id A (suc n, (sq n X (n, ft0 n X) (cId C (n, ft0 n X))).1) (suc n, X))
-             * (IdP (<i>cH C (p0@i) (suc n, X)) (sq n X (n, ft0 n X) (cId C (n, ft0 n X))).2.2.1 (cId C (suc n, X)))
+     * (sqPath : (n : nat) -> (X : ob (suc n)) ->
+               (p0 : Path A (suc n, (sq n X (n, ft0 n X) (cPath C (n, ft0 n X))).1) (suc n, X))
+             * (PathP (<i>cH C (p0@i) (suc n, X)) (sq n X (n, ft0 n X) (cPath C (n, ft0 n X))).2.2.1 (cPath C (suc n, X)))
        )
      * ((n : nat) -> (X : ob (suc n)) ->
         (Y : A) -> (f : hom Y (n, ft0 n X)) ->
         (Z : A) -> (g : hom Z Y) ->
         (let f_star : ob (suc Y.1) = (sq n X Y f).1
              g' : hom Z (Y.1, ft0 Y.1 f_star) = transport (<i>cH C Z ((sq n X Y f).2.1@-i)) g
-         in (p0 : Id A (suc Z.1, (sq Y.1 f_star Z g').1)
+         in (p0 : Path A (suc Z.1, (sq Y.1 f_star Z g').1)
                        (suc Z.1, (sq n X Z (cC C Z Y (n, ft0 n X) g f)).1))
-          * IdP (<i> cH C (p0@i) (suc n, X))
+          * PathP (<i> cH C (p0@i) (suc n, X))
                 (cC C (suc Z.1, (sq Y.1 f_star Z g').1) (suc Y.1, f_star) (suc n, X)
                   (sq Y.1 f_star Z g').2.2.1 (sq n X Y f).2.2.1)
                 (sq n X Z (cC C Z Y (n, ft0 n X) g f)).2.2.1)))
@@ -50,7 +50,7 @@ c0C (C : C0System) : precategory = ((Sigma nat C.1, C.2.1), C.2.2.1)
 c0ASet (C : C0System) : set (cA (c0C C)) = setSig nat C.1 natSet C.2.2.2.1
 c0Ft (C : C0System) (x : cA (c0C C)) : cA (c0C C) = mkFt C.1 C.2.2.2.2.1 x.1 x.2
 
-c0P (C : C0System) : (x y : cA (c0C C)) -> Id (cA (c0C C)) (c0Ft C x) y -> C.2.1 x y = C.2.2.2.2.2.1
+c0P (C : C0System) : (x y : cA (c0C C)) -> Path (cA (c0C C)) (c0Ft C x) y -> C.2.1 x y = C.2.2.2.2.2.1
 
 c0CanSq (C : C0System) : U
   = (n : nat) * (X : C.1 (suc n)) * (Y : cA (c0C C)) * (C.2.1 Y (n, C.2.2.2.2.1 n X))
@@ -58,7 +58,7 @@ c0CanSq (C : C0System) : U
 c0Star (C : C0System) (T : c0CanSq C) : cA (c0C C)
   = (suc T.2.2.1.1, (C.2.2.2.2.2.2.1 T.1 T.2.1 T.2.2.1 T.2.2.2).1)
 c0FtStar (C : C0System) (T : c0CanSq C)
-  : Id (cA (c0C C)) (c0Ft C (c0Star C T)) T.2.2.1
+  : Path (cA (c0C C)) (c0Ft C (c0Star C T)) T.2.2.1
   = (C.2.2.2.2.2.2.1 T.1 T.2.1 T.2.2.1 T.2.2.2).2.1
 
 c0Q (C : C0System) (T : c0CanSq C) : C.2.1 (c0Star C T) (suc T.1, T.2.1)
@@ -66,7 +66,7 @@ c0Q (C : C0System) (T : c0CanSq C) : C.2.1 (c0Star C T) (suc T.1, T.2.1)
 
 c0Square (C : C0System) (T : c0CanSq C)
   : (let X : cA (c0C C) = (suc T.1, T.2.1) in
-     Id (C.2.1 (c0Star C T) (c0Ft C X))
+     Path (C.2.1 (c0Star C T) (c0Ft C X))
         (cC (c0C C) (c0Star C T) T.2.2.1 (c0Ft C X) (c0P C (c0Star C T) T.2.2.1 (c0FtStar C T)) T.2.2.2)
         (cC (c0C C) (c0Star C T) X (c0Ft C X) (c0Q C T) (c0P C X (c0Ft C X) (<_> (c0Ft C X)))))
   = (C.2.2.2.2.2.2.1 T.1 T.2.1 T.2.2.1 T.2.2.2).2.2.2
@@ -108,20 +108,20 @@ uc : U
 
 ucEquiv (A B : uc) : U
   = (e : catEquiv A.1 B.1)
-  * (V : Id (cA B.1) (e.1.1 A.2.2.2.1) B.2.2.2.1)
-  * (VT : Id (cA B.1) (e.1.1 A.2.2.2.2.1) B.2.2.2.2.1)
-  * (IdP (<i>cH B.1 (VT@i) (V@i)) (e.1.2.1 A.2.2.2.2.1 A.2.2.2.1 A.2.2.2.2.2.1) B.2.2.2.2.2.1)
+  * (V : Path (cA B.1) (e.1.1 A.2.2.2.1) B.2.2.2.1)
+  * (VT : Path (cA B.1) (e.1.1 A.2.2.2.2.1) B.2.2.2.2.1)
+  * (PathP (<i>cH B.1 (VT@i) (V@i)) (e.1.2.1 A.2.2.2.2.1 A.2.2.2.1 A.2.2.2.2.2.1) B.2.2.2.2.2.1)
 
-ucEquivId (A B : uc) (e : ucEquiv A B) : Id uc A B
-  = let p : Id ((C:category)*catEquiv A.1 C.1) ((A.1, A.2.1), catIdEquiv A.1) ((B.1, B.2.1), e.1)
-          = isContrProp ((C:category)*catEquiv A.1 C.1) (catEquivEqId' (A.1, A.2.1)) ((A.1, A.2.1), catIdEquiv A.1) ((B.1, B.2.1), e.1)
-        pV : IdP (<i> cA (p@i).1.1) A.2.2.2.1 B.2.2.2.1
+ucEquivPath (A B : uc) (e : ucEquiv A B) : Path uc A B
+  = let p : Path ((C:category)*catEquiv A.1 C.1) ((A.1, A.2.1), catPathEquiv A.1) ((B.1, B.2.1), e.1)
+          = isContrProp ((C:category)*catEquiv A.1 C.1) (catEquivEqPath' (A.1, A.2.1)) ((A.1, A.2.1), catPathEquiv A.1) ((B.1, B.2.1), e.1)
+        pV : PathP (<i> cA (p@i).1.1) A.2.2.2.1 B.2.2.2.1
            = <i> comp (<_> cA (p@i).1.1) ((p@i).2.1.1 A.2.2.2.1)
                   [(i=0)-><_>A.2.2.2.1 ,(i=1)-><k>e.2.1@k]
-        pVT : IdP (<i> cA (p@i).1.1) A.2.2.2.2.1 B.2.2.2.2.1
+        pVT : PathP (<i> cA (p@i).1.1) A.2.2.2.2.1 B.2.2.2.2.1
             = <i> comp (<_> cA (p@i).1.1) ((p@i).2.1.1 A.2.2.2.2.1)
                    [(i=0)-><_>A.2.2.2.2.1 ,(i=1)-><k>e.2.2.1@k]
-        pP : IdP (<i> cH (p@i).1.1 (pVT@i) (pV@i)) A.2.2.2.2.2.1 B.2.2.2.2.2.1
+        pP : PathP (<i> cH (p@i).1.1 (pVT@i) (pV@i)) A.2.2.2.2.2.1 B.2.2.2.2.2.1
            = <i> comp (<k> cH (p@i).1.1
                        (fill (<_> cA (p@i).1.1) ((p@i).2.1.1 A.2.2.2.2.1) [(i=0)-><_>A.2.2.2.2.1 ,(i=1)-><k>e.2.2.1@k]@k)
                        (fill (<_> cA (p@i).1.1) ((p@i).2.1.1 A.2.2.2.1) [(i=0)-><_>A.2.2.2.1 ,(i=1)-><k>e.2.1@k]@k))
@@ -129,13 +129,13 @@ ucEquivId (A B : uc) (e : ucEquiv A B) : Id uc A B
                   [(i=0)-><_>A.2.2.2.2.2.1, (i=1)-><k>e.2.2.2@k]
     in <i> ((p@i).1.1
            ,(p@i).1.2
-           ,lemIdPProp (hasFinal A.1)
+           ,lemPathPProp (hasFinal A.1)
                        (hasFinal B.1)
                        (hasFinalProp A.1 A.2.1)
                        (<i>hasFinal (p@i).1.1)
                        A.2.2.1 B.2.2.1 @ i
            ,pV@i, pVT@i, pP@i
-           ,lemIdPProp ((f : homTo A.1 (pV@0)) -> hasPullback A.1 (pV@0, f, pVT@0, pP@0))
+           ,lemPathPProp ((f : homTo A.1 (pV@0)) -> hasPullback A.1 (pV@0, f, pVT@0, pP@0))
                        ((f : homTo B.1 (pV@1)) -> hasPullback B.1 (pV@1, f, pVT@1, pP@1))
                        (propPi (homTo A.1 (pV@0)) (\(f : homTo A.1 (pV@0)) -> hasPullback A.1 (pV@0, f, pVT@0, pP@0))
                         (\(f : homTo A.1 (pV@0)) -> hasPullbackProp A.1 A.2.1 (pV@0, f, pVT@0, pP@0)))
@@ -165,34 +165,34 @@ ucToC0 (C : uc) : C0System = hole
     intD (x : obD) : cA C.1 = int x.1 x.2
     homD (a b : obD) : U = C.1.1.2 (intD a) (intD b)
     homDSet (a b : obD) : set (homD a b) = cHSet C.1 (intD a) (intD b)
-    DId (a : obD) : homD a a = cId C.1 (intD a)
+    DPath (a : obD) : homD a a = cPath C.1 (intD a)
     DC (a b c : obD) (f : homD a b) (g : homD b c) : homD a c = cC C.1 (intD a) (intD b) (intD c) f g
-    DIdL (a b : obD) (g : homD a b) : Id (homD a b) (DC a a b (DId a) g) g = C.1.2.2.2.2.1 (intD a) (intD b) g
-    DIdR (a b : obD) (g : homD a b) : Id (homD a b) (DC a b b g (DId b)) g = C.1.2.2.2.2.2.1 (intD a) (intD b) g
-    DIdC (a b c d : obD) (f : homD a b) (g : homD b c) (h : homD c d)
-         : Id (homD a d) (DC a c d (DC a b c f g) h) (DC a b d f (DC b c d g h))
+    DPathL (a b : obD) (g : homD a b) : Path (homD a b) (DC a a b (DPath a) g) g = C.1.2.2.2.2.1 (intD a) (intD b) g
+    DPathR (a b : obD) (g : homD a b) : Path (homD a b) (DC a b b g (DPath b)) g = C.1.2.2.2.2.2.1 (intD a) (intD b) g
+    DPathC (a b c d : obD) (f : homD a b) (g : homD b c) (h : homD c d)
+         : Path (homD a d) (DC a c d (DC a b c f g) h) (DC a b d f (DC b c d g h))
          = C.1.2.2.2.2.2.2 (intD a) (intD b) (intD c) (intD d) f g h
     DD : categoryData = (obD, homD)
     D : isPrecategory DD
-      = (DId, DC, homDSet, DIdL, DIdR, DIdC)
+      = (DPath, DC, homDSet, DPathL, DPathR, DPathC)
     DC : precategory = (DD, D)
 
     ft0 (n : nat) (x : ob (suc n)) : ob n = x.1
     ft (x : obD) : obD = mkFt ob ft0 x.1 x.2
     p0 : (n : nat) -> (x : ob n) -> homD (n, x) (ft (n, x)) = split
-      zero  -> \(A:Unit) -> DId (zero, A)
+      zero  -> \(A:Unit) -> DPath (zero, A)
       suc n -> \(X:ob (suc n)) -> (pb n X).1.2.1
-    pD (x y : obD) (p : Id obD (ft x) y) : homD x y = transport (<i>homD x (p@i)) (p0 x.1 x.2)
+    pD (x y : obD) (p : Path obD (ft x) y) : homD x y = transport (<i>homD x (p@i)) (p0 x.1 x.2)
 
     fstar (n : nat) (X : ob (suc n)) (Y : obD) (f : homD Y (n, X.1)) : obD
       = (suc Y.1, Y.2, cC C.1 (intD Y) (int n X.1) V f X.2)
 
     q_ (n : nat) (X : ob (suc n)) (Y : obD) (f : homD Y (n, X.1))
       : (q : homD (fstar n X Y f) (suc n, X))
-      * (qSq : Id (homD (fstar n X Y f) (n, X.1))
+      * (qSq : Path (homD (fstar n X Y f) (n, X.1))
                   (cC DC (fstar n X Y f) Y (n, X.1) (p0 (suc Y.1) (fstar n X Y f).2) f)
                   (cC DC (fstar n X Y f) (suc n, X) (n, X.1) q (p0 (suc n) X)))
-      * (_ : Id (cH C.1 (intD (fstar n X Y f)) VT)
+      * (_ : Path (cH C.1 (intD (fstar n X Y f)) VT)
                 (cC C.1 (intD (fstar n X Y f)) (int (suc n) X) VT q (pb n X).1.2.2.1)
                 (pb Y.1 (Y.2, cC C.1 (intD Y) (int n X.1) V f X.2)).1.2.2.1)
       * isPullback DC ((n, X.1), (Y, f), ((suc n, X), p0 (suc n) X)) (fstar n X Y f, p0 (suc Y.1) (fstar n X Y f).2, q, qSq)
@@ -201,23 +201,23 @@ ucToC0 (C : uc) : C0System = hole
             gF : cH C.1 (intD Y) V = cC C.1 (intD Y) (int n X.1) V f X.2
             qq : cH C.1 if_star VT = (pb Y.1 (Y.2, gF)).1.2.2.1
             pg : cH C.1 if_star (int n X.1) = cC C.1 if_star (intD Y) (int n X.1) (p0 (suc Y.1) f_star.2) f
-            hole0 : Id (cH C.1 if_star V)
+            hole0 : Path (cH C.1 if_star V)
                        (cC C.1 if_star (int n X.1) V pg X.2)
                        (cC C.1 if_star VT V qq p)
-                  = compId (cH C.1 if_star V)
+                  = compPath (cH C.1 if_star V)
                            (cC C.1 if_star (int n X.1) V pg X.2)
                            (cC C.1 if_star (intD Y) V (pb Y.1 (Y.2, gF)).1.2.1 gF)
                            (cC C.1 if_star VT V qq p)
-                           (cIdC C.1 if_star (intD Y) (int n X.1) V (pb Y.1 (Y.2, gF)).1.2.1 f X.2)
+                           (cPathC C.1 if_star (intD Y) (int n X.1) V (pb Y.1 (Y.2, gF)).1.2.1 f X.2)
                            (pb Y.1 (Y.2, gF)).1.2.2.2
             pp : cospanCone C.1 (cs n X)
                = (if_star, pg, qq, hole0)
             q : homD (fstar n X Y f) (suc n, X) = ((pb n X).2 pp).1.1
-            hole1 : Id (cH C.1 if_star V)
+            hole1 : Path (cH C.1 if_star V)
                        (cC C.1 if_star (intD Y) V (pb Y.1 (Y.2, gF)).1.2.1 gF)
                        (cC C.1 if_star VT V (cC C.1 if_star (int (suc n) X) VT q (pb n X).1.2.2.1) p)
                   = transport
-                      (<i> Id (cH C.1 if_star V)
+                      (<i> Path (cH C.1 if_star V)
                        (cC C.1 if_star (intD Y) V (pb Y.1 (Y.2, gF)).1.2.1 gF)
                        (cC C.1 if_star VT V (((pb n X).2 pp).1.2.2 @ -i) p))
                        (pb Y.1 (Y.2, gF)).1.2.2.2
@@ -238,14 +238,14 @@ ucToC0 (C : uc) : C0System = hole
                        ((pb Y.1 f_star.2).1.1
                        ,(pb Y.1 f_star.2).1.2.1
                        ,((pb n X).2 pp).1.2.2@-i
-                       ,lemIdPProp
-                         (Id (cH C.1 if_star V) (cC C.1 if_star (intD Y) V (pb Y.1 (Y.2, gF)).1.2.1 gF)
+                       ,lemPathPProp
+                         (Path (cH C.1 if_star V) (cC C.1 if_star (intD Y) V (pb Y.1 (Y.2, gF)).1.2.1 gF)
                            (cC C.1 if_star VT V (((pb n X).2 pp).1.2.2@1) p))
-                         (Id (cH C.1 if_star V) (cC C.1 if_star (intD Y) V (pb Y.1 (Y.2, gF)).1.2.1 gF)
+                         (Path (cH C.1 if_star V) (cC C.1 if_star (intD Y) V (pb Y.1 (Y.2, gF)).1.2.1 gF)
                            (cC C.1 if_star VT V (((pb n X).2 pp).1.2.2@0) p))
                          (cHSet C.1 if_star V (cC C.1 if_star (intD Y) V (pb Y.1 (Y.2, gF)).1.2.1 gF)
                            (cC C.1 if_star VT V (((pb n X).2 pp).1.2.2@1) p))
-                         (<i>Id (cH C.1 if_star V) (cC C.1 if_star (intD Y) V (pb Y.1 (Y.2, gF)).1.2.1 gF)
+                         (<i>Path (cH C.1 if_star V) (cC C.1 if_star (intD Y) V (pb Y.1 (Y.2, gF)).1.2.1 gF)
                            (cC C.1 if_star VT V (((pb n X).2 pp).1.2.2@-i) p))
                            (pb Y.1 f_star.2).1.2.2.2 hole1 @ i
                        ))
@@ -258,76 +258,76 @@ ucToC0 (C : uc) : C0System = hole
            )
 
     sqD (n : nat) (X : ob (suc n)) (Y : obD) (f : homD Y (n, X.1))
-      : (f_star : ob (suc Y.1)) * (ftf : Id obD (Y.1, ft0 Y.1 f_star) Y)
+      : (f_star : ob (suc Y.1)) * (ftf : Path obD (Y.1, ft0 Y.1 f_star) Y)
       * (q : homD (suc Y.1, f_star) (suc n, X))
-      * Id (homD (suc Y.1, f_star) (n, X.1))
+      * Path (homD (suc Y.1, f_star) (n, X.1))
            (cC DC (suc Y.1, f_star) Y (n, X.1) (pD (suc Y.1, f_star) Y ftf) f)
            (cC DC (suc Y.1, f_star) (suc n, X) (n, X.1) q (pD (suc n, X) (n, X.1) (<_> (n, X.1))))
       = ((fstar n X Y f).2, <_> Y, (q_ n X Y f).1,
           transport
-            (<i> Id (homD (fstar n X Y f) (n, X.1))
+            (<i> Path (homD (fstar n X Y f) (n, X.1))
               (cC DC (fstar n X Y f) Y (n, X.1) (transRefl (cH DC (fstar n X Y f) Y) (p0 (suc Y.1) (fstar n X Y f).2) @ -i) f)
               (cC DC (fstar n X Y f) (suc n, X) (n, X.1) (q_ n X Y f).1 (transRefl (cH DC (suc n, X) (n, X.1)) (p0 (suc n) X) @ -i)))
             (q_ n X Y f).2.1)
 
-    qId (n : nat) (X : ob (suc n)) :
-        (p0 : Id obD (fstar n X (n, X.1) (cId DC (n, X.1))) (suc n, X))
-      * (IdP (<i>cH DC (p0@i) (suc n, X)) (q_ n X (n, X.1) (cId DC (n, X.1))).1 (cId DC (suc n, X)))
-      = let f_star : obD = fstar n X (n, X.1) (cId DC (n, X.1))
-            p1 : Id obD f_star (suc n, X) = <i> (suc n, X.1, cIdL C.1 (int n X.1) V X.2 @ i)
+    qPath (n : nat) (X : ob (suc n)) :
+        (p0 : Path obD (fstar n X (n, X.1) (cPath DC (n, X.1))) (suc n, X))
+      * (PathP (<i>cH DC (p0@i) (suc n, X)) (q_ n X (n, X.1) (cPath DC (n, X.1))).1 (cPath DC (suc n, X)))
+      = let f_star : obD = fstar n X (n, X.1) (cPath DC (n, X.1))
+            p1 : Path obD f_star (suc n, X) = <i> (suc n, X.1, cPathL C.1 (int n X.1) V X.2 @ i)
             if_star : cA C.1 = intD f_star
-            gF : cH C.1 (int n X.1) V = cC C.1 (int n X.1) (int n X.1) V (cId DC (n, X.1)) X.2
+            gF : cH C.1 (int n X.1) V = cC C.1 (int n X.1) (int n X.1) V (cPath DC (n, X.1)) X.2
             qq : cH C.1 if_star VT = (pb n (X.1, gF)).1.2.2.1
             pg : cH C.1 if_star (int n X.1)
-               = cC C.1 if_star (int n X.1) (int n X.1) (p0 (suc n) f_star.2) (cId DC (n, X.1))
-            hole0 : Id (cH C.1 if_star V)
+               = cC C.1 if_star (int n X.1) (int n X.1) (p0 (suc n) f_star.2) (cPath DC (n, X.1))
+            hole0 : Path (cH C.1 if_star V)
                        (cC C.1 if_star (int n X.1) V pg X.2)
                        (cC C.1 if_star VT V qq p)
-                  = compId (cH C.1 if_star V)
+                  = compPath (cH C.1 if_star V)
                            (cC C.1 if_star (int n X.1) V pg X.2)
                            (cC C.1 if_star (int n X.1) V (pb n (X.1, gF)).1.2.1 gF)
                            (cC C.1 if_star VT V qq p)
-                           (cIdC C.1 if_star (int n X.1) (int n X.1) V (pb n (X.1, gF)).1.2.1 (cId DC (n, X.1)) X.2)
+                           (cPathC C.1 if_star (int n X.1) (int n X.1) V (pb n (X.1, gF)).1.2.1 (cPath DC (n, X.1)) X.2)
                            (pb n (X.1, gF)).1.2.2.2
             pp : cospanCone C.1 (cs n X)
                = (if_star, pg, qq, hole0)
-            ppId : Id (cospanCone C.1 (cs n X)) pp (pb n X).1
+            ppPath : Path (cospanCone C.1 (cs n X)) pp (pb n X).1
                  = <i> (intD (p1@i),
-                        cIdR C.1 (intD (p1@i)) (int n X.1) (p0 (suc n) (p1@i).2) @ i,
-                        (pb n (X.1, cIdL C.1 (int n X.1) V X.2 @ i)).1.2.2.1,
-                        lemIdPProp (Id (cH C.1 if_star V) (cC C.1 if_star (int n X.1) V pg X.2) (cC C.1 if_star VT V qq p))
-                                   (Id (cH C.1 (int (suc n) X) V)
+                        cPathR C.1 (intD (p1@i)) (int n X.1) (p0 (suc n) (p1@i).2) @ i,
+                        (pb n (X.1, cPathL C.1 (int n X.1) V X.2 @ i)).1.2.2.1,
+                        lemPathPProp (Path (cH C.1 if_star V) (cC C.1 if_star (int n X.1) V pg X.2) (cC C.1 if_star VT V qq p))
+                                   (Path (cH C.1 (int (suc n) X) V)
                                      (cC C.1 (int (suc n) X) (int n X.1) V (p0 (suc n) X) X.2)
                                      (cC C.1 (int (suc n) X) VT V (pb n X).1.2.2.1 p))
                                    (cHSet C.1 if_star V (cC C.1 if_star (int n X.1) V pg X.2) (cC C.1 if_star VT V qq p))
-                                   (<i>Id (cH C.1 (intD (p1@i)) V)
-                                     (cC C.1 (intD (p1@i)) (int n X.1) V (cIdR C.1 (intD (p1@i)) (int n X.1) (p0 (suc n) (p1@i).2) @ i) X.2)
-                                     (cC C.1 (intD (p1@i)) VT V ((pb n (X.1, cIdL C.1 (int n X.1) V X.2 @ i)).1.2.2.1) p))
+                                   (<i>Path (cH C.1 (intD (p1@i)) V)
+                                     (cC C.1 (intD (p1@i)) (int n X.1) V (cPathR C.1 (intD (p1@i)) (int n X.1) (p0 (suc n) (p1@i).2) @ i) X.2)
+                                     (cC C.1 (intD (p1@i)) VT V ((pb n (X.1, cPathL C.1 (int n X.1) V X.2 @ i)).1.2.2.1) p))
                                    hole0
                                    (pb n X).1.2.2.2
                                    @ i
                        )
             pph : cospanConeHom C.1 (cs n X) pp (pb n X).1
-                = transport (<i> cospanConeHom C.1 (cs n X) (ppId@-i) (pb n X).1) (cospanConeId C.1 (cs n X) (pb n X).1)
-            pphId : Id (cospanConeHom C.1 (cs n X) pp (pb n X).1) ((pb n X).2 pp).1 pph
+                = transport (<i> cospanConeHom C.1 (cs n X) (ppPath@-i) (pb n X).1) (cospanConePath C.1 (cs n X) (pb n X).1)
+            pphPath : Path (cospanConeHom C.1 (cs n X) pp (pb n X).1) ((pb n X).2 pp).1 pph
                   = ((pb n X).2 pp).2 pph
-            qId : Id (cH DC f_star (suc n, X)) ((pb n X).2 pp).1.1 (transport (<i> cH C.1 (ppId@-i).1 (int (suc n) X)) (cId DC (suc n, X)))
-                = <i>(pphId@i).1
+            qPath : Path (cH DC f_star (suc n, X)) ((pb n X).2 pp).1.1 (transport (<i> cH C.1 (ppPath@-i).1 (int (suc n) X)) (cPath DC (suc n, X)))
+                = <i>(pphPath@i).1
         in
         ( p1
-        , <i> substIdP
+        , <i> substPathP
                 (cH DC (p1@1) (suc n, X)) (cH DC (p1@0) (suc n, X))
-                (<i>cH DC (p1@-i) (suc n, X)) (cId DC (suc n, X)) (q_ n X (n, X.1) (cId DC (n, X.1))).1
-                (<i>qId@-i)
+                (<i>cH DC (p1@-i) (suc n, X)) (cPath DC (suc n, X)) (q_ n X (n, X.1) (cPath DC (n, X.1))).1
+                (<i>qPath@-i)
                 @ -i
         )
 
     qComp (n : nat) (X : ob (suc n))
           (Y : obD) (f : homD Y (n, X.1))
           (Z : obD) (g : homD Z Y)
-        : (p0 : Id obD (fstar Y.1 (fstar n X Y f).2 Z g)
+        : (p0 : Path obD (fstar Y.1 (fstar n X Y f).2 Z g)
                        (fstar n X Z (cC DC Z Y (n, X.1) g f)))
-        * IdP (<i> cH DC (p0@i) (suc n, X))
+        * PathP (<i> cH DC (p0@i) (suc n, X))
               (cC DC (fstar Y.1 (fstar n X Y f).2 Z g) (fstar n X Y f) (suc n, X)
                 (q_ Y.1 (fstar n X Y f).2 Z g).1 (q_ n X Y f).1)
               (q_ n X Z (cC DC Z Y (n, X.1) g f)).1
@@ -337,14 +337,14 @@ ucToC0 (C : uc) : C0System = hole
             gF : cH C.1 (intD Z) V = cC C.1 (intD Z) (int n X.1) V F X.2
             qq : cH C.1 if_star VT = (pb Z.1 (Z.2, gF)).1.2.2.1
             pg : cH C.1 if_star (int n X.1) = cC C.1 if_star (intD Z) (int n X.1) (p0 (suc Z.1) f_star.2) F
-            hole0 : Id (cH C.1 if_star V)
+            hole0 : Path (cH C.1 if_star V)
                        (cC C.1 if_star (int n X.1) V pg X.2)
                        (cC C.1 if_star VT V qq p)
-                  = compId (cH C.1 if_star V)
+                  = compPath (cH C.1 if_star V)
                            (cC C.1 if_star (int n X.1) V pg X.2)
                            (cC C.1 if_star (intD Z) V (pb Z.1 (Z.2, gF)).1.2.1 gF)
                            (cC C.1 if_star VT V qq p)
-                           (cIdC C.1 if_star (intD Z) (int n X.1) V (pb Z.1 (Z.2, gF)).1.2.1 F X.2)
+                           (cPathC C.1 if_star (intD Z) (int n X.1) V (pb Z.1 (Z.2, gF)).1.2.1 F X.2)
                            (pb Z.1 (Z.2, gF)).1.2.2.2
             pp : cospanCone C.1 (cs n X)
                = (if_star, pg, qq, hole0)
@@ -355,35 +355,35 @@ ucToC0 (C : uc) : C0System = hole
                 = cC DC f_star2 Z (n,X.1) (p0 (suc Z.1) f_star2.2) F
             qq2 : cH C.1 if_star2 VT
                 = (pb Z.1 (Z.2, cC C.1 (intD Z) (intD Y) V g (cC C.1 (intD Y) (int n X.1) V f X.2))).1.2.2.1
-            p1 : Id obD f_star2 f_star
-               = <i> (suc Z.1, Z.2, cIdC C.1 (intD Z) (intD Y) (int n X.1) V g f X.2 @ -i)
+            p1 : Path obD f_star2 f_star
+               = <i> (suc Z.1, Z.2, cPathC C.1 (intD Z) (intD Y) (int n X.1) V g f X.2 @ -i)
             pp2 : cospanCone C.1 (cs n X)
                 = (if_star2, pg2, qq2,
-                   transport (<i>Id (cH C.1 (intD(p1@-i)) V)
+                   transport (<i>Path (cH C.1 (intD(p1@-i)) V)
                               (cC C.1 (intD(p1@-i)) (int n X.1) V (cC DC (p1@-i) Z (n,X.1) (p0 (suc Z.1) (p1@-i).2) F) X.2)
-                              (cC C.1 (intD(p1@-i)) VT V (pb Z.1 (Z.2, cIdC C.1 (intD Z) (intD Y) (int n X.1) V g f X.2 @ i)).1.2.2.1 p))
+                              (cC C.1 (intD(p1@-i)) VT V (pb Z.1 (Z.2, cPathC C.1 (intD Z) (intD Y) (int n X.1) V g f X.2 @ i)).1.2.2.1 p))
                              hole0)
-            ppId : Id (cospanCone C.1 (cs n X)) pp2 pp
+            ppPath : Path (cospanCone C.1 (cs n X)) pp2 pp
                  = <i> (intD (p1@i),
                         cC DC (p1@i) Z (n,X.1) (p0 (suc Z.1) (p1@i).2) F,
-                        (pb Z.1 (Z.2, cIdC C.1 (intD Z) (intD Y) (int n X.1) V g f X.2 @ -i)).1.2.2.1,
-                        lemIdPProp
-                         (Id (cH C.1 if_star2 V) (cC C.1 if_star2 (int n X.1) V pg2 X.2) (cC C.1 if_star2 VT V qq2 p))
-                         (Id (cH C.1 if_star V) (cC C.1 if_star (int n X.1) V pg X.2) (cC C.1 if_star VT V qq p))
+                        (pb Z.1 (Z.2, cPathC C.1 (intD Z) (intD Y) (int n X.1) V g f X.2 @ -i)).1.2.2.1,
+                        lemPathPProp
+                         (Path (cH C.1 if_star2 V) (cC C.1 if_star2 (int n X.1) V pg2 X.2) (cC C.1 if_star2 VT V qq2 p))
+                         (Path (cH C.1 if_star V) (cC C.1 if_star (int n X.1) V pg X.2) (cC C.1 if_star VT V qq p))
                          (cHSet C.1 if_star2 V (cC C.1 if_star2 (int n X.1) V pg2 X.2) (cC C.1 if_star2 VT V qq2 p))
-                         (<i>Id (cH C.1 (intD(p1@i)) V)
+                         (<i>Path (cH C.1 (intD(p1@i)) V)
                            (cC C.1 (intD(p1@i)) (int n X.1) V (cC DC (p1@i) Z (n,X.1) (p0 (suc Z.1) (p1@i).2) F) X.2)
-                           (cC C.1 (intD(p1@i)) VT V (pb Z.1 (Z.2, cIdC C.1 (intD Z) (intD Y) (int n X.1) V g f X.2 @ -i)).1.2.2.1 p))
+                           (cC C.1 (intD(p1@i)) VT V (pb Z.1 (Z.2, cPathC C.1 (intD Z) (intD Y) (int n X.1) V g f X.2 @ -i)).1.2.2.1 p))
                          pp2.2.2.2 hole0 @ i)
 
-            hole3 : Id (cH C.1 if_star2 (int n X.1))
+            hole3 : Path (cH C.1 if_star2 (int n X.1))
                        (cC DC f_star2 (suc n, X) (n,X.1)
                         (cC C.1 if_star2 (intD (fstar n X Y f)) (int (suc n) X) q2 (q_ n X Y f).1)
                         (p0 (suc n) X)
                        )
                        (cC DC f_star2 Z (n,X.1) (p0 (suc Z.1) f_star2.2) F)
                   = undefined
-            --       = compId (cH C.1 if_star2 (int n X.1))
+            --       = compPath (cH C.1 if_star2 (int n X.1))
             --                (cC DC f_star2 (suc n, X) (n,X.1)
             --                  (cC DC f_star2 (fstar n X Y f) (suc n, X) q2 (q_ n X Y f).1)
             --                  (p0 (suc n) X))
@@ -391,8 +391,8 @@ ucToC0 (C : uc) : C0System = hole
             --                  q2
             --                  (cC DC (fstar n X Y f) (suc n, X) (n, X.1) (q_ n X Y f).1 (p0 (suc n) X)))
             --                (cC DC f_star2 Z (n,X.1) (p0 (suc Z.1) f_star2.2) F)
-            --                (cIdC DC f_star2 (fstar n X Y f) (suc n, X) (n,X.1) q2 (q_ n X Y f).1 (p0 (suc n) X))
-            --        (compId (cH C.1 if_star2 (int n X.1))
+            --                (cPathC DC f_star2 (fstar n X Y f) (suc n, X) (n,X.1) q2 (q_ n X Y f).1 (p0 (suc n) X))
+            --        (compPath (cH C.1 if_star2 (int n X.1))
             --                (cC DC f_star2 (fstar n X Y f) (n,X.1)
             --                  q2
             --                  (cC DC (fstar n X Y f) (suc n, X) (n, X.1) (q_ n X Y f).1 (p0 (suc n) X)))
@@ -402,7 +402,7 @@ ucToC0 (C : uc) : C0System = hole
             --                (cC DC f_star2 Z (n,X.1) (p0 (suc Z.1) f_star2.2) F)
             --                (<i> cC DC f_star2 (fstar n X Y f) (n,X.1) q2
             --                       ((q_ n X Y f).2.1@-i))
-            --        (compId (cH C.1 if_star2 (int n X.1))
+            --        (compPath (cH C.1 if_star2 (int n X.1))
             --                (cC DC f_star2 (fstar n X Y f) (n,X.1)
             --                  q2
             --                  (cC DC (fstar n X Y f) Y (n, X.1) (p0 (suc Y.1) (fstar n X Y f).2) f))
@@ -410,8 +410,8 @@ ucToC0 (C : uc) : C0System = hole
             --                  (cC DC f_star2 (fstar n X Y f) Y q2 (p0 (suc Y.1) (fstar n X Y f).2))
             --                  f)
             --                (cC DC f_star2 Z (n,X.1) (p0 (suc Z.1) f_star2.2) F)
-            --                (<i>cIdC DC f_star2 (fstar n X Y f) Y (n, X.1) q2 (p0 (suc Y.1) (fstar n X Y f).2) f@-i)
-            --        (compId (cH C.1 if_star2 (int n X.1))
+            --                (<i>cPathC DC f_star2 (fstar n X Y f) Y (n, X.1) q2 (p0 (suc Y.1) (fstar n X Y f).2) f@-i)
+            --        (compPath (cH C.1 if_star2 (int n X.1))
             --                (cC DC f_star2 Y (n,X.1)
             --                  (cC DC f_star2 (fstar n X Y f) Y q2 (p0 (suc Y.1) (fstar n X Y f).2))
             --                  f)
@@ -421,16 +421,16 @@ ucToC0 (C : uc) : C0System = hole
             --                (cC DC f_star2 Z (n,X.1) (p0 (suc Z.1) f_star2.2) F)
             --                (<i>cC DC f_star2 Y (n,X.1)
             --                   ((q_ Y.1 (fstar n X Y f).2 Z g).2.1@-i) f)
-            --                (cIdC DC f_star2 Z Y (n, X.1) (p0 (suc Z.1) f_star2.2) g f))))
+            --                (cPathC DC f_star2 Z Y (n, X.1) (p0 (suc Z.1) f_star2.2) g f))))
             -- opaque hole3
 
-            hole4 : Id (cH C.1 if_star2 VT)
+            hole4 : Path (cH C.1 if_star2 VT)
                        (cC C.1 if_star2 (int (suc n) X) VT
                          (cC C.1 if_star2 (intD (fstar n X Y f)) (int (suc n) X) q2 (q_ n X Y f).1)
                          (pb n X).1.2.2.1)
                        (pb Z.1 (Z.2, cC C.1 (intD Z) (intD Y) V g (cC C.1 (intD Y) (int n X.1) V f X.2))).1.2.2.1
                   = undefined
-            --       = compId (cH C.1 if_star2 VT)
+            --       = compPath (cH C.1 if_star2 VT)
             --                (cC C.1 if_star2 (int (suc n) X) VT
             --                 (cC C.1 if_star2 (intD (fstar n X Y f)) (int (suc n) X) q2 (q_ n X Y f).1)
             --                 (pb n X).1.2.2.1)
@@ -438,8 +438,8 @@ ucToC0 (C : uc) : C0System = hole
             --                 q2
             --                 (cC C.1 (intD (fstar n X Y f)) (int (suc n) X) VT (q_ n X Y f).1 (pb n X).1.2.2.1))
             --                (pb Z.1 (Z.2, cC C.1 (intD Z) (intD Y) V g (cC C.1 (intD Y) (int n X.1) V f X.2))).1.2.2.1
-            --                (cIdC C.1 if_star2 (intD (fstar n X Y f)) (int (suc n) X) VT q2 (q_ n X Y f).1 (pb n X).1.2.2.1)
-            --        (compId (cH C.1 if_star2 VT)
+            --                (cPathC C.1 if_star2 (intD (fstar n X Y f)) (int (suc n) X) VT q2 (q_ n X Y f).1 (pb n X).1.2.2.1)
+            --        (compPath (cH C.1 if_star2 VT)
             --                (cC C.1 if_star2 (intD (fstar n X Y f)) VT
             --                 q2
             --                 (cC C.1 (intD (fstar n X Y f)) (int (suc n) X) VT (q_ n X Y f).1 (pb n X).1.2.2.1))
@@ -453,43 +453,43 @@ ucToC0 (C : uc) : C0System = hole
 
             pph : cospanConeHom C.1 (cs n X) pp (pb n X).1
                 = transport
-                  (<i>cospanConeHom C.1 (cs n X) (ppId@i) (pb n X).1)
+                  (<i>cospanConeHom C.1 (cs n X) (ppPath@i) (pb n X).1)
                   ( cC C.1 if_star2 (intD (fstar n X Y f)) (int (suc n) X) q2 (q_ n X Y f).1
                   , hole3
                   , hole4
                   )
-            pphId : Id (cospanConeHom C.1 (cs n X) pp (pb n X).1) ((pb n X).2 pp).1 pph
+            pphPath : Path (cospanConeHom C.1 (cs n X) pp (pb n X).1) ((pb n X).2 pp).1 pph
                   = ((pb n X).2 pp).2 pph
-            qId : Id (cH C.1 if_star (int (suc n) X))
+            qPath : Path (cH C.1 if_star (int (suc n) X))
                      (transport (<i>cH C.1 (intD(p1@i)) (int (suc n) X))
                        (cC C.1 if_star2 (intD (fstar n X Y f)) (int (suc n) X) q2 (q_ n X Y f).1))
                      (q_ n X Z (cC DC Z Y (n, X.1) g f)).1
-                = <i>(pphId@-i).1
+                = <i>(pphPath@-i).1
         in (p1,
-            substIdP (cH DC (p1@0) (suc n, X)) (cH DC (p1@1) (suc n, X))
+            substPathP (cH DC (p1@0) (suc n, X)) (cH DC (p1@1) (suc n, X))
                      (<i> cH DC (p1@i) (suc n, X))
                      (cC C.1 if_star2 (intD (fstar n X Y f)) (int (suc n) X) q2 (q_ n X Y f).1)
                      (q_ n X Z (cC DC Z Y (n, X.1) g f)).1
-                     qId)
+                     qPath)
 
     qComp' (n : nat) (X : ob (suc n))
            (Y : obD) (f : homD Y (n, X.1))
            (Z : obD) (g : homD Z Y)
         : (let g' : homD Z Y = transport (<_> homD Z Y) g in
-          (p0 : Id obD (fstar Y.1 (fstar n X Y f).2 Z g')
+          (p0 : Path obD (fstar Y.1 (fstar n X Y f).2 Z g')
                        (fstar n X Z (cC DC Z Y (n, X.1) g f)))
-        * IdP (<i> cH DC (p0@i) (suc n, X))
+        * PathP (<i> cH DC (p0@i) (suc n, X))
               (cC DC (fstar Y.1 (fstar n X Y f).2 Z g') (fstar n X Y f) (suc n, X)
                 (q_ Y.1 (fstar n X Y f).2 Z g').1 (q_ n X Y f).1)
               (q_ n X Z (cC DC Z Y (n, X.1) g f)).1)
         = transport
-          (<j> (p0 : Id obD (fstar Y.1 (fstar n X Y f).2 Z (transRefl (homD Z Y) g @ -j))
+          (<j> (p0 : Path obD (fstar Y.1 (fstar n X Y f).2 Z (transRefl (homD Z Y) g @ -j))
                             (fstar n X Z (cC DC Z Y (n, X.1) g f)))
-             * IdP (<i> cH DC (p0@i) (suc n, X))
+             * PathP (<i> cH DC (p0@i) (suc n, X))
                    (cC DC (fstar Y.1 (fstar n X Y f).2 Z (transRefl (homD Z Y) g @ -j)) (fstar n X Y f) (suc n, X)
                      (q_ Y.1 (fstar n X Y f).2 Z (transRefl (homD Z Y) g @ -j)).1 (q_ n X Y f).1)
                    (q_ n X Z (cC DC Z Y (n, X.1) g f)).1)
           (qComp n X Y f Z g)
 
     hole : C0System
-         = (ob, homD, D, obSet, ft0, pD, sqD, qId, qComp')
+         = (ob, homD, D, obSet, ft0, pD, sqD, qPath, qComp')

@@ -38,27 +38,27 @@ predZ : Z -> Z = split
       zero  -> inl zero
       suc n -> inr n
 
-sucpredZ : (x : Z) -> Id Z (sucZ (predZ x)) x = split
+sucpredZ : (x : Z) -> Path Z (sucZ (predZ x)) x = split
   inl u -> refl Z (inl u)
   inr v -> lem v
    where
-    lem : (u : nat) -> Id Z (sucZ (predZ (inr u))) (inr u) = split
+    lem : (u : nat) -> Path Z (sucZ (predZ (inr u))) (inr u) = split
       zero  -> refl Z (inr zero)
       suc n -> refl Z (inr (suc n))
 
-predsucZ : (x : Z) -> Id Z (predZ (sucZ x)) x = split
+predsucZ : (x : Z) -> Path Z (predZ (sucZ x)) x = split
   inl u -> lem u
    where
-    lem : (u : nat) -> Id Z (predZ (sucZ (inl u))) (inl u) = split
+    lem : (u : nat) -> Path Z (predZ (sucZ (inl u))) (inl u) = split
       zero  -> refl Z (inl zero)
       suc n -> refl Z (inl (suc n))
   inr v -> refl Z (inr v)
 
 
-sucIdZ : Id U Z Z = isoId Z Z sucZ predZ sucpredZ predsucZ
+sucPathZ : Path U Z Z = isoPath Z Z sucZ predZ sucpredZ predsucZ
 
 -- We can transport along the proof forward and backwards:
-testOneZ : Z = transport sucIdZ zeroZ
-testNOneZ : Z = transport (<i> sucIdZ @ - i) zeroZ
+testOneZ : Z = transport sucPathZ zeroZ
+testNOneZ : Z = transport (<i> sucPathZ @ - i) zeroZ
 
 ZSet : set Z = hedberg Z (orDisc nat nat natDec natDec)

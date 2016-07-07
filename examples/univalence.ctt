@@ -11,36 +11,36 @@ import equiv
 ------------------------------------------------------------------------------
 -- Proof of univalence using unglue:
 
-retIsContr (A B :U) (f:A->B) (g:B->A) (h : (x:A) -> Id A (g (f x)) x) (v:isContr B)
+retIsContr (A B :U) (f:A->B) (g:B->A) (h : (x:A) -> Path A (g (f x)) x) (v:isContr B)
  : isContr A = (g b,p)
  where
   b : B = v.1
-  q : (y:B) -> Id B b y = v.2
-  p (x:A) : Id A (g b) x = <i>comp (<j>A) (g (q (f x)@i)) [(i=0) -> <j>g b,(i=1) -> h x]
+  q : (y:B) -> Path B b y = v.2
+  p (x:A) : Path A (g b) x = <i>comp (<j>A) (g (q (f x)@i)) [(i=0) -> <j>g b,(i=1) -> h x]
 
 sigIsContr (A:U) (B:A->U) (u:isContr A) (q:(x:A) -> isContr (B x))
  : isContr ((x:A)*B x) = ((a,g a),r)
  where
   a : A = u.1
-  p : (x:A) -> Id A a x = u.2
+  p : (x:A) -> Path A a x = u.2
   g (x:A) : B x = (q x).1
-  h (x:A) : (y:B x) -> Id (B x) (g x) y = (q x).2
+  h (x:A) : (y:B x) -> Path (B x) (g x) y = (q x).2
   C : U = (x:A) * B x
-  r (z:C) : Id C (a,g a) z =
+  r (z:C) : Path C (a,g a) z =
    <i>(p z.1@i,h (p z.1@i) (comp (<j>B (p z.1@i\/-j)) z.2 [(i=1)-><j>z.2])@i)
 
-isPathContr (A:U) (cA:isContr A) (x y:A) : isContr (Id A x y) =  (p0,q)
+isPathContr (A:U) (cA:isContr A) (x y:A) : isContr (Path A x y) =  (p0,q)
  where
   a : A = cA.1
-  f : (x:A) -> Id A a x = cA.2
-  p0 : Id A x y = <i>comp (<j>A) a [(i=0) -> f x,(i=1) -> f y]
-  q (p:Id A x y) : Id (Id A x y) p0 p =
+  f : (x:A) -> Path A a x = cA.2
+  p0 : Path A x y = <i>comp (<j>A) a [(i=0) -> f x,(i=1) -> f y]
+  q (p:Path A x y) : Path (Path A x y) p0 p =
    <j i>comp (<k>A) a [(i=0) -> f x,(i=1) -> f y,
                        (j=0) -> <k>comp (<l>A) a [(k=0) -> <l>a,(i=0) -> <l>f x@k/\l,(i=1) -> <l>f y@k/\l],
                        (j=1) -> f (p@i)]
 
 isEquivContr (A B:U) (cA:isContr A) (cB:isContr B) (f:A->B) : isEquiv A B f =
- \ (y:B) -> sigIsContr A (\ (x:A) -> Id B y (f x)) cA (\ (x:A) -> isPathContr B cB y (f x))
+ \ (y:B) -> sigIsContr A (\ (x:A) -> Path B y (f x)) cA (\ (x:A) -> isPathContr B cB y (f x))
 
 totalFun (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (w:Sigma A B) : Sigma A C =
  (w.1,f (w.1) (w.2))
@@ -53,17 +53,17 @@ funFib2  (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (x0:A) (z0:C x0)
  where
   x : A = w.1.1
   b : B x = w.1.2
-  p : Id A x0 x = <i>(w.2@i).1
-  q : IdP (<i>C (p@i)) z0 (f x b) = <i>(w.2@i).2
+  p : Path A x0 x = <i>(w.2@i).1
+  q : PathP (<i>C (p@i)) z0 (f x b) = <i>(w.2@i).2
   b0 : B x0 = comp (<i>B (p@-i)) b []
-  r : IdP (<i>B (p@-i)) b b0 = <i>comp (<j>B (p@-j\/-i)) b [(i=0) -> <k>b]
-  s : Id (C x0) z0 (f x0 b0) = <i>comp (<j>C (p@(i/\-j))) (q@i) [(i=0) -> <k>z0,(i=1) -> <k>f (p@-k) (r@k)]
+  r : PathP (<i>B (p@-i)) b b0 = <i>comp (<j>B (p@-j\/-i)) b [(i=0) -> <k>b]
+  s : Path (C x0) z0 (f x0 b0) = <i>comp (<j>C (p@(i/\-j))) (q@i) [(i=0) -> <k>z0,(i=1) -> <k>f (p@-k) (r@k)]
 
 compFunFib (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (x0:A) (z0:C x0) (u:fiber (B x0) (C x0) (f x0) z0) :
     fiber (B x0) (C x0) (f x0) z0 = funFib2 A B C f x0 z0 (funFib1 A B C f x0 z0 u)
 
 retFunFib (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (x0:A) (z0:C x0) (u:fiber (B x0) (C x0) (f x0) z0) :
-   Id (fiber (B x0) (C x0) (f x0) z0) (funFib2 A B C f x0 z0 (funFib1 A B C f x0 z0 u)) u =
+   Path (fiber (B x0) (C x0) (f x0) z0) (funFib2 A B C f x0 z0 (funFib1 A B C f x0 z0 u)) u =
  <l> (comp (<i> B x0) u.1 [(l=1) -> <j>u.1],
       <i> comp (<j> C x0) (u.2 @ i) [ (l=1) -> <j> u.2 @ i,
                                       (i = 0) -> <j> z0,
@@ -78,7 +78,7 @@ equivFunFib (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (cB : isContr (Sigma A 
                          (isEquivContr (Sigma A B) (Sigma A C) cB cC (totalFun A B C f) (x,z))
 
 -- test normal form
--- nequivFunFib : (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (cB : isContr (Sigma A B)) (cC : isContr (Sigma A C)) (x:A) ->isEquiv (B x) (C x) (f x) = \(A : U) -> \(B C : A -> U) -> \(f : (x : A) -> (B x) -> (C x)) -> \(cB : Sigma (Sigma A (\(x : A) -> B x)) (\(x : Sigma A (\(x : A) -> B x)) -> (y : Sigma A (\(x0 : A) -> B x0)) -> IdP (<!0> Sigma A (\(x0 : A) -> B x0)) x y)) -> \(cC : Sigma (Sigma A (\(x : A) -> C x)) (\(x : Sigma A (\(x : A) -> C x)) -> (y : Sigma A (\(x0 : A) -> C x0)) -> IdP (<!0> Sigma A (\(x0 : A) -> C x0)) x y)) -> \(x : A) -> \(z : C x) -> ((comp (<!0> B (comp (<!1> A) cC.1.1 [ (!0 = 0) -> <!1> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !1).1, (!0 = 1) -> <!1> (cC.2 ((x,z)) @ !1).1 ])) cB.1.2 [],<!0> comp (<!1> C (comp (<!2> A) cC.1.1 [ (!0 = 0) -> <!2> (cC.2 ((x,z)) @ !2).1, (!0 = 1)(!1 = 0) -> <!2> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !2).1, (!1 = 1) -> <!2> (cC.2 ((x,z)) @ !2).1 ])) (comp (<!1> C (comp (<!2> A) cC.1.1 [ (!0 = 0) -> <!2> (cC.2 ((x,z)) @ (!1 /\ !2)).1, (!0 = 1) -> <!2> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!1 /\ !2)).1, (!1 = 0) -> <!2> cC.1.1 ])) cC.1.2 [ (!0 = 0) -> <!1> (cC.2 ((x,z)) @ !1).2, (!0 = 1) -> <!1> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !1).2 ]) [ (!0 = 0) -> <!1> z, (!0 = 1) -> <!1> f (comp (<!2> A) cC.1.1 [ (!1 = 0) -> <!2> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !2).1, (!1 = 1) -> <!2> (cC.2 ((x,z)) @ !2).1 ]) (comp (<!2> B (comp (<!3> A) cC.1.1 [ (!1 = 0) -> <!3> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !3).1, (!1 = 1)(!2 = 1) -> <!3> (cC.2 ((x,z)) @ !3).1, (!2 = 0) -> <!3> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !3).1 ])) cB.1.2 [ (!1 = 0) -> <!2> cB.1.2 ]) ]),\(x0 : Sigma (B x) (\(x0 : B x) -> IdP (<!0> C x) z (f x x0))) -> <!0> (comp (<!1> B x) (comp (<!1> B (comp (<!2> A) cC.1.1 [ (!0 = 0) -> <!2> comp (<!3> A) cC.1.1 [ (!1 = 0) -> <!3> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!2 /\ !3)).1, (!1 = 1) -> <!3> (cC.2 ((x,z)) @ (!2 /\ !3)).1, (!2 = 0) -> <!3> cC.1.1 ], (!0 = 1) -> <!2> (cC.2 ((x,x0.2 @ -!1)) @ !2).1, (!1 = 0) -> <!2> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !2).1, (!1 = 1) -> <!2> (cC.2 ((x,z)) @ !2).1 ])) (cB.2 ((x,x0.1)) @ !0).2 []) [ (!0 = 0) -> <!1> comp (<!0> B (comp (<!1> A) cC.1.1 [ (!0 = 0) -> <!1> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !1).1, (!0 = 1) -> <!1> (cC.2 ((x,z)) @ !1).1 ])) cB.1.2 [], (!0 = 1) -> <!1> comp (<!2> B x) x0.1 [ (!1 = 1) -> <!2> x0.1 ] ],<!2> comp (<!3> C x) (comp (<!3> C (comp (<!4> A) cC.1.1 [ (!0 = 0) -> <!4> comp (<!5> A) cC.1.1 [ (!2 = 0) -> <!5> (cC.2 ((x,z)) @ (!4 /\ !5)).1, (!2 = 1)(!3 = 0) -> <!5> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!4 /\ !5)).1, (!3 = 1) -> <!5> (cC.2 ((x,z)) @ (!4 /\ !5)).1, (!4 = 0) -> <!5> cC.1.1 ], (!0 = 1) -> <!4> (cC.2 ((x,x0.2 @ (!2 /\ -!3))) @ !4).1, (!2 = 0) -> <!4> (cC.2 ((x,z)) @ !4).1, (!2 = 1)(!3 = 0) -> <!4> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !4).1, (!3 = 1) -> <!4> (cC.2 ((x,z)) @ !4).1 ])) (comp (<!3> C (comp (<!4> A) cC.1.1 [ (!0 = 0) -> <!4> comp (<!5> A) cC.1.1 [ (!2 = 0) -> <!5> (cC.2 ((x,z)) @ (!3 /\ !4 /\ !5)).1, (!2 = 1) -> <!5> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!3 /\ !4 /\ !5)).1, (!3 = 0) -> <!5> cC.1.1, (!4 = 0) -> <!5> cC.1.1 ], (!0 = 1) -> <!4> (cC.2 ((x,x0.2 @ !2)) @ (!3 /\ !4)).1, (!2 = 0) -> <!4> (cC.2 ((x,z)) @ (!3 /\ !4)).1, (!2 = 1) -> <!4> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ (!3 /\ !4)).1, (!3 = 0) -> <!4> cC.1.1 ])) cC.1.2 [ (!0 = 0) -> <!3> comp (<!4> C (comp (<!5> A) cC.1.1 [ (!2 = 0) -> <!5> (cC.2 ((x,z)) @ (!3 /\ !4 /\ !5)).1, (!2 = 1) -> <!5> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!3 /\ !4 /\ !5)).1, (!3 = 0) -> <!5> cC.1.1, (!4 = 0) -> <!5> cC.1.1 ])) cC.1.2 [ (!2 = 0) -> <!4> (cC.2 ((x,z)) @ (!3 /\ !4)).2, (!2 = 1) -> <!4> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!3 /\ !4)).2, (!3 = 0) -> <!4> cC.1.2 ], (!0 = 1) -> <!3> (cC.2 ((x,x0.2 @ !2)) @ !3).2, (!2 = 0) -> <!3> (cC.2 ((x,z)) @ !3).2, (!2 = 1) -> <!3> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !3).2 ]) [ (!2 = 0) -> <!3> z, (!2 = 1) -> <!3> f (comp (<!4> A) cC.1.1 [ (!0 = 0) -> <!4> comp (<!5> A) cC.1.1 [ (!3 = 0) -> <!5> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!4 /\ !5)).1, (!3 = 1) -> <!5> (cC.2 ((x,z)) @ (!4 /\ !5)).1, (!4 = 0) -> <!5> cC.1.1 ], (!0 = 1) -> <!4> (cC.2 ((x,x0.2 @ -!3)) @ !4).1, (!3 = 0) -> <!4> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !4).1, (!3 = 1) -> <!4> (cC.2 ((x,z)) @ !4).1 ]) (comp (<!4> B (comp (<!5> A) cC.1.1 [ (!0 = 0) -> <!5> comp (<!6> A) cC.1.1 [ (!3 = 0) -> <!6> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!5 /\ !6)).1, (!3 = 1)(!4 = 1) -> <!6> (cC.2 ((x,z)) @ (!5 /\ !6)).1, (!4 = 0) -> <!6> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!5 /\ !6)).1, (!5 = 0) -> <!6> cC.1.1 ], (!0 = 1) -> <!5> (cC.2 ((x,x0.2 @ (-!3 \/ -!4))) @ !5).1, (!3 = 0) -> <!5> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !5).1, (!3 = 1)(!4 = 1) -> <!5> (cC.2 ((x,z)) @ !5).1, (!4 = 0) -> <!5> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !5).1 ])) (cB.2 ((x,x0.1)) @ !0).2 [ (!3 = 0) -> <!4> (cB.2 ((x,x0.1)) @ !0).2 ]) ]) [ (!0 = 0) -> <!3> comp (<!3> C (comp (<!4> A) cC.1.1 [ (!2 = 0) -> <!4> (cC.2 ((x,z)) @ !4).1, (!2 = 1)(!3 = 0) -> <!4> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !4).1, (!3 = 1) -> <!4> (cC.2 ((x,z)) @ !4).1 ])) (comp (<!3> C (comp (<!4> A) cC.1.1 [ (!2 = 0) -> <!4> (cC.2 ((x,z)) @ (!3 /\ !4)).1, (!2 = 1) -> <!4> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!3 /\ !4)).1, (!3 = 0) -> <!4> cC.1.1 ])) cC.1.2 [ (!2 = 0) -> <!3> (cC.2 ((x,z)) @ !3).2, (!2 = 1) -> <!3> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !3).2 ]) [ (!2 = 0) -> <!3> z, (!2 = 1) -> <!3> f (comp (<!4> A) cC.1.1 [ (!3 = 0) -> <!4> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !4).1, (!3 = 1) -> <!4> (cC.2 ((x,z)) @ !4).1 ]) (comp (<!4> B (comp (<!5> A) cC.1.1 [ (!3 = 0) -> <!5> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !5).1, (!3 = 1)(!4 = 1) -> <!5> (cC.2 ((x,z)) @ !5).1, (!4 = 0) -> <!5> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !5).1 ])) cB.1.2 [ (!3 = 0) -> <!4> cB.1.2 ]) ], (!0 = 1) -> <!3> comp (<!4> C x) (x0.2 @ !2) [ (!2 = 0) -> <!4> z, (!2 = 1) -> <!4> f x (comp (<!5> B x) x0.1 [ (!3 = 1) -> <!5> x0.1, (!4 = 0) -> <!5> x0.1 ]), (!3 = 1) -> <!4> x0.2 @ !2 ], (!2 = 0) -> <!3> z, (!2 = 1) -> <!3> f x (comp (<!4> B x) (comp (<!1> B (comp (<!2> A) cC.1.1 [ (!0 = 0) -> <!2> comp (<!3> A) cC.1.1 [ (!1 = 0) -> <!3> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!2 /\ !3)).1, (!1 = 1) -> <!3> (cC.2 ((x,z)) @ (!2 /\ !3)).1, (!2 = 0) -> <!3> cC.1.1 ], (!0 = 1) -> <!2> (cC.2 ((x,x0.2 @ -!1)) @ !2).1, (!1 = 0) -> <!2> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !2).1, (!1 = 1) -> <!2> (cC.2 ((x,z)) @ !2).1 ])) (cB.2 ((x,x0.1)) @ !0).2 []) [ (!0 = 0) -> <!4> comp (<!0> B (comp (<!1> A) cC.1.1 [ (!0 = 0) -> <!1> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !1).1, (!0 = 1) -> <!1> (cC.2 ((x,z)) @ !1).1 ])) cB.1.2 [], (!0 = 1) -> <!4> comp (<!5> B x) x0.1 [ (!3 = 1)(!4 = 1) -> <!5> x0.1 ], (!3 = 0) -> <!4> comp (<!1> B (comp (<!2> A) cC.1.1 [ (!0 = 0) -> <!2> comp (<!3> A) cC.1.1 [ (!1 = 0) -> <!3> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!2 /\ !3)).1, (!1 = 1) -> <!3> (cC.2 ((x,z)) @ (!2 /\ !3)).1, (!2 = 0) -> <!3> cC.1.1 ], (!0 = 1) -> <!2> (cC.2 ((x,x0.2 @ -!1)) @ !2).1, (!1 = 0) -> <!2> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !2).1, (!1 = 1) -> <!2> (cC.2 ((x,z)) @ !2).1 ])) (cB.2 ((x,x0.1)) @ !0).2 [] ]) ]))
+-- nequivFunFib : (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (cB : isContr (Sigma A B)) (cC : isContr (Sigma A C)) (x:A) ->isEquiv (B x) (C x) (f x) = \(A : U) -> \(B C : A -> U) -> \(f : (x : A) -> (B x) -> (C x)) -> \(cB : Sigma (Sigma A (\(x : A) -> B x)) (\(x : Sigma A (\(x : A) -> B x)) -> (y : Sigma A (\(x0 : A) -> B x0)) -> PathP (<!0> Sigma A (\(x0 : A) -> B x0)) x y)) -> \(cC : Sigma (Sigma A (\(x : A) -> C x)) (\(x : Sigma A (\(x : A) -> C x)) -> (y : Sigma A (\(x0 : A) -> C x0)) -> PathP (<!0> Sigma A (\(x0 : A) -> C x0)) x y)) -> \(x : A) -> \(z : C x) -> ((comp (<!0> B (comp (<!1> A) cC.1.1 [ (!0 = 0) -> <!1> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !1).1, (!0 = 1) -> <!1> (cC.2 ((x,z)) @ !1).1 ])) cB.1.2 [],<!0> comp (<!1> C (comp (<!2> A) cC.1.1 [ (!0 = 0) -> <!2> (cC.2 ((x,z)) @ !2).1, (!0 = 1)(!1 = 0) -> <!2> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !2).1, (!1 = 1) -> <!2> (cC.2 ((x,z)) @ !2).1 ])) (comp (<!1> C (comp (<!2> A) cC.1.1 [ (!0 = 0) -> <!2> (cC.2 ((x,z)) @ (!1 /\ !2)).1, (!0 = 1) -> <!2> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!1 /\ !2)).1, (!1 = 0) -> <!2> cC.1.1 ])) cC.1.2 [ (!0 = 0) -> <!1> (cC.2 ((x,z)) @ !1).2, (!0 = 1) -> <!1> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !1).2 ]) [ (!0 = 0) -> <!1> z, (!0 = 1) -> <!1> f (comp (<!2> A) cC.1.1 [ (!1 = 0) -> <!2> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !2).1, (!1 = 1) -> <!2> (cC.2 ((x,z)) @ !2).1 ]) (comp (<!2> B (comp (<!3> A) cC.1.1 [ (!1 = 0) -> <!3> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !3).1, (!1 = 1)(!2 = 1) -> <!3> (cC.2 ((x,z)) @ !3).1, (!2 = 0) -> <!3> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !3).1 ])) cB.1.2 [ (!1 = 0) -> <!2> cB.1.2 ]) ]),\(x0 : Sigma (B x) (\(x0 : B x) -> PathP (<!0> C x) z (f x x0))) -> <!0> (comp (<!1> B x) (comp (<!1> B (comp (<!2> A) cC.1.1 [ (!0 = 0) -> <!2> comp (<!3> A) cC.1.1 [ (!1 = 0) -> <!3> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!2 /\ !3)).1, (!1 = 1) -> <!3> (cC.2 ((x,z)) @ (!2 /\ !3)).1, (!2 = 0) -> <!3> cC.1.1 ], (!0 = 1) -> <!2> (cC.2 ((x,x0.2 @ -!1)) @ !2).1, (!1 = 0) -> <!2> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !2).1, (!1 = 1) -> <!2> (cC.2 ((x,z)) @ !2).1 ])) (cB.2 ((x,x0.1)) @ !0).2 []) [ (!0 = 0) -> <!1> comp (<!0> B (comp (<!1> A) cC.1.1 [ (!0 = 0) -> <!1> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !1).1, (!0 = 1) -> <!1> (cC.2 ((x,z)) @ !1).1 ])) cB.1.2 [], (!0 = 1) -> <!1> comp (<!2> B x) x0.1 [ (!1 = 1) -> <!2> x0.1 ] ],<!2> comp (<!3> C x) (comp (<!3> C (comp (<!4> A) cC.1.1 [ (!0 = 0) -> <!4> comp (<!5> A) cC.1.1 [ (!2 = 0) -> <!5> (cC.2 ((x,z)) @ (!4 /\ !5)).1, (!2 = 1)(!3 = 0) -> <!5> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!4 /\ !5)).1, (!3 = 1) -> <!5> (cC.2 ((x,z)) @ (!4 /\ !5)).1, (!4 = 0) -> <!5> cC.1.1 ], (!0 = 1) -> <!4> (cC.2 ((x,x0.2 @ (!2 /\ -!3))) @ !4).1, (!2 = 0) -> <!4> (cC.2 ((x,z)) @ !4).1, (!2 = 1)(!3 = 0) -> <!4> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !4).1, (!3 = 1) -> <!4> (cC.2 ((x,z)) @ !4).1 ])) (comp (<!3> C (comp (<!4> A) cC.1.1 [ (!0 = 0) -> <!4> comp (<!5> A) cC.1.1 [ (!2 = 0) -> <!5> (cC.2 ((x,z)) @ (!3 /\ !4 /\ !5)).1, (!2 = 1) -> <!5> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!3 /\ !4 /\ !5)).1, (!3 = 0) -> <!5> cC.1.1, (!4 = 0) -> <!5> cC.1.1 ], (!0 = 1) -> <!4> (cC.2 ((x,x0.2 @ !2)) @ (!3 /\ !4)).1, (!2 = 0) -> <!4> (cC.2 ((x,z)) @ (!3 /\ !4)).1, (!2 = 1) -> <!4> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ (!3 /\ !4)).1, (!3 = 0) -> <!4> cC.1.1 ])) cC.1.2 [ (!0 = 0) -> <!3> comp (<!4> C (comp (<!5> A) cC.1.1 [ (!2 = 0) -> <!5> (cC.2 ((x,z)) @ (!3 /\ !4 /\ !5)).1, (!2 = 1) -> <!5> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!3 /\ !4 /\ !5)).1, (!3 = 0) -> <!5> cC.1.1, (!4 = 0) -> <!5> cC.1.1 ])) cC.1.2 [ (!2 = 0) -> <!4> (cC.2 ((x,z)) @ (!3 /\ !4)).2, (!2 = 1) -> <!4> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!3 /\ !4)).2, (!3 = 0) -> <!4> cC.1.2 ], (!0 = 1) -> <!3> (cC.2 ((x,x0.2 @ !2)) @ !3).2, (!2 = 0) -> <!3> (cC.2 ((x,z)) @ !3).2, (!2 = 1) -> <!3> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !3).2 ]) [ (!2 = 0) -> <!3> z, (!2 = 1) -> <!3> f (comp (<!4> A) cC.1.1 [ (!0 = 0) -> <!4> comp (<!5> A) cC.1.1 [ (!3 = 0) -> <!5> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!4 /\ !5)).1, (!3 = 1) -> <!5> (cC.2 ((x,z)) @ (!4 /\ !5)).1, (!4 = 0) -> <!5> cC.1.1 ], (!0 = 1) -> <!4> (cC.2 ((x,x0.2 @ -!3)) @ !4).1, (!3 = 0) -> <!4> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !4).1, (!3 = 1) -> <!4> (cC.2 ((x,z)) @ !4).1 ]) (comp (<!4> B (comp (<!5> A) cC.1.1 [ (!0 = 0) -> <!5> comp (<!6> A) cC.1.1 [ (!3 = 0) -> <!6> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!5 /\ !6)).1, (!3 = 1)(!4 = 1) -> <!6> (cC.2 ((x,z)) @ (!5 /\ !6)).1, (!4 = 0) -> <!6> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!5 /\ !6)).1, (!5 = 0) -> <!6> cC.1.1 ], (!0 = 1) -> <!5> (cC.2 ((x,x0.2 @ (-!3 \/ -!4))) @ !5).1, (!3 = 0) -> <!5> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !5).1, (!3 = 1)(!4 = 1) -> <!5> (cC.2 ((x,z)) @ !5).1, (!4 = 0) -> <!5> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !5).1 ])) (cB.2 ((x,x0.1)) @ !0).2 [ (!3 = 0) -> <!4> (cB.2 ((x,x0.1)) @ !0).2 ]) ]) [ (!0 = 0) -> <!3> comp (<!3> C (comp (<!4> A) cC.1.1 [ (!2 = 0) -> <!4> (cC.2 ((x,z)) @ !4).1, (!2 = 1)(!3 = 0) -> <!4> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !4).1, (!3 = 1) -> <!4> (cC.2 ((x,z)) @ !4).1 ])) (comp (<!3> C (comp (<!4> A) cC.1.1 [ (!2 = 0) -> <!4> (cC.2 ((x,z)) @ (!3 /\ !4)).1, (!2 = 1) -> <!4> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!3 /\ !4)).1, (!3 = 0) -> <!4> cC.1.1 ])) cC.1.2 [ (!2 = 0) -> <!3> (cC.2 ((x,z)) @ !3).2, (!2 = 1) -> <!3> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !3).2 ]) [ (!2 = 0) -> <!3> z, (!2 = 1) -> <!3> f (comp (<!4> A) cC.1.1 [ (!3 = 0) -> <!4> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !4).1, (!3 = 1) -> <!4> (cC.2 ((x,z)) @ !4).1 ]) (comp (<!4> B (comp (<!5> A) cC.1.1 [ (!3 = 0) -> <!5> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !5).1, (!3 = 1)(!4 = 1) -> <!5> (cC.2 ((x,z)) @ !5).1, (!4 = 0) -> <!5> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !5).1 ])) cB.1.2 [ (!3 = 0) -> <!4> cB.1.2 ]) ], (!0 = 1) -> <!3> comp (<!4> C x) (x0.2 @ !2) [ (!2 = 0) -> <!4> z, (!2 = 1) -> <!4> f x (comp (<!5> B x) x0.1 [ (!3 = 1) -> <!5> x0.1, (!4 = 0) -> <!5> x0.1 ]), (!3 = 1) -> <!4> x0.2 @ !2 ], (!2 = 0) -> <!3> z, (!2 = 1) -> <!3> f x (comp (<!4> B x) (comp (<!1> B (comp (<!2> A) cC.1.1 [ (!0 = 0) -> <!2> comp (<!3> A) cC.1.1 [ (!1 = 0) -> <!3> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!2 /\ !3)).1, (!1 = 1) -> <!3> (cC.2 ((x,z)) @ (!2 /\ !3)).1, (!2 = 0) -> <!3> cC.1.1 ], (!0 = 1) -> <!2> (cC.2 ((x,x0.2 @ -!1)) @ !2).1, (!1 = 0) -> <!2> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !2).1, (!1 = 1) -> <!2> (cC.2 ((x,z)) @ !2).1 ])) (cB.2 ((x,x0.1)) @ !0).2 []) [ (!0 = 0) -> <!4> comp (<!0> B (comp (<!1> A) cC.1.1 [ (!0 = 0) -> <!1> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ !1).1, (!0 = 1) -> <!1> (cC.2 ((x,z)) @ !1).1 ])) cB.1.2 [], (!0 = 1) -> <!4> comp (<!5> B x) x0.1 [ (!3 = 1)(!4 = 1) -> <!5> x0.1 ], (!3 = 0) -> <!4> comp (<!1> B (comp (<!2> A) cC.1.1 [ (!0 = 0) -> <!2> comp (<!3> A) cC.1.1 [ (!1 = 0) -> <!3> (cC.2 ((cB.1.1,f cB.1.1 cB.1.2)) @ (!2 /\ !3)).1, (!1 = 1) -> <!3> (cC.2 ((x,z)) @ (!2 /\ !3)).1, (!2 = 0) -> <!3> cC.1.1 ], (!0 = 1) -> <!2> (cC.2 ((x,x0.2 @ -!1)) @ !2).1, (!1 = 0) -> <!2> (cC.2 (((cB.2 ((x,x0.1)) @ !0).1,f (cB.2 ((x,x0.1)) @ !0).1 (cB.2 ((x,x0.1)) @ !0).2)) @ !2).1, (!1 = 1) -> <!2> (cC.2 ((x,z)) @ !2).1 ])) (cB.2 ((x,x0.1)) @ !0).2 [] ]) ]))
 
 
 lem1 (B:U) : isContr ((X:U) * equiv X B) =
@@ -100,7 +100,7 @@ lem1 (B:U) : isContr ((X:U) * equiv X B) =
                                ,fill (<j> B) b [(i=0) -> <j> b
                                                ,(i=1) -> (w.2.2 b).1.2])
                       contr (v : fiber glueB B unglueElemB b)
-                            : Id (fiber glueB B unglueElemB b) center v
+                            : Path (fiber glueB B unglueElemB b) center v
                             = <j> (glueElem (comp (<j> B) b [(i=0) -> <k> v.2 @ (j /\ k)
                                                             ,(i=1) -> ((w.2.2 b).2 v @ j).2
                                                             ,(j=0) -> fill (<j> B) b [(i=0) -> <j> b
@@ -115,31 +115,31 @@ lem1 (B:U) : isContr ((X:U) * equiv X B) =
                                                   ,(j=1) -> v.2])
                   in (center,contr)))
 
--- nlem1 (B:U) : isContr ((X:U) * equiv X B) = ((B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> IdP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))),\(w : Sigma U (\(X : U) -> Sigma (X -> B) (\(f : X -> B) -> (y : B) -> Sigma (Sigma X (\(x : X) -> IdP (<!0> B) y (f x))) (\(x : Sigma X (\(x : X) -> IdP (<!0> B) y (f x))) -> (y0 : Sigma X (\(x0 : X) -> IdP (<!0> B) y (f x0))) -> IdP (<!0> Sigma X (\(x0 : X) -> IdP (<!0> B) y (f x0))) x y0)))) -> <!0> (glue B [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> IdP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ],(\(g : glue B [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> IdP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ]) -> unglueElem g [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> IdP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ],\(b : B) -> ((glueElem (comp (<!1> B) b [ (!0 = 0) -> <!1> b, (!0 = 1) -> <!1> (w.2.2 b).1.2 @ !1 ]) [ (!0 = 0) -> b, (!0 = 1) -> (w.2.2 b).1.1 ],<!1> comp (<!2> B) b [ (!0 = 0) -> <!2> b, (!0 = 1) -> <!2> (w.2.2 b).1.2 @ (!1 /\ !2), (!1 = 0) -> <!2> b ]),\(v : Sigma (glue B [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> IdP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ]) (\(x : glue B [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> IdP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ]) -> IdP (<!1> B) b (unglueElem x [ (!0 = 0) -> (B,(\(x0 : B) -> x0,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x0 : B) -> IdP (<!0> B) a x0)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ]))) -> <!1> (glueElem (comp (<!2> B) b [ (!0 = 0) -> <!2> v.2 @ (!1 /\ !2), (!0 = 1) -> <!2> ((w.2.2 b).2 v @ !1).2 @ !2, (!1 = 0) -> <!2> comp (<!3> B) b [ (!0 = 0) -> <!3> b, (!0 = 1) -> <!3> (w.2.2 b).1.2 @ (!2 /\ !3), (!2 = 0) -> <!3> b ], (!1 = 1) -> <!2> v.2 @ !2 ]) [ (!0 = 0) -> v.2 @ !1, (!0 = 1) -> ((w.2.2 b).2 v @ !1).1 ],<!2> comp (<!3> B) b [ (!0 = 0) -> <!3> v.2 @ (!1 /\ !2 /\ !3), (!0 = 1) -> <!3> ((w.2.2 b).2 v @ !1).2 @ (!2 /\ !3), (!1 = 0) -> <!3> comp (<!4> B) b [ (!0 = 0) -> <!4> b, (!0 = 1) -> <!4> (w.2.2 b).1.2 @ (!2 /\ !3 /\ !4), (!2 = 0) -> <!4> b, (!3 = 0) -> <!4> b ], (!1 = 1) -> <!3> v.2 @ (!2 /\ !3), (!2 = 0) -> <!3> b ])))))
+-- nlem1 (B:U) : isContr ((X:U) * equiv X B) = ((B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> PathP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))),\(w : Sigma U (\(X : U) -> Sigma (X -> B) (\(f : X -> B) -> (y : B) -> Sigma (Sigma X (\(x : X) -> PathP (<!0> B) y (f x))) (\(x : Sigma X (\(x : X) -> PathP (<!0> B) y (f x))) -> (y0 : Sigma X (\(x0 : X) -> PathP (<!0> B) y (f x0))) -> PathP (<!0> Sigma X (\(x0 : X) -> PathP (<!0> B) y (f x0))) x y0)))) -> <!0> (glue B [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> PathP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ],(\(g : glue B [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> PathP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ]) -> unglueElem g [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> PathP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ],\(b : B) -> ((glueElem (comp (<!1> B) b [ (!0 = 0) -> <!1> b, (!0 = 1) -> <!1> (w.2.2 b).1.2 @ !1 ]) [ (!0 = 0) -> b, (!0 = 1) -> (w.2.2 b).1.1 ],<!1> comp (<!2> B) b [ (!0 = 0) -> <!2> b, (!0 = 1) -> <!2> (w.2.2 b).1.2 @ (!1 /\ !2), (!1 = 0) -> <!2> b ]),\(v : Sigma (glue B [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> PathP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ]) (\(x : glue B [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> PathP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ]) -> PathP (<!1> B) b (unglueElem x [ (!0 = 0) -> (B,(\(x0 : B) -> x0,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x0 : B) -> PathP (<!0> B) a x0)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ]))) -> <!1> (glueElem (comp (<!2> B) b [ (!0 = 0) -> <!2> v.2 @ (!1 /\ !2), (!0 = 1) -> <!2> ((w.2.2 b).2 v @ !1).2 @ !2, (!1 = 0) -> <!2> comp (<!3> B) b [ (!0 = 0) -> <!3> b, (!0 = 1) -> <!3> (w.2.2 b).1.2 @ (!2 /\ !3), (!2 = 0) -> <!3> b ], (!1 = 1) -> <!2> v.2 @ !2 ]) [ (!0 = 0) -> v.2 @ !1, (!0 = 1) -> ((w.2.2 b).2 v @ !1).1 ],<!2> comp (<!3> B) b [ (!0 = 0) -> <!3> v.2 @ (!1 /\ !2 /\ !3), (!0 = 1) -> <!3> ((w.2.2 b).2 v @ !1).2 @ (!2 /\ !3), (!1 = 0) -> <!3> comp (<!4> B) b [ (!0 = 0) -> <!4> b, (!0 = 1) -> <!4> (w.2.2 b).1.2 @ (!2 /\ !3 /\ !4), (!2 = 0) -> <!4> b, (!3 = 0) -> <!4> b ], (!1 = 1) -> <!3> v.2 @ (!2 /\ !3), (!2 = 0) -> <!3> b ])))))
 
-contrSingl' (A : U) (a b : A) (p : Id A a b) :
-  Id ((x:A) * Id A x b) (b,refl A b) (a,p) = <i> (p @ -i,<j> p @ -i\/j)
+contrSingl' (A : U) (a b : A) (p : Path A a b) :
+  Path ((x:A) * Path A x b) (b,refl A b) (a,p) = <i> (p @ -i,<j> p @ -i\/j)
 
-lemSinglContr' (A:U) (a:A) : isContr ((x:A) * Id A x a) =
- ((a,refl A a),\ (z:(x:A) * Id A x a) -> contrSingl' A z.1 a z.2)
+lemSinglContr' (A:U) (a:A) : isContr ((x:A) * Path A x a) =
+ ((a,refl A a),\ (z:(x:A) * Path A x a) -> contrSingl' A z.1 a z.2)
 
-thmUniv (t : (A X : U) -> Id U X A -> equiv X A) (A : U) :
-  (X : U) -> isEquiv (Id U X A) (equiv X A) (t A X) =
-    equivFunFib U (\(X : U) -> Id U X A) (\(X : U) -> equiv X A)
+thmUniv (t : (A X : U) -> Path U X A -> equiv X A) (A : U) :
+  (X : U) -> isEquiv (Path U X A) (equiv X A) (t A X) =
+    equivFunFib U (\(X : U) -> Path U X A) (\(X : U) -> equiv X A)
       (t A) (lemSinglContr' U A) (lem1 A)
 
-transEquiv' (A X : U) (p : Id U X A) : equiv X A =
+transEquiv' (A X : U) (p : Path U X A) : equiv X A =
   substTrans U (\(Y : U) -> equiv Y A) A X (<i> p @ -i) (idEquiv A)
 
 -- The univalence axiom
-univalence (A X : U) : isEquiv (Id U X A) (equiv X A) (transEquiv' A X) =
+univalence (A X : U) : isEquiv (Path U X A) (equiv X A) (transEquiv' A X) =
   thmUniv transEquiv' A X
 
 -- The standard formulation of univalence whose normal can be computed:
-corrUniv (A B : U) : Id U (Id U A B) (equiv A B) =
- equivId (Id U A B) (equiv A B) (transEquiv' B A) (univalence B A)
+corrUniv (A B : U) : Path U (Path U A B) (equiv A B) =
+ equivPath (Path U A B) (equiv A B) (transEquiv' B A) (univalence B A)
 
-corrUniv' (A B : U) : equiv (Id U A B) (equiv A B) =
+corrUniv' (A B : U) : equiv (Path U A B) (equiv A B) =
   (transEquiv' B A,univalence B A)
 
 
@@ -149,59 +149,59 @@ corrUniv' (A B : U) : equiv (Id U A B) (equiv A B) =
 
 -- transEquiv is an equiv
 transEquivIsEquiv (A B : U)
-  : isEquiv (Id U A B) (equiv A B) (transEquiv A B)
-  = gradLemma (Id U A B) (equiv A B) (transEquiv A B)
-      (transEquivToId A B) (idToId A B) (eqToEq A B)
+  : isEquiv (Path U A B) (equiv A B) (transEquiv A B)
+  = gradLemma (Path U A B) (equiv A B) (transEquiv A B)
+      (transEquivToPath A B) (idToPath A B) (eqToEq A B)
 
 -- Univalence proved using transEquiv
 -- univalenceTrans takes extremely much memory when normalizing
-univalenceTrans (A B:U) : Id U (Id U A B) (equiv A B) = 
- isoId (Id U A B) (equiv A B) (transEquiv A B)
-       (transEquivToId A B) (idToId A B) (eqToEq A B)
+univalenceTrans (A B:U) : Path U (Path U A B) (equiv A B) = 
+ isoPath (Path U A B) (equiv A B) (transEquiv A B)
+       (transEquivToPath A B) (idToPath A B) (eqToEq A B)
 
-univalenceTrans' (A B : U) : equiv (Id U A B) (equiv A B) =
+univalenceTrans' (A B : U) : equiv (Path U A B) (equiv A B) =
   (transEquiv A B,transEquivIsEquiv A B)
 
 -- This also takes too long to normalize:
-slowtest (A : U) : Id (equiv A A)
-  (transEquiv A A (transEquivToId A A (idEquiv A))) (idEquiv A) =
-    idToId A A (idEquiv A)
+slowtest (A : U) : Path (equiv A A)
+  (transEquiv A A (transEquivToPath A A (idEquiv A))) (idEquiv A) =
+    idToPath A A (idEquiv A)
 
 
 -- ------------------------------------------------------------------------------
 -- -- TODO: Adapt this to new definition of equiv
 
 -- -- The canonical map defined using J
--- -- canIdToEquiv (A : U) : (B : U) -> Id U A B -> equiv A B =
--- --   J U A (\ (B : U) (_ : Id U A B) -> equiv A B) (idEquiv A)
+-- -- canPathToEquiv (A : U) : (B : U) -> Path U A B -> equiv A B =
+-- --   J U A (\ (B : U) (_ : Path U A B) -> equiv A B) (idEquiv A)
 
--- -- canDiagTrans (A : U) : Id (A -> A) (canIdToEquiv A A (<_> A)).1 (idfun A) =
+-- -- canDiagTrans (A : U) : Path (A -> A) (canPathToEquiv A A (<_> A)).1 (idfun A) =
 -- --   <i> fill (<_> A -> A) (idfun A) [] @ -i
 
--- -- transDiagTrans (A : U) : Id (A -> A) (idfun A) (trans A A (<_> A)) =
+-- -- transDiagTrans (A : U) : Path (A -> A) (idfun A) (trans A A (<_> A)) =
 -- --   <i> \ (a : A) -> fill (<_> A) a [] @ i
 
--- -- canIdToEquivLem (A : U) : (B : U) (p : Id U A B) ->
--- --   Id (A -> B) (canIdToEquiv A B p).1 (transEquiv A B p).1
+-- -- canPathToEquivLem (A : U) : (B : U) (p : Path U A B) ->
+-- --   Path (A -> B) (canPathToEquiv A B p).1 (transEquiv A B p).1
 -- --   = J U A
--- --       (\ (B : U) (p : Id U A B) ->
--- --         Id (A -> B) (canIdToEquiv A B p).1 (transEquiv A B p).1)
--- --       (compId (A -> A)
--- --         (canIdToEquiv A A (<_> A)).1 (idfun A) (trans A A (<_> A))
+-- --       (\ (B : U) (p : Path U A B) ->
+-- --         Path (A -> B) (canPathToEquiv A B p).1 (transEquiv A B p).1)
+-- --       (compPath (A -> A)
+-- --         (canPathToEquiv A A (<_> A)).1 (idfun A) (trans A A (<_> A))
 -- --         (canDiagTrans A) (transDiagTrans A))
 
--- -- canIdToEquivIsTransEquiv (A B : U) :
--- --   Id (Id U A B -> equiv A B) (canIdToEquiv A B) (transEquiv A B) =
--- --   <i> \ (p : Id U A B) ->
--- --         equivLemma A B (canIdToEquiv A B p) (transEquiv A B p)
--- --           (canIdToEquivLem A B p) @ i
+-- -- canPathToEquivIsTransEquiv (A B : U) :
+-- --   Path (Path U A B -> equiv A B) (canPathToEquiv A B) (transEquiv A B) =
+-- --   <i> \ (p : Path U A B) ->
+-- --         equivLemma A B (canPathToEquiv A B p) (transEquiv A B p)
+-- --           (canPathToEquivLem A B p) @ i
 
 -- -- -- The canonical map is an equivalence
--- -- univalenceJ (A B : U) : isEquiv (Id U A B) (equiv A B) (canIdToEquiv A B) =
--- --   substInv (Id U A B -> equiv A B)
--- --     (isEquiv (Id U A B) (equiv A B))
--- --      (canIdToEquiv A B) (transEquiv A B)
--- --      (canIdToEquivIsTransEquiv A B)
+-- -- univalenceJ (A B : U) : isEquiv (Path U A B) (equiv A B) (canPathToEquiv A B) =
+-- --   substInv (Path U A B -> equiv A B)
+-- --     (isEquiv (Path U A B) (equiv A B))
+-- --      (canPathToEquiv A B) (transEquiv A B)
+-- --      (canPathToEquivIsTransEquiv A B)
 -- --      (transEquivIsEquiv A B)
 
 
@@ -211,21 +211,21 @@ slowtest (A : U) : Id (equiv A A)
 
 isContrProp (A : U) (h : isContr A) : prop A = p
   where
-  p (a b : A) : Id A a b = <i> comp (<_> A) h.1 [ (i = 0) -> h.2 a, (i = 1) -> h.2 b ]
+  p (a b : A) : Path A a b = <i> comp (<_> A) h.1 [ (i = 0) -> h.2 a, (i = 1) -> h.2 b ]
 
 idEquiv (A : U) : equiv A A = (idfun A,idIsEquiv A)
 
 contrSinglEquiv (A B : U) (f : equiv A B) :
-  Id ((X : U) * equiv X B) (B,idEquiv B) (A,f) = rem
+  Path ((X : U) * equiv X B) (B,idEquiv B) (A,f) = rem
   where
   rem1 : prop ((X : U) * equiv X B) = isContrProp ((X : U) * equiv X B) (lem1 B)
-  rem : Id ((X : U) * equiv X B) (B,idEquiv B) (A,f) = rem1 (B,idEquiv B) (A,f)
+  rem : Path ((X : U) * equiv X B) (B,idEquiv B) (A,f) = rem1 (B,idEquiv B) (A,f)
 
 elimEquiv (B : U) (P : (A : U) -> (A -> B) -> U) (d : P B (idfun B))
             (A : U) (f : equiv A B) : P A f.1 = rem
   where
   T (z : (X : U) * equiv X B) : U = P z.1 z.2.1
-  rem1 : Id ((X : U) * equiv X B) (B,idEquiv B) (A,f) = contrSinglEquiv A B f
+  rem1 : Path ((X : U) * equiv X B) (B,idEquiv B) (A,f) = contrSinglEquiv A B f
   rem : P A f.1 = subst ((X : U) * equiv X B) T (B,idEquiv B) (A,f) rem1 d
 
 elimIso (B : U) (Q : (A : U) -> (A -> B) -> (B -> A) -> U)

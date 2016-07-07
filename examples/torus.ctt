@@ -44,12 +44,12 @@ c2t_base : S1 -> Torus = split
   loop @ x -> pathTwoT{Torus} @ x
 
 -- branch for loop
-c2t_loop' : (c : S1) -> IdP (<_>Torus) (c2t_base c) (c2t_base c) = split
+c2t_loop' : (c : S1) -> PathP (<_>Torus) (c2t_base c) (c2t_base c) = split
    base -> < x > pathOneT{Torus} @ x
    loop @ y -> < x > squareT{Torus} @ y @ x
 
 -- use funext to exchange the interval variable and the S1 variable
-c2t_loop : IdP (<_>S1 -> Torus) c2t_base c2t_base =
+c2t_loop : PathP (<_>S1 -> Torus) c2t_base c2t_base =
    <y> \(c : S1) -> c2t_loop' c @ y
 
 c2t' : S1 -> S1 -> Torus = split
@@ -61,7 +61,7 @@ c2t (cs : and S1 S1) : Torus = c2t' cs.1 cs.2
 ------------------------------------------------------------------------
 -- first composite: induct and reflexivity! 
 
-t2c2t : (t : Torus) -> IdP (<_> Torus) (c2t (t2c t)) t = split 
+t2c2t : (t : Torus) -> PathP (<_> Torus) (c2t (t2c t)) t = split 
   ptT -> <_> ptT
   pathOneT @ y -> <_> pathOneT{Torus} @ y
   pathTwoT @ x -> <_> pathTwoT{Torus} @ x
@@ -72,7 +72,7 @@ t2c2t : (t : Torus) -> IdP (<_> Torus) (c2t (t2c t)) t = split
 -- except we need to use the same tricks as in c2t to do the inner
 -- induction
 
-c2t2c_base : (c2 : S1) -> IdP (<_> and S1 S1) (t2c (c2t_base c2)) (base,c2) = split
+c2t2c_base : (c2 : S1) -> PathP (<_> and S1 S1) (t2c (c2t_base c2)) (base,c2) = split
   base -> <_> (base,base)
   loop @ y -> <_> (base,loop1 @ y)
 
@@ -80,13 +80,13 @@ c2t2c_base : (c2 : S1) -> IdP (<_> and S1 S1) (t2c (c2t_base c2)) (base,c2) = sp
 -- two binders exchanged.
 -- c2t' (loop @ y) c2 = (c2t_loop @ y c2) = c2t_loop' c2 @ y
 c2t2c_loop' : (c2 : S1) ->
-      IdP (<y> IdP (<_> and S1 S1) (t2c (c2t_loop @ y c2)) (loop1 @ y , c2))
+      PathP (<y> PathP (<_> and S1 S1) (t2c (c2t_loop @ y c2)) (loop1 @ y , c2))
           (c2t2c_base c2)
           (c2t2c_base c2) = split 
     base -> <y> <_> (loop1 @ y, base)
     loop @ x -> <y> <_> (loop1 @ y, loop1 @ x)
 
-c2t2c : (c1 : S1) (c2 : S1) -> IdP (<_> and S1 S1) (t2c (c2t' c1 c2)) (c1,c2) = split
+c2t2c : (c1 : S1) (c2 : S1) -> PathP (<_> and S1 S1) (t2c (c2t' c1 c2)) (c1,c2) = split
      base -> c2t2c_base
                  -- again, I shouldn't need to do funext here;
                  -- I should be able to do a split inside of an interval binding
@@ -96,25 +96,25 @@ c2t2c : (c1 : S1) (c2 : S1) -> IdP (<_> and S1 S1) (t2c (c2t' c1 c2)) (c1,c2) = 
 ------------------------------------------------------------------------
 -- combine everything to get that Torus = S1 * S1
 
-S1S1equalsTorus : Id U (and S1 S1) Torus = isoId (and S1 S1) Torus c2t t2c t2c2t rem
+S1S1equalsTorus : Path U (and S1 S1) Torus = isoPath (and S1 S1) Torus c2t t2c t2c2t rem
  where
- rem (c:and S1 S1) : Id (and S1 S1) (t2c (c2t c)) c = c2t2c c.1 c.2
+ rem (c:and S1 S1) : Path (and S1 S1) (t2c (c2t c)) c = c2t2c c.1 c.2
 
-TorusEqualsS1S1 : Id U Torus (and S1 S1) = <i> S1S1equalsTorus @ -i
+TorusEqualsS1S1 : Path U Torus (and S1 S1) = <i> S1S1equalsTorus @ -i
 
 
 
-loopT : U = Id Torus ptT ptT
+loopT : U = Path Torus ptT ptT
 
--- funDep (A0 A1 :U) (p:Id U A0 A1) (u0:A0) (u1:A1) :
---       Id U (Id A0 u0 (transport (<i>p@-i) u1)) (Id A1 (transport p u0) u1) =
---  <i> Id (p @ i) (transport (<l> p @ (i/\l)) u0) (transport (<l> p @ (i\/-l)) u1)
+-- funDep (A0 A1 :U) (p:Path U A0 A1) (u0:A0) (u1:A1) :
+--       Path U (Path A0 u0 (transport (<i>p@-i) u1)) (Path A1 (transport p u0) u1) =
+--  <i> Path (p @ i) (transport (<l> p @ (i/\l)) u0) (transport (<l> p @ (i\/-l)) u1)
 
--- loopTorusEqualsZZ : Id U loopT (and Z Z) = <i> comp U (rem @ i) [(i = 1) -> rem1]
+-- loopTorusEqualsZZ : Path U loopT (and Z Z) = <i> comp U (rem @ i) [(i = 1) -> rem1]
 --   where
---   rem : Id U loopT (Id (and S1 S1) (base,base) (base,base)) =
+--   rem : Path U loopT (Path (and S1 S1) (base,base) (base,base)) =
 --     funDep Torus (and S1 S1) TorusEqualsS1S1 ptT (base,base)
 
---   rem1 : Id U (Id (and S1 S1) (base,base) (base,base)) (and Z Z) =
---     <i> comp U (lemIdAnd S1 S1 (base,base) (base,base) @ i)
+--   rem1 : Path U (Path (and S1 S1) (base,base) (base,base)) (and Z Z) =
+--     <i> comp U (lemPathAnd S1 S1 (base,base) (base,base) @ i)
 --              [(i = 1) -> <j> and (loopS1equalsZ @ j) (loopS1equalsZ @ j)]

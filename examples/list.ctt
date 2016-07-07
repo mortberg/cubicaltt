@@ -17,13 +17,13 @@ map (A B:U) (f:A->B) : list A -> list B = split
  cons x xs -> cons (f x) (map A B f xs)
 
 lem (A B C:U) (f:A->B) (g:B -> C) : 
- (xs:list A) -> Id (list C) (map B C g (map A B f xs)) (map A C (\ (x:A) -> g (f x)) xs) = split
+ (xs:list A) -> Path (list C) (map B C g (map A B f xs)) (map A C (\ (x:A) -> g (f x)) xs) = split
  nil -> <i>nil
  cons x xs -> <i>cons (g (f x)) (lem A B C f g xs@i)
 
-funId (A:U) (x:A) : A = x
+funPath (A:U) (x:A) : A = x
 
-lem1 (A:U) : (xs:list A) -> Id (list A) (map A A (funId A) xs) xs = split
+lem1 (A:U) : (xs:list A) -> Path (list A) (map A A (funPath A) xs) xs = split
  nil -> <i>nil
  cons x xs -> <i>cons x (lem1 A xs@i)
 
@@ -31,22 +31,22 @@ reverse (A : U) : list A -> list A = split
   nil -> nil
   cons x xs -> append A (reverse A xs) (cons x nil)
 
-lem2 (A:U) : (xs:list A) -> Id (list A) (append A xs nil) xs = split
+lem2 (A:U) : (xs:list A) -> Path (list A) (append A xs nil) xs = split
  nil -> <i>nil
  cons x xs -> <i>cons x (lem2 A xs@i)
 
-assoc (A:U) : (xs ys zs : list A) -> Id (list A) (append A (append A xs ys) zs) (append A xs (append A ys zs)) = split
+assoc (A:U) : (xs ys zs : list A) -> Path (list A) (append A (append A xs ys) zs) (append A xs (append A ys zs)) = split
  nil -> \ (ys zs:list A) -> <i>append A ys zs
  cons x xs -> \ (ys zs:list A) -> <i>cons x (assoc A xs ys zs@i)
 
 {-
 
-lem4 (A:U) : (xs ys:list A) -> Id (list A) (reverse A (append A xs ys)) (append A (reverse A ys) (reverse A xs)) = split
+lem4 (A:U) : (xs ys:list A) -> Path (list A) (reverse A (append A xs ys)) (append A (reverse A ys) (reverse A xs)) = split
  nil -> \ (ys:list A) -> <i>lem2 A (reverse A ys)@-i
  cons x xs -> \ (ys:list A) -> <i>comp (list A) (append A (lem4 A xs ys@i) (cons x nil))
                                                 [(i=1) -> assoc A (reverse A ys) (reverse A xs) (cons x nil)]
 
-lem5 (A:U) : (xs:list A) -> Id (list A) (reverse A (reverse A xs)) xs = split
+lem5 (A:U) : (xs:list A) -> Path (list A) (reverse A (reverse A xs)) xs = split
  nil -> <i>nil
  cons x xs -> <i>comp (list A) (lem4 A (reverse A xs) (cons x nil)@i) [(i=1) -> <j>cons x (lem5 A xs@j)]
 

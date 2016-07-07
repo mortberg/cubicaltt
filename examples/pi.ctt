@@ -8,29 +8,29 @@ import equiv
 
 pi (A:U) (P:A->U) : U = (x:A) -> P x
 
-idPi (A:U) (B:A->U) (f g : pi A B) : Id U (Id (pi A B) f g) ((x:A) -> Id (B x) (f x) (g x)) =
- isoId  (Id (pi A B) f g) ((x:A) -> Id (B x) (f x) (g x)) F G S T
- where T0 : U = Id (pi A B) f g
-       T1 : U = (x:A) -> Id (B x) (f x) (g x)
+idPi (A:U) (B:A->U) (f g : pi A B) : Path U (Path (pi A B) f g) ((x:A) -> Path (B x) (f x) (g x)) =
+ isoPath  (Path (pi A B) f g) ((x:A) -> Path (B x) (f x) (g x)) F G S T
+ where T0 : U = Path (pi A B) f g
+       T1 : U = (x:A) -> Path (B x) (f x) (g x)
        F (p:T0) : T1 = \ (x:A) -> <i>p@i x
        G (p:T1) : T0 = <i>\ (x:A) -> p x @ i
-       S (p:T1) : Id T1 (F (G p)) p = refl T1 p
-       T (p:T0) : Id T0 (G (F p)) p = refl T0 p
+       S (p:T1) : Path T1 (F (G p)) p = refl T1 p
+       T (p:T0) : Path T0 (G (F p)) p = refl T0 p
 
-setPi (A:U) (B:A -> U) (h:(x:A) -> set (B x)) (f g:pi A B) : prop (Id (pi A B) f g) =
+setPi (A:U) (B:A -> U) (h:(x:A) -> set (B x)) (f g:pi A B) : prop (Path (pi A B) f g) =
  rem
  where
-  T : U = (x:A) -> Id (B x) (f x) (g x)
+  T : U = (x:A) -> Path (B x) (f x) (g x)
   rem1 : prop T = \ (p q : T) -> <i> \ (x:A) -> h x (f x) (g x) (p x) (q x)@i
 
-  rem : prop (Id (pi A B) f g) =
-    subst U prop T (Id (pi A B) f g) (<i>idPi A B f g@-i) rem1
+  rem : prop (Path (pi A B) f g) =
+    subst U prop T (Path (pi A B) f g) (<i>idPi A B f g@-i) rem1
 
-groupoidPi (A:U) (B:A -> U) (h:(x:A) -> groupoid (B x)) (f g:pi A B) : set (Id (pi A B) f g) =
-    subst U set  T  (Id (pi A B) f g) (<i>idPi A B f g@-i) rem1
+groupoidPi (A:U) (B:A -> U) (h:(x:A) -> groupoid (B x)) (f g:pi A B) : set (Path (pi A B) f g) =
+    subst U set  T  (Path (pi A B) f g) (<i>idPi A B f g@-i) rem1
  where
-  T : U = (x:A) -> Id (B x) (f x) (g x)
-  rem1 : set T =  setPi A (\ (x:A) -> Id (B x) (f x) (g x)) (\ (x:A) -> h x (f x) (g x))
+  T : U = (x:A) -> Path (B x) (f x) (g x)
+  rem1 : set T =  setPi A (\ (x:A) -> Path (B x) (f x) (g x)) (\ (x:A) -> h x (f x) (g x))
 
 
 

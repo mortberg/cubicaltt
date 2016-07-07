@@ -48,7 +48,7 @@ not : bool -> bool = split
   true  -> false
 
 {-
-                Identity types, names and formulas
+                Path types, names and formulas
 --------------------------------------------------------------------------
 
 An element in ID A B is a line in the universe connecting A and B:
@@ -59,30 +59,30 @@ An element in ID A B is a line in the universe connecting A and B:
                        |- ID A B   Type
 
 
-IdP is heterogeneous equality:
+PathP is heterogeneous equality:
 
 
              |- P : ID A B      |- a : A     |- b : B
           -----------------------------------------------
-                       |- IdP P a b   Type
+                       |- PathP P a b   Type
 
 -}
 
--- The usual identity can be seen a special case of IdP:
-Id (A : U) (a b : A) : U = IdP (<i> A) a b
+-- The constant Path type can be seen a special case of PathP:
+Path (A : U) (a b : A) : U = PathP (<i> A) a b
 
 -- "<i>" abstracts the name/color/dimension i:
-refl (A : U) (a : A) : Id A a a = <i> a
+refl (A : U) (a : A) : Path A a a = <i> a
 
 {-
 
-A proof "p : Id A a b" is thought of as a line between a and b:
+A proof "p : Path A a b" is thought of as a line between a and b:
 
          p
     a ------> b
 
 
-A proof "sq : Id (Id A a b) p q" is thought of as a square between p and q:
+A proof "sq : Path (Path A a b) p q" is thought of as a square between p and q:
 
 
          q
@@ -100,19 +100,19 @@ And so on...
 
 
 -- It is possible to take the face of a path to obtain its endpoints:
-face0 (A : U) (a b : A) (p : Id A a b) : Id A a a = refl A (p @ 0)
-face1 (A : U) (a b : A) (p : Id A a b) : Id A b b = refl A (p @ 1)
+face0 (A : U) (a b : A) (p : Path A a b) : Path A a a = refl A (p @ 0)
+face1 (A : U) (a b : A) (p : Path A a b) : Path A b b = refl A (p @ 1)
 
 
 -- By applying a path to a name i, "p @ i", it is seen as a path "in
 -- dimension i" connecting "p @ 0" to "p @ 1". This way we get a
 -- simple proof of cong:
-cong (A B : U) (f : A -> B) (a b : A) (p : Id A a b) : Id B (f a) (f b) =
+cong (A B : U) (f : A -> B) (a b : A) (p : Path A a b) : Path B (f a) (f b) =
   <i> f (p @ i)
 
 -- This also gives a short proof of function extensionality:
 funExt (A : U) (B : A -> U) (f g : (x : A) -> B x)
-       (p : (x : A) -> Id (B x) (f x) (g x)) : Id ((y : A) -> B y) f g =
+       (p : (x : A) -> Path (B x) (f x) (g x)) : Path ((y : A) -> B y) f g =
   <i> \(x : A) -> (p x) @ i
 
 {-
@@ -151,11 +151,11 @@ min(i,j), i \/ j is max(i,j) and -i is 1 - i.
 -}
 
 -- Applying a path to a negated name inverts it:
-sym (A : U) (a b : A) (p : Id A a b) : Id A b a = <i> p @ -i
+sym (A : U) (a b : A) (p : Path A a b) : Path A b a = <i> p @ -i
 
 -- This operation is an involution:
-symK (A : U) (a b : A) (p : Id A a b) : Id (Id A a b) p p =
-  refl (Id A a b) (sym A b a (sym A a b p))
+symK (A : U) (a b : A) (p : Path A a b) : Path (Path A a b) p p =
+  refl (Path A a b) (sym A b a (sym A a b p))
 
 
 {-   Connections:
@@ -196,10 +196,10 @@ And a disjunction gives:
 
 -- This gives a simple proof that singletons are contractible:
 
-singl (A : U) (a : A) : U = (x : A) * Id A a x
+singl (A : U) (a : A) : U = (x : A) * Path A a x
 
-contrSingl (A : U) (a b : A) (p : Id A a b) :
-           Id (singl A a) (a,refl A a) (b,p) =
+contrSingl (A : U) (a b : A) (p : Path A a b) :
+           Path (singl A a) (a,refl A a) (b,p) =
   <i> (p @ i, <j> p @ i /\ j)
 
 
@@ -208,28 +208,28 @@ contrSingl (A : U) (a b : A) (p : Id A a b) :
 Note that formulas does not form a boolean algebra, but a de Morgan
 algebra. This means that "p @ 0" and "p @ i /\ -i" are different!
 
-testDeMorganAlgebra (A : U) (a b : A) (p : Id A a b) :
-  Id (Id A a a) (<_> p @ 0) (<_> p @ 0) =
-    refl (Id A a a) (<i> p @ i /\ -i)
+testDeMorganAlgebra (A : U) (a b : A) (p : Path A a b) :
+  Path (Path A a a) (<_> p @ 0) (<_> p @ 0) =
+    refl (Path A a a) (<i> p @ i /\ -i)
 
 This is clear with the intuition that /\ correspond to min. More about
 this later...
 
 -}
 
-testConj (A : U) (a b : A) (p : Id A a b) : Id A a a = <i> p @ i /\ -i
-testDisj (A : U) (a b : A) (p : Id A a b) : Id A b b = <i> p @ i \/ -i
+testConj (A : U) (a b : A) (p : Path A a b) : Path A a a = <i> p @ i /\ -i
+testDisj (A : U) (a b : A) (p : Path A a b) : Path A b b = <i> p @ i \/ -i
 
 
 
 {-
 
-So far we have: MLTT + Id, <i>, @, i/\j...
+So far we have: MLTT + Path, <i>, @, i/\j...
 
 We can prove that singletons are contractible. But, we don't have
 transport:
 
-transportf (A : U) (P : A -> U) (a b : A) (p : Id A a b) : P a -> P b
+transportf (A : U) (P : A -> U) (a b : A) (p : Path A a b) : P a -> P b
 
 Which is what is needed to get J as:
 
@@ -253,7 +253,7 @@ a system describing the rest of the shape, and produces the missing
 side (opposite of the principal side).
 
 
-Transitivity of Id is obtained from a composition of this open square:
+Transitivity of Path is obtained from a composition of this open square:
 
 i : I, j : I |-
 
@@ -269,7 +269,7 @@ i : I, j : I |-
                  p @ i
 
 The composition computes the dashed line at the top of the square.
- ( <i>(<_>a)@i ) = (<j> (<_>a)@j) : Id (Id A a a) (<i> a) (<j> a)
+ ( <i>(<_>a)@i ) = (<j> (<_>a)@j) : Path (Path A a a) (<i> a) (<j> a)
 
 p = <i> p @ i
 
@@ -279,21 +279,21 @@ i : I |- (<_>a) @i
 -}
 
 
-pathscomp0 (A : U) (a b c : A) (p : Id A a b) (q : Id A b c) : Id A a c =
+pathscomp0 (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
   <i> comp (<_> A) (p @ i) [ (i = 0) -> <_> a
                            , (i = 1) -> q ]
 
 
 -- The first two nonzero h-levels are propositions and sets:
-prop (A : U) : U = (a b : A) -> Id A a b
-set (A : U) : U = (a b : A) -> prop (Id A a b)
+prop (A : U) : U = (a b : A) -> Path A a b
+set (A : U) : U = (a b : A) -> prop (Path A a b)
 
 -- Using compositions we get a short proof that any prop is a set. To
 -- understand this proof one should draw an open cube with the back
 -- face being a constant square in a and the sides given by the system
 -- below.
 propSet (A : U) (h : prop A) : set A =
- \(a b : A) (p q : Id A a b) ->
+ \(a b : A) (p q : Path A a b) ->
    <i j> comp (<_> A) a [ (j=0) -> h a a
                         , (j=1) -> h a b
 		        , (i=0) -> h a (p @ j)
@@ -319,11 +319,11 @@ We can also define the type of squares:
              v
 
 -}
-Square (A : U) (a0 a1 b0 b1 : A) (u : Id A a0 a1) (v : Id A b0 b1)
-               (r0 : Id A a0 b0) (r1 : Id A a1 b1) : U
-  = IdP (<i> (IdP (<j> A) (u @ i) (v @ i))) r0 r1
+Square (A : U) (a0 a1 b0 b1 : A) (u : Path A a0 a1) (v : Path A b0 b1)
+               (r0 : Path A a0 b0) (r1 : Path A a1 b1) : U
+  = PathP (<i> (PathP (<j> A) (u @ i) (v @ i))) r0 r1
 
-constSquare (A : U) (a : A) (p : Id A a a) : Square A a a a a p p p p =
+constSquare (A : U) (a : A) (p : Path A a a) : Square A a a a a p p p p =
   <i j> comp (<_> A) a [ (i = 0) -> <k> p @ j \/ - k
                        , (i = 1) -> <k> p @ j /\ k
                        , (j = 0) -> <k> p @ i \/ - k
@@ -335,17 +335,17 @@ constSquare (A : U) (a : A) (p : Id A a a) : Square A a a a a p p p p =
 -- have only considered constant lines..
 
 -- "Kan composition":
-kan (A : U) (a b c d : A) (p : Id A a b)
-    (q : Id A a c) (r : Id A b d) : Id A c d =
+kan (A : U) (a b c d : A) (p : Path A a b)
+    (q : Path A a c) (r : Path A b d) : Path A c d =
   <i> comp (<_> A) (p @ i) [ (i = 0) -> q, (i = 1) -> r ]
 
 -- Generalized Kan composition:
-kan' (A B : U) (P : Id U A B) (a b : A) (c d : B) (p : Id A a b)
-     (q : IdP P a c) (r : IdP P b d) : Id B c d =
+kan' (A B : U) (P : Path U A B) (a b : A) (c d : B) (p : Path A a b)
+     (q : PathP P a c) (r : PathP P b d) : Path B c d =
   <i> comp P (p @ i) [ (i = 0) -> q, (i = 1) -> r ]
 
-kan'' (A : U) (a b c d : A) (p : Id A a b)
-      (q : Id A a c) (r : Id A b d) : Id A c d =
+kan'' (A : U) (a b c d : A) (p : Path A a b)
+      (q : Path A a c) (r : Path A b d) : Path A c d =
       kan' A A (<_> A) a b c d p q r
 
 
@@ -365,16 +365,16 @@ add (a : nat) : nat -> nat = split
   suc b -> suc (add a b)
 
 -- Exercise (for solution see bottom of the file):
-addZero : (a : nat) -> Id nat (add zero a) a = undefined
+addZero : (a : nat) -> Path nat (add zero a) a = undefined
 
-addSuc (a : nat) : (b : nat) -> Id nat (add (suc a) b) (suc (add a b)) = split
+addSuc (a : nat) : (b : nat) -> Path nat (add (suc a) b) (suc (add a b)) = split
   zero   -> <i> suc a
   suc b' -> <i> suc (addSuc a b' @ i)
 
 -- Exercise (can be done with a composition):
-addCom (a : nat) : (b : nat) -> Id nat (add a b) (add b a) = undefined
+addCom (a : nat) : (b : nat) -> Path nat (add a b) (add b a) = undefined
 
-addAssoc (a b : nat) : (c : nat) -> Id nat (add a (add b c)) (add (add a b) c) = split
+addAssoc (a b : nat) : (c : nat) -> Path nat (add a (add b c)) (add (add a b) c) = split
   zero   -> <i> add a b
   suc c' -> <i> suc (addAssoc a b c' @ i)
 
@@ -388,41 +388,41 @@ addAssoc (a b : nat) : (c : nat) -> Id nat (add a (add b c)) (add (add a b) c) =
 Transport takes a path in the universe between A and B and produces a
 function from A to B:
 
-  transport : Id U A B -> A -> B
+  transport : Path U A B -> A -> B
 
 -}
 
 -- This gives a simple proof of subst (called transportf above and in
 -- UniMath):
-subst (A : U) (P : A -> U) (a b : A) (p : Id A a b) (e : P a) : P b =
+subst (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
   transport (cong A U P a b p) e
 
 
 -- Transport is defined in the Haskell code as a composition with an
 -- empty cube/system. It can also be directly defined as:
-trans (A B : U) (p : Id U A B) (a : A) : B = comp p a []
+trans (A B : U) (p : Path U A B) (a : A) : B = comp p a []
 
 -- However these are not exactly the same because the lack of implicit
 -- arguments.
 
 -- subst with the fact that singletons are contractible this gives
 -- the J eliminator:
-J (A : U) (a : A) (C : (x : A) -> Id A a x -> U)
-  (d : C a (refl A a)) (x : A) (p : Id A a x) : C x p =
+J (A : U) (a : A) (C : (x : A) -> Path A a x -> U)
+  (d : C a (refl A a)) (x : A) (p : Path A a x) : C x p =
   subst (singl A a) T (a,refl A a) (x,p) (contrSingl A a x p) d
     where T (bp : singl A a) : U = C bp.1 bp.2
 
 -- Note: Transporting with refl is not the identity function:
 
--- transRefl (A : U) (a : A) : Id A a a = refl A (transport (refl U A) a)
+-- transRefl (A : U) (a : A) : Path A a a = refl A (transport (refl U A) a)
 
 -- This implies that the elimination rule for J does not hold definitonally:
 
--- defEqJ (A : U) (a : A) (C : (x : A) -> Id A a x -> U) (d : C a (refl A a)) :
---        Id (C a (refl A a)) (J A a C d a (refl A a)) d = refl (C a (refl A a)) d
+-- defEqJ (A : U) (a : A) (C : (x : A) -> Path A a x -> U) (d : C a (refl A a)) :
+--        Path (C a (refl A a)) (J A a C d a (refl A a)) d = refl (C a (refl A a)) d
 
 -- We can get the equality between a and the transport of a by filling:
-transFill (A : U) (a : A) : Id A a (transport (<_> A) a) =
+transFill (A : U) (a : A) : Path A a (transport (<_> A) a) =
   fill (<_> A) a []
 
 
@@ -437,13 +437,13 @@ transFill (A : U) (a : A) : Id A a (transport (<_> A) a) =
 -- composition in the universe).
 
 -- A "strange" term showing what happens without regularity
--- strange (A : U) (a b c : A) (p : Id A a b) (q : Id A b c) :
---   Id A (comp (<_> A) a []) c =
+-- strange (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) :
+--   Path A (comp (<_> A) a []) c =
 --     <i> comp (<_> A) (p @ i) [ (i = 1) -> q ]
 
 
 
--- It seems like we can recover a new Id type with the correct
+-- It seems like we can recover a new Path type with the correct
 -- definitional equalities using ideas from awfs of Andrew
 -- Swan... Simon has implemented this in the branch "defeq".
 
@@ -457,7 +457,7 @@ transFill (A : U) (a : A) : Id A a (transport (<_> A) a) =
 
 {-
 
-So far we have: MLTT + Id, <i>, @, i/\j, compositions, transport
+So far we have: MLTT + Path, <i>, @, i/\j, compositions, transport
 
 With all of this we get J, but so far without def. eq.
 
@@ -480,10 +480,10 @@ a map from Equiv(A,B) to A = B.
 
 -}
 
-isContr (A : U) : U = (x : A) * ((y : A) -> Id A x y)
+isContr (A : U) : U = (x : A) * ((y : A) -> Path A x y)
 
 fiber (A B : U) (f : A -> B) (y : B) : U =
-  (x : A) * Id B y (f x)
+  (x : A) * Path B y (f x)
 
 isEquiv (A B : U) (f : A -> B) : U =
   (y : B) -> isContr (fiber A B f y)
@@ -494,18 +494,18 @@ idIsEquiv (A : U) : isEquiv A A (idfun A) =
 
 -- Using the grad lemma we can transform isomorphisms into equalities.
 lemIso (A B : U) (f : A -> B) (g : B -> A)
-       (s : (y : B) -> Id B (f (g y)) y)
-       (t : (x : A) -> Id A (g (f x)) x)
-       (y : B) (x0 x1 : A) (p0 : Id B y (f x0)) (p1 : Id B y (f x1)) :
-       Id (fiber A B f y) (x0,p0) (x1,p1) = <i> (p @ i,sq1 @ i)
+       (s : (y : B) -> Path B (f (g y)) y)
+       (t : (x : A) -> Path A (g (f x)) x)
+       (y : B) (x0 x1 : A) (p0 : Path B y (f x0)) (p1 : Path B y (f x1)) :
+       Path (fiber A B f y) (x0,p0) (x1,p1) = <i> (p @ i,sq1 @ i)
   where
-    rem0 : Id A (g y) x0 =
+    rem0 : Path A (g y) x0 =
       <i> comp (<_> A) (g (p0 @ i)) [ (i = 1) -> t x0, (i = 0) -> <_> g y ]
 
-    rem1 : Id A (g y) x1 =
+    rem1 : Path A (g y) x1 =
       <i> comp (<_> A) (g (p1 @ i)) [ (i = 1) -> t x1, (i = 0) -> <_> g y ]
 
-    p : Id A x0 x1 =
+    p : Path A x0 x1 =
      <i> comp (<_> A) (g y) [ (i = 0) -> rem0
                             , (i = 1) -> rem1 ]
 
@@ -543,15 +543,15 @@ lemIso (A B : U) (f : A -> B) (g : B -> A)
                                          , (j = 0) -> s y ]
 
 gradLemma (A B : U) (f : A -> B) (g : B -> A)
-       (s : (y : B) -> Id B (f (g y)) y)
-       (t : (x : A) -> Id A (g (f x)) x) : isEquiv A B f = 
+       (s : (y : B) -> Path B (f (g y)) y)
+       (t : (x : A) -> Path A (g (f x)) x) : isEquiv A B f = 
  \ (y:B) -> ((g y,<i>s y@-i),\ (z:fiber A B f y) -> lemIso A B f g s t y (g y) z.1 (<i>s y@-i) z.2)
 
 
 
-isoId (A B : U) (f : A -> B) (g : B -> A)
-      (s : (y : B) -> Id B (f (g y)) y)
-      (t : (x : A) -> Id A (g (f x)) x) : Id U A B =
+isoPath (A B : U) (f : A -> B) (g : B -> A)
+      (s : (y : B) -> Path B (f (g y)) y)
+      (t : (x : A) -> Path A (g (f x)) x) : Path U A B =
        <i> glue B [ (i = 0) -> (A,f,gradLemma A B f g s t)
                   , (i = 1) -> (B,idfun B,idIsEquiv B) ]
 
@@ -565,12 +565,12 @@ isoId (A B : U) (f : A -> B) (g : B -> A)
       ---------------------------------------------------------
 
 -- Not is involutive:
-notK : (b : bool) -> Id bool (not (not b)) b = split
+notK : (b : bool) -> Path bool (not (not b)) b = split
   false -> <i> false
   true  -> <i> true
 
 -- This defines a non-trivial equality between bool and bool:
-notEq : Id U bool bool = isoId bool bool not not notK notK
+notEq : Path U bool bool = isoPath bool bool not not notK notK
 
 -- We can transport true along this non-trivial equality:
 testFalse : bool = transport notEq true
@@ -619,30 +619,30 @@ predZ : Z -> Z = split
       zero  -> inl zero
       suc n -> inr n
 
-sucpredZ : (x : Z) -> Id Z (sucZ (predZ x)) x = split
+sucpredZ : (x : Z) -> Path Z (sucZ (predZ x)) x = split
   inl u -> <i> inl u
   inr v -> lem v
    where
-    lem : (u : nat) -> Id Z (sucZ (predZ (inr u))) (inr u) = split
+    lem : (u : nat) -> Path Z (sucZ (predZ (inr u))) (inr u) = split
       zero  -> <i> inr zero
       suc n -> <i> inr (suc n)
 
-predsucZ : (x : Z) -> Id Z (predZ (sucZ x)) x = split
+predsucZ : (x : Z) -> Path Z (predZ (sucZ x)) x = split
   inl u -> lem u
    where
-    lem : (u : nat) -> Id Z (predZ (sucZ (inl u))) (inl u) = split
+    lem : (u : nat) -> Path Z (predZ (sucZ (inl u))) (inl u) = split
       zero  -> <i> inl zero
       suc n -> <i> inl (suc n)
   inr v -> <i> inr v
 
-sucIdZ : Id U Z Z = isoId Z Z sucZ predZ sucpredZ predsucZ
+sucPathZ : Path U Z Z = isoPath Z Z sucZ predZ sucpredZ predsucZ
 
 -- We can transport along the proof forward and backwards:
-testOneZ : Z = transport sucIdZ zeroZ
-testNOneZ : Z = transport (<i> sucIdZ @ - i) zeroZ
+testOneZ : Z = transport sucPathZ zeroZ
+testNOneZ : Z = transport (<i> sucPathZ @ - i) zeroZ
 
 
--- transport sucIdZ = sucZ ?
+-- transport sucPathZ = sucZ ?
 
 
 
@@ -687,7 +687,7 @@ data int = pos (n : nat)
                      , (i = 1) -> neg zero ]
 
 -- Nice version of the zero constructor:
-zeroPath : Id int (pos zero) (neg zero) = <i> zeroP {int} @ i
+zeroPath : Path int (pos zero) (neg zero) = <i> zeroP {int} @ i
 
 sucInt : int -> int = split
   pos n -> pos (suc n)
@@ -709,19 +709,19 @@ fromZ : Z -> int = split
   inl n -> neg (suc n)
   inr n -> pos n
 
-toZK : (a : Z) -> Id Z (toZ (fromZ a)) a = split
+toZK : (a : Z) -> Path Z (toZ (fromZ a)) a = split
   inl n -> <i> inl n
   inr n -> <i> inr n
 
-fromZK : (a : int) -> Id int (fromZ (toZ a)) a = split
+fromZK : (a : int) -> Path int (fromZ (toZ a)) a = split
   pos n -> <i> pos n
   neg n -> rem n
-    where rem : (n : nat) -> Id int (fromZ (toZ (neg n))) (neg n) = split
+    where rem : (n : nat) -> Path int (fromZ (toZ (neg n))) (neg n) = split
       zero  -> zeroPath
       suc m -> <i> neg (suc m)
   zeroP @ i -> <j> zeroPath @ i /\ j -- A connection makes this proof easy!
 
-isoIntZ : Id U Z int = isoId Z int fromZ toZ fromZK toZK
+isoIntZ : Path U Z int = isoPath Z int fromZ toZ fromZK toZK
 
 
 
@@ -732,7 +732,7 @@ isoIntZ : Id U Z int = isoId Z int fromZ toZ fromZK toZK
 data S1 = base
         | loop <i> [ (i = 0) -> base, (i = 1) -> base]
 
-loopS1 : U = Id S1 base base
+loopS1 : U = Path S1 base base
 
 -- The loop constructor
 loop1 : loopS1 = <i> loop{S1} @ i
@@ -741,7 +741,7 @@ invLoop : loopS1 = <i> loop1 @ -i
 
 helix : S1 -> U = split
   base     -> Z
-  loop @ i -> sucIdZ @ i
+  loop @ i -> sucPathZ @ i
 
 -- The winding number:
 winding (p : loopS1) : Z = transport (<i> helix (p @ i)) zeroZ
@@ -756,7 +756,7 @@ loopZ3  : Z = winding (compS1 loop1 (compS1 loop1 loop1))
 loopZN1 : Z = winding invLoop
 loopZ0  : Z = winding (compS1 loop1 invLoop)
 
-mLoop : (x : S1) -> Id S1 x x = split
+mLoop : (x : S1) -> Path S1 x x = split
   base     -> loop1
   loop @ i -> constSquare S1 base loop1 @ i
 
@@ -777,7 +777,7 @@ loopZ8 : Z = winding (doubleLoop (doubleLoop (compS1 loop1 loop1)))
 
 -- A nice example of a homotopy on the circle. The path going halfway
 -- around the circle and then back is contractible:
-hmtpy : Id loopS1 (<i> base) (<i> loop{S1} @ (i /\ -i)) =
+hmtpy : Path loopS1 (<i> base) (<i> loop{S1} @ (i /\ -i)) =
   <j i> loop{S1} @ j /\ i /\ -i
 
 
@@ -813,11 +813,11 @@ hmtpy : Id loopS1 (<i> base) (<i> loop{S1} @ (i /\ -i)) =
 
 {- Solutions:
 
-addZero : (a : nat) -> Id nat (add zero a) a = split
+addZero : (a : nat) -> Path nat (add zero a) a = split
   zero   -> <i> zero
   suc a' -> <i> suc (addZero a' @ i)
 
-addCom (a : nat) : (b : nat) -> Id nat (add a b) (add b a) = split
+addCom (a : nat) : (b : nat) -> Path nat (add a b) (add b a) = split
   zero   -> <i> addZero a @ -i
   suc b' -> <i> comp (<_> nat) (suc (addCom a b' @ i)) [ (i = 0) -> <j> suc (add a b')
                                                        , (i = 1) -> <j> addSuc b' a @ -j ]

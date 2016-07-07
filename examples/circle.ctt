@@ -10,7 +10,7 @@ import int
 data S1 = base
         | loop <i> [(i=0) -> base, (i=1) -> base]
 
-loopS1 : U = Id S1 base base
+loopS1 : U = Path S1 base base
 
 loop1 : loopS1 = <i> loop{S1} @ i
 
@@ -22,18 +22,18 @@ moebius : S1 -> U = split
 
 helix : S1 -> U = split
   base -> Z
-  loop @ i -> sucIdZ @ i
+  loop @ i -> sucPathZ @ i
 
 winding (p : loopS1) : Z = trans Z Z rem zeroZ
   where
-    rem : Id U Z Z = <i> helix (p @ i)
+    rem : Path U Z Z = <i> helix (p @ i)
 
-compS1 : loopS1 -> loopS1 -> loopS1 = compId S1 base base base
+compS1 : loopS1 -> loopS1 -> loopS1 = compPath S1 base base base
 
 -- All of these should be equal to "posZ (suc zero)":
 loop2 : loopS1 = compS1 loop1 loop1
-loop2' : loopS1 = compId' S1 base base base loop1 loop1
-loop2'' : loopS1 = compId'' S1 base base loop1 base loop1
+loop2' : loopS1 = compPath' S1 base base base loop1 loop1
+loop2'' : loopS1 = compPath'' S1 base base loop1 base loop1
 
 -- More examples:
 loopZ1  : Z = winding loop1
@@ -42,7 +42,7 @@ loopZ3  : Z = winding (compS1 loop1 (compS1 loop1 loop1))
 loopZN1 : Z = winding invLoop
 loopZ0  : Z = winding (compS1 loop1 invLoop)
 
-mLoop : (x : S1) -> Id S1 x x = split
+mLoop : (x : S1) -> Path S1 x x = split
   base -> loop1
   loop @ i -> constSquare S1 base loop1 @ i
 
@@ -62,15 +62,15 @@ triv : loopS1 = <i> base
 
 -- A nice example of a homotopy on the circle. The path going halfway
 -- around the circle and then back is contractible:
-hmtpy : Id loopS1 (<i> base) (<i> loop{S1} @ (i /\ -i)) =
+hmtpy : Path loopS1 (<i> base) (<i> loop{S1} @ (i /\ -i)) =
   <j i> loop{S1} @ j /\ i /\ -i
 
-circleelim (X : U) (x : X) (p : Id X x x) : S1 -> X = split
+circleelim (X : U) (x : X) (p : Path X x x) : S1 -> X = split
   base -> x
   loop @ i -> p @ i
 
-apcircleelim (A B : U) (x : A) (p : Id A x x) (f : A -> B) :
-  (z : S1) -> Id B (f (circleelim A x p z))
+apcircleelim (A B : U) (x : A) (p : Path A x x) (f : A -> B) :
+  (z : S1) -> Path B (f (circleelim A x p z))
                    (circleelim B (f x) (<i> f (p @ i)) z) = split
    base -> <_> f x
    loop @ i -> <_> f (p @ i)
@@ -78,7 +78,7 @@ apcircleelim (A B : U) (x : A) (p : Id A x x) (f : A -> B) :
 
 -- a special case, Lemmas 6.2.5-6.2.9 in the book
 
-aLoop (A:U) : U = (a:A) * Id A a a
+aLoop (A:U) : U = (a:A) * Path A a a
 
 phi (A:U) (al : aLoop A) : S1 -> A = split
   base -> al.1
@@ -86,18 +86,18 @@ phi (A:U) (al : aLoop A) : S1 -> A = split
 
 psi (A:U) (f:S1 -> A) : aLoop A = (f base,<i>f (loop1@i))
 
-rem (A:U) (f : S1 -> A) : (u : S1) -> Id A (phi A (psi A f) u) (f u) = split
+rem (A:U) (f : S1 -> A) : (u : S1) -> Path A (phi A (psi A f) u) (f u) = split
          base -> refl A (f base)
          loop @ i -> <j>f (loop1@i)
 
-lem (A:U) (f : S1 -> A) : Id (S1 -> A) (phi A (psi A f)) f = 
+lem (A:U) (f : S1 -> A) : Path (S1 -> A) (phi A (psi A f)) f = 
  <i> \ (x:S1) -> (rem A f x) @ i
 
-thm (A:U) : Id U (aLoop A) (S1 -> A) = isoId T0 T1 f g t s
+thm (A:U) : Path U (aLoop A) (S1 -> A) = isoPath T0 T1 f g t s
  where T0 : U = aLoop A
        T1 : U = S1 -> A
        f : T0 -> T1 = phi A
        g : T1 -> T0 = psi A
-       s (x:T0) : Id T0 (g (f x)) x    = refl T0 x
-       t : (y:T1) -> Id T1 (f (g y)) y = lem A
+       s (x:T0) : Path T0 (g (f x)) x    = refl T0 x
+       t : (y:T1) -> Path T1 (f (g y)) y = lem A
 

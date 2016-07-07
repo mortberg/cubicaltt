@@ -136,6 +136,9 @@ prop (A : U) : U = (a b : A) -> Id A a b
 set (A : U) : U = (a b : A) -> prop (Id A a b)
 groupoid (A : U) : U = (a b : A) -> set (Id A a b)
 
+-- the collection of all sets
+SET : U = (X:U) * set X
+
 propSet (A : U) (h : prop A) : set A =
  \(a b : A) (p q : Id A a b) ->
    <j i> comp (<k>A) a [ (i=0) -> h a a

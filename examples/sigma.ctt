@@ -3,8 +3,6 @@ module sigma where
 import prelude
 import equiv
 
--- application of this fact
-
 lemIdSig (A:U) (B : A -> U) (t u : Sigma A B) :
  Id U (Id (Sigma A B) t u) ((p : Id A t.1 u.1) * IdP (<i> B (p @ i)) t.2 u.2) =
   isoId T0 T1 f g s t where
@@ -17,15 +15,6 @@ lemIdSig (A:U) (B : A -> U) (t u : Sigma A B) :
 
 lemIdAnd (A B : U) (t u : and A B) :
   Id U (Id (and A B) t u) (and (Id A t.1 u.1) (Id B t.2 u.2)) = lemIdSig A (\(_ : A) -> B) t u
-
-lem (A:U) (P:A->U) (pP:(x:A) -> prop (P x)) (u v:(x:A) * P x) (p:Id A u.1 v.1) :
- Id ((x:A)*P x) u v = <i>(p@i,(lemPropF A P pP u.1 v.1 p u.2 v.2)@i)
-
-propSig (A:U) (B:A-> U) (pA:prop A) (pB : (x:A) -> prop (B x)) (t u : Sigma A B) : Id (Sigma A B) t u
- = lem A B pB t u (pA t.1 u.1)
-
-propAnd (A:U) (B:U) (pA:prop A) (pB:prop B) : prop (and A B)
-  = propSig A (\(_:A)->B) pA (\(_:A)->pB)
 
 lemTransp (A:U) (a:A) : Id A a (transport (<_>A) a) = fill (<_>A) a []
 

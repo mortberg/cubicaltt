@@ -12,7 +12,7 @@ isEquiv (A B : U) (f : A -> B) : U = (y : B) -> isContr (fiber A B f y)
 equiv (A B : U) : U = (f : A -> B) * isEquiv A B f
 
 propIsEquiv (A B : U) (f : A -> B)
-  : prop (isEquiv A B f) = 
+  : prop (isEquiv A B f) =
   \ (u0 u1:isEquiv A B f) -> <i> \ (y:B) -> propIsContr (fiber A B f y) (u0 y) (u1 y) @ i
 
 equivLemma (A B : U)
@@ -34,6 +34,7 @@ retEq (A B:U) (w:equiv A B) (y:B) : Id B (w.1 (invEq A B w y)) y =
 
 secEq (A B:U) (w:equiv A B) (x:A) : Id A (invEq A B w (w.1 x)) x =
  <i> ((w.2 (w.1 x)).2 (x,<j>w.1 x)@i).1
+ --
 
 transEquiv (A B:U) (p:Id U A B) : equiv A B = (f,p)
  where
@@ -161,4 +162,3 @@ isoId (A B : U) (f : A -> B) (g : B -> A)
 
 idIsEquivGrad (A : U) : isEquiv A A (idfun A) =
   gradLemma A A (idfun A) (idfun A) (\(a : A) -> <i> a) (\(a : A) -> <i> a)
-

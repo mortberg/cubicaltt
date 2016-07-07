@@ -9,6 +9,20 @@ mkFt (ob : nat -> U) (ft0 : (n : nat) -> ob (suc n) -> ob n) : (n : nat) -> ob n
   zero  -> \(x : ob zero) -> (zero, x)
   suc n -> \(x : ob (suc n)) -> (n, ft0 n x)
 
+--
+-- C0-Systems
+-- Objects of C0-systems are given by a length indexed family "ob : nat -> U", to avoid equalities on object lengths
+-- The ??? morphisms (p : (x y : A) -> Id A (ft x) y -> hom x y) depend on a path in "Id A (ft x) y" because we can't
+-- enforce a definitional equality in "Id A (ft f*(X)) Y" in this square :
+--
+--      q(f, X)
+-- f*(X) ----> X
+-- |           |
+-- |           | p_X
+-- |           |
+-- Y -------> ft(X)
+--      f
+--
 isC0System (ob : nat -> U) (hom : Sigma nat ob -> Sigma nat ob -> U) (isC : isPrecategory (Sigma nat ob, hom)) : U
   = let A : U = Sigma nat ob
         CD : categoryData = (A,hom)
@@ -74,29 +88,38 @@ c0Square (C : C0System) (T : c0CanSq C)
 c0FtH (C : C0System) (Y X : cA (c0C C)) (f : cH (c0C C) Y X) : cH (c0C C) Y (c0Ft C X)
   = cC (c0C C) Y X (c0Ft C X) f (c0P C X (c0Ft C X) (<_> c0Ft C X))
 
-isCSystem2Cospan (C : C0System) (T : c0CanSq C) : cospan (c0C C)
+--
+-- A C0-system is a C-system if all of its canonical squares ("c0CanSq C") are pullback squares
+--
+
+isCSystemCospan (C : C0System) (T : c0CanSq C) : cospan (c0C C)
   = let X : cA (c0C C) = (suc T.1, T.2.1) in
     (c0Ft C X,
      (T.2.2.1, T.2.2.2),
      (X, c0P C X (c0Ft C X) (<_>c0Ft C X)))
 
-isCSystem2CospanCone (C : C0System) (T : c0CanSq C) : cospanCone (c0C C) (isCSystem2Cospan C T)
+isCSystemCospanCone (C : C0System) (T : c0CanSq C) : cospanCone (c0C C) (isCSystemCospan C T)
   = (c0Star C T,
      c0P C (c0Star C T) T.2.2.1 (c0FtStar C T),
      c0Q C T,
      c0Square C T)
 
-isCSystem2Type (C : C0System) (T : c0CanSq C) : U
+isCSystemType (C : C0System) (T : c0CanSq C) : U
   = isPullback (c0C C)
-      (isCSystem2Cospan C T)
-      (isCSystem2CospanCone C T)
-isCSystem2 (C : C0System) : U
-  = (T : c0CanSq C) -> isCSystem2Type C T
+      (isCSystemCospan C T)
+      (isCSystemCospanCone C T)
+isCSystem (C : C0System) : U
+  = (T : c0CanSq C) -> isCSystemType C T
 
-isCSystem2Prop (C : C0System) : prop (isCSystem2 C)
-  = propPi (c0CanSq C) (\(T : c0CanSq C) -> isCSystem2Type C T)
-    (\(T : c0CanSq C) -> isPullbackProp (c0C C) (isCSystem2Cospan C T) (isCSystem2CospanCone C T))
+isCSystemProp (C : C0System) : prop (isCSystem C)
+  = propPi (c0CanSq C) (\(T : c0CanSq C) -> isCSystemType C T)
+    (\(T : c0CanSq C) -> isPullbackProp (c0C C) (isCSystemCospan C T) (isCSystemCospanCone C T))
 
+CSystem : U = (ob : nat -> U) * (hom : Sigma nat ob -> Sigma nat ob -> U) * (isC : isPrecategory (Sigma nat ob, hom))
+            * (c0 : isC0System ob hom isC) * isCSystem (ob, hom, isC, c0)
+
+--
+-- Definition of a universe category
 --
 
 uc : U
@@ -106,6 +129,7 @@ uc : U
    * (V : cA C) * (VT : cA C) * (p : cH C VT V)
    * ((f : homTo C V) -> hasPullback C (V, f, VT, p))
 
+-- An equivalence of universe categories is an equivalence of categories compatible with the "p" morphism
 ucEquiv (A B : uc) : U
   = (e : catEquiv A.1 B.1)
   * (V : Id (cA B.1) (e.1.1 A.2.2.2.1) B.2.2.2.1)
@@ -115,6 +139,14 @@ ucEquiv (A B : uc) : U
 ucEquivId (A B : uc) (e : ucEquiv A B) : Id uc A B
   = let p : Id ((C:category)*catEquiv A.1 C.1) ((A.1, A.2.1), catIdEquiv A.1) ((B.1, B.2.1), e.1)
           = isContrProp ((C:category)*catEquiv A.1 C.1) (catEquivEqId' (A.1, A.2.1)) ((A.1, A.2.1), catIdEquiv A.1) ((B.1, B.2.1), e.1)
+        opaque p
+        pFinal : IdP (<i> hasFinal (p@i).1.1) A.2.2.1  B.2.2.1
+               = lemIdPProp (hasFinal A.1)
+                            (hasFinal B.1)
+                            (hasFinalProp A.1 A.2.1)
+                            (<i>hasFinal (p@i).1.1)
+                            A.2.2.1 B.2.2.1
+        opaque pFinal
         pV : IdP (<i> cA (p@i).1.1) A.2.2.2.1 B.2.2.2.1
            = <i> comp (<_> cA (p@i).1.1) ((p@i).2.1.1 A.2.2.2.1)
                   [(i=0)-><_>A.2.2.2.1 ,(i=1)-><k>e.2.1@k]
@@ -127,22 +159,29 @@ ucEquivId (A B : uc) (e : ucEquiv A B) : Id uc A B
                        (fill (<_> cA (p@i).1.1) ((p@i).2.1.1 A.2.2.2.1) [(i=0)-><_>A.2.2.2.1 ,(i=1)-><k>e.2.1@k]@k))
                   ((p@i).2.1.2.1 A.2.2.2.2.1 A.2.2.2.1 A.2.2.2.2.2.1)
                   [(i=0)-><_>A.2.2.2.2.2.1, (i=1)-><k>e.2.2.2@k]
+        opaque pV
+        opaque pVT
+        opaque pP
+        pPb : IdP (<i> (f : homTo (p@i).1.1 (pV@i)) -> hasPullback (p@i).1.1 (pV@i, f, pVT@i, pP@i)) A.2.2.2.2.2.2 B.2.2.2.2.2.2
+            = lemIdPProp ((f : homTo A.1 (pV@0)) -> hasPullback A.1 (pV@0, f, pVT@0, pP@0))
+                         ((f : homTo B.1 (pV@1)) -> hasPullback B.1 (pV@1, f, pVT@1, pP@1))
+                         (propPi (homTo A.1 (pV@0)) (\(f : homTo A.1 (pV@0)) -> hasPullback A.1 (pV@0, f, pVT@0, pP@0))
+                          (\(f : homTo A.1 (pV@0)) -> hasPullbackProp A.1 A.2.1 (pV@0, f, pVT@0, pP@0)))
+                         (<i>(f : homTo (p@i).1.1 (pV@i)) -> hasPullback (p@i).1.1 (pV@i, f, pVT@i, pP@i))
+                         A.2.2.2.2.2.2 B.2.2.2.2.2.2
+        opaque pPb
+        t:nat=zero
     in <i> ((p@i).1.1
            ,(p@i).1.2
-           ,lemIdPProp (hasFinal A.1)
-                       (hasFinal B.1)
-                       (hasFinalProp A.1 A.2.1)
-                       (<i>hasFinal (p@i).1.1)
-                       A.2.2.1 B.2.2.1 @ i
+           ,pFinal@i
            ,pV@i, pVT@i, pP@i
-           ,lemIdPProp ((f : homTo A.1 (pV@0)) -> hasPullback A.1 (pV@0, f, pVT@0, pP@0))
-                       ((f : homTo B.1 (pV@1)) -> hasPullback B.1 (pV@1, f, pVT@1, pP@1))
-                       (propPi (homTo A.1 (pV@0)) (\(f : homTo A.1 (pV@0)) -> hasPullback A.1 (pV@0, f, pVT@0, pP@0))
-                        (\(f : homTo A.1 (pV@0)) -> hasPullbackProp A.1 A.2.1 (pV@0, f, pVT@0, pP@0)))
-                       (<i>(f : homTo (p@i).1.1 (pV@i)) -> hasPullback (p@i).1.1 (pV@i, f, pVT@i, pP@i))
-                       A.2.2.2.2.2.2 B.2.2.2.2.2.2 @ i)
+           ,pPb@i)
 
-ucToC0 (C : uc) : C0System = hole
+
+--
+-- Definition of a C0-system from a universe category
+--
+ucToC0 (C : uc) : CSystem = hole
   where
     V : cA C.1 = C.2.2.2.1
     VT : cA C.1 = C.2.2.2.2.1
@@ -176,6 +215,7 @@ ucToC0 (C : uc) : C0System = hole
     D : isPrecategory DD
       = (DId, DC, homDSet, DIdL, DIdR, DIdC)
     DC : precategory = (DD, D)
+    -- ^ Definition of the precategory
 
     ft0 (n : nat) (x : ob (suc n)) : ob n = x.1
     ft (x : obD) : obD = mkFt ob ft0 x.1 x.2
@@ -187,6 +227,11 @@ ucToC0 (C : uc) : C0System = hole
     fstar (n : nat) (X : ob (suc n)) (Y : obD) (f : homD Y (n, X.1)) : obD
       = (suc Y.1, Y.2, cC C.1 (intD Y) (int n X.1) V f X.2)
 
+    -- The C-system constructed from the universe category has the definitional equality ft(f*(X)) = Y,
+    -- but this cannot be required to hold definitionally in the definition of C-systems, so what we need
+    -- to prove contains transports by reflexivity.
+    -- To simplify the proofs, the proofs are done without this transport first, and transported to the
+    -- right types afterwards.
     q_ (n : nat) (X : ob (suc n)) (Y : obD) (f : homD Y (n, X.1))
       : (q : homD (fstar n X Y f) (suc n, X))
       * (qSq : Id (homD (fstar n X Y f) (n, X.1))
@@ -257,18 +302,41 @@ ucToC0 (C : uc) : C0System = hole
               pbD (intD A.1, A.2.1, A.2.2.1, A.2.2.2)
            )
 
+    sqD0 (n : nat) (X : ob (suc n)) (Y : obD) (f : homD Y (n, X.1))
+      : (f_star : ob (suc Y.1)) * (ftf : Id obD (Y.1, ft0 Y.1 f_star) Y)
+      * (q : homD (suc Y.1, f_star) (suc n, X))
+      * (qSq : Id (homD (suc Y.1, f_star) (n, X.1))
+                  (cC DC (suc Y.1, f_star) Y (n, X.1) (pD (suc Y.1, f_star) Y ftf) f)
+                  (cC DC (suc Y.1, f_star) (suc n, X) (n, X.1) q (pD (suc n, X) (n, X.1) (<_> (n, X.1)))))
+      * isPullback DC ((n, X.1), (Y, f), ((suc n, X), pD (suc n, X) (n, X.1) (<_> (n, X.1))))
+                      ((suc Y.1, f_star), pD (suc Y.1, f_star) Y ftf, q, qSq)
+      = ((fstar n X Y f).2, <_> Y, (q_ n X Y f).1,
+          transport
+            (<i> (qSq : Id (homD (fstar n X Y f) (n, X.1))
+                           (cC DC (fstar n X Y f) Y (n, X.1) (transRefl (cH DC (fstar n X Y f) Y) (p0 (suc Y.1) (fstar n X Y f).2) @ -i) f)
+                           (cC DC (fstar n X Y f) (suc n, X) (n, X.1) (q_ n X Y f).1 (transRefl (cH DC (suc n, X) (n, X.1)) (p0 (suc n) X) @ -i))
+                 )
+               * isPullback DC ((n, X.1), (Y, f), ((suc n, X), (transRefl (cH DC (suc n, X) (n, X.1)) (p0 (suc n) X) @ -i)))
+                               (fstar n X Y f, (transRefl (cH DC (fstar n X Y f) Y) (p0 (suc Y.1) (fstar n X Y f).2) @ -i), (q_ n X Y f).1, qSq)
+                    )
+            ((q_ n X Y f).2.1, (q_ n X Y f).2.2.2))
+
+    -- Projections of the previous proof to the actual datum of the C system
     sqD (n : nat) (X : ob (suc n)) (Y : obD) (f : homD Y (n, X.1))
       : (f_star : ob (suc Y.1)) * (ftf : Id obD (Y.1, ft0 Y.1 f_star) Y)
       * (q : homD (suc Y.1, f_star) (suc n, X))
       * Id (homD (suc Y.1, f_star) (n, X.1))
            (cC DC (suc Y.1, f_star) Y (n, X.1) (pD (suc Y.1, f_star) Y ftf) f)
            (cC DC (suc Y.1, f_star) (suc n, X) (n, X.1) q (pD (suc n, X) (n, X.1) (<_> (n, X.1))))
-      = ((fstar n X Y f).2, <_> Y, (q_ n X Y f).1,
-          transport
-            (<i> Id (homD (fstar n X Y f) (n, X.1))
-              (cC DC (fstar n X Y f) Y (n, X.1) (transRefl (cH DC (fstar n X Y f) Y) (p0 (suc Y.1) (fstar n X Y f).2) @ -i) f)
-              (cC DC (fstar n X Y f) (suc n, X) (n, X.1) (q_ n X Y f).1 (transRefl (cH DC (suc n, X) (n, X.1)) (p0 (suc n) X) @ -i)))
-            (q_ n X Y f).2.1)
+      = ((sqD0 n X Y f).1, (sqD0 n X Y f).2.1, (sqD0 n X Y f).2.2.1, (sqD0 n X Y f).2.2.2.1)
+
+    pbSq (sq : (n : nat) * (X : ob (suc n)) * (Y : obD) * (homD Y (n, X.1)))
+       : isPullback DC ((sq.1, sq.2.1.1), (sq.2.2.1, sq.2.2.2), ((suc sq.1, sq.2.1), pD (suc sq.1, sq.2.1) (sq.1, sq.2.1.1) (<_> (sq.1, sq.2.1.1))))
+                       (fstar sq.1 sq.2.1 sq.2.2.1 sq.2.2.2
+                       ,pD (suc sq.2.2.1.1, (fstar sq.1 sq.2.1 sq.2.2.1 sq.2.2.2).2) sq.2.2.1 (sqD sq.1 sq.2.1 sq.2.2.1 sq.2.2.2).2.1
+                       ,(sqD sq.1 sq.2.1 sq.2.2.1 sq.2.2.2).2.2.1
+                       ,(sqD sq.1 sq.2.1 sq.2.2.1 sq.2.2.2).2.2.2)
+       = (sqD0 sq.1 sq.2.1 sq.2.2.1 sq.2.2.2).2.2.2.2
 
     qId (n : nat) (X : ob (suc n)) :
         (p0 : Id obD (fstar n X (n, X.1) (cId DC (n, X.1))) (suc n, X))
@@ -491,5 +559,5 @@ ucToC0 (C : uc) : C0System = hole
                    (q_ n X Z (cC DC Z Y (n, X.1) g f)).1)
           (qComp n X Y f Z g)
 
-    hole : C0System
-         = (ob, homD, D, obSet, ft0, pD, sqD, qId, qComp')
+    hole : CSystem
+         = (ob, homD, D, (obSet, ft0, pD, sqD, qId, qComp'), pbSq)

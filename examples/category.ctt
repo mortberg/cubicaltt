@@ -63,6 +63,7 @@ opaque lemTransEquiv
 
 categoryData : U = (A : U) * (A -> A -> U)
 
+-- Propositional data of a precategory
 isPrecategory2 (C : categoryData) (id : (x : C.1) -> C.2 x x) (c : (x y z : C.1) -> C.2 x y -> C.2 y z -> C.2 x z) : U
   = let A : U = C.1
         hom : A -> A -> U = C.2
@@ -126,6 +127,490 @@ cIdR (C : precategory) (x y : cA C) (f : cH C x y)
 cIdC (C : precategory) (x y z w : cA C) (f : cH C x y) (g : cH C y z) (h : cH C z w)
   : Id (cH C x w) (cC C x z w (cC C x y z f g) h) (cC C x y w f (cC C y z w g h)) = C.2.2.2.2.2.2 x y z w f g h
 
+--
+-- Isomorphisms
+--
+
+iso (C : precategory) (A B : cA C) : U
+  = (f : cH C A B) * (g : cH C B A)
+  * (_ : Id (cH C A A) (cC C A B A f g) (cId C A))
+  * (Id (cH C B B) (cC C B A B g f) (cId C B))
+
+
+isoEq (C : precategory) (A B : cA C) (f g : iso C A B) (p1 : Id (cH C A B) f.1 g.1) (p2 : Id (cH C B A) f.2.1 g.2.1)
+  : Id (iso C A B) f g
+  = <i> (p1@i,p2@i
+        ,lemIdPProp (Id (cH C A A) (cC C A B A (p1@0) (p2@0)) (cId C A))
+                    (Id (cH C A A) (cC C A B A (p1@1) (p2@1)) (cId C A))
+                    (cHSet C A A (cC C A B A (p1@0) (p2@0)) (cId C A))
+                    (<i>Id (cH C A A) (cC C A B A (p1@i) (p2@i)) (cId C A))
+                    f.2.2.1 g.2.2.1 @ i
+        ,lemIdPProp (Id (cH C B B) (cC C B A B (p2@0) (p1@0)) (cId C B))
+                    (Id (cH C B B) (cC C B A B (p2@1) (p1@1)) (cId C B))
+                    (cHSet C B B (cC C B A B (p2@0) (p1@0)) (cId C B))
+                    (<i>Id (cH C B B) (cC C B A B (p2@i) (p1@i)) (cId C B))
+                    f.2.2.2 g.2.2.2 @ i)
+opaque isoEq
+
+invIso (C : precategory) (A B : cA C) (f : iso C A B) : iso C B A = (f.2.1, f.1, f.2.2.2, f.2.2.1)
+idIso (C : precategory) (A : cA C) : iso C A A = (cId C A, cId C A, cIdL C A A (cId C A), cIdL C A A (cId C A))
+
+invIsoEquiv (C : precategory) (A B : cA C) : isEquiv (iso C A B) (iso C B A) (invIso C A B)
+  = gradLemma (iso C A B) (iso C B A) (invIso C A B) (invIso C B A) (\(x : iso C B A) -> <_> x) (\(x : iso C A B) -> <_> x)
+
+invIsoEq (C : precategory) (A B : cA C) : Id U (iso C A B) (iso C B A)
+  = equivId (iso C A B) (iso C B A) (invIso C A B) (invIsoEquiv C A B)
+
+compIsoHelper (X : precategory) (A B C : cA X) (f : iso X A B) (g : iso X B C)
+  : Id (cH X A A) (cC X A C A (cC X A B C f.1 g.1) (cC X C B A g.2.1 f.2.1)) (cId X A)
+  = compId (cH X A A)
+            (cC X A C A (cC X A B C f.1 g.1) (cC X C B A g.2.1 f.2.1))
+            (cC X A B A f.1 (cC X B C A g.1 (cC X C B A g.2.1 f.2.1)))
+            (cId X A)
+            (cIdC X A B C A f.1 g.1 (cC X C B A g.2.1 f.2.1))
+    (compId (cH X A A)
+            (cC X A B A f.1 (cC X B C A g.1 (cC X C B A g.2.1 f.2.1)))
+            (cC X A B A f.1 (cC X B B A (cC X B C B g.1 g.2.1) f.2.1))
+            (cId X A)
+            (<i>cC X A B A f.1 (cIdC X B C B A g.1 g.2.1 f.2.1 @ -i))
+    (compId (cH X A A)
+            (cC X A B A f.1 (cC X B B A (cC X B C B g.1 g.2.1) f.2.1))
+            (cC X A B A f.1 (cC X B B A (cId X B) f.2.1))
+            (cId X A)
+            (<i>cC X A B A f.1 (cC X B B A (g.2.2.1 @ i) f.2.1))
+    (compId (cH X A A)
+            (cC X A B A f.1 (cC X B B A (cId X B) f.2.1))
+            (cC X A B A f.1 f.2.1)
+            (cId X A)
+            (<i>cC X A B A f.1 (cIdL X B A f.2.1 @ i))
+            f.2.2.1)))
+opaque compIsoHelper
+
+compIso (X : precategory) (A B C : cA X) (f : iso X A B) (g : iso X B C) : iso X A C
+  = (cC X A B C f.1 g.1, cC X C B A g.2.1 f.2.1
+    ,compIsoHelper X A B C f g
+    ,compIsoHelper X C B A (invIso X B C g) (invIso X A B f))
+
+IdLIso (C : precategory) (A B : cA C) (f : iso C A B) : Id (iso C A B) (compIso C A A B (idIso C A) f) f
+  = isoEq C A B (compIso C A A B (idIso C A) f) f (cIdL C A B f.1) (cIdR C B A f.2.1)
+opaque IdLIso
+IdRIso (C : precategory) (A B : cA C) (f : iso C A B) : Id (iso C A B) (compIso C A B B f (idIso C B)) f
+  = isoEq C A B (compIso C A B B f (idIso C B)) f (cIdR C A B f.1) (cIdL C B A f.2.1)
+opaque IdRIso
+IdCIso (X : precategory) (A B C D : cA X) (f : iso X A B) (g : iso X B C) (h : iso X C D)
+  : Id (iso X A D) (compIso X A C D (compIso X A B C f g) h) (compIso X A B D f (compIso X B C D g h))
+  = isoEq X A D (compIso X A C D (compIso X A B C f g) h) (compIso X A B D f (compIso X B C D g h))
+    (cIdC X A B C D f.1 g.1 h.1) (<i>cIdC X D C B A h.2.1 g.2.1 f.2.1@-i)
+opaque IdCIso
+IdInvLIso (X : precategory) (A B : cA X) (f : iso X A B) : Id (iso X B B) (compIso X B A B (invIso X A B f) f) (idIso X B)
+  = isoEq X B B (compIso X B A B (invIso X A B f) f) (idIso X B) f.2.2.2 f.2.2.2
+opaque IdInvLIso
+
+opaque compIso
+
+--
+-- Categories
+--
+
+eqToIso (C : precategory) (A B : cA C) (p : Id (cA C) A B) : iso C A B
+  = J (cA C) A (\(B : cA C) -> \(p : Id (cA C) A B) -> iso C A B) (idIso C A) B p
+
+isCategory (C : precategory) : U = (A : cA C) -> isContr ((B : cA C) * iso C A B)
+propIsCategory (C : precategory) : prop (isCategory C)
+  = propPi (cA C) (\(A : cA C) -> isContr ((B : cA C) * iso C A B))
+    (\(A : cA C) -> propIsContr ((B : cA C) * iso C A B))
+category : U = (C:precategory)*isCategory C
+
+lemIsCategory (C : precategory) (isC : isCategory C) (A B : cA C) (e : iso C A B) : Id ((B : cA C) * iso C A B) (A, idIso C A) (B, e)
+  = <i> (isContrProp ((B : cA C) * iso C A B) (isC A) (A, idIso C A) (B, e) @ i)
+
+lemIsCategory2 (C : precategory) (isC : isCategory C) (A B : cA C) : isEquiv (Id (cA C) A B) (iso C A B) (eqToIso C A B)
+  = equivFunFib (cA C) (Id (cA C) A) (iso C A) (eqToIso C A) (lemSinglContr (cA C) A) (isC A) B
+
+lemIsCategory3 (C : precategory) (isC : isCategory C) (A B : cA C) : Id U (Id (cA C) A B) (iso C A B)
+  = equivId (Id (cA C) A B) (iso C A B) (eqToIso C A B) (lemIsCategory2 C isC A B)
+
+--
+
+setCat : precategory
+  = ((hSet, \(a b : hSet) -> a.1 -> b.1)
+    ,\(a : hSet) (x : a.1) -> x
+    ,\(a b c : hSet) (f : a.1 -> b.1) (g : b.1 -> c.1) (x : a.1) -> g (f x)
+    ,\(a b : hSet) -> setPi a.1 (\(_ : a.1) -> b.1) (\(_ : a.1) -> b.2)
+    ,\(a b : hSet) (f : a.1 -> b.1) -> <_> \(x : a.1) -> f x
+    ,\(a b : hSet) (f : a.1 -> b.1) -> <_> \(x : a.1) -> f x
+    ,\(a b c d : hSet) (f : a.1 -> b.1) (g : b.1 -> c.1) (h : c.1 -> d.1) -> <_> \(x : a.1) -> h (g (f x)))
+  where hSet : U = Sigma U set
+
+--
+-- the structure identity principle
+--
+
+structure (X : precategory) : U
+  = (P : cA X -> U)
+  * (H : (x y : cA X) -> (a : P x) -> (b : P y) -> (f : cH X x y) -> U)
+  * (propH : (x y : cA X) -> (a : P x) -> (b : P y) -> (f : cH X x y) -> prop (H x y a b f))
+  * (Hid : (x : cA X) -> (a : P x) -> H x x a a (cId X x))
+  * ((x y z : cA X) -> (a : P x) -> (b : P y) -> (c : P z) ->
+     (f : cH X x y) -> (g : cH X y z) ->
+     H x y a b f -> H y z b c g -> H x z a c (cC X x y z f g))
+
+sP (X : precategory) (S : structure X) : cA X -> U = S.1
+sH (X : precategory) (S : structure X) : (x y : cA X) -> (a : sP X S x) -> (b : sP X S y) -> (f : cH X x y) -> U = S.2.1
+sHProp (X : precategory) (S : structure X)
+  : (x y : cA X) -> (a : sP X S x) -> (b : sP X S y) -> (f : cH X x y) -> prop (sH X S x y a b f) = S.2.2.1
+sHId (X : precategory) (S : structure X) : (x : cA X) -> (a : sP X S x) -> sH X S x x a a (cId X x) = S.2.2.2.1
+sHComp (X : precategory) (S : structure X)
+  : (x y z : cA X) -> (a : sP X S x) -> (b : sP X S y) -> (c : sP X S z) ->
+    (f : cH X x y) -> (g : cH X y z) ->
+    sH X S x y a b f -> sH X S y z b c g -> sH X S x z a c (cC X x y z f g)
+  = S.2.2.2.2
+
+isStandardStructure (X : precategory) (S : structure X) : U
+  = (x : cA X) -> (a b : sP X S x) ->
+    sH X S x x a b (cId X x) -> sH X S x x b a (cId X x) ->
+    Id (sP X S x) a b
+
+sipPrecategory (C : precategory) (S : structure C) : precategory = ((ob, hom), (id, cmp, homSet, idL, idR, idC))
+  where
+    ob : U = Sigma (cA C) (sP C S)
+    hom (X Y : ob) : U = (f : cH C X.1 Y.1) * sH C S X.1 Y.1 X.2 Y.2 f
+    homSet (X Y : ob) : set (hom X Y)
+      = setSig (cH C X.1 Y.1) (sH C S X.1 Y.1 X.2 Y.2)
+        (cHSet C X.1 Y.1) (\(f : cH C X.1 Y.1) -> propSet (sH C S X.1 Y.1 X.2 Y.2 f) (sHProp C S X.1 Y.1 X.2 Y.2 f))
+    id (X : ob) : hom X X = (cId C X.1, sHId C S X.1 X.2)
+    cmp (x y z : ob) (f : hom x y) (g : hom y z) : hom x z
+      = (cC C x.1 y.1 z.1 f.1 g.1, sHComp C S x.1 y.1 z.1 x.2 y.2 z.2 f.1 g.1 f.2 g.2)
+    idL (x y : ob) (f : hom x y) : Id (hom x y) (cmp x x y (id x) f) f
+      = <i> (cIdL C x.1 y.1 f.1 @ i
+            ,lemIdPProp (sH C S x.1 y.1 x.2 y.2 (cmp x x y (id x) f).1)
+                        (sH C S x.1 y.1 x.2 y.2 f.1)
+                        (sHProp C S x.1 y.1 x.2 y.2 (cmp x x y (id x) f).1)
+                        (<i>sH C S x.1 y.1 x.2 y.2 (cIdL C x.1 y.1 f.1 @ i))
+                        (cmp x x y (id x) f).2 f.2 @ i)
+    idR (x y : ob) (f : hom x y) : Id (hom x y) (cmp x y y f (id y)) f
+      = <i> (cIdR C x.1 y.1 f.1 @ i
+            ,lemIdPProp (sH C S x.1 y.1 x.2 y.2 (cmp x y y f (id y)).1)
+                        (sH C S x.1 y.1 x.2 y.2 f.1)
+                        (sHProp C S x.1 y.1 x.2 y.2 (cmp x y y f (id y)).1)
+                        (<i>sH C S x.1 y.1 x.2 y.2 (cIdR C x.1 y.1 f.1 @ i))
+                        (cmp x y y f (id y)).2 f.2 @ i)
+    idC (x y z w : ob) (f : hom x y) (g : hom y z) (h : hom z w) : Id (hom x w) (cmp x z w (cmp x y z f g) h) (cmp x y w f (cmp y z w g h))
+      = <i> (cIdC C x.1 y.1 z.1 w.1 f.1 g.1 h.1 @ i
+            ,lemIdPProp (sH C S x.1 w.1 x.2 w.2 (cmp x z w (cmp x y z f g) h).1)
+                        (sH C S x.1 w.1 x.2 w.2 (cmp x y w f (cmp y z w g h)).1)
+                        (sHProp C S x.1 w.1 x.2 w.2 (cmp x z w (cmp x y z f g) h).1)
+                        (<i>sH C S x.1 w.1 x.2 w.2 (cIdC C x.1y.1 z.1 w.1 f.1 g.1 h.1 @ i))
+                        (cmp x z w (cmp x y z f g) h).2 (cmp x y w f (cmp y z w g h)).2 @ i)
+
+isContrProp (A : U) (p : isContr A) (x y : A) : Id A x y = compId A x p.1 y (<i> p.2 x @ -i) (p.2 y)
+isContrSig (A:U) (B:A-> U) (cA:isContr A) (cB : (x:A) -> isContr (B x)) : isContr (Sigma A B)
+  = ((cA.1, (cB cA.1).1), \(x:Sigma A B) -> propSig A B (isContrProp A cA) (\(x:A)->isContrProp (B x) (cB x)) (cA.1, (cB cA.1).1) x)
+
+-- the uncommented definition is a bit slow to typecheck
+sip (X : precategory) (isC : isCategory X) (S : structure X) (isS : isStandardStructure X S) : isCategory (sipPrecategory X S)
+  = undefined
+  -- = hole
+  -- where
+  --   D : precategory = sipPrecategory X S
+  --   eq1 (A : cA D)
+  --     : Id U ((B : cA D) * iso D A B)
+  --            ((C : (B1 : cA X) * ( iso X A.1 B1))
+  --           * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
+  --            = isoId
+  --              ((B : cA D) * iso D A B)
+  --              ((C : (B1 : cA X) * ( iso X A.1 B1))
+  --             * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
+  --              F G FG GF
+  --     where
+  --       F (C : (B : cA D) * iso D A B)
+  --        : ((C : (B1 : cA X) * ( iso X A.1 B1))
+  --        * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
+  --        = ((C.1.1, C.2.1.1, C.2.2.1.1, <i>(C.2.2.2.1@i).1, <i>(C.2.2.2.2@i).1),
+  --           C.1.2, C.2.1.2, C.2.2.1.2)
+  --       G (C : ((C : (B1 : cA X) * ( iso X A.1 B1))
+  --             * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1))
+  --        : (B : cA D) * iso D A B
+  --        = ((C.1.1, C.2.1), (C.1.2.1, C.2.2.1), (C.1.2.2.1, C.2.2.2)
+  --          , <i> (C.1.2.2.2.1 @ i
+  --                ,lemIdPProp (sH X S A.1 A.1 A.2 A.2 (cC X A.1 C.1.1 A.1 C.1.2.1 C.1.2.2.1))
+  --                            (sH X S A.1 A.1 A.2 A.2 (cId X A.1))
+  --                            (sHProp X S A.1 A.1 A.2 A.2 (cC X A.1 C.1.1 A.1 C.1.2.1 C.1.2.2.1))
+  --                            (<i>sH X S A.1 A.1 A.2 A.2 (C.1.2.2.2.1 @ i))
+  --                            (sHComp X S A.1 C.1.1 A.1 A.2 C.2.1 A.2 C.1.2.1 C.1.2.2.1 C.2.2.1 C.2.2.2)
+  --                            (sHId X S A.1 A.2) @ i)
+  --          , <i> (C.1.2.2.2.2 @ i
+  --                ,lemIdPProp (sH X S C.1.1 C.1.1 C.2.1 C.2.1 (cC X C.1.1 A.1 C.1.1 C.1.2.2.1 C.1.2.1))
+  --                            (sH X S C.1.1 C.1.1 C.2.1 C.2.1 (cId X C.1.1))
+  --                            (sHProp X S C.1.1 C.1.1 C.2.1 C.2.1 (cC X C.1.1 A.1 C.1.1 C.1.2.2.1 C.1.2.1))
+  --                            (<i>sH X S C.1.1 C.1.1 C.2.1 C.2.1 (C.1.2.2.2.2 @ i))
+  --                            (sHComp X S C.1.1 A.1 C.1.1 C.2.1 A.2 C.2.1 C.1.2.2.1 C.1.2.1 C.2.2.2 C.2.2.1)
+  --                            (sHId X S C.1.1 C.2.1) @ i))
+  --       FG (C : ((C : (B1 : cA X) * ( iso X A.1 B1))
+  --             * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1))
+  --         : Id ((C : (B1 : cA X) * ( iso X A.1 B1))
+  --            * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
+  --              (F (G C)) C
+  --         = <_> C
+  --       GF (C : (B : cA D) * iso D A B) : Id ((B : cA D) * iso D A B) (G (F C)) C
+  --         = <i> (C.1, C.2.1, C.2.2.1
+  --               , <j> ((C.2.2.2.1 @ j).1
+  --                     ,lemIdPSet (sH X S A.1 A.1 A.2 A.2 (cC X A.1 C.1.1 A.1 C.2.1.1 C.2.2.1.1))
+  --                                (sH X S A.1 A.1 A.2 A.2 (cId X A.1))
+  --                                (propSet (sH X S A.1 A.1 A.2 A.2 (cC X A.1 C.1.1 A.1 C.2.1.1 C.2.2.1.1))
+  --                                         (sHProp X S A.1 A.1 A.2 A.2 (cC X A.1 C.1.1 A.1 C.2.1.1 C.2.2.1.1)))
+  --                                (<j>sH X S A.1 A.1 A.2 A.2 (C.2.2.2.1 @ j).1)
+  --                                (sHComp X S A.1 C.1.1 A.1 A.2 C.1.2 A.2 C.2.1.1 C.2.2.1.1 C.2.1.2 C.2.2.1.2)
+  --                                (sHId X S A.1 A.2)
+  --                                (<j>((G (F C)).2.2.2.1 @ j).2)
+  --                                (<j>(C.2.2.2.1 @ j).2) @i@j)
+  --               , <j> ((C.2.2.2.2 @ j).1
+  --                     ,lemIdPSet (sH X S C.1.1 C.1.1 C.1.2 C.1.2 (cC X C.1.1 A.1 C.1.1 C.2.2.1.1 C.2.1.1))
+  --                                (sH X S C.1.1 C.1.1 C.1.2 C.1.2 (cId X C.1.1))
+  --                                (propSet (sH X S C.1.1 C.1.1 C.1.2 C.1.2 (cC X C.1.1 A.1 C.1.1 C.2.2.1.1 C.2.1.1))
+  --                                         (sHProp X S C.1.1 C.1.1 C.1.2 C.1.2 (cC X C.1.1 A.1 C.1.1 C.2.2.1.1 C.2.1.1)))
+  --                                (<j>sH X S C.1.1 C.1.1 C.1.2 C.1.2 (C.2.2.2.2 @ j).1)
+  --                                (sHComp X S C.1.1 A.1 C.1.1 C.1.2 A.2 C.1.2 C.2.2.1.1 C.2.1.1 C.2.2.1.2 C.2.1.2)
+  --                                (sHId X S C.1.1 C.1.2)
+  --                                (<j>((G (F C)).2.2.2.2 @ j).2)
+  --                                (<j>(C.2.2.2.2 @ j).2) @i@j))
+  --   hole0 (A : cA D)
+  --      : isContr ((C : (B1 : cA X) * ( iso X A.1 B1))
+  --               * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
+  --      = isContrSig ((B1 : cA X) * ( iso X A.1 B1))
+  --                   (\(C : (B1 : cA X) * ( iso X A.1 B1)) ->
+  --                     (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
+  --                   (isC A.1)
+  --                   (\(C : (B1 : cA X) * ( iso X A.1 B1)) ->
+  --                     let p : Id ((B1 : cA X) * ( iso X A.1 B1)) (A.1, idIso X A.1) C
+  --                           = lemIsCategory X isC A.1 C.1 C.2
+  --                     in transport
+  --                       (<i> isContr ((B2 : sP X S (p@i).1) * (_ : sH X S A.1 (p@i).1 A.2 B2 (p@i).2.1) * sH X S (p@i).1 A.1 B2 A.2 (p@i).2.2.1))
+  --                       ((A.2,sHId X S A.1 A.2,sHId X S A.1 A.2)
+  --                       ,\(Y : (B2 : sP X S A.1) * (_ : sH X S A.1 A.1 A.2 B2 (cId X A.1)) * sH X S A.1 A.1 B2 A.2 (cId X A.1)) ->
+  --                         <i> (isS A.1 A.2 Y.1 Y.2.1 Y.2.2 @ i
+  --                             ,lemIdPProp (sH X S A.1 A.1 A.2 A.2 (cId X A.1))
+  --                                         (sH X S A.1 A.1 A.2 Y.1 (cId X A.1))
+  --                                         (sHProp X S A.1 A.1 A.2 A.2 (cId X A.1))
+  --                                         (<i>sH X S A.1 A.1 A.2 (isS A.1 A.2 Y.1 Y.2.1 Y.2.2 @ i) (cId X A.1))
+  --                                         (sHId X S A.1 A.2) Y.2.1 @ i
+  --                             ,lemIdPProp (sH X S A.1 A.1 A.2 A.2 (cId X A.1))
+  --                                         (sH X S A.1 A.1 Y.1 A.2 (cId X A.1))
+  --                                         (sHProp X S A.1 A.1 A.2 A.2 (cId X A.1))
+  --                                         (<i>sH X S A.1 A.1 (isS A.1 A.2 Y.1 Y.2.1 Y.2.2 @ i) A.2 (cId X A.1))
+  --                                         (sHId X S A.1 A.2) Y.2.2 @ i)))
+  --   hole (A : cA D) : isContr ((B : cA D) * iso D A B) = transport (<i>isContr(eq1 A@-i)) (hole0 A)
+opaque sip
+
+--
+-- Functors
+--
+
+functor (A B : precategory) : U
+  = (Fob : cA A -> cA B)
+  * (Fmor : (x y : cA A) -> cH A x y -> cH B (Fob x) (Fob y))
+  * (Fid : (x : cA A) -> Id (cH B (Fob x) (Fob x)) (Fmor x x (cId A x)) (cId B (Fob x)))
+  * ((x y z : cA A) -> (f : cH A x y) -> (g : cH A y z) -> Id (cH B (Fob x) (Fob z)) (Fmor x z (cC A x y z f g)) (cC B (Fob x) (Fob y) (Fob z) (Fmor x y f) (Fmor y z g)))
+
+idFunctor (A : precategory) : functor A A
+  = (\(x : cA A) -> x
+    ,\(x y : cA A) (h : cH A x y) -> h
+    ,\(x : cA A) -> <_> cId A x
+    ,\(x y z : cA A) (f : cH A x y) (g : cH A y z) -> <_> cC A x y z f g)
+
+compFunctor (A B C : precategory) (F : functor A B) (G : functor B C) : functor A C
+  = (\(x : cA A) -> G.1 (F.1 x)
+    ,\(x y : cA A) (h : cH A x y) -> G.2.1 (F.1 x) (F.1 y) (F.2.1 x y h)
+    ,\(x : cA A) -> compId (cH C (G.1 (F.1 x)) (G.1 (F.1 x)))
+                           (G.2.1 (F.1 x) (F.1 x) (F.2.1 x x (cId A x)))
+                           (G.2.1 (F.1 x) (F.1 x) (cId B (F.1 x)))
+                           (cId C (G.1 (F.1 x)))
+                           (<i>G.2.1 (F.1 x) (F.1 x) (F.2.2.1 x @ i))
+                           (G.2.2.1 (F.1 x))
+    ,\(x y z : cA A) (f : cH A x y) (g : cH A y z) ->
+        compId (cH C (G.1 (F.1 x)) (G.1 (F.1 z)))
+               (G.2.1 (F.1 x) (F.1 z) (F.2.1 x z (cC A x y z f g)))
+               (G.2.1 (F.1 x) (F.1 z) (cC B (F.1 x) (F.1 y) (F.1 z) (F.2.1 x y f) (F.2.1 y z g)))
+               (cC C (G.1 (F.1 x)) (G.1 (F.1 y)) (G.1 (F.1 z)) (G.2.1 (F.1 x) (F.1 y) (F.2.1 x y f)) (G.2.1 (F.1 y) (F.1 z) (F.2.1 y z g)))
+               (<i> G.2.1 (F.1 x) (F.1 z) (F.2.2.2 x y z f g @ i))
+               (G.2.2.2 (F.1 x) (F.1 y) (F.1 z) (F.2.1 x y f) (F.2.1 y z g))
+    )
+
+ffFunctor (A B : precategory) (F : functor A B) : U
+  = (a b : cA A) -> isEquiv (cH A a b) (cH B (F.1 a) (F.1 b)) (F.2.1 a b)
+ffEq (A B : precategory) (F : functor A B) (ff : ffFunctor A B F) (a b : cA A)
+  : Id U (cH A a b) (cH B (F.1 a) (F.1 b))
+  = equivId (cH A a b) (cH B (F.1 a) (F.1 b)) (F.2.1 a b) (ff a b)
+propFFFunctor (A B : precategory) (F : functor A B) : prop (ffFunctor A B F)
+  = propPi (cA A) (\(a : cA A) -> (b : cA A) -> isEquiv (cH A a b) (cH B (F.1 a) (F.1 b)) (F.2.1 a b))
+    (\(a : cA A) -> propPi (cA A) (\(b : cA A) -> isEquiv (cH A a b) (cH B (F.1 a) (F.1 b)) (F.2.1 a b))
+    (\(b : cA A) -> propIsEquiv (cH A a b) (cH B (F.1 a) (F.1 b)) (F.2.1 a b)))
+
+lem10 (A B : U) (e : equiv A B) (x y : B) (p : Id A (e.2 x).1.1 (e.2 y).1.1) : Id B x y
+  = transport
+    (compId U (Id B (e.1 (e.2 x).1.1) (e.1 (e.2 y).1.1)) (Id B x (e.1 (e.2 y).1.1)) (Id B x y)
+     (<i> Id B (retEq A B e x @ i) (e.1 (e.2 y).1.1)) (<i> Id B x (retEq A B e y @ i)))
+    (mapOnPath A B e.1 (e.2 x).1.1 (e.2 y).1.1 p)
+opaque lem10
+
+lem10' (A B : U) (e : equiv A B) (x y : A) (p : Id B (e.1 x) (e.1 y)) : Id A x y
+  = transport
+    (compId U (Id A (e.2 (e.1 x)).1.1 (e.2 (e.1 y)).1.1) (Id A x (e.2 (e.1 y)).1.1) (Id A x y)
+     (<i> Id A (secEq A B e x @ i) (e.2 (e.1 y)).1.1) (<i> Id A x (secEq A B e y @ i))
+     )
+    (mapOnPath B A (invEq A B e) (e.1 x) (e.1 y) p)
+opaque lem10'
+
+lemFF (A B : precategory) (F : functor A B) (ff : ffFunctor A B F) (x y : cA A)
+  : Id U (iso A x y) (iso B (F.1 x) (F.1 y))
+  = hole
+  where
+    F0 (f : iso A x y) : iso B (F.1 x) (F.1 y)
+      = (F.2.1 x y f.1, F.2.1 y x f.2.1
+        ,compId (cH B (F.1 x) (F.1 x))
+                (cC B (F.1 x) (F.1 y) (F.1 x) (F.2.1 x y f.1) (F.2.1 y x f.2.1))
+                (F.2.1 x x (cC A x y x f.1 f.2.1))
+                (cId B (F.1 x))
+                (<i>F.2.2.2 x y x f.1 f.2.1 @-i)
+        (compId (cH B (F.1 x) (F.1 x))
+                (F.2.1 x x (cC A x y x f.1 f.2.1))
+                (F.2.1 x x (cId A x))
+                (cId B (F.1 x))
+                (<i>F.2.1 x x (f.2.2.1@i))
+                (F.2.2.1 x))
+        ,compId (cH B (F.1 y) (F.1 y))
+                (cC B (F.1 y) (F.1 x) (F.1 y) (F.2.1 y x f.2.1) (F.2.1 x y f.1))
+                (F.2.1 y y (cC A y x y f.2.1 f.1))
+                (cId B (F.1 y))
+                (<i>F.2.2.2 y x y f.2.1 f.1 @-i)
+        (compId (cH B (F.1 y) (F.1 y))
+                (F.2.1 y y (cC A y x y f.2.1 f.1))
+                (F.2.1 y y (cId A y))
+                (cId B (F.1 y))
+                (<i>F.2.1 y y (f.2.2.2@i))
+                (F.2.2.1 y)))
+    G0 (g : iso B (F.1 x) (F.1 y)) : iso A x y
+      = ((ff x y g.1).1.1
+        ,(ff y x g.2.1).1.1
+        ,lem10' (cH A x x) (cH B (F.1 x) (F.1 x)) (F.2.1 x x, ff x x) (cC A x y x (ff x y g.1).1.1 (ff y x g.2.1).1.1) (cId A x)
+          (compId (cH B (F.1 x) (F.1 x))
+                  (F.2.1 x x (cC A x y x (ff x y g.1).1.1 (ff y x g.2.1).1.1))
+                  (cC B (F.1 x) (F.1 y) (F.1 x) (F.2.1 x y (ff x y g.1).1.1) (F.2.1 y x (ff y x g.2.1).1.1))
+                  (F.2.1 x x (cId A x))
+                  (F.2.2.2 x y x (ff x y g.1).1.1 (ff y x g.2.1).1.1)
+          (compId (cH B (F.1 x) (F.1 x))
+                  (cC B (F.1 x) (F.1 y) (F.1 x) (F.2.1 x y (ff x y g.1).1.1) (F.2.1 y x (ff y x g.2.1).1.1))
+                  (cC B (F.1 x) (F.1 y) (F.1 x) g.1 g.2.1)
+                  (F.2.1 x x (cId A x))
+                  (<i>cC B (F.1 x) (F.1 y) (F.1 x) ((ff x y g.1).1.2@-i) ((ff y x g.2.1).1.2@-i))
+          (compId (cH B (F.1 x) (F.1 x))
+                  (cC B (F.1 x) (F.1 y) (F.1 x) g.1 g.2.1)
+                  (cId B (F.1 x))
+                  (F.2.1 x x (cId A x))
+                  g.2.2.1
+                  (<i>F.2.2.1 x @ -i))))
+        ,lem10' (cH A y y) (cH B (F.1 y) (F.1 y)) (F.2.1 y y, ff y y) (cC A y x y (ff y x g.2.1).1.1 (ff x y g.1).1.1) (cId A y)
+          (compId (cH B (F.1 y) (F.1 y))
+                  (F.2.1 y y (cC A y x y (ff y x g.2.1).1.1 (ff x y g.1).1.1))
+                  (cC B (F.1 y) (F.1 x) (F.1 y) (F.2.1 y x (ff y x g.2.1).1.1) (F.2.1 x y (ff x y g.1).1.1))
+                  (F.2.1 y y (cId A y))
+                  (F.2.2.2 y x y (ff y x g.2.1).1.1 (ff x y g.1).1.1)
+          (compId (cH B (F.1 y) (F.1 y))
+                  (cC B (F.1 y) (F.1 x) (F.1 y) (F.2.1 y x (ff y x g.2.1).1.1) (F.2.1 x y (ff x y g.1).1.1))
+                  (cC B (F.1 y) (F.1 x) (F.1 y) g.2.1 g.1)
+                  (F.2.1 y y (cId A y))
+                  (<i>cC B (F.1 y) (F.1 x) (F.1 y) ((ff y x g.2.1).1.2@-i) ((ff x y g.1).1.2@-i))
+          (compId (cH B (F.1 y) (F.1 y))
+                  (cC B (F.1 y) (F.1 x) (F.1 y) g.2.1 g.1)
+                  (cId B (F.1 y))
+                  (F.2.1 y y (cId A y))
+                  g.2.2.2
+                  (<i>F.2.2.1 y @ -i))))
+        )
+    FG (g : iso B (F.1 x) (F.1 y)) : Id (iso B (F.1 x) (F.1 y)) (F0 (G0 g)) g
+      = isoEq B (F.1 x) (F.1 y) (F0 (G0 g)) g
+        (<i>(ff x y g.1).1.2@-i) (<i>(ff y x g.2.1).1.2@-i)
+    GF (f : iso A x y) : Id (iso A x y) (G0 (F0 f)) f
+      = isoEq A x y (G0 (F0 f)) f
+        (<i> ((ff x y (F.2.1 x y f.1)).2 (f.1,<j>F.2.1 x y f.1)@i).1)
+        (<i> ((ff y x (F.2.1 y x f.2.1)).2 (f.2.1,<j>F.2.1 y x f.2.1)@i).1)
+    hole : Id U (iso A x y) (iso B (F.1 x) (F.1 y)) = isoId (iso A x y) (iso B (F.1 x) (F.1 y)) F0 G0 FG GF
+opaque lemFF
+
+F12 (A B : precategory) (isC : isCategory A) (F : functor A B)
+    (p1 : ffFunctor A B F) (x : cA A) : isContr ((y : cA A) * iso B (F.1 y) (F.1 x))
+  = transport (<i>isContr ((y : cA A) * (invIsoEq B (F.1 x) (F.1 y)@i))) hole
+  where
+    hole2 (y : cA A) : Id U (iso A x y) (iso B (F.1 x) (F.1 y))
+          = lemFF A B F p1 x y
+    hole : isContr ((y : cA A) * iso B (F.1 x) (F.1 y))
+         = transport (<i> isContr ((y : cA A) * (hole2 y @ i))) (isC x)
+opaque F12
+
+-- the uncommented definition is a bit slow to typecheck
+F23 (A B : precategory) (F : functor A B) (p2 : (x : cA A) -> isContr ((y : cA A) * iso B (F.1 y) (F.1 x)))
+    (x : cA B)
+    (a b : (y : cA A) * iso B (F.1 y) x) : Id ((y : cA A) * iso B (F.1 y) x) a b
+    = undefined
+--     = transport p hole3
+--   where
+--     hole2 : Id ((y : cA A) * iso B (F.1 y) (F.1 a.1))
+--             (a.1, idIso B (F.1 a.1)) (b.1, compIso B (F.1 b.1) x (F.1 a.1) b.2 (invIso B (F.1 a.1) x a.2))
+--       = isContrProp ((y : cA A) * iso B (F.1 y) (F.1 a.1)) (p2 a.1)
+--             (a.1, idIso B (F.1 a.1)) (b.1, compIso B (F.1 b.1) x (F.1 a.1) b.2 (invIso B (F.1 a.1) x a.2))
+--     opaque hole2
+--     hole3 : Id ((y : cA A) * iso B (F.1 y) x)
+--             (a.1, compIso B (F.1 a.1) (F.1 a.1) x (idIso B (F.1 a.1)) a.2)
+--             (b.1, compIso B (F.1 b.1) (F.1 a.1) x (compIso B (F.1 b.1) x (F.1 a.1) b.2 (invIso B (F.1 a.1) x a.2)) a.2)
+--           = <i> ((hole2@i).1, compIso B (F.1 (hole2@i).1) (F.1 a.1) x (hole2@i).2 a.2)
+--     opaque hole3
+--     p : Id U (Id ((y : cA A) * iso B (F.1 y) x)
+--               (a.1, compIso B (F.1 a.1) (F.1 a.1) x (idIso B (F.1 a.1)) a.2)
+--               (b.1, compIso B (F.1 b.1) (F.1 a.1) x (compIso B (F.1 b.1) x (F.1 a.1) b.2 (invIso B (F.1 a.1) x a.2)) a.2))
+--              (Id ((y : cA A) * iso B (F.1 y) x) a b)
+--       = (<i>Id ((y : cA A) * iso B (F.1 y) x)
+--                (a.1, IdLIso B (F.1 a.1) x a.2 @ i)
+--                (b.1, compId (iso B (F.1 b.1) x)
+--                        (compIso B (F.1 b.1) (F.1 a.1) x (compIso B (F.1 b.1) x (F.1 a.1) b.2 (invIso B (F.1 a.1) x a.2)) a.2)
+--                        (compIso B (F.1 b.1) x x b.2 (compIso B x (F.1 a.1) x (invIso B (F.1 a.1) x a.2) a.2))
+--                        b.2
+--                        (IdCIso B (F.1 b.1) x (F.1 a.1) x b.2 (invIso B (F.1 a.1) x a.2) a.2)
+--                     (compId (iso B (F.1 b.1) x)
+--                        (compIso B (F.1 b.1) x x b.2 (compIso B x (F.1 a.1) x (invIso B (F.1 a.1) x a.2) a.2))
+--                        (compIso B (F.1 b.1) x x b.2 (idIso B x))
+--                        b.2
+--                        (<i>compIso B (F.1 b.1) x x b.2 (IdInvLIso B (F.1 a.1) x a.2 @ i))
+--                        (IdRIso B (F.1 b.1) x b.2))
+--                        @ i))
+opaque F23
+
+--
+-- Equivalences of precategories
+--
+
+catIsEquiv (A B : precategory) (F : functor A B) : U
+  = (_ : ffFunctor A B F)
+  * ((b : cA B) -> (a : cA A) * iso B (F.1 a) b)
+catEquiv (A B : precategory) : U = (F : functor A B) * catIsEquiv A B F
+catPropIsEquiv (A B : precategory) (isC : isCategory A) (F : functor A B) : prop (catIsEquiv A B F)
+  = propSig (ffFunctor A B F) (\(_ : ffFunctor A B F) -> (b : cA B) -> (a : cA A) * iso B (F.1 a) b)
+            (propFFFunctor A B F)
+            (\(ff : ffFunctor A B F) -> propPi (cA B) (\(b : cA B) -> (a : cA A) * iso B (F.1 a) b)
+               (\(b : cA B) -> F23 A B F (F12 A B isC F ff) b))
+catIdIsEquiv (A : precategory) : catIsEquiv A A (idFunctor A)
+  = (\(a b : cA A) -> idIsEquiv (cH A a b)
+    ,\(b:cA A) -> (b, idIso A b))
+catIdEquiv (A : precategory) : catEquiv A A = (idFunctor A, catIdIsEquiv A)
+
+catIsIso (A B : precategory) (F : functor A B) : U
+  = (_ : ffFunctor A B F) * isEquiv (cA A) (cA B) F.1
+catPropIsIso (A B : precategory) (F : functor A B) : prop (catIsIso A B F)
+  = propSig (ffFunctor A B F) (\(_ : ffFunctor A B F) -> isEquiv (cA A) (cA B) F.1)
+            (propFFFunctor A B F)
+            (\(_ : ffFunctor A B F) -> propIsEquiv (cA A) (cA B) F.1)
+catIso (A B : precategory) : U = (F : functor A B) * catIsIso A B F
+
+--------------------------------------------------------------------------------
 catIso3 (A B : precategory) : U = (e1 : Id U (cA A) (cA B))
                                 * (e2 : IdP (<i>(x y : e1@i)->U) (cH A) (cH B))
                                 * (_ : IdP (<i> (x:e1@i)->(e2@i) x x) (cId A) (cId B))
@@ -382,472 +867,6 @@ eCatIso32 (A B : precategory) : Id U (catIso31 A B) (catIso32 A B)
                 (\(e:catIso323 A B e1 (F e2))-><_>e) (\(e:catIso313 A B e1 e2)-><_>e))
         )))))) @ i
 
---
-
-iso (C : precategory) (A B : cA C) : U
-  = (f : cH C A B) * (g : cH C B A)
-  * (_ : Id (cH C A A) (cC C A B A f g) (cId C A))
-  * (Id (cH C B B) (cC C B A B g f) (cId C B))
-
-isoEq (C : precategory) (A B : cA C) (f g : iso C A B) (p1 : Id (cH C A B) f.1 g.1) (p2 : Id (cH C B A) f.2.1 g.2.1)
-  : Id (iso C A B) f g
-  = <i> (p1@i,p2@i
-        ,lemIdPProp (Id (cH C A A) (cC C A B A (p1@0) (p2@0)) (cId C A))
-                    (Id (cH C A A) (cC C A B A (p1@1) (p2@1)) (cId C A))
-                    (cHSet C A A (cC C A B A (p1@0) (p2@0)) (cId C A))
-                    (<i>Id (cH C A A) (cC C A B A (p1@i) (p2@i)) (cId C A))
-                    f.2.2.1 g.2.2.1 @ i
-        ,lemIdPProp (Id (cH C B B) (cC C B A B (p2@0) (p1@0)) (cId C B))
-                    (Id (cH C B B) (cC C B A B (p2@1) (p1@1)) (cId C B))
-                    (cHSet C B B (cC C B A B (p2@0) (p1@0)) (cId C B))
-                    (<i>Id (cH C B B) (cC C B A B (p2@i) (p1@i)) (cId C B))
-                    f.2.2.2 g.2.2.2 @ i)
-opaque isoEq
-
-invIso (C : precategory) (A B : cA C) (f : iso C A B) : iso C B A = (f.2.1, f.1, f.2.2.2, f.2.2.1)
-idIso (C : precategory) (A : cA C) : iso C A A = (cId C A, cId C A, cIdL C A A (cId C A), cIdL C A A (cId C A))
-
-invIsoEquiv (C : precategory) (A B : cA C) : isEquiv (iso C A B) (iso C B A) (invIso C A B)
-  = gradLemma (iso C A B) (iso C B A) (invIso C A B) (invIso C B A) (\(x : iso C B A) -> <_> x) (\(x : iso C A B) -> <_> x)
-
-invIsoEq (C : precategory) (A B : cA C) : Id U (iso C A B) (iso C B A)
-  = equivId (iso C A B) (iso C B A) (invIso C A B) (invIsoEquiv C A B)
-
-compIsoHelper (X : precategory) (A B C : cA X) (f : iso X A B) (g : iso X B C)
-  : Id (cH X A A) (cC X A C A (cC X A B C f.1 g.1) (cC X C B A g.2.1 f.2.1)) (cId X A)
-  = compId (cH X A A)
-            (cC X A C A (cC X A B C f.1 g.1) (cC X C B A g.2.1 f.2.1))
-            (cC X A B A f.1 (cC X B C A g.1 (cC X C B A g.2.1 f.2.1)))
-            (cId X A)
-            (cIdC X A B C A f.1 g.1 (cC X C B A g.2.1 f.2.1))
-    (compId (cH X A A)
-            (cC X A B A f.1 (cC X B C A g.1 (cC X C B A g.2.1 f.2.1)))
-            (cC X A B A f.1 (cC X B B A (cC X B C B g.1 g.2.1) f.2.1))
-            (cId X A)
-            (<i>cC X A B A f.1 (cIdC X B C B A g.1 g.2.1 f.2.1 @ -i))
-    (compId (cH X A A)
-            (cC X A B A f.1 (cC X B B A (cC X B C B g.1 g.2.1) f.2.1))
-            (cC X A B A f.1 (cC X B B A (cId X B) f.2.1))
-            (cId X A)
-            (<i>cC X A B A f.1 (cC X B B A (g.2.2.1 @ i) f.2.1))
-    (compId (cH X A A)
-            (cC X A B A f.1 (cC X B B A (cId X B) f.2.1))
-            (cC X A B A f.1 f.2.1)
-            (cId X A)
-            (<i>cC X A B A f.1 (cIdL X B A f.2.1 @ i))
-            f.2.2.1)))
-opaque compIsoHelper
-
-compIso (X : precategory) (A B C : cA X) (f : iso X A B) (g : iso X B C) : iso X A C
-  = (cC X A B C f.1 g.1, cC X C B A g.2.1 f.2.1
-    ,compIsoHelper X A B C f g
-    ,compIsoHelper X C B A (invIso X B C g) (invIso X A B f))
-
-IdLIso (C : precategory) (A B : cA C) (f : iso C A B) : Id (iso C A B) (compIso C A A B (idIso C A) f) f
-  = isoEq C A B (compIso C A A B (idIso C A) f) f (cIdL C A B f.1) (cIdR C B A f.2.1)
-opaque IdLIso
-IdRIso (C : precategory) (A B : cA C) (f : iso C A B) : Id (iso C A B) (compIso C A B B f (idIso C B)) f
-  = isoEq C A B (compIso C A B B f (idIso C B)) f (cIdR C A B f.1) (cIdL C B A f.2.1)
-opaque IdRIso
-IdCIso (X : precategory) (A B C D : cA X) (f : iso X A B) (g : iso X B C) (h : iso X C D)
-  : Id (iso X A D) (compIso X A C D (compIso X A B C f g) h) (compIso X A B D f (compIso X B C D g h))
-  = isoEq X A D (compIso X A C D (compIso X A B C f g) h) (compIso X A B D f (compIso X B C D g h))
-    (cIdC X A B C D f.1 g.1 h.1) (<i>cIdC X D C B A h.2.1 g.2.1 f.2.1@-i)
-opaque IdCIso
-IdInvLIso (X : precategory) (A B : cA X) (f : iso X A B) : Id (iso X B B) (compIso X B A B (invIso X A B f) f) (idIso X B)
-  = isoEq X B B (compIso X B A B (invIso X A B f) f) (idIso X B) f.2.2.2 f.2.2.2
-opaque IdInvLIso
-
-opaque compIso
-
-eqToIso (C : precategory) (A B : cA C) (p : Id (cA C) A B) : iso C A B
-  = J (cA C) A (\(B : cA C) -> \(p : Id (cA C) A B) -> iso C A B) (idIso C A) B p
-
-isCategory (C : precategory) : U = (A : cA C) -> isContr ((B : cA C) * iso C A B)
-propIsCategory (C : precategory) : prop (isCategory C)
-  = propPi (cA C) (\(A : cA C) -> isContr ((B : cA C) * iso C A B))
-    (\(A : cA C) -> propIsContr ((B : cA C) * iso C A B))
-category : U = (C:precategory)*isCategory C
-
-lemIsCategory (C : precategory) (isC : isCategory C) (A B : cA C) (e : iso C A B) : Id ((B : cA C) * iso C A B) (A, idIso C A) (B, e)
-  = <i> (isContrProp ((B : cA C) * iso C A B) (isC A) (A, idIso C A) (B, e) @ i)
-
-lemIsCategory2 (C : precategory) (isC : isCategory C) (A B : cA C) : isEquiv (Id (cA C) A B) (iso C A B) (eqToIso C A B)
-  = equivFunFib (cA C) (Id (cA C) A) (iso C A) (eqToIso C A) (lemSinglContr (cA C) A) (isC A) B
-
-lemIsCategory3 (C : precategory) (isC : isCategory C) (A B : cA C) : Id U (Id (cA C) A B) (iso C A B)
-  = equivId (Id (cA C) A B) (iso C A B) (eqToIso C A B) (lemIsCategory2 C isC A B)
-
---
-
-setCat : precategory
-  = ((hSet, \(a b : hSet) -> a.1 -> b.1)
-    ,\(a : hSet) (x : a.1) -> x
-    ,\(a b c : hSet) (f : a.1 -> b.1) (g : b.1 -> c.1) (x : a.1) -> g (f x)
-    ,\(a b : hSet) -> setPi a.1 (\(_ : a.1) -> b.1) (\(_ : a.1) -> b.2)
-    ,\(a b : hSet) (f : a.1 -> b.1) -> <_> \(x : a.1) -> f x
-    ,\(a b : hSet) (f : a.1 -> b.1) -> <_> \(x : a.1) -> f x
-    ,\(a b c d : hSet) (f : a.1 -> b.1) (g : b.1 -> c.1) (h : c.1 -> d.1) -> <_> \(x : a.1) -> h (g (f x)))
-  where hSet : U = Sigma U set
-
--- sip
-
-structure (X : precategory) : U
-  = (P : cA X -> U)
-  * (H : (x y : cA X) -> (a : P x) -> (b : P y) -> (f : cH X x y) -> U)
-  * (propH : (x y : cA X) -> (a : P x) -> (b : P y) -> (f : cH X x y) -> prop (H x y a b f))
-  * (Hid : (x : cA X) -> (a : P x) -> H x x a a (cId X x))
-  * ((x y z : cA X) -> (a : P x) -> (b : P y) -> (c : P z) ->
-     (f : cH X x y) -> (g : cH X y z) ->
-     H x y a b f -> H y z b c g -> H x z a c (cC X x y z f g))
-
-sP (X : precategory) (S : structure X) : cA X -> U = S.1
-sH (X : precategory) (S : structure X) : (x y : cA X) -> (a : sP X S x) -> (b : sP X S y) -> (f : cH X x y) -> U = S.2.1
-sHProp (X : precategory) (S : structure X)
-  : (x y : cA X) -> (a : sP X S x) -> (b : sP X S y) -> (f : cH X x y) -> prop (sH X S x y a b f) = S.2.2.1
-sHId (X : precategory) (S : structure X) : (x : cA X) -> (a : sP X S x) -> sH X S x x a a (cId X x) = S.2.2.2.1
-sHComp (X : precategory) (S : structure X)
-  : (x y z : cA X) -> (a : sP X S x) -> (b : sP X S y) -> (c : sP X S z) ->
-    (f : cH X x y) -> (g : cH X y z) ->
-    sH X S x y a b f -> sH X S y z b c g -> sH X S x z a c (cC X x y z f g)
-  = S.2.2.2.2
-
-isStandardStructure (X : precategory) (S : structure X) : U
-  = (x : cA X) -> (a b : sP X S x) ->
-    sH X S x x a b (cId X x) -> sH X S x x b a (cId X x) ->
-    Id (sP X S x) a b
-
-sipPrecategory (C : precategory) (S : structure C) : precategory = ((ob, hom), (id, cmp, homSet, idL, idR, idC))
-  where
-    ob : U = Sigma (cA C) (sP C S)
-    hom (X Y : ob) : U = (f : cH C X.1 Y.1) * sH C S X.1 Y.1 X.2 Y.2 f
-    homSet (X Y : ob) : set (hom X Y)
-      = setSig (cH C X.1 Y.1) (sH C S X.1 Y.1 X.2 Y.2)
-        (cHSet C X.1 Y.1) (\(f : cH C X.1 Y.1) -> propSet (sH C S X.1 Y.1 X.2 Y.2 f) (sHProp C S X.1 Y.1 X.2 Y.2 f))
-    id (X : ob) : hom X X = (cId C X.1, sHId C S X.1 X.2)
-    cmp (x y z : ob) (f : hom x y) (g : hom y z) : hom x z
-      = (cC C x.1 y.1 z.1 f.1 g.1, sHComp C S x.1 y.1 z.1 x.2 y.2 z.2 f.1 g.1 f.2 g.2)
-    idL (x y : ob) (f : hom x y) : Id (hom x y) (cmp x x y (id x) f) f
-      = <i> (cIdL C x.1 y.1 f.1 @ i
-            ,lemIdPProp (sH C S x.1 y.1 x.2 y.2 (cmp x x y (id x) f).1)
-                        (sH C S x.1 y.1 x.2 y.2 f.1)
-                        (sHProp C S x.1 y.1 x.2 y.2 (cmp x x y (id x) f).1)
-                        (<i>sH C S x.1 y.1 x.2 y.2 (cIdL C x.1 y.1 f.1 @ i))
-                        (cmp x x y (id x) f).2 f.2 @ i)
-    idR (x y : ob) (f : hom x y) : Id (hom x y) (cmp x y y f (id y)) f
-      = <i> (cIdR C x.1 y.1 f.1 @ i
-            ,lemIdPProp (sH C S x.1 y.1 x.2 y.2 (cmp x y y f (id y)).1)
-                        (sH C S x.1 y.1 x.2 y.2 f.1)
-                        (sHProp C S x.1 y.1 x.2 y.2 (cmp x y y f (id y)).1)
-                        (<i>sH C S x.1 y.1 x.2 y.2 (cIdR C x.1 y.1 f.1 @ i))
-                        (cmp x y y f (id y)).2 f.2 @ i)
-    idC (x y z w : ob) (f : hom x y) (g : hom y z) (h : hom z w) : Id (hom x w) (cmp x z w (cmp x y z f g) h) (cmp x y w f (cmp y z w g h))
-      = <i> (cIdC C x.1 y.1 z.1 w.1 f.1 g.1 h.1 @ i
-            ,lemIdPProp (sH C S x.1 w.1 x.2 w.2 (cmp x z w (cmp x y z f g) h).1)
-                        (sH C S x.1 w.1 x.2 w.2 (cmp x y w f (cmp y z w g h)).1)
-                        (sHProp C S x.1 w.1 x.2 w.2 (cmp x z w (cmp x y z f g) h).1)
-                        (<i>sH C S x.1 w.1 x.2 w.2 (cIdC C x.1y.1 z.1 w.1 f.1 g.1 h.1 @ i))
-                        (cmp x z w (cmp x y z f g) h).2 (cmp x y w f (cmp y z w g h)).2 @ i)
-
-isContrProp (A : U) (p : isContr A) (x y : A) : Id A x y = compId A x p.1 y (<i> p.2 x @ -i) (p.2 y)
-isContrSig (A:U) (B:A-> U) (cA:isContr A) (cB : (x:A) -> isContr (B x)) : isContr (Sigma A B)
-  = ((cA.1, (cB cA.1).1), \(x:Sigma A B) -> propSig A B (isContrProp A cA) (\(x:A)->isContrProp (B x) (cB x)) (cA.1, (cB cA.1).1) x)
-
-sip (X : precategory) (isC : isCategory X) (S : structure X) (isS : isStandardStructure X S) : isCategory (sipPrecategory X S)
-  = undefined
-  -- = hole
-  -- where
-  --   D : precategory = sipPrecategory X S
-  --   eq1 (A : cA D)
-  --     : Id U ((B : cA D) * iso D A B)
-  --            ((C : (B1 : cA X) * ( iso X A.1 B1))
-  --           * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
-  --            = isoId
-  --              ((B : cA D) * iso D A B)
-  --              ((C : (B1 : cA X) * ( iso X A.1 B1))
-  --             * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
-  --              F G FG GF
-  --     where
-  --       F (C : (B : cA D) * iso D A B)
-  --        : ((C : (B1 : cA X) * ( iso X A.1 B1))
-  --        * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
-  --        = ((C.1.1, C.2.1.1, C.2.2.1.1, <i>(C.2.2.2.1@i).1, <i>(C.2.2.2.2@i).1),
-  --           C.1.2, C.2.1.2, C.2.2.1.2)
-  --       G (C : ((C : (B1 : cA X) * ( iso X A.1 B1))
-  --             * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1))
-  --        : (B : cA D) * iso D A B
-  --        = ((C.1.1, C.2.1), (C.1.2.1, C.2.2.1), (C.1.2.2.1, C.2.2.2)
-  --          , <i> (C.1.2.2.2.1 @ i
-  --                ,lemIdPProp (sH X S A.1 A.1 A.2 A.2 (cC X A.1 C.1.1 A.1 C.1.2.1 C.1.2.2.1))
-  --                            (sH X S A.1 A.1 A.2 A.2 (cId X A.1))
-  --                            (sHProp X S A.1 A.1 A.2 A.2 (cC X A.1 C.1.1 A.1 C.1.2.1 C.1.2.2.1))
-  --                            (<i>sH X S A.1 A.1 A.2 A.2 (C.1.2.2.2.1 @ i))
-  --                            (sHComp X S A.1 C.1.1 A.1 A.2 C.2.1 A.2 C.1.2.1 C.1.2.2.1 C.2.2.1 C.2.2.2)
-  --                            (sHId X S A.1 A.2) @ i)
-  --          , <i> (C.1.2.2.2.2 @ i
-  --                ,lemIdPProp (sH X S C.1.1 C.1.1 C.2.1 C.2.1 (cC X C.1.1 A.1 C.1.1 C.1.2.2.1 C.1.2.1))
-  --                            (sH X S C.1.1 C.1.1 C.2.1 C.2.1 (cId X C.1.1))
-  --                            (sHProp X S C.1.1 C.1.1 C.2.1 C.2.1 (cC X C.1.1 A.1 C.1.1 C.1.2.2.1 C.1.2.1))
-  --                            (<i>sH X S C.1.1 C.1.1 C.2.1 C.2.1 (C.1.2.2.2.2 @ i))
-  --                            (sHComp X S C.1.1 A.1 C.1.1 C.2.1 A.2 C.2.1 C.1.2.2.1 C.1.2.1 C.2.2.2 C.2.2.1)
-  --                            (sHId X S C.1.1 C.2.1) @ i))
-  --       FG (C : ((C : (B1 : cA X) * ( iso X A.1 B1))
-  --             * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1))
-  --         : Id ((C : (B1 : cA X) * ( iso X A.1 B1))
-  --            * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
-  --              (F (G C)) C
-  --         = <_> C
-  --       GF (C : (B : cA D) * iso D A B) : Id ((B : cA D) * iso D A B) (G (F C)) C
-  --         = <i> (C.1, C.2.1, C.2.2.1
-  --               , <j> ((C.2.2.2.1 @ j).1
-  --                     ,lemIdPSet (sH X S A.1 A.1 A.2 A.2 (cC X A.1 C.1.1 A.1 C.2.1.1 C.2.2.1.1))
-  --                                (sH X S A.1 A.1 A.2 A.2 (cId X A.1))
-  --                                (propSet (sH X S A.1 A.1 A.2 A.2 (cC X A.1 C.1.1 A.1 C.2.1.1 C.2.2.1.1))
-  --                                         (sHProp X S A.1 A.1 A.2 A.2 (cC X A.1 C.1.1 A.1 C.2.1.1 C.2.2.1.1)))
-  --                                (<j>sH X S A.1 A.1 A.2 A.2 (C.2.2.2.1 @ j).1)
-  --                                (sHComp X S A.1 C.1.1 A.1 A.2 C.1.2 A.2 C.2.1.1 C.2.2.1.1 C.2.1.2 C.2.2.1.2)
-  --                                (sHId X S A.1 A.2)
-  --                                (<j>((G (F C)).2.2.2.1 @ j).2)
-  --                                (<j>(C.2.2.2.1 @ j).2) @i@j)
-  --               , <j> ((C.2.2.2.2 @ j).1
-  --                     ,lemIdPSet (sH X S C.1.1 C.1.1 C.1.2 C.1.2 (cC X C.1.1 A.1 C.1.1 C.2.2.1.1 C.2.1.1))
-  --                                (sH X S C.1.1 C.1.1 C.1.2 C.1.2 (cId X C.1.1))
-  --                                (propSet (sH X S C.1.1 C.1.1 C.1.2 C.1.2 (cC X C.1.1 A.1 C.1.1 C.2.2.1.1 C.2.1.1))
-  --                                         (sHProp X S C.1.1 C.1.1 C.1.2 C.1.2 (cC X C.1.1 A.1 C.1.1 C.2.2.1.1 C.2.1.1)))
-  --                                (<j>sH X S C.1.1 C.1.1 C.1.2 C.1.2 (C.2.2.2.2 @ j).1)
-  --                                (sHComp X S C.1.1 A.1 C.1.1 C.1.2 A.2 C.1.2 C.2.2.1.1 C.2.1.1 C.2.2.1.2 C.2.1.2)
-  --                                (sHId X S C.1.1 C.1.2)
-  --                                (<j>((G (F C)).2.2.2.2 @ j).2)
-  --                                (<j>(C.2.2.2.2 @ j).2) @i@j))
-  --   hole0 (A : cA D)
-  --      : isContr ((C : (B1 : cA X) * ( iso X A.1 B1))
-  --               * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
-  --      = isContrSig ((B1 : cA X) * ( iso X A.1 B1))
-  --                   (\(C : (B1 : cA X) * ( iso X A.1 B1)) ->
-  --                     (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
-  --                   (isC A.1)
-  --                   (\(C : (B1 : cA X) * ( iso X A.1 B1)) ->
-  --                     let p : Id ((B1 : cA X) * ( iso X A.1 B1)) (A.1, idIso X A.1) C
-  --                           = lemIsCategory X isC A.1 C.1 C.2
-  --                     in transport
-  --                       (<i> isContr ((B2 : sP X S (p@i).1) * (_ : sH X S A.1 (p@i).1 A.2 B2 (p@i).2.1) * sH X S (p@i).1 A.1 B2 A.2 (p@i).2.2.1))
-  --                       ((A.2,sHId X S A.1 A.2,sHId X S A.1 A.2)
-  --                       ,\(Y : (B2 : sP X S A.1) * (_ : sH X S A.1 A.1 A.2 B2 (cId X A.1)) * sH X S A.1 A.1 B2 A.2 (cId X A.1)) ->
-  --                         <i> (isS A.1 A.2 Y.1 Y.2.1 Y.2.2 @ i
-  --                             ,lemIdPProp (sH X S A.1 A.1 A.2 A.2 (cId X A.1))
-  --                                         (sH X S A.1 A.1 A.2 Y.1 (cId X A.1))
-  --                                         (sHProp X S A.1 A.1 A.2 A.2 (cId X A.1))
-  --                                         (<i>sH X S A.1 A.1 A.2 (isS A.1 A.2 Y.1 Y.2.1 Y.2.2 @ i) (cId X A.1))
-  --                                         (sHId X S A.1 A.2) Y.2.1 @ i
-  --                             ,lemIdPProp (sH X S A.1 A.1 A.2 A.2 (cId X A.1))
-  --                                         (sH X S A.1 A.1 Y.1 A.2 (cId X A.1))
-  --                                         (sHProp X S A.1 A.1 A.2 A.2 (cId X A.1))
-  --                                         (<i>sH X S A.1 A.1 (isS A.1 A.2 Y.1 Y.2.1 Y.2.2 @ i) A.2 (cId X A.1))
-  --                                         (sHId X S A.1 A.2) Y.2.2 @ i)))
-  --   hole (A : cA D) : isContr ((B : cA D) * iso D A B) = transport (<i>isContr(eq1 A@-i)) (hole0 A)
-opaque sip
-
---
-
-functor (A B : precategory) : U
-  = (Fob : cA A -> cA B)
-  * (Fmor : (x y : cA A) -> cH A x y -> cH B (Fob x) (Fob y))
-  * (Fid : (x : cA A) -> Id (cH B (Fob x) (Fob x)) (Fmor x x (cId A x)) (cId B (Fob x)))
-  * ((x y z : cA A) -> (f : cH A x y) -> (g : cH A y z) -> Id (cH B (Fob x) (Fob z)) (Fmor x z (cC A x y z f g)) (cC B (Fob x) (Fob y) (Fob z) (Fmor x y f) (Fmor y z g)))
-
-idFunctor (A : precategory) : functor A A
-  = (\(x : cA A) -> x
-    ,\(x y : cA A) (h : cH A x y) -> h
-    ,\(x : cA A) -> <_> cId A x
-    ,\(x y z : cA A) (f : cH A x y) (g : cH A y z) -> <_> cC A x y z f g)
-
-compFunctor (A B C : precategory) (F : functor A B) (G : functor B C) : functor A C
-  = (\(x : cA A) -> G.1 (F.1 x)
-    ,\(x y : cA A) (h : cH A x y) -> G.2.1 (F.1 x) (F.1 y) (F.2.1 x y h)
-    ,\(x : cA A) -> compId (cH C (G.1 (F.1 x)) (G.1 (F.1 x)))
-                           (G.2.1 (F.1 x) (F.1 x) (F.2.1 x x (cId A x)))
-                           (G.2.1 (F.1 x) (F.1 x) (cId B (F.1 x)))
-                           (cId C (G.1 (F.1 x)))
-                           (<i>G.2.1 (F.1 x) (F.1 x) (F.2.2.1 x @ i))
-                           (G.2.2.1 (F.1 x))
-    ,\(x y z : cA A) (f : cH A x y) (g : cH A y z) ->
-        compId (cH C (G.1 (F.1 x)) (G.1 (F.1 z)))
-               (G.2.1 (F.1 x) (F.1 z) (F.2.1 x z (cC A x y z f g)))
-               (G.2.1 (F.1 x) (F.1 z) (cC B (F.1 x) (F.1 y) (F.1 z) (F.2.1 x y f) (F.2.1 y z g)))
-               (cC C (G.1 (F.1 x)) (G.1 (F.1 y)) (G.1 (F.1 z)) (G.2.1 (F.1 x) (F.1 y) (F.2.1 x y f)) (G.2.1 (F.1 y) (F.1 z) (F.2.1 y z g)))
-               (<i> G.2.1 (F.1 x) (F.1 z) (F.2.2.2 x y z f g @ i))
-               (G.2.2.2 (F.1 x) (F.1 y) (F.1 z) (F.2.1 x y f) (F.2.1 y z g))
-    )
-
-ffFunctor (A B : precategory) (F : functor A B) : U
-  = (a b : cA A) -> isEquiv (cH A a b) (cH B (F.1 a) (F.1 b)) (F.2.1 a b)
-ffEq (A B : precategory) (F : functor A B) (ff : ffFunctor A B F) (a b : cA A)
-  : Id U (cH A a b) (cH B (F.1 a) (F.1 b))
-  = equivId (cH A a b) (cH B (F.1 a) (F.1 b)) (F.2.1 a b) (ff a b)
-propFFFunctor (A B : precategory) (F : functor A B) : prop (ffFunctor A B F)
-  = propPi (cA A) (\(a : cA A) -> (b : cA A) -> isEquiv (cH A a b) (cH B (F.1 a) (F.1 b)) (F.2.1 a b))
-    (\(a : cA A) -> propPi (cA A) (\(b : cA A) -> isEquiv (cH A a b) (cH B (F.1 a) (F.1 b)) (F.2.1 a b))
-    (\(b : cA A) -> propIsEquiv (cH A a b) (cH B (F.1 a) (F.1 b)) (F.2.1 a b)))
-
-lem10 (A B : U) (e : equiv A B) (x y : B) (p : Id A (e.2 x).1.1 (e.2 y).1.1) : Id B x y
-  = transport
-    (compId U (Id B (e.1 (e.2 x).1.1) (e.1 (e.2 y).1.1)) (Id B x (e.1 (e.2 y).1.1)) (Id B x y)
-     (<i> Id B (retEq A B e x @ i) (e.1 (e.2 y).1.1)) (<i> Id B x (retEq A B e y @ i)))
-    (mapOnPath A B e.1 (e.2 x).1.1 (e.2 y).1.1 p)
-opaque lem10
-
-lem10' (A B : U) (e : equiv A B) (x y : A) (p : Id B (e.1 x) (e.1 y)) : Id A x y
-  = transport
-    (compId U (Id A (e.2 (e.1 x)).1.1 (e.2 (e.1 y)).1.1) (Id A x (e.2 (e.1 y)).1.1) (Id A x y)
-     (<i> Id A (secEq A B e x @ i) (e.2 (e.1 y)).1.1) (<i> Id A x (secEq A B e y @ i))
-     )
-    (mapOnPath B A (invEq A B e) (e.1 x) (e.1 y) p)
-opaque lem10'
-
-lemFF (A B : precategory) (F : functor A B) (ff : ffFunctor A B F) (x y : cA A)
-  : Id U (iso A x y) (iso B (F.1 x) (F.1 y))
-  = hole
-  where
-    F0 (f : iso A x y) : iso B (F.1 x) (F.1 y)
-      = (F.2.1 x y f.1, F.2.1 y x f.2.1
-        ,compId (cH B (F.1 x) (F.1 x))
-                (cC B (F.1 x) (F.1 y) (F.1 x) (F.2.1 x y f.1) (F.2.1 y x f.2.1))
-                (F.2.1 x x (cC A x y x f.1 f.2.1))
-                (cId B (F.1 x))
-                (<i>F.2.2.2 x y x f.1 f.2.1 @-i)
-        (compId (cH B (F.1 x) (F.1 x))
-                (F.2.1 x x (cC A x y x f.1 f.2.1))
-                (F.2.1 x x (cId A x))
-                (cId B (F.1 x))
-                (<i>F.2.1 x x (f.2.2.1@i))
-                (F.2.2.1 x))
-        ,compId (cH B (F.1 y) (F.1 y))
-                (cC B (F.1 y) (F.1 x) (F.1 y) (F.2.1 y x f.2.1) (F.2.1 x y f.1))
-                (F.2.1 y y (cC A y x y f.2.1 f.1))
-                (cId B (F.1 y))
-                (<i>F.2.2.2 y x y f.2.1 f.1 @-i)
-        (compId (cH B (F.1 y) (F.1 y))
-                (F.2.1 y y (cC A y x y f.2.1 f.1))
-                (F.2.1 y y (cId A y))
-                (cId B (F.1 y))
-                (<i>F.2.1 y y (f.2.2.2@i))
-                (F.2.2.1 y)))
-    G0 (g : iso B (F.1 x) (F.1 y)) : iso A x y
-      = ((ff x y g.1).1.1
-        ,(ff y x g.2.1).1.1
-        ,lem10' (cH A x x) (cH B (F.1 x) (F.1 x)) (F.2.1 x x, ff x x) (cC A x y x (ff x y g.1).1.1 (ff y x g.2.1).1.1) (cId A x)
-          (compId (cH B (F.1 x) (F.1 x))
-                  (F.2.1 x x (cC A x y x (ff x y g.1).1.1 (ff y x g.2.1).1.1))
-                  (cC B (F.1 x) (F.1 y) (F.1 x) (F.2.1 x y (ff x y g.1).1.1) (F.2.1 y x (ff y x g.2.1).1.1))
-                  (F.2.1 x x (cId A x))
-                  (F.2.2.2 x y x (ff x y g.1).1.1 (ff y x g.2.1).1.1)
-          (compId (cH B (F.1 x) (F.1 x))
-                  (cC B (F.1 x) (F.1 y) (F.1 x) (F.2.1 x y (ff x y g.1).1.1) (F.2.1 y x (ff y x g.2.1).1.1))
-                  (cC B (F.1 x) (F.1 y) (F.1 x) g.1 g.2.1)
-                  (F.2.1 x x (cId A x))
-                  (<i>cC B (F.1 x) (F.1 y) (F.1 x) ((ff x y g.1).1.2@-i) ((ff y x g.2.1).1.2@-i))
-          (compId (cH B (F.1 x) (F.1 x))
-                  (cC B (F.1 x) (F.1 y) (F.1 x) g.1 g.2.1)
-                  (cId B (F.1 x))
-                  (F.2.1 x x (cId A x))
-                  g.2.2.1
-                  (<i>F.2.2.1 x @ -i))))
-        ,lem10' (cH A y y) (cH B (F.1 y) (F.1 y)) (F.2.1 y y, ff y y) (cC A y x y (ff y x g.2.1).1.1 (ff x y g.1).1.1) (cId A y)
-          (compId (cH B (F.1 y) (F.1 y))
-                  (F.2.1 y y (cC A y x y (ff y x g.2.1).1.1 (ff x y g.1).1.1))
-                  (cC B (F.1 y) (F.1 x) (F.1 y) (F.2.1 y x (ff y x g.2.1).1.1) (F.2.1 x y (ff x y g.1).1.1))
-                  (F.2.1 y y (cId A y))
-                  (F.2.2.2 y x y (ff y x g.2.1).1.1 (ff x y g.1).1.1)
-          (compId (cH B (F.1 y) (F.1 y))
-                  (cC B (F.1 y) (F.1 x) (F.1 y) (F.2.1 y x (ff y x g.2.1).1.1) (F.2.1 x y (ff x y g.1).1.1))
-                  (cC B (F.1 y) (F.1 x) (F.1 y) g.2.1 g.1)
-                  (F.2.1 y y (cId A y))
-                  (<i>cC B (F.1 y) (F.1 x) (F.1 y) ((ff y x g.2.1).1.2@-i) ((ff x y g.1).1.2@-i))
-          (compId (cH B (F.1 y) (F.1 y))
-                  (cC B (F.1 y) (F.1 x) (F.1 y) g.2.1 g.1)
-                  (cId B (F.1 y))
-                  (F.2.1 y y (cId A y))
-                  g.2.2.2
-                  (<i>F.2.2.1 y @ -i))))
-        )
-    FG (g : iso B (F.1 x) (F.1 y)) : Id (iso B (F.1 x) (F.1 y)) (F0 (G0 g)) g
-      = isoEq B (F.1 x) (F.1 y) (F0 (G0 g)) g
-        (<i>(ff x y g.1).1.2@-i) (<i>(ff y x g.2.1).1.2@-i)
-    GF (f : iso A x y) : Id (iso A x y) (G0 (F0 f)) f
-      = isoEq A x y (G0 (F0 f)) f
-        (<i> ((ff x y (F.2.1 x y f.1)).2 (f.1,<j>F.2.1 x y f.1)@i).1)
-        (<i> ((ff y x (F.2.1 y x f.2.1)).2 (f.2.1,<j>F.2.1 y x f.2.1)@i).1)
-    hole : Id U (iso A x y) (iso B (F.1 x) (F.1 y)) = isoId (iso A x y) (iso B (F.1 x) (F.1 y)) F0 G0 FG GF
-opaque lemFF
-
-F12 (A B : precategory) (isC : isCategory A) (F : functor A B)
-    (p1 : ffFunctor A B F) (x : cA A) : isContr ((y : cA A) * iso B (F.1 y) (F.1 x))
-  = transport (<i>isContr ((y : cA A) * (invIsoEq B (F.1 x) (F.1 y)@i))) hole
-  where
-    hole2 (y : cA A) : Id U (iso A x y) (iso B (F.1 x) (F.1 y))
-          = lemFF A B F p1 x y
-    hole : isContr ((y : cA A) * iso B (F.1 x) (F.1 y))
-         = transport (<i> isContr ((y : cA A) * (hole2 y @ i))) (isC x)
-opaque F12
-
-F23 (A B : precategory) (F : functor A B) (p2 : (x : cA A) -> isContr ((y : cA A) * iso B (F.1 y) (F.1 x)))
-    (x : cA B)
-    (a b : (y : cA A) * iso B (F.1 y) x) : Id ((y : cA A) * iso B (F.1 y) x) a b
-    = undefined
---     = transport p hole3
---   where
---     hole2 : Id ((y : cA A) * iso B (F.1 y) (F.1 a.1))
---             (a.1, idIso B (F.1 a.1)) (b.1, compIso B (F.1 b.1) x (F.1 a.1) b.2 (invIso B (F.1 a.1) x a.2))
---       = isContrProp ((y : cA A) * iso B (F.1 y) (F.1 a.1)) (p2 a.1)
---             (a.1, idIso B (F.1 a.1)) (b.1, compIso B (F.1 b.1) x (F.1 a.1) b.2 (invIso B (F.1 a.1) x a.2))
---     opaque hole2
---     hole3 : Id ((y : cA A) * iso B (F.1 y) x)
---             (a.1, compIso B (F.1 a.1) (F.1 a.1) x (idIso B (F.1 a.1)) a.2)
---             (b.1, compIso B (F.1 b.1) (F.1 a.1) x (compIso B (F.1 b.1) x (F.1 a.1) b.2 (invIso B (F.1 a.1) x a.2)) a.2)
---           = <i> ((hole2@i).1, compIso B (F.1 (hole2@i).1) (F.1 a.1) x (hole2@i).2 a.2)
---     opaque hole3
---     p : Id U (Id ((y : cA A) * iso B (F.1 y) x)
---               (a.1, compIso B (F.1 a.1) (F.1 a.1) x (idIso B (F.1 a.1)) a.2)
---               (b.1, compIso B (F.1 b.1) (F.1 a.1) x (compIso B (F.1 b.1) x (F.1 a.1) b.2 (invIso B (F.1 a.1) x a.2)) a.2))
---              (Id ((y : cA A) * iso B (F.1 y) x) a b)
---       = (<i>Id ((y : cA A) * iso B (F.1 y) x)
---                (a.1, IdLIso B (F.1 a.1) x a.2 @ i)
---                (b.1, compId (iso B (F.1 b.1) x)
---                        (compIso B (F.1 b.1) (F.1 a.1) x (compIso B (F.1 b.1) x (F.1 a.1) b.2 (invIso B (F.1 a.1) x a.2)) a.2)
---                        (compIso B (F.1 b.1) x x b.2 (compIso B x (F.1 a.1) x (invIso B (F.1 a.1) x a.2) a.2))
---                        b.2
---                        (IdCIso B (F.1 b.1) x (F.1 a.1) x b.2 (invIso B (F.1 a.1) x a.2) a.2)
---                     (compId (iso B (F.1 b.1) x)
---                        (compIso B (F.1 b.1) x x b.2 (compIso B x (F.1 a.1) x (invIso B (F.1 a.1) x a.2) a.2))
---                        (compIso B (F.1 b.1) x x b.2 (idIso B x))
---                        b.2
---                        (<i>compIso B (F.1 b.1) x x b.2 (IdInvLIso B (F.1 a.1) x a.2 @ i))
---                        (IdRIso B (F.1 b.1) x b.2))
---                        @ i))
-opaque F23
-
-catIsEquiv (A B : precategory) (F : functor A B) : U
-  = (_ : ffFunctor A B F)
-  * ((b : cA B) -> (a : cA A) * iso B (F.1 a) b)
-catEquiv (A B : precategory) : U = (F : functor A B) * catIsEquiv A B F
-catPropIsEquiv (A B : precategory) (isC : isCategory A) (F : functor A B) : prop (catIsEquiv A B F)
-  = propSig (ffFunctor A B F) (\(_ : ffFunctor A B F) -> (b : cA B) -> (a : cA A) * iso B (F.1 a) b)
-            (propFFFunctor A B F)
-            (\(ff : ffFunctor A B F) -> propPi (cA B) (\(b : cA B) -> (a : cA A) * iso B (F.1 a) b)
-               (\(b : cA B) -> F23 A B F (F12 A B isC F ff) b))
-catIdIsEquiv (A : precategory) : catIsEquiv A A (idFunctor A)
-  = (\(a b : cA A) -> idIsEquiv (cH A a b)
-    ,\(b:cA A) -> (b, idIso A b))
-catIdEquiv (A : precategory) : catEquiv A A = (idFunctor A, catIdIsEquiv A)
-
-catIsIso (A B : precategory) (F : functor A B) : U
-  = (_ : ffFunctor A B F) * isEquiv (cA A) (cA B) F.1
-catPropIsIso (A B : precategory) (F : functor A B) : prop (catIsIso A B F)
-  = propSig (ffFunctor A B F) (\(_ : ffFunctor A B F) -> isEquiv (cA A) (cA B) F.1)
-            (propFFFunctor A B F)
-            (\(_ : ffFunctor A B F) -> propIsEquiv (cA A) (cA B) F.1)
-catIso (A B : precategory) : U = (F : functor A B) * catIsIso A B F
-
 catIso21 (A B : precategory) (e1:equiv (cA A) (cA B)) : U
   = (x y:cA A) -> equiv (cH A x y) (cH B (e1.1 x) (e1.1 y))
 catIso22 (A B : precategory) (e1:equiv (cA A) (cA B)) (e2:catIso21 A B e1) : U
@@ -930,6 +949,7 @@ eCatIso2 (A B:precategory):Id U (catIso32 A B) (catIso2 A B)
                  (cC B (transport e1 x) (transport e1 y) (transport e1 z) (p2 x y f@i) (p2 y z g@i)))
       )))
 
+--------------------------------------------------------------------------------
 
 catIsoIsEquiv (A B : precategory) (F : functor A B) (e : catIsIso A B F) : catIsEquiv A B F
   = (e.1,\(b:cA B)->((e.2 b).1.1, eqToIso B (F.1 (e.2 b).1.1) b (<i>(e.2 b).1.2@-i)))
@@ -971,6 +991,7 @@ catIsoEqId (A B : precategory) : Id U (catIso A B) (Id precategory A B)
 
 catEquivEqId (A B : precategory) (isCA : isCategory A) (isCB : isCategory B) : Id U (catEquiv A B) (Id precategory A B)
   = compId U (catEquiv A B) (catIso A B) (Id precategory A B) (catEquivEqIso A B isCA isCB) (catIsoEqId A B)
+opaque catEquivEqId
 
 catEquivEqId' (A : category) : isContr ((B : category) * catEquiv A.1 B.1)
   = transport (<i> isContr ((B : category) * catEquivEqId A.1 B.1 A.2 B.2@-i))
@@ -983,6 +1004,11 @@ catEquivEqId' (A : category) : isContr ((B : category) * catEquiv A.1 B.1)
                      (<i> isCategory (BB.2@i))
                      A.2 BB.1.2 @ i)
         ,<j> BB.2@i/\j))
+opaque catEquivEqId'
+
+--
+-- Pullbacks
+--
 
 --         f'
 --    W -----> Z

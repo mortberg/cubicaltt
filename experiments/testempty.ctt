@@ -1,3 +1,5 @@
+-- This file tests some things where Coq gets stuck but cubicaltt don't
+-- It doesn't compile with the new definition of equiv
 module testempty where
 
 import nat

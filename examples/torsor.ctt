@@ -734,7 +734,7 @@ multZ (A B : BZ) : BZ = (T, (TNE, (TShift A B, TEquiv)))
                           (compBZ (decodeZ ZBZ (inr n)) loopZ) (decodeZ ZBZ (inr (suc n)))
                           (<i> compBZ (hole0 n @ i) loopZ)
                           (decodeLoop (inr n))
-    visible decodeZ
+    transparent decodeZ
     TEquiv''' : isEquiv Z (Path BZ ZBZ ZBZ) (action (Path BZ ZBZ ZBZ) (TShift ZBZ ZBZ) (<_> ZBZ))
       = transport (<i> isEquiv Z loopBZ (\(y : Z) -> hole y @ -i)) (gradLemma Z loopBZ (decodeZ ZBZ) (encodeZ ZBZ) (decodeEncodeZ ZBZ) (encodeDecodeZ ZBZ))
     TEquiv'' (b : BZSet B) (x : Path BZ ZBZ B) : isEquiv Z (Path BZ ZBZ B) (action (Path BZ ZBZ B) (TShift ZBZ B) x)
@@ -747,7 +747,7 @@ multZ (A B : BZ) : BZ = (T, (TNE, (TShift A B, TEquiv)))
        = BZNE A (isEquiv Z T (action T (TShift A B) x), propIsEquiv Z T (action T (TShift A B) x))
          (\(a : BZSet A) -> BZNE B (isEquiv Z T (action T (TShift A B) x), propIsEquiv Z T (action T (TShift A B) x))
          (\(b : BZSet B) -> TEquiv' a b x))
-visible decodeZ
+transparent decodeZ
 
 loopBZequalsZ : Path U loopBZ Z = isoPath loopBZ Z (encodeZ ZBZ) (decodeZ ZBZ) (encodeDecodeZ ZBZ) (decodeEncodeZ ZBZ)
 
@@ -850,12 +850,12 @@ doubleLoopBZ : loopBZ -> loopBZ = transport (<i> loopS1equalsLoopBZ@i -> loopS1e
 -- EVAL: inr (suc (suc zero))
 -- Time: 0m25.191s
 
--- > let visible_all in let doubleLoop : Path BZ (multZ ZBZ ZBZ) (multZ ZBZ ZBZ) = <i> multZ (loopZ@-i) (loopZ@i) in transport (<j> BZSet (transport (<i> BZSet (doubleLoop @ i)) (<_> ZBZ) @ j)) zeroZ
+-- > let transparent_all in let doubleLoop : Path BZ (multZ ZBZ ZBZ) (multZ ZBZ ZBZ) = <i> multZ (loopZ@-i) (loopZ@i) in transport (<j> BZSet (transport (<i> BZSet (doubleLoop @ i)) (<_> ZBZ) @ j)) zeroZ
 -- too slow
 
--- > let visible_all in transport (<j> BZSet (transport (<i> BZSet (multZ (loopZ@-i) (loopZ@i))) (<_> ZBZ) @ j)) zeroZ
+-- > let transparent_all in transport (<j> BZSet (transport (<i> BZSet (multZ (loopZ@-i) (loopZ@i))) (<_> ZBZ) @ j)) zeroZ
 -- EVAL: inr (suc (suc zero))
 
 -- multS1 : S1 -> S1 -> S1 = transport (<i> S1equalsBZ@-i -> S1equalsBZ@-i -> S1equalsBZ@-i) multZ
 
-visible_all
+transparent_all

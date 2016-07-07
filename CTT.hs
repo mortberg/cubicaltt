@@ -39,8 +39,8 @@ data Branch = OBranch LIdent [Ident] Ter
 type Decl  = (Ident,(Ter,Ter))
 data Decls = MutualDecls [Decl]
            | OpaqueDecl Ident
-           | VisibleDecl Ident
-           | VisibleAllDecl
+           | TransparentDecl Ident
+           | TransparentAllDecl
            deriving Eq
 
 declIdents :: [Decl] -> [Ident]
@@ -237,14 +237,14 @@ emptyEnv = (Empty,[],[],Nameless Set.empty)
 def :: Decls -> Env -> Env
 def (MutualDecls ds) (rho,vs,fs,Nameless os) = (Def ds rho,vs,fs,Nameless (os Set.\\ Set.fromList (declIdents ds)))
 def (OpaqueDecl n) (rho,vs,fs,Nameless os) = (rho,vs,fs,Nameless (Set.insert n os))
-def (VisibleDecl n) (rho,vs,fs,Nameless os) = (rho,vs,fs,Nameless (Set.delete n os))
-def VisibleAllDecl (rho,vs,fs,Nameless os) = (rho,vs,fs,Nameless Set.empty)
+def (TransparentDecl n) (rho,vs,fs,Nameless os) = (rho,vs,fs,Nameless (Set.delete n os))
+def TransparentAllDecl (rho,vs,fs,Nameless os) = (rho,vs,fs,Nameless Set.empty)
 
 defWhere :: Decls -> Env -> Env
 defWhere (MutualDecls ds) (rho,vs,fs,Nameless os) = (Def ds rho,vs,fs,Nameless (os Set.\\ Set.fromList (declIdents ds)))
 defWhere (OpaqueDecl _) rho = rho
-defWhere (VisibleDecl _) rho = rho
-defWhere VisibleAllDecl rho = rho
+defWhere (TransparentDecl _) rho = rho
+defWhere TransparentAllDecl rho = rho
 
 sub :: (Name,Formula) -> Env -> Env
 sub (i,phi) (rho,vs,fs,os) = (Sub i rho,vs,phi:fs,os)
@@ -358,9 +358,9 @@ showTer v = case v of
   AppFormula e phi   -> showTer1 e <+> char '@' <+> showFormula phi
   Comp e t ts        -> text "comp" <+> showTers [e,t] <+> text (showSystem ts)
   Fill e t ts        -> text "fill" <+> showTers [e,t] <+> text (showSystem ts)
-  Glue a ts          -> text "glue" <+> showTer1 a <+> text (showSystem ts)
-  GlueElem a ts      -> text "glueElem" <+> showTer1 a <+> text (showSystem ts)
-  UnGlueElem a ts    -> text "unglueElem" <+> showTer1 a <+> text (showSystem ts)
+  Glue a ts          -> text "Glue" <+> showTer1 a <+> text (showSystem ts)
+  GlueElem a ts      -> text "glue" <+> showTer1 a <+> text (showSystem ts)
+  UnGlueElem a ts    -> text "unglue" <+> showTer1 a <+> text (showSystem ts)
 
 showTers :: [Ter] -> Doc
 showTers = hsep . map showTer1
@@ -384,8 +384,8 @@ showDecls (MutualDecls defs) =
   hsep $ punctuate comma
   [ text x <+> equals <+> showTer d | (x,(_,d)) <- defs ]
 showDecls (OpaqueDecl i) = text "opaque" <+> text i
-showDecls (VisibleDecl i) = text "visible" <+> text i
-showDecls VisibleAllDecl = text "visible_all"
+showDecls (TransparentDecl i) = text "transparent" <+> text i
+showDecls TransparentAllDecl = text "transparent_all"
 
 instance Show Val where
   show = render . showVal
@@ -419,10 +419,10 @@ showVal v = case v of
   VAppFormula v phi -> showVal v <+> char '@' <+> showFormula phi
   VComp v0 v1 vs    ->
     text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)
-  VGlue a ts        -> text "glue" <+> showVal1 a <+> text (showSystem ts)
-  VGlueElem a ts    -> text "glueElem" <+> showVal1 a <+> text (showSystem ts)
-  VUnGlueElem a ts  -> text "unglueElem" <+> showVal1 a <+> text (showSystem ts)
-  VUnGlueElemU v b es -> text "unGlueElemU" <+> showVals [v,b]
+  VGlue a ts        -> text "Glue" <+> showVal1 a <+> text (showSystem ts)
+  VGlueElem a ts    -> text "glue" <+> showVal1 a <+> text (showSystem ts)
+  VUnGlueElem a ts  -> text "unglue" <+> showVal1 a <+> text (showSystem ts)
+  VUnGlueElemU v b es -> text "unglue U" <+> showVals [v,b]
                          <+> text (showSystem es)
   VCompU a ts       -> text "comp (<_> U)" <+> showVal1 a <+> text (showSystem ts)
 

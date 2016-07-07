@@ -502,7 +502,7 @@ unGlue :: Val -> Val -> System Val -> Val
 unGlue w b equivs | eps `member` equivs = app (equivFun (equivs ! eps)) w
                   | otherwise           = case w of
                                             VGlueElem v us -> v
-                                            _ -> error ("unGlue: neutral" ++ show w)
+                                            _ -> error ("unglue: neutral" ++ show w)
 
 isNeutralGlue :: Name -> System Val -> Val -> System Val -> Bool
 isNeutralGlue i equivs u0 ts = (eps `notMember` equivsi0 && isNeutral u0) ||

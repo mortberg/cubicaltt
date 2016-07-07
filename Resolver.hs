@@ -349,10 +349,10 @@ resolveDecl d = case d of
   DeclOpaque i  -> do
     resolveVar i
     return (CTT.OpaqueDecl (unAIdent i), [])
-  DeclVisible i -> do
+  DeclTransparent i -> do
     resolveVar i
-    return (CTT.VisibleDecl (unAIdent i), [])
-  DeclVisibleAll -> return (CTT.VisibleAllDecl, [])
+    return (CTT.TransparentDecl (unAIdent i), [])
+  DeclTransparentAll -> return (CTT.TransparentAllDecl, [])
   _ -> do let (f,typ,body,ns) = resolveNonMutualDecl d
           a <- typ
           d <- body

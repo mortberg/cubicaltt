@@ -223,7 +223,7 @@ check a t = case (a,t) of
 -- Check a list of declarations
 checkDecls :: Decls -> Typing ()
 checkDecls (MutualDecls []) = return ()
-checkDecls (MutualDecls d) = do
+checkDecls (MutualDecls d)  = do
   a <- asks env
   let (idents,tele,ters) = (declIdents d,declTele d,declTers d)
   ind <- asks indent
@@ -232,9 +232,9 @@ checkDecls (MutualDecls d) = do
   local (addDecls (MutualDecls d)) $ do
     rho <- asks env
     checks (tele,rho) ters
-checkDecls (OpaqueDecl _) = return ()
-checkDecls (VisibleDecl _) = return ()
-checkDecls VisibleAllDecl = return ()
+checkDecls (OpaqueDecl _)      = return ()
+checkDecls (TransparentDecl _) = return ()
+checkDecls TransparentAllDecl  = return ()
 
 -- Check a telescope
 checkTele :: Tele -> Typing ()
@@ -278,7 +278,7 @@ checkGlueElem vu ts us = do
   let vus = evalSystem rho us
   checkSystemsWith ts vus (\alpha vt vAlpha ->
     unlessM (app (equivFun vt) vAlpha === (vu `face` alpha)) $
-      throwError $ "Image of glueElem component " ++ show vAlpha ++
+      throwError $ "Image of glue component " ++ show vAlpha ++
                    " doesn't match " ++ show vu)
   checkCompSystem vus
 

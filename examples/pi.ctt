@@ -1,6 +1,5 @@
 module pi where
 
-import prelude
 import equiv
 
               -----------------------------------

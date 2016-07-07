@@ -1,10 +1,8 @@
 module subset where
 
-import prelude
 import injective
 import sigma
 import univalence
-
 
 -- The first definition of a subset. Informally, there exists a second set B
 -- and an injective function from B to A.
@@ -35,6 +33,9 @@ subset01 (A : U) (sA : set A) : subset0 A sA -> subset1 A sA
       = i a
   in
     (X, pX)
+
+lem (A:U) (P:A->U) (pP:(x:A) -> prop (P x)) (u v:(x:A) * P x) (p:Id A u.1 v.1) :
+ Id ((x:A)*P x) u v = <i>(p@i,(lemPropF A P pP u.1 v.1 p u.2 v.2)@i)
 
 -- A map from the second to the first definition of subsets.
 subset10 (A : U) (sA : set A)
@@ -70,6 +71,9 @@ subset10 (A : U) (sA : set A)
         r
   in
     (B, sB, f, inj)
+
+opaque lemPropF
+opaque subst
 
 -- Show that subset10 âˆ˜ subset01 can be identified with the identity function
 subsetIso0 (A : U) (sA : set A) : (s0 : subset0 A sA) ->
@@ -113,25 +117,20 @@ subsetIso0 (A : U) (sA : set A) : (s0 : subset0 A sA) ->
       = q.1
     -- Show that sB can be identified with sB'
     idsB : IdP (<i> set (idB @ i)) sB' sB
---      = lemPropF U set setIsProp B' B idB sB' sB
-      = undefined
+      = lemPropF U set setIsProp B' B idB sB' sB
     -- Show that f' can be identified with f. This follows from gâˆ˜g' â‡” \x -> x
     -- and that there is a path q.2 between f'âˆ˜gâˆ˜g' and f
     idf : IdP (<i> idB @ i -> A) f' f
       = let
-        TEMP : IdP (<i> idB @ i -> A) f' f = undefined
         Q (h : B' -> B') : U
           = IdP (<i> q.1 @ i -> A) (\ (x : B') -> f' (h x)) f
         a : B' -> B' = \ (x : B') -> g (g' x)
         b : B' -> B' = \ (x : B') -> x
         p : Id (B' -> B') a b = <i> \ (x : B') -> (t x) @ i
-      in
-        -- subst (B' -> B') Q a b p q.2
-        TEMP
+      in subst (B' -> B') Q a b p q.2
     -- Show that inj can be identified with inj'
     idinj : IdP (<i> inj1 (idB @ i) A (idf @ i) (idsB @ i) sA) inj' inj
       = let
-        TEMP : IdP (<i> inj1 (idB @ i) A (idf @ i) (idsB @ i) sA) inj' inj = undefined
         T : U
           = (X : U) * (_ : X -> A) * (set X)
         P : T -> U
@@ -144,12 +143,9 @@ subsetIso0 (A : U) (sA : set A) : (s0 : subset0 A sA) ->
           = (B, f, sB)
         idT : Id T t0 t1
           = <i> (idB @ i, idf @ i, idsB @ i)
-      in
-        -- lemPropF T P pP t0 t1 idT inj' inj
-        TEMP
+      in lemPropF T P pP t0 t1 idT inj' inj
   in
     <i> (idB @ i, idsB @ i, idf @ i, idinj @ i)
-    -- TEMP
 
 -- Show that subset10 âˆ˜ subset01 can be identified with the identity function
 subsetIso1 (A : U) (sA : set A) : (s1 : subset1 A sA) ->

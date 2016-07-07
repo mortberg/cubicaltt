@@ -1,8 +1,6 @@
 module injective where
 
-import prelude
 import prop
-
 
 -- First definition of injectivity, informally: if two elements f a0, f a1 are
 -- equal in B, then a0, a1 must be equal in A.

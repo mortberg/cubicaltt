@@ -1,6 +1,5 @@
 module sigma where
 
-import prelude
 import equiv
 
 lemIdSig (A:U) (B : A -> U) (t u : Sigma A B) :

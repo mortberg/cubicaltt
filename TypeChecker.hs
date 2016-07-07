@@ -193,12 +193,12 @@ check a t = case (a,t) of
   (_,Where e d) -> do
     local (\tenv@TEnv{indent=i} -> tenv{indent=i + 2}) $ checkDecls d
     local (addDecls d) $ check a e
-  (VU,IdP a e0 e1) -> do
-    (a0,a1) <- checkPath (constPath VU) a
+  (VU,PathP a e0 e1) -> do
+    (a0,a1) <- checkPLam (constPath VU) a
     check a0 e0
     check a1 e1
-  (VIdP p a0 a1,Path _ e) -> do
-    (u0,u1) <- checkPath p t
+  (VPathP p a0 a1,PLam _ e) -> do
+    (u0,u1) <- checkPLam p t
     ns <- asks names
     unless (conv ns a0 u0 && conv ns a1 u1) $
       throwError $ "path endpoints don't match for " ++ show e ++ ", got " ++
@@ -314,8 +314,8 @@ mkIso vb = eval rho $
   Sigma $ Lam "a" U $
   Sigma $ Lam "f" (Pi (Lam "_" a b)) $
   Sigma $ Lam "g" (Pi (Lam "_" b a)) $
-  Sigma $ Lam "s" (Pi (Lam "y" b $ IdP (Path (Name "_") b) (App f (App g y)) y)) $
-    Pi (Lam "x" a $ IdP (Path (Name "_") a) (App g (App f x)) x)
+  Sigma $ Lam "s" (Pi (Lam "y" b $ PathP (PLam (Name "_") b) (App f (App g y)) y)) $
+    Pi (Lam "x" a $ PathP (PLam (Name "_") a) (App g (App f x)) x)
   where [a,b,f,g,x,y] = map Var ["a","b","f","g","x","y"]
         rho = upd ("b",vb) emptyEnv
 
@@ -331,9 +331,9 @@ mkEquiv va = eval rho $
   Pi (Lam "x" a $ iscontrfib)
   where [a,b,f,x,y,s,t,z] = map Var ["a","b","f","x","y","s","t","z"]
         rho = upd ("a",va) emptyEnv
-        fib = Sigma $ Lam "y" t (IdP (Path (Name "_") a) x (App f y))
+        fib = Sigma $ Lam "y" t (PathP (PLam (Name "_") a) x (App f y))
         iscontrfib = Sigma $ Lam "s" fib $
-                     Pi $ Lam "z" fib $ IdP (Path (Name "_") fib) s z
+                     Pi $ Lam "z" fib $ PathP (PLam (Name "_") fib) s z
 
 checkEquiv :: Val -> Ter -> Typing ()
 checkEquiv va equiv = check (mkEquiv va) equiv
@@ -374,31 +374,31 @@ checkFresh i = do
   when (i `elem` support rho)
     (throwError $ show i ++ " is already declared")
 
--- Check that a term is a path and output the source and target
-checkPath :: Val -> Ter -> Typing (Val,Val)
-checkPath v (Path i a) = do
+-- Check that a term is a PLam and output the source and target
+checkPLam :: Val -> Ter -> Typing (Val,Val)
+checkPLam v (PLam i a) = do
   rho <- asks env
   -- checkFresh i
   local (addSub (i,Atom i)) $ check (v @@ i) a
   return (eval (sub (i,Dir 0) rho) a,eval (sub (i,Dir 1) rho) a)
-checkPath v t = do
+checkPLam v t = do
   vt <- infer t
   case vt of
-    VIdP a a0 a1 -> do
-      unlessM (a === v) $ throwError "checkPath"
+    VPathP a a0 a1 -> do
+      unlessM (a === v) $ throwError "checkPLam"
       return (a0,a1)
     _ -> throwError $ show vt ++ " is not a path"
 
 -- Return system such that:
 --   rhoalpha |- p_alpha : Id (va alpha) (t0 rhoalpha) ualpha
 -- Moreover, check that the system ps is compatible.
-checkPathSystem :: Ter -> Val -> System Ter -> Typing (System Val)
-checkPathSystem t0 va ps = do
+checkPLamSystem :: Ter -> Val -> System Ter -> Typing (System Val)
+checkPLamSystem t0 va ps = do
   rho <- asks env
   v <- T.sequence $ mapWithKey (\alpha pAlpha ->
     local (faceEnv alpha) $ do
       rhoAlpha <- asks env
-      (a0,a1)  <- checkPath (va `face` alpha) pAlpha
+      (a0,a1)  <- checkPLam (va `face` alpha) pAlpha
       unlessM (a0 === eval rhoAlpha t0) $
         throwError $ "Incompatible system " ++ showSystem ps ++
                      ", component\n " ++ show pAlpha ++
@@ -456,23 +456,23 @@ infer e = case e of
     checkFormula phi
     t <- infer e
     case t of
-      VIdP a _ _ -> return $ a @@ phi
+      VPathP a _ _ -> return $ a @@ phi
       _ -> throwError (show e ++ " is not a path")
   Comp a t0 ps -> do
-    (va0, va1) <- checkPath (constPath VU) a
+    (va0, va1) <- checkPLam (constPath VU) a
     va <- evalTyping a
     check va0 t0
-    checkPathSystem t0 va ps
+    checkPLamSystem t0 va ps
     return va1
   Fill a t0 ps -> do
-    (va0, va1) <- checkPath (constPath VU) a
+    (va0, va1) <- checkPLam (constPath VU) a
     va <- evalTyping a
     check va0 t0
-    checkPathSystem t0 va ps
+    checkPLamSystem t0 va ps
     vt  <- evalTyping t0
     rho <- asks env
     let vps = evalSystem rho ps
-    return (VIdP va vt (compLine va vt vps))
+    return (VPathP va vt (compLine va vt vps))
   PCon c a es phis -> do
     check VU a
     va <- evalTyping a

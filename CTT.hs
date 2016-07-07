@@ -84,8 +84,8 @@ lookupBranch x (b:brs) = case b of
                   | otherwise -> lookupBranch x brs
 
 -- Terms
-data Ter = App Ter Ter
-         | Pi Ter
+data Ter = Pi Ter
+         | App Ter Ter
          | Lam Ident Ter Ter
          | Where Ter Decls
          | Var Ident
@@ -106,9 +106,9 @@ data Ter = App Ter Ter
            -- undefined and holes
          | Undef Loc Ter -- Location and type
          | Hole Loc
-           -- Id type
-         | IdP Ter Ter Ter
-         | Path Name Ter
+           -- Path types
+         | PathP Ter Ter Ter
+         | PLam Name Ter
          | AppFormula Ter Formula
            -- Kan composition and filling
          | Comp Ter Ter (System Ter)
@@ -145,9 +145,9 @@ data Val = VU
          | VCon LIdent [Val]
          | VPCon LIdent Val [Val] [Formula]
 
-           -- Id values
-         | VIdP Val Val Val
-         | VPath Name Val
+           -- Path values
+         | VPathP Val Val Val
+         | VPLam Name Val
          | VComp Val Val (System Val)
 
            -- Glue values
@@ -213,7 +213,7 @@ isCon _      = False
 
 -- Constant path: <_> v
 constPath :: Val -> Val
-constPath = VPath (Name "_")
+constPath = VPLam (Name "_")
 
 
 --------------------------------------------------------------------------------
@@ -353,8 +353,8 @@ showTer v = case v of
   HSum _ n _         -> text n
   Undef{}            -> text "undefined"
   Hole{}             -> text "?"
-  IdP e0 e1 e2       -> text "IdP" <+> showTers [e0,e1,e2]
-  Path i e           -> char '<' <> text (show i) <> char '>' <+> showTer e
+  PathP e0 e1 e2     -> text "PathP" <+> showTers [e0,e1,e2]
+  PLam i e           -> char '<' <> text (show i) <> char '>' <+> showTer e
   AppFormula e phi   -> showTer1 e <+> char '@' <+> showFormula phi
   Comp e t ts        -> text "comp" <+> showTers [e,t] <+> text (showSystem ts)
   Fill e t ts        -> text "fill" <+> showTers [e,t] <+> text (showSystem ts)
@@ -409,13 +409,13 @@ showVal v = case v of
   VSigma u v        -> text "Sigma" <+> showVals [u,v]
   VApp u v          -> showVal u <+> showVal1 v
   VLam{}            -> text "\\(" <> showLam v
-  VPath{}           -> char '<' <> showPath v
+  VPLam{}           -> char '<' <> showPLam v
   VSplit u v        -> showVal u <+> showVal1 v
   VVar x _          -> text x
   VOpaque x _       -> text ('#':x)
   VFst u            -> showVal1 u <> text ".1"
   VSnd u            -> showVal1 u <> text ".2"
-  VIdP v0 v1 v2     -> text "IdP" <+> showVals [v0,v1,v2]
+  VPathP v0 v1 v2   -> text "PathP" <+> showVals [v0,v1,v2]
   VAppFormula v phi -> showVal v <+> char '@' <+> showFormula phi
   VComp v0 v1 vs    ->
     text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)
@@ -426,10 +426,10 @@ showVal v = case v of
                          <+> text (showSystem es)
   VCompU a ts       -> text "comp (<_> U)" <+> showVal1 a <+> text (showSystem ts)
 
-showPath :: Val -> Doc
-showPath e = case e of
-  VPath i a@VPath{} -> text (show i) <+> showPath a
-  VPath i a         -> text (show i) <> char '>' <+> showVal a
+showPLam :: Val -> Doc
+showPLam e = case e of
+  VPLam i a@VPLam{} -> text (show i) <+> showPLam a
+  VPLam i a         -> text (show i) <> char '>' <+> showVal a
   _                 -> showVal e
 
 -- Merge lambdas of the same type

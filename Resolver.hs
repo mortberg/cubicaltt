@@ -153,12 +153,12 @@ lam (a,t) e = CTT.Lam a <$> resolveExp t <*> local (insertVar a) e
 lams :: [(Ident,Exp)] -> Resolver Ter -> Resolver Ter
 lams = flip $ foldr lam
 
-path :: AIdent -> Resolver Ter -> Resolver Ter
-path i e = CTT.Path (C.Name (unAIdent i)) <$> local (insertName i) e
+plam :: AIdent -> Resolver Ter -> Resolver Ter
+plam i e = CTT.PLam (C.Name (unAIdent i)) <$> local (insertName i) e
 
-paths :: [AIdent] -> Resolver Ter -> Resolver Ter
-paths [] _ = throwError "Empty path abstraction"
-paths xs e = foldr path e xs
+plams :: [AIdent] -> Resolver Ter -> Resolver Ter
+plams [] _ = throwError "Empty plam abstraction"
+plams xs e = foldr plam e xs
 
 bind :: (Ter -> Ter) -> (Ident,Exp) -> Resolver Ter -> Resolver Ter
 bind f (x,t) e = f <$> lam (x,t) e
@@ -202,7 +202,7 @@ resolveExp e = case e of
   Let decls e   -> do
     (rdecls,names) <- resolveDecls decls
     mkWheres rdecls <$> local (insertIdents names) (resolveExp e)
-  Path is e     -> paths is (resolveExp e)
+  PLam is e     -> plams is (resolveExp e)
   Hole (HoleIdent (l,_)) -> CTT.Hole <$> getLoc l
   AppFormula t phi ->
     let (x,xs,phis) = unAppsFormulas e []
@@ -211,7 +211,7 @@ resolveExp e = case e of
         CTT.PCon (unAIdent n) <$> resolveExp a <*> mapM resolveExp xs
                               <*> mapM resolveFormula phis
       _ -> CTT.AppFormula <$> resolveExp t <*> resolveFormula phi
-  IdP a u v     -> CTT.IdP <$> resolveExp a <*> resolveExp u <*> resolveExp v
+  PathP a u v   -> CTT.PathP <$> resolveExp a <*> resolveExp u <*> resolveExp v
   Comp u v ts   -> CTT.Comp <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
   Fill u v ts   -> CTT.Fill <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
   Trans u v     -> CTT.Comp <$> resolveExp u <*> resolveExp v <*> pure Map.empty

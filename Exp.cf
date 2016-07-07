@@ -28,14 +28,14 @@ NoWhere.  ExpWhere ::= Exp ;
 
 Let.          Exp  ::= "let" "{" [Decl] "}" "in" Exp ;
 Lam.          Exp  ::= "\\" [PTele] "->" Exp ;
-Path.         Exp  ::= "<" [AIdent] ">" Exp ;
+PLam.         Exp  ::= "<" [AIdent] ">" Exp ;
 Split.        Exp  ::= "split@" Exp "with" "{" [Branch] "}" ;
 Fun.          Exp1 ::= Exp2 "->" Exp1 ;
 Pi.           Exp1 ::= [PTele] "->" Exp1 ;
 Sigma.        Exp1 ::= [PTele] "*" Exp1 ;
 AppFormula.   Exp2 ::= Exp2 "@" Formula ;
 App.          Exp2 ::= Exp2 Exp3 ;
-IdP.          Exp3 ::= "IdP" Exp4 Exp4 Exp4 ;
+PathP.        Exp3 ::= "PathP" Exp4 Exp4 Exp4 ;
 Comp.         Exp3 ::= "comp" Exp4 Exp4 System ;
 Trans.        Exp3 ::= "transport" Exp4 Exp4 ;
 Fill.         Exp3 ::= "fill" Exp4 Exp4 System ;

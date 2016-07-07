@@ -25,7 +25,7 @@ idIsEquiv (A : U) : isEquiv A A (idfun A) =
               ,\(z : fiber A A (idfun A) a) -> contrSingl A a z.1 z.2)
 
 equivPath (T A : U) (f : T -> A) (p : isEquiv T A f) : Path U T A =
-  <i> glue A [ (i=0) -> (T,f,p), (i=1) -> (A,idfun A, idIsEquiv A)]
+  <i> Glue A [ (i=0) -> (T,f,p), (i=1) -> (A,idfun A, idIsEquiv A)]
 
 -- for univalence
 invEq (A B:U) (w:equiv A B) (y:B) : A = (w.2 y).1.1
@@ -67,7 +67,7 @@ transEquiv (A X:U) (p:Path U A X) : equiv A X =
 transDelta (A:U) : equiv A A = transEquiv A A (<i>A)
 
 transEquivToPath (A B : U) (w : equiv A B) : Path U A B =
-  <i> glue B [ (i = 1) -> (B,eB)
+  <i> Glue B [ (i = 1) -> (B,eB)
              , (i = 0) -> (A,w) ]
  where eB : equiv B B = transDelta B
 
@@ -77,7 +77,7 @@ eqToEq (A B : U) (p : Path U A B)
               f : equiv B B = transDelta B
               Ai : U = p@i
               g : equiv Ai B = transEquiv Ai B (<k> p @ (i \/ k))
-          in glue B
+          in Glue B
            [ (i = 0) -> (A,e)
            , (i = 1) -> (B,f)
            , (j = 1) -> (p@i,g)]
@@ -157,7 +157,7 @@ gradLemma (A B : U) (f : A -> B) (g : B -> A)
 isoPath (A B : U) (f : A -> B) (g : B -> A)
       (s : (y : B) -> Path B (f (g y)) y)
       (t : (x : A) -> Path A (g (f x)) x) : Path U A B =
-       <i> glue B [ (i = 0) -> (A,f,gradLemma A B f g s t)
+       <i> Glue B [ (i = 0) -> (A,f,gradLemma A B f g s t)
                   , (i = 1) -> (B,idfun B,idIsEquiv B) ]
 
 idIsEquivGrad (A : U) : isEquiv A A (idfun A) =

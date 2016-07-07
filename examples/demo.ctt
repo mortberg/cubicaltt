@@ -383,7 +383,7 @@ equal:
        (A = B)  ~  (A ~ B)
 
 Glueing is a weaker form of this for producing non-trivial equalities
-from equivalences. In particular glueing gives a map from Equiv(A,B)
+from equivalences. In particular Glueing gives a map from Equiv(A,B)
 to A = B. This weak form of univalence is useful for developing a lot
 of examples. For examples see:
 

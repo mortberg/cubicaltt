@@ -552,7 +552,7 @@ gradLemma (A B : U) (f : A -> B) (g : B -> A)
 isoPath (A B : U) (f : A -> B) (g : B -> A)
       (s : (y : B) -> Path B (f (g y)) y)
       (t : (x : A) -> Path A (g (f x)) x) : Path U A B =
-       <i> glue B [ (i = 0) -> (A,f,gradLemma A B f g s t)
+       <i> Glue B [ (i = 0) -> (A,f,gradLemma A B f g s t)
                   , (i = 1) -> (B,idfun B,idIsEquiv B) ]
 
 
@@ -648,7 +648,7 @@ testNOneZ : Z = transport (<i> sucPathZ @ - i) zeroZ
 
 
 -----------------------------------------------------------------
--- Using glue we get a proof of univalence, see univalence.ctt --
+-- Using Glue we get a proof of univalence, see univalence.ctt --
 
 
 

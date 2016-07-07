@@ -84,24 +84,24 @@ equivFunFib (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (cB : isContr (Sigma A 
 lem1 (B:U) : isContr ((X:U) * equiv X B) =
  ((B,idEquiv B)
    ,\(w : (X : U) * equiv X B)
-    -> <i> let glueB : U = glue B [(i=0) -> (B,idEquiv B), (i=1) -> w]
-               unglueElemB : glueB -> B
-                           = \(g : glueB)
-                             -> unglueElem g [(i=0) -> (B,idEquiv B)
+    -> <i> let GlueB : U = Glue B [(i=0) -> (B,idEquiv B), (i=1) -> w]
+               unglueB : GlueB -> B
+                           = \(g : GlueB)
+                             -> unglue g [(i=0) -> (B,idEquiv B)
                                              ,(i=1) -> w]
-           in (glueB
-              ,unglueElemB
+           in (GlueB
+              ,unglueB
               ,\(b : B)
-               -> let center : fiber glueB B unglueElemB b
-                             = (glueElem (comp (<j> B) b [(i=0) -> <j> b
+               -> let center : fiber GlueB B unglueB b
+                             = (glue (comp (<j> B) b [(i=0) -> <j> b
                                                          ,(i=1) -> (w.2.2 b).1.2])
                                          [(i=0) -> b
                                          ,(i=1) -> (w.2.2 b).1.1]
                                ,fill (<j> B) b [(i=0) -> <j> b
                                                ,(i=1) -> (w.2.2 b).1.2])
-                      contr (v : fiber glueB B unglueElemB b)
-                            : Path (fiber glueB B unglueElemB b) center v
-                            = <j> (glueElem (comp (<j> B) b [(i=0) -> <k> v.2 @ (j /\ k)
+                      contr (v : fiber GlueB B unglueB b)
+                            : Path (fiber GlueB B unglueB b) center v
+                            = <j> (glue (comp (<j> B) b [(i=0) -> <k> v.2 @ (j /\ k)
                                                             ,(i=1) -> ((w.2.2 b).2 v @ j).2
                                                             ,(j=0) -> fill (<j> B) b [(i=0) -> <j> b
                                                                                      ,(i=1) -> (w.2.2 b).1.2]
@@ -115,7 +115,7 @@ lem1 (B:U) : isContr ((X:U) * equiv X B) =
                                                   ,(j=1) -> v.2])
                   in (center,contr)))
 
--- nlem1 (B:U) : isContr ((X:U) * equiv X B) = ((B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> PathP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))),\(w : Sigma U (\(X : U) -> Sigma (X -> B) (\(f : X -> B) -> (y : B) -> Sigma (Sigma X (\(x : X) -> PathP (<!0> B) y (f x))) (\(x : Sigma X (\(x : X) -> PathP (<!0> B) y (f x))) -> (y0 : Sigma X (\(x0 : X) -> PathP (<!0> B) y (f x0))) -> PathP (<!0> Sigma X (\(x0 : X) -> PathP (<!0> B) y (f x0))) x y0)))) -> <!0> (glue B [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> PathP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ],(\(g : glue B [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> PathP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ]) -> unglueElem g [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> PathP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ],\(b : B) -> ((glueElem (comp (<!1> B) b [ (!0 = 0) -> <!1> b, (!0 = 1) -> <!1> (w.2.2 b).1.2 @ !1 ]) [ (!0 = 0) -> b, (!0 = 1) -> (w.2.2 b).1.1 ],<!1> comp (<!2> B) b [ (!0 = 0) -> <!2> b, (!0 = 1) -> <!2> (w.2.2 b).1.2 @ (!1 /\ !2), (!1 = 0) -> <!2> b ]),\(v : Sigma (glue B [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> PathP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ]) (\(x : glue B [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> PathP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ]) -> PathP (<!1> B) b (unglueElem x [ (!0 = 0) -> (B,(\(x0 : B) -> x0,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x0 : B) -> PathP (<!0> B) a x0)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ]))) -> <!1> (glueElem (comp (<!2> B) b [ (!0 = 0) -> <!2> v.2 @ (!1 /\ !2), (!0 = 1) -> <!2> ((w.2.2 b).2 v @ !1).2 @ !2, (!1 = 0) -> <!2> comp (<!3> B) b [ (!0 = 0) -> <!3> b, (!0 = 1) -> <!3> (w.2.2 b).1.2 @ (!2 /\ !3), (!2 = 0) -> <!3> b ], (!1 = 1) -> <!2> v.2 @ !2 ]) [ (!0 = 0) -> v.2 @ !1, (!0 = 1) -> ((w.2.2 b).2 v @ !1).1 ],<!2> comp (<!3> B) b [ (!0 = 0) -> <!3> v.2 @ (!1 /\ !2 /\ !3), (!0 = 1) -> <!3> ((w.2.2 b).2 v @ !1).2 @ (!2 /\ !3), (!1 = 0) -> <!3> comp (<!4> B) b [ (!0 = 0) -> <!4> b, (!0 = 1) -> <!4> (w.2.2 b).1.2 @ (!2 /\ !3 /\ !4), (!2 = 0) -> <!4> b, (!3 = 0) -> <!4> b ], (!1 = 1) -> <!3> v.2 @ (!2 /\ !3), (!2 = 0) -> <!3> b ])))))
+-- nlem1 (B:U) : isContr ((X:U) * equiv X B) = ((B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> PathP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))),\(w : Sigma U (\(X : U) -> Sigma (X -> B) (\(f : X -> B) -> (y : B) -> Sigma (Sigma X (\(x : X) -> PathP (<!0> B) y (f x))) (\(x : Sigma X (\(x : X) -> PathP (<!0> B) y (f x))) -> (y0 : Sigma X (\(x0 : X) -> PathP (<!0> B) y (f x0))) -> PathP (<!0> Sigma X (\(x0 : X) -> PathP (<!0> B) y (f x0))) x y0)))) -> <!0> (Glue B [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> PathP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ],(\(g : Glue B [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> PathP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ]) -> unglue g [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> PathP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ],\(b : B) -> ((glue (comp (<!1> B) b [ (!0 = 0) -> <!1> b, (!0 = 1) -> <!1> (w.2.2 b).1.2 @ !1 ]) [ (!0 = 0) -> b, (!0 = 1) -> (w.2.2 b).1.1 ],<!1> comp (<!2> B) b [ (!0 = 0) -> <!2> b, (!0 = 1) -> <!2> (w.2.2 b).1.2 @ (!1 /\ !2), (!1 = 0) -> <!2> b ]),\(v : Sigma (Glue B [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> PathP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ]) (\(x : Glue B [ (!0 = 0) -> (B,(\(x : B) -> x,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x : B) -> PathP (<!0> B) a x)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ]) -> PathP (<!1> B) b (unglue x [ (!0 = 0) -> (B,(\(x0 : B) -> x0,\(a : B) -> ((a,<!0> a),\(z : Sigma B (\(x0 : B) -> PathP (<!0> B) a x0)) -> <!0> (z.2 @ !0,<!1> z.2 @ (!0 /\ !1))))), (!0 = 1) -> w ]))) -> <!1> (glue (comp (<!2> B) b [ (!0 = 0) -> <!2> v.2 @ (!1 /\ !2), (!0 = 1) -> <!2> ((w.2.2 b).2 v @ !1).2 @ !2, (!1 = 0) -> <!2> comp (<!3> B) b [ (!0 = 0) -> <!3> b, (!0 = 1) -> <!3> (w.2.2 b).1.2 @ (!2 /\ !3), (!2 = 0) -> <!3> b ], (!1 = 1) -> <!2> v.2 @ !2 ]) [ (!0 = 0) -> v.2 @ !1, (!0 = 1) -> ((w.2.2 b).2 v @ !1).1 ],<!2> comp (<!3> B) b [ (!0 = 0) -> <!3> v.2 @ (!1 /\ !2 /\ !3), (!0 = 1) -> <!3> ((w.2.2 b).2 v @ !1).2 @ (!2 /\ !3), (!1 = 0) -> <!3> comp (<!4> B) b [ (!0 = 0) -> <!4> b, (!0 = 1) -> <!4> (w.2.2 b).1.2 @ (!2 /\ !3 /\ !4), (!2 = 0) -> <!4> b, (!3 = 0) -> <!4> b ], (!1 = 1) -> <!3> v.2 @ (!2 /\ !3), (!2 = 0) -> <!3> b ])))))
 
 contrSingl' (A : U) (a b : A) (p : Path A a b) :
   Path ((x:A) * Path A x b) (b,refl A b) (a,p) = <i> (p @ -i,<j> p @ -i\/j)

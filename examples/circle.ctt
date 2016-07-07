@@ -74,3 +74,30 @@ apcircleelim (A B : U) (x : A) (p : Id A x x) (f : A -> B) :
                    (circleelim B (f x) (<i> f (p @ i)) z) = split
    base -> <_> f x
    loop @ i -> <_> f (p @ i)
+
+
+-- a special case, Lemmas 6.2.5-6.2.9 in the book
+
+aLoop (A:U) : U = (a:A) * Id A a a
+
+phi (A:U) (al : aLoop A) : S1 -> A = split
+  base -> al.1
+  loop @ i -> (al.2)@ i
+
+psi (A:U) (f:S1 -> A) : aLoop A = (f base,<i>f (loop1@i))
+
+rem (A:U) (f : S1 -> A) : (u : S1) -> Id A (phi A (psi A f) u) (f u) = split
+         base -> refl A (f base)
+         loop @ i -> <j>f (loop1@i)
+
+lem (A:U) (f : S1 -> A) : Id (S1 -> A) (phi A (psi A f)) f = 
+ <i> \ (x:S1) -> (rem A f x) @ i
+
+thm (A:U) : Id U (aLoop A) (S1 -> A) = isoId T0 T1 f g t s
+ where T0 : U = aLoop A
+       T1 : U = S1 -> A
+       f : T0 -> T1 = phi A
+       g : T1 -> T0 = psi A
+       s (x:T0) : Id T0 (g (f x)) x    = refl T0 x
+       t : (y:T1) -> Id T1 (f (g y)) y = lem A
+

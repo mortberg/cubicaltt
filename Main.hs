@@ -98,8 +98,7 @@ initLoop flags f hist = do
       putStrLn $ "Resolver failed: " ++ err
       runInputT (settings []) (putHistory hist >> loop flags f [] TC.verboseEnv)
     Right (adefs,names) -> do
-      (merr,tenv) <- 
-        TC.runDeclss TC.verboseEnv (takeWhile (\x -> fst (head x) /= "stop") adefs)
+      (merr,tenv) <- TC.runDeclss TC.verboseEnv adefs
       case merr of
         Just err -> putStrLn $ "Type checking failed: " ++ shrink err
         Nothing  -> putStrLn "File loaded."

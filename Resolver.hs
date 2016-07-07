@@ -333,7 +333,7 @@ resolveRTele (i:is) (t:ts) = do
   return ((i,a):as)
 
 -- Resolve a declaration
-resolveDecl :: Decl -> Resolver ([CTT.Decl],[(Ident,SymKind)])
+resolveDecl :: Decl -> Resolver (CTT.Decls,[(Ident,SymKind)])
 resolveDecl d = case d of
   DeclMutual decls -> do
     let (fs,ts,bs,nss) = unzip4 $ map resolveNonMutualDecl decls
@@ -345,24 +345,31 @@ resolveDecl d = case d of
     -- mutual block
     ds <- sequence $ map (local (insertIdents ns)) bs
     let ads = zipWith (\ (x,y) z -> (x,(y,z))) as ds
-    return (ads,ns)
+    return (CTT.MutualDecls ads,ns)
+  DeclOpaque i  -> do
+    resolveVar i
+    return (CTT.OpaqueDecl (unAIdent i), [])
+  DeclVisible i -> do
+    resolveVar i
+    return (CTT.VisibleDecl (unAIdent i), [])
+  DeclVisibleAll -> return (CTT.VisibleAllDecl, [])
   _ -> do let (f,typ,body,ns) = resolveNonMutualDecl d
           a <- typ
           d <- body
-          return ([(f,(a,d))],ns)
+          return (CTT.MutualDecls [(f,(a,d))],ns)
 
-resolveDecls :: [Decl] -> Resolver ([[CTT.Decl]],[(Ident,SymKind)])
+resolveDecls :: [Decl] -> Resolver ([CTT.Decls],[(Ident,SymKind)])
 resolveDecls []     = return ([],[])
 resolveDecls (d:ds) = do
   (rtd,names)  <- resolveDecl d
   (rds,names') <- local (insertIdents names) $ resolveDecls ds
   return (rtd : rds, names' ++ names)
 
-resolveModule :: Module -> Resolver ([[CTT.Decl]],[(Ident,SymKind)])
+resolveModule :: Module -> Resolver ([CTT.Decls],[(Ident,SymKind)])
 resolveModule (Module (AIdent (_,n)) _ decls) =
   local (updateModule n) $ resolveDecls decls
 
-resolveModules :: [Module] -> Resolver ([[CTT.Decl]],[(Ident,SymKind)])
+resolveModules :: [Module] -> Resolver ([CTT.Decls],[(Ident,SymKind)])
 resolveModules []         = return ([],[])
 resolveModules (mod:mods) = do
   (rmod, names)  <- resolveModule mod

@@ -15,33 +15,34 @@ import CTT
 -- Lookup functions
 
 look :: String -> Env -> Val
-look x (Upd y rho,v:vs,fs) | x == y = v
-                           | otherwise = look x (rho,vs,fs)
-look x r@(Def decls rho,vs,fs) = case lookup x decls of
+look x (Upd y rho,v:vs,fs,os) | x == y = v
+                              | otherwise = look x (rho,vs,fs,os)
+look x r@(Def decls rho,vs,fs,Nameless os) = case lookup x decls of
   Just (_,t) -> eval r t
-  Nothing    -> look x (rho,vs,fs)
-look x (Sub _ rho,vs,_:fs) = look x (rho,vs,fs)
-look x _ = error $ "look: not found " ++ show x
+  Nothing    -> look x (rho,vs,fs,Nameless os)
+look x (Sub _ rho,vs,_:fs,os) = look x (rho,vs,fs,os)
+look x (Empty,_,_,_) = error $ "look: not found " ++ show x
 
 lookType :: String -> Env -> Val
-lookType x (Upd y rho,VVar _ a:vs,fs)
-  | x == y    = a
-  | otherwise = lookType x (rho,vs,fs)
-lookType x r@(Def decls rho,vs,fs) = case lookup x decls of
+lookType x (Upd y rho,v:vs,fs,os)
+  | x /= y        = lookType x (rho,vs,fs,os)
+  | VVar _ a <- v = a
+  | otherwise     = error ""
+lookType x r@(Def decls rho,vs,fs,os) = case lookup x decls of
   Just (a,_) -> eval r a
-  Nothing -> lookType x (rho,vs,fs)
-lookType x (Sub _ rho,vs,_:fs) = lookType x (rho,vs,fs)
-lookType x _                   = error $ "lookType: not found " ++ show x
+  Nothing -> lookType x (rho,vs,fs,os)
+lookType x (Sub _ rho,vs,_:fs,os) = lookType x (rho,vs,fs,os)
+lookType x (Empty,_,_,_)                  = error $ "lookType: not found " ++ show x
 
 lookName :: Name -> Env -> Formula
-lookName i (Upd _ rho,v:vs,fs) = lookName i (rho,vs,fs)
-lookName i (Def _ rho,vs,fs)   = lookName i (rho,vs,fs)
-lookName i (Sub j rho,vs,phi:fs) | i == j    = phi
-                                 | otherwise = lookName i (rho,vs,fs)
+lookName i (Upd _ rho,v:vs,fs,os) = lookName i (rho,vs,fs,os)
+lookName i (Def _ rho,vs,fs,os)   = lookName i (rho,vs,fs,os)
+lookName i (Sub j rho,vs,phi:fs,os) | i == j    = phi
+                                    | otherwise = lookName i (rho,vs,fs,os)
 lookName i _ = error $ "lookName: not found " ++ show i
 
 
------------------------------------------------------------------------
+  -----------------------------------------------------------------------
 -- Nominal instances
 
 instance Nominal Ctxt where
@@ -65,6 +66,7 @@ instance Nominal Val where
     VPCon _ a vs phis       -> support (a,vs,phis)
     VHComp a u ts           -> support (a,u,ts)
     VVar _ v                -> support v
+    VOpaque _ v             -> support v
     VApp u v                -> support (u,v)
     VLam _ u v              -> support (u,v)
     VAppFormula u phi       -> support (u,phi)
@@ -98,6 +100,7 @@ instance Nominal Val where
          VPCon c a vs phis       -> pcon c (acti a) (acti vs) (acti phis)
          VHComp a u us           -> hComp (acti a) (acti u) (acti us)
          VVar x v                -> VVar x (acti v)
+         VOpaque x v             -> VOpaque x (acti v)
          VAppFormula u psi       -> acti u @@ acti psi
          VApp u v                -> app (acti u) (acti v)
          VLam x t u              -> VLam x (acti t) (acti u)
@@ -127,6 +130,7 @@ instance Nominal Val where
          VPCon c a vs phis       -> VPCon c (sw a) (sw vs) (sw phis)
          VHComp a u us           -> VHComp (sw a) (sw u) (sw us)
          VVar x v                -> VVar x (sw v)
+         VOpaque x v             -> VOpaque x (sw v)
          VAppFormula u psi       -> VAppFormula (sw u) (sw psi)
          VApp u v                -> VApp (sw u) (sw v)
          VLam x u v              -> VLam x (sw u) (sw v)
@@ -142,16 +146,18 @@ instance Nominal Val where
 -- The evaluator
 
 eval :: Env -> Ter -> Val
-eval rho v = case v of
+eval rho@(_,_,_,Nameless os) v = case v of
   U                   -> VU
   App r s             -> app (eval rho r) (eval rho s)
-  Var i               -> look i rho
+  Var i
+    | i `elem` os     -> VOpaque i (lookType i rho)
+    | otherwise       -> look i rho
   Pi t@(Lam _ a _)    -> VPi (eval rho a) (eval rho t)
   Sigma t@(Lam _ a _) -> VSigma (eval rho a) (eval rho t)
   Pair a b            -> VPair (eval rho a) (eval rho b)
   Fst a               -> fstVal (eval rho a)
   Snd a               -> sndVal (eval rho a)
-  Where t decls       -> eval (def decls rho) t
+  Where t decls       -> eval (defWhere decls rho) t
   Con name ts         -> VCon name (map (eval rho) ts)
   PCon name a ts phis  ->
     pcon name (eval rho a) (map (eval rho) ts) (map (evalFormula rho) phis)
@@ -234,6 +240,7 @@ sndVal u               = error $ "sndVal: " ++ show u ++ " is not neutral."
 inferType :: Val -> Val
 inferType v = case v of
   VVar _ t -> t
+  VOpaque _ t -> t
   Ter (Undef _ t) rho -> eval rho t
   VFst t -> case inferType t of
     VSigma a _ -> a
@@ -820,6 +827,7 @@ instance Convertible Val where
       (VSnd u,VSnd u')           -> conv ns u u'
       (VApp u v,VApp u' v')      -> conv ns u u' && conv ns v v'
       (VSplit u v,VSplit u' v')  -> conv ns u u' && conv ns v v'
+      (VOpaque x _, VOpaque x' _) -> x == x'
       (VVar x _, VVar x' _)      -> x == x'
       (VIdP a b c,VIdP a' b' c') -> conv ns a a' && conv ns b b' && conv ns c c'
       (VPath i a,VPath i' a')    -> conv ns (a `swap` (i,j)) (a' `swap` (i',j))
@@ -863,6 +871,8 @@ instance Convertible a => Convertible (System a) where
 instance Convertible Formula where
   conv _ phi psi = dnf phi == dnf psi
 
+instance Convertible (Nameless a) where
+  conv _ _ _ = True
 
 -------------------------------------------------------------------------------
 -- | Normalization
@@ -899,6 +909,9 @@ instance Normal Val where
     VApp u v            -> app (normal ns u) (normal ns v)
     VAppFormula u phi   -> VAppFormula (normal ns u) (normal ns phi)
     _                   -> v
+
+instance Normal (Nameless a) where
+  normal _ = id
 
 instance Normal Ctxt where
   normal _ = id

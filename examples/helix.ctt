@@ -4,7 +4,7 @@ import circle
 import equiv
 import pi
 
-oneTurn (l: loopS1) : loopS1 = compS1 l loop1 
+oneTurn (l: loopS1) : loopS1 = compS1 l loop1
 
 backTurn (l: loopS1) : loopS1 = compS1 l invLoop
 
@@ -17,7 +17,7 @@ compInvS1 : Id loopS1 (refl S1 base) (compS1 invLoop loop1) = compInv S1 base ba
 
 compInv (A:U) (a b:A) (q:Id A a b) : (x:A) (p:Id A b x) -> Id (Id A a b) q (compId A a x b (compId A a b x q p) (<i>p@-i)) =
  J A b (\ (x:A) (p:Id A b x) -> Id (Id A a b) q (compId A a x b (compId A a b x q p) (<i>p@-i))) rem
- where rem : Id (Id A a b) q 
+ where rem : Id (Id A a b) q
                            (<i>comp (<_>A) (comp (<_>A) (q@i) [(i=0) -> <_>a,(i=1) -> <_>b]) [(i=0) -> <_>a,(i=1) -> <_>b]) =
           <j i>comp (<_>A) (comp (<_>A) (q@i) [(j=0) -> <_>q@i,(i=0) -> <_>a,(i=1) -> <_>b]) [(j=0) -> <_>q@i,(i=0) -> <_>a,(i=1) -> <_>b]
 
@@ -30,14 +30,14 @@ transC (A:U) (a:A) : A = comp (<_>A) a []
 lemTransC (A:U) (a:A) : Id A (transC A a) a = <i>comp (<_>A) a [(i=1) -> <_>a]
 
 lemFib1 (A:U) (F G : A -> U) (a:A) (fa : F a -> G a) :
-   (x:A) (p : Id A a x) -> (fx : F x -> G x) -> 
+   (x:A) (p : Id A a x) -> (fx : F x -> G x) ->
      Id U (Id (F a -> G x) (\ (u:F a) -> subst A G a x p (fa u)) (\ (u:F a) -> fx (subst A F a x p u)))
           (IdP (<i>F (p@i) -> G (p@i)) fa fx) =
- J A a (\ (x:A) (p : Id A a x) -> (fx : F x -> G x) -> 
+ J A a (\ (x:A) (p : Id A a x) -> (fx : F x -> G x) ->
      Id U (Id (F a -> G x) (\ (u:F a) -> subst A G a x p (fa u)) (\ (u:F a) -> fx (subst A F a x p u)))
           (IdP (<i>F (p@i) -> G (p@i)) fa fx)) rem
  where
-   rem (ga : F a -> G a) : Id U (Id (F a -> G a) (\ (u:F a) -> transC (G a) (fa u)) (\ (u:F a) -> ga (transC (F a) u))) 
+   rem (ga : F a -> G a) : Id U (Id (F a -> G a) (\ (u:F a) -> transC (G a) (fa u)) (\ (u:F a) -> ga (transC (F a) u)))
                                 (Id (F a -> G a) fa ga) =
     <j>Id (F a -> G a) (\ (u:F a) -> lemTransC (G a) (fa u)@j) (\ (u : F a) -> ga (lemTransC (F a) u@j))
 
@@ -49,17 +49,17 @@ corFib1 (A:U) (F G : A -> U) (a:A) (fa ga : F a -> G a) (p:Id A a a)
 
 
 compIdL (A:U) (a b:A) (p : Id A a b) : Id (Id A a b) p (compId A a b b p (<_>b)) =
- <j i>comp (<_>A) (p @ i) [(i=0) -> <_> a, (i = 1) -> <_>b, (j=0) -> <_>(p@i) ]   
+ <j i>comp (<_>A) (p @ i) [(i=0) -> <_> a, (i = 1) -> <_>b, (j=0) -> <_>(p@i) ]
 
-lemFib2 (A:U) (F:A->U) (a b:A) (p:Id A a b) (u:F a) : 
+lemFib2 (A:U) (F:A->U) (a b:A) (p:Id A a b) (u:F a) :
    (c:A) (q:Id A b c) -> Id (F c) (subst A F b c q (subst A F a b p u)) (subst A F a c (compId A a b c p q) u) =
  J A b (\ (c:A) (q:Id A b c) -> Id (F c) (subst A F b c q (subst A F a b p u)) (subst A F a c (compId A a b c p q) u))
    rem
-  where 
+  where
    rem1 : Id (F b) (subst A F a b p u) (subst A F b b (<_>b) (subst A F a b p u)) =  <i>lemTransC (F b) (subst A F a b p u)@-i
    rem2 : Id (F b) (subst A F a b p u) (subst A F a b (compId A a b b p (<_>b)) u) =
       <i>subst A F a b (compIdL A a b p@i) u
-   rem : Id (F b) (subst A F b b (<_>b) (subst A F a b p u)) (subst A F a b (compId A a b b p (<_>b)) u) = 
+   rem : Id (F b) (subst A F b b (<_>b) (subst A F a b p u)) (subst A F a b (compId A a b b p (<_>b)) u) =
       comp (<i>Id (F b) (rem1@i) (rem2@i)) (<_>subst A F a b p u) []
 
 testIsoId (A B : U) (f : A -> B) (g : B -> A)
@@ -69,16 +69,16 @@ testIsoId (A B : U) (f : A -> B) (g : B -> A)
 
 testH (n:Z) : Z = subst S1 helix base base loop1 n
 
-testHelix : Id (Z->Z) sucZ (subst S1 helix base base loop1) = 
+testHelix : Id (Z->Z) sucZ (subst S1 helix base base loop1) =
   <i>\(n:Z) ->  testIsoId Z Z sucZ predZ sucpredZ predsucZ n@i
 
 encode (x:S1) (p:Id S1 base x) : helix x = subst S1 helix base x p zeroZ
 
 itLoop : nat -> loopS1 = split
  zero -> triv
- suc n -> oneTurn (itLoop n) 
+ suc n -> oneTurn (itLoop n)
 
-itLoopNeg : nat -> loopS1 = split 
+itLoopNeg : nat -> loopS1 = split
  zero -> invLoop
  suc n -> backTurn (itLoopNeg n)
 
@@ -116,14 +116,14 @@ decode : (x:S1) -> helix x -> Id S1 base x = split
          G (x:S1) : U =  Id S1 base x
          p : Id U T T = <j> helix (loop1@j) -> Id S1 base (loop1@j)
          rem2 (n:Z) : Id loopS1 (oneTurn (loopIt n)) (loopIt (sucZ n)) = <i>lem1It n@-i
-         rem1 (n:Z) : Id loopS1 (subst S1 G base base loop1 (loopIt n)) (loopIt (subst S1 helix base base loop1 n)) = 
+         rem1 (n:Z) : Id loopS1 (subst S1 G base base loop1 (loopIt n)) (loopIt (subst S1 helix base base loop1 n)) =
            comp (<i> Id loopS1 (oneTurn (loopIt n)) (loopIt (testHelix@i n))) (rem2 n) []
          rem : IdP p loopIt loopIt = corFib1 S1 helix G base loopIt loopIt loop1 rem1
 
-encodeDecode (x:S1) (p : Id S1 base x) : Id (Id S1 base x) (decode x (encode x p)) p = 
+encodeDecode (x:S1) (p : Id S1 base x) : Id (Id S1 base x) (decode x (encode x p)) p =
   transport (<i>Id (Id S1 base (p@i)) (decode (p@i) (encode (p@i) (<j>p@(i/\j)))) (<j>p@(i/\j))) (refl loopS1 triv)
 
--- encodeDecode : (c : S1) (p : Id S1 base c) -> Id (Id S1 base c) (decode c (encode c p)) p = 
+-- encodeDecode : (c : S1) (p : Id S1 base c) -> Id (Id S1 base c) (decode c (encode c p)) p =
 --  J S1 base (\ (c : S1) (p : Id S1 base c) -> Id (Id S1 base c) (decode c (encode c p)) p)
 --    (<_> (<_> base))
 
@@ -133,11 +133,11 @@ lemTransOneTurn (n:nat) : Id Z (transport (<i>helix (loop1@i)) (inr n)) (inr (su
 lemTransBackTurn (n:nat) : Id Z (transport (<i>helix (loop1@-i)) (inl n)) (inl (suc n)) =
  <i>inl (suc (comp (<_>nat) (comp (<_>nat) n [(i=1) -> <_>n]) [(i=1) -> <_>n]))
 
-corFib2 (u:Z) (l:loopS1) : Id Z (transport (<i>helix (oneTurn l@i)) u) 
+corFib2 (u:Z) (l:loopS1) : Id Z (transport (<i>helix (oneTurn l@i)) u)
                                 (transport (<i>helix (loop1@i)) (transport (<i>helix (l@i)) u)) =
  <i>lemFib2 S1 helix base base l u base loop1@-i
 
-corFib3 (u:Z) (l:loopS1) : Id Z (transport (<i>helix (backTurn l@i)) u) 
+corFib3 (u:Z) (l:loopS1) : Id Z (transport (<i>helix (backTurn l@i)) u)
                                 (transport (<i>helix (loop1@-i)) (transport (<i>helix (l@i)) u)) =
  <i>lemFib2 S1 helix base base l u base (<j>loop1@-j)@-i
 
@@ -146,12 +146,12 @@ decodeEncodeBasePos : (n : nat) -> Id Z (transport (<x> helix (itLoop n @ x)) (i
   suc n ->  comp (<j>Id Z (transport (<i>helix (oneTurn l@i)) (inr zero)) (lemTransOneTurn n@j)) rem3 []
     where l : loopS1 = itLoop n
           rem1 : Id Z (transport (<i> helix (l@i)) (inr zero)) (inr n) = decodeEncodeBasePos n
-          rem2 : Id Z (transport (<i>helix (oneTurn l@i)) (inr zero)) 
-                      (transport (<i>helix (loop1@i)) (transport (<i>helix (l@i)) (inr zero))) = 
+          rem2 : Id Z (transport (<i>helix (oneTurn l@i)) (inr zero))
+                      (transport (<i>helix (loop1@i)) (transport (<i>helix (l@i)) (inr zero))) =
               corFib2 (inr zero) l
-          rem3 : Id Z (transport (<i>helix (oneTurn l@i)) (inr zero)) 
-                      (transport (<i>helix (loop1@i)) (inr n)) = 
-            comp (<j>Id Z (transport (<i>helix (oneTurn l@i)) (inr zero)) 
+          rem3 : Id Z (transport (<i>helix (oneTurn l@i)) (inr zero))
+                      (transport (<i>helix (loop1@i)) (inr n)) =
+            comp (<j>Id Z (transport (<i>helix (oneTurn l@i)) (inr zero))
                           (transport (<i>helix (loop1@i)) (rem1@j))) rem2 []
 
 decodeEncodeBaseNeg : (n : nat) -> Id Z (transport (<x> helix (itLoopNeg n @ x)) (inr zero)) (inl n) = split
@@ -159,15 +159,15 @@ decodeEncodeBaseNeg : (n : nat) -> Id Z (transport (<x> helix (itLoopNeg n @ x))
   suc n ->  comp (<j>Id Z (transport (<i>helix (backTurn l@i)) (inr zero)) (lemTransBackTurn n@j)) rem3 []
     where l : loopS1 = itLoopNeg n
           rem1 : Id Z (transport (<i> helix (l@i)) (inr zero)) (inl n) = decodeEncodeBaseNeg n
-          rem2 : Id Z (transport (<i>helix (backTurn l@i)) (inr zero)) 
-                      (transport (<i>helix (loop1@-i)) (transport (<i>helix (l@i)) (inr zero))) = 
+          rem2 : Id Z (transport (<i>helix (backTurn l@i)) (inr zero))
+                      (transport (<i>helix (loop1@-i)) (transport (<i>helix (l@i)) (inr zero))) =
               corFib3 (inr zero) l
-          rem3 : Id Z (transport (<i>helix (backTurn l@i)) (inr zero)) 
-                      (transport (<i>helix (loop1@-i)) (inl n)) = 
-            comp (<j>Id Z (transport (<i>helix (backTurn l@i)) (inr zero)) 
+          rem3 : Id Z (transport (<i>helix (backTurn l@i)) (inr zero))
+                      (transport (<i>helix (loop1@-i)) (inl n)) =
+            comp (<j>Id Z (transport (<i>helix (backTurn l@i)) (inr zero))
                           (transport (<i>helix (loop1@-i)) (rem1@j))) rem2 []
 
-decodeEncodeBase : (n : Z) -> Id Z (encode base (decode base n)) n = split 
+decodeEncodeBase : (n : Z) -> Id Z (encode base (decode base n)) n = split
   inl n -> decodeEncodeBaseNeg n
   inr n -> decodeEncodeBasePos n
 
@@ -192,7 +192,7 @@ isGroupoidS1 : groupoid S1 = lem
 
   lem : (x y : S1) -> set (Id S1 x y)
    = lemPropFib (\ (x:S1) -> (y : S1) -> set (Id S1 x y)) pP lem2
-     where 
+     where
        pP (x:S1) : prop ((y:S1) -> set (Id S1 x y)) =
         propPi S1 (\ (y:S1) -> set (Id S1 x y)) (\ (y:S1) -> setIsProp (Id S1 x y))
 
@@ -230,7 +230,7 @@ lemSetTorus (E : S1 -> S1 -> U) (sE : set (E base base))
 
           rem3 : prop (P y)
            = substInv U prop (P y) (Id (E base y) (subst S1 (G y) base base loop1 (f y)) (f y)) rem1 rem2
-          
+
       lem2 : IdS S1 (G base) base base loop1 (g base) (g base)
         = <j> g (loop1 @ j)
 
@@ -255,13 +255,13 @@ multCom : (x y : S1) -> Id S1 (mult x y) (mult y x) =
 
 -- associativity
 
-multAssoc (x :S1) : (y z : S1) -> Id S1 (mult x (mult y z)) (mult (mult x y) z) = 
+multAssoc (x :S1) : (y z : S1) -> Id S1 (mult x (mult y z)) (mult (mult x y) z) =
  lemSetTorus E sE f g efg
  where
    E (y z : S1) : U = Id S1 (mult x (mult y z)) (mult (mult x y) z)
    sE : set (E base base) = isGroupoidS1 x x
    f (z : S1) : E base z = rem
-     where 
+     where
         rem1 : Id S1 (mult base z) z = multCom base z
 
         rem : Id S1 (mult x (mult base z)) (mult x z) = <i> mult x (rem1 @ i)
@@ -270,14 +270,14 @@ multAssoc (x :S1) : (y z : S1) -> Id S1 (mult x (mult y z)) (mult (mult x y) z) 
 
 -- inverse law
 
-lemPropRel (P:S1 -> S1 -> U) (pP:(x y:S1) -> prop (P x y)) (bP:P base base) : (x y:S1) -> P x y = 
+lemPropRel (P:S1 -> S1 -> U) (pP:(x y:S1) -> prop (P x y)) (bP:P base base) : (x y:S1) -> P x y =
  lemPropFib (\ (x:S1) -> (y:S1) -> P x y)
             (\ (x:S1) -> propPi S1 (P x) (pP x))
-            (lemPropFib (P base) (pP base) bP)                   
+            (lemPropFib (P base) (pP base) bP)
 
 invLaw : (x y : S1) ->
           Id (Id S1 (mult x y) (mult x y)) (refl S1 (mult x y))
-             (compId S1 (mult x y) (mult y x) (mult x y) (multCom x y) (multCom y x)) = lemPropRel P pP bP 
+             (compId S1 (mult x y) (mult y x) (mult x y) (multCom x y) (multCom y x)) = lemPropRel P pP bP
  where
   P (x y : S1) : U
     = Id (Id S1 (mult x y) (mult x y)) (refl S1 (mult x y))
@@ -287,13 +287,13 @@ invLaw : (x y : S1) ->
    isGroupoidS1 (mult x y) (mult x y) (refl S1 (mult x y))
                 (compId S1 (mult x y) (mult y x) (mult x y) (multCom x y) (multCom y x))
 
-  bP : P base base = 
+  bP : P base base =
    comp (<i>Id (Id S1 base base) (refl S1 base) (<j>comp (<_>S1) base [(i=0) -> refl S1 base, (j=0) -> refl S1 base, (j=1) -> refl S1 base]))
         (refl (Id S1 base base) (refl S1 base)) []
 
 -- the multiplication is invertible
 
-multIsEquiv : (x:S1) -> isEquiv S1 S1 (mult x) =  lemPropFib P pP bP 
+multIsEquiv : (x:S1) -> isEquiv S1 S1 (mult x) =  lemPropFib P pP bP
  where P (x:S1) : U            = isEquiv S1 S1 (mult x)
        pP (x:S1) : prop (P x)  = propIsEquiv S1 S1 (mult x)
        rem : Id (S1 -> S1) (idfun S1) (mult base) = <i>\ (x:S1) -> idL x @ -i
@@ -305,11 +305,11 @@ invMult (x y:S1) : S1 = (multIsEquiv x y).1.1
 
 invS1 (x:S1) : S1 = invMult x base
 
-lem : Id S1 (invS1 base) base = <i> comp (<_>S1) (comp (<_>S1) base [(i=1) -> refl S1 base]) [(i=1) -> refl S1 base]
+lemInvS1 : Id S1 (invS1 base) base = <i> comp (<_>S1) (comp (<_>S1) base [(i=1) -> refl S1 base]) [(i=1) -> refl S1 base]
 
 loopInvS1 : U = Id S1 (invS1 base) (invS1 base)
 
-rePar (l: loopInvS1) : loopS1 = transport (<i>Id S1 (lem@i) (lem@i)) l
+rePar (l: loopInvS1) : loopS1 = transport (<i>Id S1 (lemInvS1@i) (lemInvS1@i)) l
 
 test2 : Z = winding (rePar (<i>invS1 (loop2@i)))
 -- EVAL: inl (suc zero)                Time: 1m26.400s

@@ -87,7 +87,7 @@ addTele :: Tele -> TEnv -> TEnv
 addTele xas lenv = foldl (flip addType) lenv xas
 
 faceEnv :: Face -> TEnv -> TEnv
-faceEnv alpha tenv = tenv{env=env tenv `face` alpha}
+faceEnv alpha tenv = tenv{env=face (supportEnv tenv) (env tenv) alpha}
 
 supportEnv :: TEnv -> [Name]
 supportEnv = supportOfEnv . env
@@ -291,7 +291,7 @@ checkGlueElem vu ts us = do
   let vus = evalSystem is rho us
   checkSystemsWith ts vus (\alpha vt vAlpha -> do
     is <- asks supportEnv
-    unlessM (app is (equivFun vt) vAlpha === (vu `face` alpha)) $
+    unlessM (app is (equivFun vt) vAlpha === (face is vu alpha)) $
       throwError $ "Image of glue component " ++ show vAlpha ++
                    " doesn't match " ++ show vu)
   checkCompSystem vus
@@ -309,16 +309,16 @@ checkGlueElemU vu ves us = do
   is <- asks supportEnv
   let vus = evalSystem is rho us
   checkSystemsWith ves vus (\alpha ve vAlpha ->
-    unlessM (eqFun is ve vAlpha === (vu `face` alpha)) $
+    unlessM (eqFun is ve vAlpha === (face is vu alpha)) $
       throwError $ "Transport of glueElem (for compU) component " ++ show vAlpha ++
                    " doesn't match " ++ show vu)
   checkCompSystem vus
 
 checkGlue :: Val -> System Ter -> Typing ()
 checkGlue va ts = do
-  checkSystemWith ts (\alpha tAlpha -> checkEquiv (va `face` alpha) tAlpha)
-  rho <- asks env
   is <- asks supportEnv
+  checkSystemWith ts (\alpha tAlpha -> checkEquiv (face is va alpha) tAlpha)
+  rho <- asks env
   checkCompSystem (evalSystem is rho ts)
 
 -- An iso for a type b is a five-tuple: (a,f,g,s,t)   where
@@ -376,12 +376,12 @@ checkBranch (PLabel _ tele is ts,nu) f (PBranch c ns js e) g va = do
       vus  = map snd us
       js'  = map Atom js
       vts  = evalSystem is'' (subs (zip is js') (upds us nu)) ts
-      vgts = intersectionWith (app is'') (border g vts) vts
+      vgts = intersectionWith (app is'') (border is'' g vts) vts
   local (addSubs (zip js js') . addBranch (zip ns vus) nu) $ do
     is <- asks supportEnv
     check (app is f (VPCon c va vus js')) e
     ve  <- evalTyping e -- TODO: combine with next two lines?
-    let veborder = border ve vts
+    let veborder = border is ve vts
     unlessM (veborder === vgts) $
       throwError $ "Faces in branch for " ++ show c ++ " don't match:"
                    ++ "\ngot\n" ++ showSystem veborder ++ "\nbut expected\n"
@@ -425,8 +425,8 @@ checkPLamSystem t0 va ps = do
   v <- T.sequence $ mapWithKey (\alpha pAlpha ->
     local (faceEnv alpha) $ do
       rhoAlpha <- asks env
-      (a0,a1)  <- checkPLam (va `face` alpha) pAlpha
       is <- asks supportEnv
+      (a0,a1)  <- checkPLam (face is va alpha) pAlpha
       unlessM (a0 === eval is rhoAlpha t0) $
         throwError $ "Incompatible system " ++ showSystem ps ++
                      ", component\n " ++ show pAlpha ++

@@ -47,7 +47,7 @@ lookName i _ = error $ "lookName: not found " ++ show i
 
 instance Nominal Ctxt where
   support _ = []
-  act e _   = e
+  act _ e _ = e
   swap e _  = e
 
 instance Nominal Val where
@@ -77,40 +77,39 @@ instance Nominal Val where
     VCompU a ts             -> support (a,ts)
     VUnGlueElemU a b es     -> support (a,b,es)
 
-  -- TODO: act should take the support
-  act u (i, phi) | i `notElem` support u = u 
-                 | otherwise =
+  act is u (i, phi) | i `notElem` support u = u  -- TODO: fix
+                    | otherwise =
     let acti :: Nominal a => a -> a
-        acti u = act u (i, phi)
+        acti u = act is u (i, phi)
         sphi = support phi
     in case u of
          VU           -> VU
          Ter t e      -> Ter t (acti e)
          VPi a f      -> VPi (acti a) (acti f)
-         VComp a v ts -> compLine [] (acti a) (acti v) (acti ts) -- FIX
+         VComp a v ts -> compLine is (acti a) (acti v) (acti ts)
          VPathP a u v -> VPathP (acti a) (acti u) (acti v)
          VPLam j v | j == i -> u
-                   | j `notElem` sphi -> VPLam j (acti v) -- Anders: correct?
-                   | otherwise -> VPLam k (acti (v `swap` (j,k)))
+                   | j `notElem` sphi -> VPLam j (act (j:is) v (i,phi))
+                   | otherwise -> VPLam k (act (j:k:is) (v `swap` (j,k)) (i,phi))
               where k = fresh (v,Atom i,phi) -- TODO: fix
          VSigma a f              -> VSigma (acti a) (acti f)
          VPair u v               -> VPair (acti u) (acti v)
          VFst u                  -> fstVal (acti u)
          VSnd u                  -> sndVal (acti u)
          VCon c vs               -> VCon c (acti vs)
-         VPCon c a vs phis       -> pcon [] c (acti a) (acti vs) (acti phis) -- FIX
-         VHComp a u us           -> hComp [] (acti a) (acti u) (acti us) -- FIX
+         VPCon c a vs phis       -> pcon is c (acti a) (acti vs) (acti phis)
+         VHComp a u us           -> hComp is (acti a) (acti u) (acti us)
          VVar x v                -> VVar x (acti v)
          VOpaque x v             -> VOpaque x (acti v)
-         VAppFormula u psi       -> appFormula [] (acti u) (acti psi) -- FIX
-         VApp u v                -> app [] (acti u) (acti v) -- FIX
+         VAppFormula u psi       -> appFormula is (acti u) (acti psi)
+         VApp u v                -> app is (acti u) (acti v)
          VLam x t u              -> VLam x (acti t) (acti u)
-         VSplit u v              -> app [] (acti u) (acti v) -- FIX
+         VSplit u v              -> app is (acti u) (acti v)
          VGlue a ts              -> glue (acti a) (acti ts)
          VGlueElem a ts          -> glueElem (acti a) (acti ts)
-         VUnGlueElem a ts        -> unglueElem [] (acti a) (acti ts) -- FIX
-         VUnGlueElemU a b es     -> unGlueU [] (acti a) (acti b) (acti es) -- FIX
-         VCompU a ts             -> compUniv [] (acti a) (acti ts) -- FIX
+         VUnGlueElem a ts        -> unglueElem is (acti a) (acti ts)
+         VUnGlueElemU a b es     -> unGlueU is (acti a) (acti b) (acti es)
+         VCompU a ts             -> compUniv is (acti a) (acti ts)
 
   -- This increases efficiency as it won't trigger computation.
   swap u ij@(i,j) =
@@ -196,7 +195,7 @@ evalSystem :: [Name] -> Env -> System Ter -> System Val
 evalSystem is rho ts =
   let out = concat [ let betas = meetss [ invFormula (lookName i rho) d
                                         | (i,d) <- assocs alpha ]
-                     in [ (beta,eval is (rho `face` beta) talpha) | beta <- betas ]
+                     in [ (beta,eval is (face is rho beta) talpha) | beta <- betas ]
                    | (alpha,talpha) <- assocs ts ]
   in mkSystem out
 
@@ -215,7 +214,7 @@ app is u v = case (u,v) of
                    is' = j:is
                    wsj = Map.map (\u -> appFormula is' u j) ws
                    w'  = app is' u w
-                   ws' = mapWithKey (\alpha -> app is' (u `face` alpha)) wsj
+                   ws' = mapWithKey (\alpha -> app is' (face is' u alpha)) wsj
                    -- a should be constant
                in comp is' j (app is' f (fill is' j a w wsj)) w' ws'
     _ -> error $ "app: Split annotation not a Pi type " ++ show u
@@ -228,7 +227,7 @@ app is u v = case (u,v) of
         v       = transFillNeg is' j aj vi1
         vi0     = transNeg is' j aj vi1
     in comp is' j (app is' fj v) (app is' li0 vi0)
-                  (intersectionWith (app is') tsj (border v tsj))
+                  (intersectionWith (app is') tsj (border is' v tsj))
   _ | isNeutral u       -> VApp u v
   _                     -> error $ "app \n  " ++ show u ++ "\n  " ++ show v
 
@@ -272,7 +271,7 @@ inferType is v = case v of
   _ -> error $ "inferType: not neutral " ++ show v
 
 appFormula :: ToFormula a => [Name] -> Val -> a -> Val
-appFormula is (VPLam i u) phi         = u `act` (i,toFormula phi)
+appFormula is (VPLam i u) phi         = act is u (i,toFormula phi)
 appFormula is v@(Ter Hole{} _) phi    = VAppFormula v (toFormula phi)
 appFormula is v phi | isNeutral v     = case (inferType is v,toFormula phi) of
   (VPathP _ a0 _,Dir 0) -> a0
@@ -290,7 +289,7 @@ v @@@ j           = VAppFormula v (toFormula j)
 -- Composition and filling
 
 comp :: [Name] -> Name -> Val -> Val -> System Val -> Val
-comp is i a u ts | eps `member` ts = (ts ! eps) `face` (i ~> 1)
+comp is i a u ts | eps `member` ts = face is (ts ! eps) (i ~> 1)
 comp is i a u ts = case a of
   VPathP p v0 v1 ->
     let j = fresh (Atom i,a,u,ts) -- gensym (i:is)
@@ -306,8 +305,8 @@ comp is i a u ts = case a of
           comp_u2    = comp is i (app is f fill_u1) u2 t2s
   VPi{} -> VComp (VPLam i a) u (Map.map (VPLam i) ts)
   VU -> compUniv is u (Map.map (VPLam i) ts)
-  VCompU a es | not (isNeutralU i es u ts)  -> compU is i a es u ts
-  VGlue b equivs | not (isNeutralGlue i equivs u ts) -> compGlue is i b equivs u ts
+  VCompU a es | not (isNeutralU is i es u ts)  -> compU is i a es u ts
+  VGlue b equivs | not (isNeutralGlue is i equivs u ts) -> compGlue is i b equivs u ts
   Ter (Sum _ _ nass) env -> case u of
     VCon n us | all isCon (elems ts) -> case lookupLabel n nass of
       Just as -> let tsus = transposeSystemAndList (Map.map unCon ts) us
@@ -318,7 +317,7 @@ comp is i a u ts = case a of
   _ -> VComp (VPLam i a) u (Map.map (VPLam i) ts)
 
 compNeg :: [Name] -> Name -> Val -> Val -> System Val -> Val
-compNeg is i a u ts = comp is i (a `sym` i) u (ts `sym` i)
+compNeg is i a u ts = comp is i (sym is a i) u (sym is ts i)
 
 compLine :: [Name] -> Val -> Val -> System Val -> Val
 compLine is a u ts =
@@ -343,12 +342,12 @@ comps _ _ _ _ _ = error "comps: different lengths of types and values"
 
 fill :: [Name] -> Name -> Val -> Val -> System Val -> Val
 fill is i a u ts =
-  -- Anders: add i?
-  comp (j:is) j (a `conj` (i,j)) u (insertSystem (i ~> 0) u (ts `conj` (i,j)))
+  comp is' j (conj is' a (i,j)) u (insertSystem (i ~> 0) u (conj is' ts (i,j)))
   where j = fresh (Atom i,a,u,ts) -- gensym (i:is)
+        is' = j:is   -- Anders: add i?
 
 fillNeg :: [Name] -> Name -> Val -> Val -> System Val -> Val
-fillNeg is i a u ts = (fill is i (a `sym` i) u (ts `sym` i)) `sym` i
+fillNeg is i a u ts = sym is (fill is i (sym is a i) u (sym is ts i)) i
 
 fillLine :: [Name] -> Val -> Val -> System Val -> Val
 fillLine is a u ts =
@@ -372,7 +371,7 @@ trans :: [Name] -> Name -> Val -> Val -> Val
 trans is i v0 v1 = comp is i v0 v1 empty
 
 transNeg :: [Name] -> Name -> Val -> Val -> Val
-transNeg is i a u = trans is i (a `sym` i) u
+transNeg is i a u = trans is i (sym is a i) u
 
 transLine :: [Name] -> Val -> Val -> Val
 transLine is u v = trans is' i (appFormula is' u i) v
@@ -398,20 +397,21 @@ transFill :: [Name] -> Name -> Val -> Val -> Val
 transFill is i a u = fill is i a u empty
 
 transFillNeg :: [Name] -> Name -> Val -> Val -> Val
-transFillNeg is i a u = (transFill is i (a `sym` i) u) `sym` i
+transFillNeg is i a u = sym is (transFill is i (sym is a i) u) i
 
 -- Given u of type a "squeeze i a u" connects in the direction i
 -- trans i a u(i=0) to u(i=1)
 squeeze :: [Name] -> Name -> Val -> Val -> Val
-squeeze is i a u = comp is' j (a `disj` (i,j)) u $ mkSystem [ (i ~> 1, ui1) ]
+squeeze is i a u = comp is' j (disj is' a (i,j)) u $ mkSystem [ (i ~> 1, ui1) ]
   where j   = fresh (Atom i,a,u) -- gensym (i:is)
         is' = j:is -- TODO: comp with (i:j:is)?
-        ui1 = u `face` (i ~> 1)
+        ui1 = face is' u (i ~> 1)
 
 squeezes :: [Name] -> Name -> [(Ident,Ter)] -> Env -> [Val] -> [Val]
-squeezes is i xas e us = comps (j:is) j xas (e `disj` (i,j)) us'
+squeezes is i xas e us = comps is' j xas (disj is' e (i,j)) us'
   where j   = fresh (Atom i,e,us) -- gensym (i:is) -- Anders: same as in squeeze?
-        us' = [ (mkSystem [(i ~> 1, u `face` (i ~> 1))],u) | u <- us ]
+        is' = j:is
+        us' = [ (mkSystem [(i ~> 1, face is' u (i ~> 1))],u) | u <- us ]
 
 
 -------------------------------------------------------------------------------
@@ -431,9 +431,9 @@ compHIT is i a u us
   | isNeutral u || isNeutralSystem us =
       VComp (VPLam i a) u (Map.map (VPLam i) us)
   | otherwise =
-      hComp is (a `face` (i ~> 1)) (transpHIT is i a u) $
+      hComp is (face is a (i ~> 1)) (transpHIT is i a u) $
         mapWithKey (\alpha uAlpha ->
-                     VPLam i $ squeezeHIT is i (a `face` alpha) uAlpha) us
+                     VPLam i $ squeezeHIT (i:is) i (face (i:is) a alpha) uAlpha) us
 
 -- Given u of type a(i=0), transpHIT i a u is an element of a(i=1).
 transpHIT :: [Name] -> Name -> Val -> Val -> Val
@@ -447,12 +447,12 @@ transpHIT is i a@(Ter (HSum _ _ nass) env) u =
     Just as -> VCon n (transps is' i as env us)
     Nothing -> error $ "transpHIT: missing constructor in labelled sum " ++ n
   VPCon c _ ws0 phis -> case lookupLabel c nass of
-    Just as -> pcon is' c (a `face` (i ~> 1)) (transps is' i as env ws0) phis
+    Just as -> pcon is' c (face is' a (i ~> 1)) (transps is' i as env ws0) phis
     Nothing -> error $ "transpHIT: missing path constructor " ++ c
   VHComp _ v vs ->
-    hComp is' (a `face` (i ~> 1)) (transpHIT is' i a v) $
+    hComp is' (face is' a (i ~> 1)) (transpHIT is' i a v) $
       mapWithKey (\alpha vAlpha ->
-                   VPLam j $ transpHIT is' j (aij `face` alpha) (appFormula is' vAlpha j)) vs
+                   VPLam j $ transpHIT is' j (face is' aij alpha) (appFormula is' vAlpha j)) vs
   _ -> error $ "transpHIT: neutral " ++ show u
 
 -- given u(i) of type a(i) "squeezeHIT i a u" connects in the direction i
@@ -467,14 +467,14 @@ squeezeHIT is i a@(Ter (HSum _ _ nass) env) u =
     Just as -> VCon n (squeezes is' i as env us)
     Nothing -> error $ "squeezeHIT: missing constructor in labelled sum " ++ n
   VPCon c _ ws0 phis -> case lookupLabel c nass of
-    Just as -> pcon is' c (a `face` (i ~> 1)) (squeezes is' i as env ws0) phis
+    Just as -> pcon is' c (face is' a (i ~> 1)) (squeezes is' i as env ws0) phis
     Nothing -> error $ "squeezeHIT: missing path constructor " ++ c
-  VHComp _ v vs -> hComp is' (a `face` (i ~> 1)) (squeezeHIT is' i a v) $
+  VHComp _ v vs -> hComp is' (face is' a (i ~> 1)) (squeezeHIT is' i a v) $
       mapWithKey
         (\alpha vAlpha -> case Map.lookup i alpha of
-          Nothing   -> VPLam j $ squeezeHIT is' i (a `face` alpha) (appFormula is' vAlpha j)
+          Nothing   -> VPLam j $ squeezeHIT is' i (face is' a alpha) (appFormula is' vAlpha j)
           Just Zero -> VPLam j $ transpHIT is' i
-                         (a `face` (Map.delete i alpha)) (appFormula is' vAlpha j)
+                         (face is' a (Map.delete i alpha)) (appFormula is' vAlpha j)
           Just One  -> vAlpha)
         vs
   _ -> error $ "squeezeHIT: neutral " ++ show u
@@ -523,20 +523,22 @@ unGlue is w b equivs | eps `member` equivs = app is (equivFun (equivs ! eps)) w
                                             VGlueElem v us -> v
                                             _ -> error ("unglue: neutral" ++ show w)
 
-isNeutralGlue :: Name -> System Val -> Val -> System Val -> Bool
-isNeutralGlue i equivs u0 ts = (eps `notMember` equivsi0 && isNeutral u0) ||
+isNeutralGlue :: [Name] -> Name -> System Val -> Val -> System Val -> Bool
+isNeutralGlue is i equivs u0 ts = (eps `notMember` equivsi0 && isNeutral u0) ||
   any (\(alpha,talpha) ->
-           eps `notMember` (equivs `face` alpha) && isNeutral talpha)
+           eps `notMember` (face is' equivs alpha) && isNeutral talpha)
     (assocs ts)
-  where equivsi0 = equivs `face` (i ~> 0)
+  where equivsi0 = face is' equivs (i ~> 0)
+        is' = i:is
 
 -- this is exactly the same as isNeutralGlue?
-isNeutralU :: Name -> System Val -> Val -> System Val -> Bool
-isNeutralU i eqs u0 ts = (eps `notMember` eqsi0 && isNeutral u0) ||
+isNeutralU :: [Name] -> Name -> System Val -> Val -> System Val -> Bool
+isNeutralU is i eqs u0 ts = (eps `notMember` eqsi0 && isNeutral u0) ||
   any (\(alpha,talpha) ->
-           eps `notMember` (eqs `face` alpha) && isNeutral talpha)
+           eps `notMember` (face is' eqs alpha) && isNeutral talpha)
     (assocs ts)
-  where eqsi0 = eqs `face` (i ~> 0)
+  where eqsi0 = face is' eqs (i ~> 0)
+        is' = i:is
 
 -- Extend the system ts to a total element in b given q : isContr b
 extend :: [Name] -> Val -> Val -> System Val -> Val
@@ -545,7 +547,7 @@ extend is b q ts = comp is' i b (fstVal q) ts'
         is' = i:is
         ts' = mapWithKey
                 (\alpha tAlpha ->
-                  appFormula is' (app is' ((sndVal q) `face` alpha) tAlpha) i) ts
+                  appFormula is' (app is' (face is' (sndVal q) alpha) tAlpha) i) ts
 
 -- psi/b corresponds to ws
 -- b0    corresponds to wi0
@@ -556,42 +558,42 @@ extend is b q ts = comp is' i b (fstVal q) ts'
 -- ti1'  corresponds to usi1'
 compGlue :: [Name] -> Name -> Val -> System Val -> Val -> System Val -> Val
 compGlue is i a equivs wi0 ws = glueElem vi1 usi1
-  where ai1 = a `face` (i ~> 1)
+  where ai1 = face is a (i ~> 1)
         vs  = mapWithKey
                 (\alpha wAlpha ->
-                  unGlue is wAlpha (a `face` alpha) (equivs `face` alpha)) ws
+                  unGlue is wAlpha (face is a alpha) (face is equivs alpha)) ws
 
-        vsi1 = vs `face` (i ~> 1) -- same as: border vi1 vs
-        vi0  = unGlue is wi0 (a `face` (i ~> 0)) (equivs `face` (i ~> 0)) -- in a(i0)
+        vsi1 = face is vs (i ~> 1) -- same as: border vi1 vs
+        vi0  = unGlue is wi0 (face is a (i ~> 0)) (face is equivs (i ~> 0)) -- in a(i0)
 
         vi1'  = comp is i a vi0 vs           -- in a(i1)
 
-        equivsI1 = equivs `face` (i ~> 1)
+        equivsI1 = face is equivs (i ~> 1)
         equivs'  = filterWithKey (\alpha _ -> i `notMember` alpha) equivs
 
         us'    = mapWithKey (\gamma equivG ->
-                   fill is i (equivDom equivG) (wi0 `face` gamma) (ws `face` gamma))
+                   fill is i (equivDom equivG) (face is wi0 gamma) (face is ws gamma))
                  equivs'
         usi1'  = mapWithKey (\gamma equivG ->
-                   comp is i (equivDom equivG) (wi0 `face` gamma) (ws `face` gamma))
+                   comp is i (equivDom equivG) (face is wi0 gamma) (face is ws gamma))
                  equivs'
 
         -- path in ai1 between vi1 and f(i1) usi1' on equivs'
         ls'    = mapWithKey (\gamma equivG ->
-                   pathComp is i (a `face` gamma) (vi0 `face` gamma)
-                     (app is (equivFun equivG) (us' ! gamma)) (vs `face` gamma))
+                   pathComp is i (face is a gamma) (face is vi0 gamma)
+                     (app is (equivFun equivG) (us' ! gamma)) (face is vs gamma))
                  equivs'
 
         fibersys = intersectionWith VPair usi1' ls' -- on equivs'
 
-        wsi1 = ws `face` (i ~> 1)
+        wsi1 = face is ws (i ~> 1)
         fibersys' = mapWithKey
           (\gamma equivG ->
             let fibsgamma = intersectionWith (\ x y -> VPair x (constPath y))
-                              (wsi1 `face` gamma) (vsi1 `face` gamma)
-            in extend is (mkFiberType is (ai1 `face` gamma) (vi1' `face` gamma) equivG)
-                 (app is (equivContr equivG) (vi1' `face` gamma))
-                 (fibsgamma `unionSystem` (fibersys `face` gamma))) equivsI1
+                              (face is wsi1 gamma) (face is vsi1 gamma)
+            in extend is (mkFiberType is (face is ai1 gamma) (face is vi1' gamma) equivG)
+                 (app is (equivContr equivG) (face is vi1' gamma))
+                 (fibsgamma `unionSystem` (face is fibersys gamma))) equivsI1
 
         vi1 = compConstLine is ai1 vi1'
                 (Map.map sndVal fibersys' `unionSystem` Map.map constPath vsi1)
@@ -632,41 +634,41 @@ compUniv is b es | eps `Map.member` es = appFormula is (es ! eps) One
 
 compU :: [Name] -> Name -> Val -> System Val -> Val -> System Val -> Val
 compU is i a eqs wi0 ws = glueElem vi1 usi1
-  where ai1 = a `face` (i ~> 1)
+  where ai1 = face is a (i ~> 1)
         vs  = mapWithKey
                 (\alpha wAlpha ->
-                  unGlueU is wAlpha (a `face` alpha) (eqs `face` alpha)) ws
+                  unGlueU is wAlpha (face is a alpha) (face is eqs alpha)) ws
 
-        vsi1 = vs `face` (i ~> 1) -- same as: border vi1 vs
-        vi0  = unGlueU is wi0 (a `face` (i ~> 0)) (eqs `face` (i ~> 0)) -- in a(i0)
+        vsi1 = face is vs (i ~> 1) -- same as: border vi1 vs
+        vi0  = unGlueU is wi0 (face is a (i ~> 0)) (face is eqs (i ~> 0)) -- in a(i0)
 
         vi1'  = comp is i a vi0 vs           -- in a(i1)
 
-        eqsI1 = eqs `face` (i ~> 1)
+        eqsI1 = face is eqs (i ~> 1)
         eqs'  = filterWithKey (\alpha _ -> i `notMember` alpha) eqs
 
         us'    = mapWithKey (\gamma eqG ->
-                   fill is i (appFormula is eqG One) (wi0 `face` gamma) (ws `face` gamma))
+                   fill is i (appFormula is eqG One) (face is wi0 gamma) (face is ws gamma))
                  eqs'
         usi1'  = mapWithKey (\gamma eqG ->
-                   comp is i (appFormula is eqG One) (wi0 `face` gamma) (ws `face` gamma))
+                   comp is i (appFormula is eqG One) (face is wi0 gamma) (face is ws gamma))
                  eqs'
 
         -- path in ai1 between vi1 and f(i1) usi1' on eqs'
         ls'    = mapWithKey (\gamma eqG ->
-                   pathComp is i (a `face` gamma) (vi0 `face` gamma)
-                     (eqFun is eqG (us' ! gamma)) (vs `face` gamma))
+                   pathComp is i (face is a gamma) (face is vi0 gamma)
+                     (eqFun is eqG (us' ! gamma)) (face is vs gamma))
                  eqs'
 
         fibersys = intersectionWith (\ x y -> (x,y)) usi1' ls' -- on eqs'
 
-        wsi1 = ws `face` (i ~> 1)
+        wsi1 = face is ws (i ~> 1)
         fibersys' = mapWithKey
           (\gamma eqG ->
             let fibsgamma = intersectionWith (\ x y -> (x,constPath y))
-                              (wsi1 `face` gamma) (vsi1 `face` gamma)
-            in lemEq is eqG (vi1' `face` gamma)
-                     (fibsgamma `unionSystem` (fibersys `face` gamma))) eqsI1
+                              (face is wsi1 gamma) (face is vsi1 gamma)
+            in lemEq is eqG (face is vi1' gamma)
+                     (fibsgamma `unionSystem` (face is fibersys gamma))) eqsI1
 
         vi1 = compConstLine is ai1 vi1'
                 (Map.map snd fibersys' `unionSystem` Map.map constPath vsi1)
@@ -680,14 +682,14 @@ lemEq is eq b aps = (a,VPLam i (compNeg is' j (appFormula is' eq j) p1 thetas'))
    is'   = i:j:is
    ta = appFormula is' eq One
    p1s = mapWithKey (\alpha (aa,pa) ->
-              let eqaj = appFormula is' (eq `face` alpha) j
-                  ba = b `face` alpha
+              let eqaj = appFormula is' (face is' eq alpha) j
+                  ba = face is' b alpha
               in comp is' j eqaj (appFormula is' pa i)
                    (mkSystem [ (i~>0,transFill is' j eqaj ba)
                              , (i~>1,transFillNeg is' j eqaj aa)])) aps
    thetas = mapWithKey (\alpha (aa,pa) ->
-              let eqaj = appFormula is' (eq `face` alpha) j
-                  ba = b `face` alpha
+              let eqaj = appFormula is' (face is' eq alpha) j
+                  ba = face is' b alpha
               in fill is' j eqaj (appFormula is' pa i)
                    (mkSystem [ (i~>0,transFill is' j eqaj ba)
                              , (i~>1,transFillNeg is' j eqaj aa)])) aps
@@ -811,7 +813,7 @@ class Convertible a where
 isCompSystem :: (Nominal a, Convertible a) => [String] -> System a -> Bool
 isCompSystem ns ts = and [ conv ns (getFace alpha beta) (getFace beta alpha)
                          | (alpha,beta) <- allCompatible (keys ts) ]
-    where getFace a b = face (ts ! a) (b `minus` a)
+    where getFace a b = face [] (ts ! a) (b `minus` a) -- FIX
 
 instance Convertible Val where
   conv ns u v | u == v    = True

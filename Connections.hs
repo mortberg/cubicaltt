@@ -274,7 +274,7 @@ gensyms d = let x = gensym d in x : gensyms (x : d)
 
 class Nominal a where
   support :: a -> [Name]
-  act     :: a -> (Name,Formula) -> a
+  act     :: [Name] -> a -> (Name,Formula) -> a
   swap    :: a -> (Name,Name) -> a
 
 fresh :: Nominal a => a -> Name
@@ -297,54 +297,56 @@ newtype Nameless a = Nameless { unNameless :: a }
 
 instance Nominal (Nameless a) where
   support _ = []
-  act x _   = x
+  act _ x _ = x
   swap x _  = x
 
 instance Nominal () where
   support () = []
-  act () _   = ()
+  act _ () _ = ()
   swap () _  = ()
 
 instance (Nominal a, Nominal b) => Nominal (a, b) where
   support (a, b) = support a `union` support b
-  act (a,b) f    = (act a f,act b f)
+  act is (a,b) f = (act is a f,act is b f)
   swap (a,b) n   = (swap a n,swap b n)
 
 instance (Nominal a, Nominal b, Nominal c) => Nominal (a, b, c) where
-  support (a,b,c) = unions [support a, support b, support c]
-  act (a,b,c) f   = (act a f,act b f,act c f)
-  swap (a,b,c) n  = (swap a n,swap b n,swap c n)
+  support (a,b,c)  = unions [support a, support b, support c]
+  act is (a,b,c) f = (act is a f,act is b f,act is c f)
+  swap (a,b,c) n   = (swap a n,swap b n,swap c n)
 
 instance (Nominal a, Nominal b, Nominal c, Nominal d) =>
          Nominal (a, b, c, d) where
-  support (a,b,c,d) = unions [support a, support b, support c, support d]
-  act (a,b,c,d) f   = (act a f,act b f,act c f,act d f)
-  swap (a,b,c,d) n  = (swap a n,swap b n,swap c n,swap d n)
+  support (a,b,c,d)  = unions [support a, support b, support c, support d]
+  act is (a,b,c,d) f = (act is a f,act is b f,act is c f,act is d f)
+  swap (a,b,c,d) n   = (swap a n,swap b n,swap c n,swap d n)
 
 instance (Nominal a, Nominal b, Nominal c, Nominal d, Nominal e) =>
          Nominal (a, b, c, d, e) where
   support (a,b,c,d,e)  =
     unions [support a, support b, support c, support d, support e]
-  act (a,b,c,d,e) f    = (act a f,act b f,act c f,act d f, act e f)
-  swap (a,b,c,d,e) n =
+  act is (a,b,c,d,e) f =
+    (act is a f,act is b f,act is c f,act is d f, act is e f)
+  swap (a,b,c,d,e) n   =
     (swap a n,swap b n,swap c n,swap d n,swap e n)
 
 instance (Nominal a, Nominal b, Nominal c, Nominal d, Nominal e, Nominal h) =>
          Nominal (a, b, c, d, e, h) where
-  support (a,b,c,d,e,h) =
+  support (a,b,c,d,e,h)  =
     unions [support a, support b, support c, support d, support e, support h]
-  act (a,b,c,d,e,h) f   = (act a f,act b f,act c f,act d f, act e f, act h f)
-  swap (a,b,c,d,e,h) n  =
+  act is (a,b,c,d,e,h) f =
+    (act is a f,act is b f,act is c f,act is d f, act is e f, act is h f)
+  swap (a,b,c,d,e,h) n   =
     (swap a n,swap b n,swap c n,swap d n,swap e n,swap h n)
 
 instance Nominal a => Nominal [a]  where
   support xs  = unions (map support xs)
-  act xs f    = [ act x f | x <- xs ]
+  act is xs f = [ act is x f | x <- xs ]
   swap xs n   = [ swap x n | x <- xs ]
 
 instance Nominal a => Nominal (Maybe a)  where
   support    = maybe [] support
-  act v f    = fmap (`act` f) v
+  act is v f = fmap (\x -> act is x f) v
   swap a n   = fmap (`swap` n) a
 
 instance Nominal Formula where
@@ -354,13 +356,15 @@ instance Nominal Formula where
   support (phi :/\: psi) = support phi `union` support psi
   support (phi :\/: psi) = support phi `union` support psi
 
-  act (Dir b) (i,phi)  = Dir b
-  act (Atom j) (i,phi) | i == j    = phi
-                       | otherwise = Atom j
-  act (NegAtom j) (i,phi) | i == j    = negFormula phi
-                          | otherwise = NegAtom j
-  act (psi1 :/\: psi2) (i,phi) = act psi1 (i,phi) `andFormula` act psi2 (i,phi)
-  act (psi1 :\/: psi2) (i,phi) = act psi1 (i,phi) `orFormula` act psi2 (i,phi)
+  act _ (Dir b) (i,phi)  = Dir b
+  act _ (Atom j) (i,phi) | i == j    = phi
+                         | otherwise = Atom j
+  act _ (NegAtom j) (i,phi) | i == j    = negFormula phi
+                            | otherwise = NegAtom j
+  act is (psi1 :/\: psi2) (i,phi) =
+    act is psi1 (i,phi) `andFormula` act is psi2 (i,phi)
+  act is (psi1 :\/: psi2) (i,phi) =
+    act is psi1 (i,phi) `orFormula` act is psi2 (i,phi)
 
   swap (Dir b) (i,j)  = Dir b
   swap (Atom k) (i,j)| k == i    = Atom j
@@ -372,8 +376,8 @@ instance Nominal Formula where
   swap (psi1 :/\: psi2) (i,j) = swap psi1 (i,j) :/\: swap psi2 (i,j)
   swap (psi1 :\/: psi2) (i,j) = swap psi1 (i,j) :\/: swap psi2 (i,j)
 
-face :: Nominal a => a -> Face -> a
-face = foldWithKey (\i d a -> act a (i,Dir d))
+face :: Nominal a => [Name] -> a -> Face -> a
+face is = foldWithKey (\i d a -> act is a (i,Dir d))
 
 -- the faces should be incomparable
 type System a = Map Face a
@@ -417,7 +421,7 @@ instance Nominal a => Nominal (System a) where
   support s = unions (map keys $ keys s)
               `union` support (elems s)
 
-  act s (i, phi) = addAssocs (assocs s)
+  act is s (i, phi) = addAssocs (assocs s)
     where
     addAssocs [] = Map.empty
     addAssocs ((alpha,u):alphaus) =
@@ -425,50 +429,50 @@ instance Nominal a => Nominal (System a) where
       in case Map.lookup i alpha of
         Just d -> let beta = Map.delete i alpha
                   in foldr (\delta s'' -> insertSystem (meet delta beta)
-                                            (face u (Map.delete i delta)) s'')
-                                            s' (invFormula (face phi beta) d)
-        Nothing -> insertSystem alpha (act u (i,face phi alpha)) s'
+                                            (face is u (Map.delete i delta)) s'')
+                                            s' (invFormula (face is phi beta) d)
+        Nothing -> insertSystem alpha (act is u (i,face is phi alpha)) s'
 
   swap s ij = mapKeys (`swapFace` ij) (Map.map (`swap` ij) s)
 
 -- carve a using the same shape as the system b
-border :: Nominal a => a -> System b -> System a
-border v = mapWithKey (const . face v)
+border :: Nominal a => [Name] -> a -> System b -> System a
+border is v = mapWithKey (const . face is v)
 
 shape :: System a -> System ()
-shape = border ()
+shape = border [] ()
 
 instance (Nominal a, Arbitrary a) => Arbitrary (System a) where
   arbitrary = do
     a <- arbitrary
-    border a <$> arbitraryShape (support a)
+    border (support a) a <$> arbitraryShape (support a)
     where
       arbitraryShape :: [Name] -> Gen (System ())
       arbitraryShape supp = do
         phi <- sized $ arbFormula supp
         return $ fromList [(face,()) | face <- invFormula phi 0]
 
-sym :: Nominal a => a -> Name -> a
-sym a i = a `act` (i, NegAtom i)
+sym :: Nominal a => [Name] -> a -> Name -> a
+sym is a i = act is a (i, NegAtom i)
 
-rename :: Nominal a => a -> (Name, Name) -> a
-rename a (i, j) = a `act` (i, Atom j)
+rename :: Nominal a => [Name] -> a -> (Name, Name) -> a
+rename is a (i, j) = act is a (i, Atom j)
 
-conj, disj :: Nominal a => a -> (Name, Name) -> a
-conj a (i, j) = a `act` (i, Atom i :/\: Atom j)
-disj a (i, j) = a `act` (i, Atom i :\/: Atom j)
+conj, disj :: Nominal a => [Name] -> a -> (Name, Name) -> a
+conj is a (i, j) = act is a (i, Atom i :/\: Atom j)
+disj is a (i, j) = act is a (i, Atom i :\/: Atom j)
 
 leqSystem :: Face -> System a -> Bool
 alpha `leqSystem` us =
   not $ Map.null $ filterWithKey (\beta _ -> alpha `leq` beta) us
 
 -- assumes alpha <= shape us
-proj :: (Nominal a, Show a) => System a -> Face -> a
-proj us alpha | eps `member` usalpha = usalpha ! eps
-              | otherwise            =
+proj :: (Nominal a, Show a) => [Name] -> System a -> Face -> a
+proj is us alpha | eps `member` usalpha = usalpha ! eps
+                 | otherwise            =
   error $ "proj: eps not in " ++ show usalpha ++ "\nwhich  is the "
     ++ show alpha ++ "\nface of " ++ show us
-  where usalpha = us `face` alpha
+  where usalpha = face is us alpha
 
 domain :: System a -> [Name]
 domain  = keys . Map.unions . keys

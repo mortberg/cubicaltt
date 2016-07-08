@@ -80,7 +80,7 @@ lemCompInv (A:U) (a b c:A) (p:Path A a b) (q:Path A b c)
 
 lemInv (A:U) (a b:A) (p:Path A a b) : Path (Path A b b) (compPath A b a b (inv A a b p) p)  (refl A b) =
    <j i> comp (<k>A) (p @ (-i \/ j)) [(i=0) -> <l>b, (j=1) -> <l>b, (i=1) -> <k> p @ (j \/ k)]
-   
+
 test0 (A : U) (a b : A) (p : Path A a b) : Path A a a = refl A (p @ 0)
 test1 (A : U) (a b : A) (p : Path A a b) : Path A b b = refl A (p @ 1)
 
@@ -107,7 +107,7 @@ lemSimpl (A : U) (a b c : A) (p : Path A a b) (q q' : Path A b c)
            , (k = 1)  -> s @ j ]
 
 PathPathTest1 (A : U) (a b : A) (p : Path A a b) :
-  Path (Path A a b) p (<i> comp (<j> A) (p @ i) [(i=0) -> <j> a,(i=1) -> <j> b]) = 
+  Path (Path A a b) p (<i> comp (<j> A) (p @ i) [(i=0) -> <j> a,(i=1) -> <j> b]) =
   <j i> fill (<k> A) (p @ i) [(i=0) -> <k> a,(i=1) -> <k> b] @ j
 
 idfun (A : U) (a : A) : A = a
@@ -165,12 +165,12 @@ propPi (A : U) (B : A -> U) (h : (x : A) -> prop (B x))
        (f0 f1 : (x : A) -> B x) : Path ((x : A) -> B x) f0 f1
   = <i> \ (x:A) -> (h x (f0 x) (f1 x)) @ i
 
-lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a0 a1 :A) 
+lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a0 a1 :A)
          (p : Path A a0 a1) (b0 : P a0) (b1 : P a1) : PathP (<i>P (p@i)) b0 b1 =
  <i>pP (p@i) (comp (<j>P (p@i/\j)) b0 [(i=0) -> <_>b0]) (comp (<j>P (p@i\/-j)) b1 [(i=1) -> <_>b1])@i
 
 -- other proof
--- lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a :A) : 
+-- lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a :A) :
 --          (a1 : A) (p : Path A a a1) (b0 : P a) (b1 : P a1) -> PathP (<i>P (p@i)) b0 b1 =
 -- J A a (\ (a1 : A) (p : Path A a a1) ->
 --          (b0 : P a) (b1 : P a1) -> PathP (<i>P (p@i)) b0 b1)
@@ -282,4 +282,3 @@ and (A B : U) : U = (_ : A) * B
 
 propAnd (A B : U) (pA : prop A) (pB : prop B) : prop (and A B) =
   propSig A (\(_ : A) -> B) pA (\(_ : A) -> pB)
-

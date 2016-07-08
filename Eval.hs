@@ -40,7 +40,7 @@ lookName i (Def _ rho,vs,fs,os)   = lookName i (rho,vs,fs,os)
 lookName i (Sub j rho,vs,phi:fs,os) | i == j    = phi
                                     | otherwise = lookName i (rho,vs,fs,os)
 lookName i _ = error $ "lookName: not found " ++ show i
-
+ 
 
 -----------------------------------------------------------------------
 -- Nominal instances
@@ -77,7 +77,7 @@ instance Nominal Val where
     VCompU a ts             -> support (a,ts)
     VUnGlueElemU a b es     -> support (a,b,es)
 
-  act is u (i, phi) | i `notElem` support u = u  -- TODO: fix
+  act is u (i, phi) | i `notElem` support u = u  -- this makes things faster
                     | otherwise =
     let acti :: Nominal a => a -> a
         acti u = act is u (i, phi)
@@ -91,7 +91,7 @@ instance Nominal Val where
          VPLam j v | j == i -> u
                    | j `notElem` sphi -> VPLam j (act (j:is) v (i,phi))
                    | otherwise -> VPLam k (act (k:is) (v `swap` (j,k)) (i,phi))
-              where k = gensym (i:is) -- fresh (v,Atom i,phi) 
+              where k = gensym (i:is ++ sphi) -- fresh (v,Atom i,phi) 
          VSigma a f              -> VSigma (acti a) (acti f)
          VPair u v               -> VPair (acti u) (acti v)
          VFst u                  -> fstVal (acti u)

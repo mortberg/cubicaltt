@@ -794,9 +794,6 @@ instance Convertible Val where
   conv ns u v =
     let j = fresh (u,v)
     in case (u,v) of
-      (Ter (Lam x a u) e,Ter (Lam x' a' u') e') ->
-        let v@(VVar n _) = mkVarNice ns x (eval e a)
-        in conv (n:ns) (eval (upd (x,v) e) u) (eval (upd (x',v) e') u')
       (Ter (Split _ p _ _) e,Ter (Split _ p' _ _) e') -> (p == p') && conv ns e e'
       (Ter (Sum p _ _) e,Ter (Sum p' _ _) e')         -> (p == p') && conv ns e e'
       (Ter (HSum p _ _) e,Ter (HSum p' _ _) e')       -> (p == p') && conv ns e e'
@@ -831,6 +828,9 @@ instance Convertible Val where
       (VUnGlueElem u ts,VUnGlueElem u' ts')    -> conv ns (u,ts) (u',ts')
       (VCompU u es,VCompU u' es')              -> conv ns (u,es) (u',es')
       _ | u == v -> True
+      (Ter (Lam x a u) e,Ter (Lam x' a' u') e') ->
+        let v@(VVar n _) = mkVarNice ns x (eval e a)
+        in conv (n:ns) (eval (upd (x,v) e) u) (eval (upd (x',v) e') u')
       (Ter (Lam x a u) e,u') ->
         let v@(VVar n _) = mkVarNice ns x (eval e a)
         in conv (n:ns) (eval (upd (x,v) e) u) (app u' v)

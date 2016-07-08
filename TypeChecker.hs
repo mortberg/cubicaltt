@@ -73,7 +73,8 @@ addSubs :: [(Name,Formula)] -> TEnv -> TEnv
 addSubs = flip $ foldr addSub
 
 addType :: (Ident,Ter) -> TEnv -> TEnv
-addType (x,a) tenv@(TEnv _ _ rho _) = addTypeVal (x,eval rho a) tenv
+addType (x,a) tenv@(TEnv _ _ rho _) =
+  addTypeVal (x,eval (supportEnv tenv) rho a) tenv
 
 addBranch :: [(Ident,Val)] -> Env -> TEnv -> TEnv
 addBranch nvs env (TEnv ns ind rho v) =
@@ -87,6 +88,9 @@ addTele xas lenv = foldl (flip addType) lenv xas
 
 faceEnv :: Face -> TEnv -> TEnv
 faceEnv alpha tenv = tenv{env=env tenv `face` alpha}
+
+supportEnv :: TEnv -> [Name]
+supportEnv = supportOfEnv . env
 
 -------------------------------------------------------------------------------
 -- | Various useful functions
@@ -106,11 +110,11 @@ getLblType c u = throwError ("expected a data type for the constructor "
 unlessM :: Monad m => m Bool -> m () -> m ()
 unlessM mb x = mb >>= flip unless x
 
-mkVars :: [String] -> Tele -> Env -> [(Ident,Val)]
-mkVars _ [] _           = []
-mkVars ns ((x,a):xas) nu =
-  let w@(VVar n _) = mkVarNice ns x (eval nu a)
-  in (x,w) : mkVars (n:ns) xas (upd (x,w) nu)
+mkVars :: [Name] -> [String] -> Tele -> Env -> [(Ident,Val)]
+mkVars _ _ [] _           = []
+mkVars is ns ((x,a):xas) nu =
+  let w@(VVar n _) = mkVarNice ns x (eval is nu a)
+  in (x,w) : mkVars is (n:ns) xas (upd (x,w) nu)
 
 -- Test if two values are convertible
 (===) :: Convertible a => a -> a -> Typing Bool
@@ -118,7 +122,7 @@ u === v = conv <$> asks names <*> pure u <*> pure v
 
 -- eval in the typing monad
 evalTyping :: Ter -> Typing Val
-evalTyping t = eval <$> asks env <*> pure t
+evalTyping t = eval <$> asks supportEnv <*> asks env <*> pure t
 
 -------------------------------------------------------------------------------
 -- | The bidirectional type checker
@@ -157,11 +161,13 @@ check a t = case (a,t) of
             -- NB: the type doesn't depend on is
             check (Ter t rho) talpha
         rho' <- asks env
-        checkCompSystem (evalSystem rho' ts)
+        is <- asks supportEnv
+        checkCompSystem (evalSystem is rho' ts)
   (VPi va@(Ter (Sum _ _ cas) nu) f,Split _ _ ty ces) -> do
     check VU ty
     rho <- asks env
-    unlessM (a === eval rho ty) $ throwError "check: split annotations"
+    is <- asks supportEnv
+    unlessM (a === eval is rho ty) $ throwError "check: split annotations"
     if map labelName cas == map branchName ces
        then sequence_ [ checkBranch (lbl,nu) f brc (Ter t rho) va
                       | (brc, lbl) <- zip ces cas ]
@@ -169,7 +175,8 @@ check a t = case (a,t) of
   (VPi va@(Ter (HSum _ _ cas) nu) f,Split _ _ ty ces) -> do
     check VU ty
     rho <- asks env
-    unlessM (a === eval rho ty) $ throwError "check: split annotations"
+    is <- asks supportEnv
+    unlessM (a === eval is rho ty) $ throwError "check: split annotations"
     if map labelName cas == map branchName ces
        then sequence_ [ checkBranch (lbl,nu) f brc (Ter t rho) va
                       | (brc, lbl) <- zip ces cas ]
@@ -178,18 +185,22 @@ check a t = case (a,t) of
     check VU a'
     ns <- asks names
     rho <- asks env
-    unlessM (a === eval rho a') $
+    is <- asks supportEnv
+    unlessM (a === eval is rho a') $
       throwError $ "check: lam types don't match"
         ++ "\nlambda type annotation: " ++ show a'
         ++ "\ndomain of Pi: " ++ show a
         ++ "\nnormal form of type: " ++ show (normal ns a)
     let var = mkVarNice ns x a
 
-    local (addTypeVal (x,a)) $ check (app f var) t
+    local (addTypeVal (x,a)) $ do
+      is <- asks supportEnv
+      check (app is f var) t
   (VSigma a f, Pair t1 t2) -> do
     check a t1
     v <- evalTyping t1
-    check (app f v) t2
+    is <- asks supportEnv
+    check (app is f v) t2
   (_,Where e d) -> do
     local (\tenv@TEnv{indent=i} -> tenv{indent=i + 2}) $ checkDecls d
     local (addDecls d) $ check a e
@@ -206,7 +217,8 @@ check a t = case (a,t) of
   (VU,Glue a ts) -> do
     check VU a
     rho <- asks env
-    checkGlue (eval rho a) ts
+    is <- asks supportEnv
+    checkGlue (eval is rho a) ts
   (VGlue va ts,GlueElem u us) -> do
     check va u
     vu <- evalTyping u
@@ -275,9 +287,11 @@ checkGlueElem vu ts us = do
   rho <- asks env
   checkSystemsWith ts us
     (\alpha vt u -> local (faceEnv alpha) $ check (equivDom vt) u)
-  let vus = evalSystem rho us
-  checkSystemsWith ts vus (\alpha vt vAlpha ->
-    unlessM (app (equivFun vt) vAlpha === (vu `face` alpha)) $
+  is <- asks supportEnv
+  let vus = evalSystem is rho us
+  checkSystemsWith ts vus (\alpha vt vAlpha -> do
+    is <- asks supportEnv
+    unlessM (app is (equivFun vt) vAlpha === (vu `face` alpha)) $
       throwError $ "Image of glue component " ++ show vAlpha ++
                    " doesn't match " ++ show vu)
   checkCompSystem vus
@@ -289,10 +303,13 @@ checkGlueElemU vu ves us = do
     (throwError ("Keys don't match in " ++ show ves ++ " and " ++ show us))
   rho <- asks env
   checkSystemsWith ves us
-    (\alpha ve u -> local (faceEnv alpha) $ check (ve @@ One) u)
-  let vus = evalSystem rho us
+    (\alpha ve u -> local (faceEnv alpha) $ do
+                      is <- asks supportEnv
+                      check (appFormula is ve One) u)
+  is <- asks supportEnv
+  let vus = evalSystem is rho us
   checkSystemsWith ves vus (\alpha ve vAlpha ->
-    unlessM (eqFun ve vAlpha === (vu `face` alpha)) $
+    unlessM (eqFun is ve vAlpha === (vu `face` alpha)) $
       throwError $ "Transport of glueElem (for compU) component " ++ show vAlpha ++
                    " doesn't match " ++ show vu)
   checkCompSystem vus
@@ -301,7 +318,8 @@ checkGlue :: Val -> System Ter -> Typing ()
 checkGlue va ts = do
   checkSystemWith ts (\alpha tAlpha -> checkEquiv (va `face` alpha) tAlpha)
   rho <- asks env
-  checkCompSystem (evalSystem rho ts)
+  is <- asks supportEnv
+  checkCompSystem (evalSystem is rho ts)
 
 -- An iso for a type b is a five-tuple: (a,f,g,s,t)   where
 --  a : U
@@ -309,8 +327,8 @@ checkGlue va ts = do
 --  g : b -> a
 --  s : forall (y : b), f (g y) = y
 --  t : forall (x : a), g (f x) = x
-mkIso :: Val -> Val
-mkIso vb = eval rho $
+mkIso :: [Name] -> Val -> Val
+mkIso is vb = eval is rho $
   Sigma $ Lam "a" U $
   Sigma $ Lam "f" (Pi (Lam "_" a b)) $
   Sigma $ Lam "g" (Pi (Lam "_" b a)) $
@@ -324,8 +342,8 @@ mkIso vb = eval rho $
 -- f : t -> a
 -- p : (x : a) -> isContr ((y:t) * Id a x (f y))
 -- with isContr c = (z : c) * ((z' : C) -> Id c z z')
-mkEquiv :: Val -> Val
-mkEquiv va = eval rho $
+mkEquiv :: [Name] -> Val -> Val
+mkEquiv is va = eval is rho $
   Sigma $ Lam "t" U $
   Sigma $ Lam "f" (Pi (Lam "_" t a)) $
   Pi (Lam "x" a $ iscontrfib)
@@ -336,24 +354,32 @@ mkEquiv va = eval rho $
                      Pi $ Lam "z" fib $ PathP (PLam (Name "_") fib) s z
 
 checkEquiv :: Val -> Ter -> Typing ()
-checkEquiv va equiv = check (mkEquiv va) equiv
+checkEquiv va equiv = do
+  is <- asks supportEnv
+  check (mkEquiv is va) equiv
 
 
 checkBranch :: (Label,Env) -> Val -> Branch -> Val -> Val -> Typing ()
 checkBranch (OLabel _ tele,nu) f (OBranch c ns e) _ _ = do
   ns' <- asks names
-  let us = map snd $ mkVars ns' tele nu
-  local (addBranch (zip ns us) nu) $ check (app f (VCon c us)) e
+  is <- asks supportEnv
+  let us = map snd $ mkVars is ns' tele nu
+  local (addBranch (zip ns us) nu) $ do
+    is <- asks supportEnv
+    check (app is f (VCon c us)) e
 checkBranch (PLabel _ tele is ts,nu) f (PBranch c ns js e) g va = do
   ns' <- asks names
+  is' <- asks supportEnv
+  let is'' = is' ++ js -- Anders: Is this correct?
   -- mapM_ checkFresh js
-  let us   = mkVars ns' tele nu
+  let us   = mkVars is'' ns' tele nu
       vus  = map snd us
       js'  = map Atom js
-      vts  = evalSystem (subs (zip is js') (upds us nu)) ts
-      vgts = intersectionWith app (border g vts) vts
+      vts  = evalSystem is'' (subs (zip is js') (upds us nu)) ts
+      vgts = intersectionWith (app is'') (border g vts) vts
   local (addSubs (zip js js') . addBranch (zip ns vus) nu) $ do
-    check (app f (VPCon c va vus js')) e
+    is <- asks supportEnv
+    check (app is f (VPCon c va vus js')) e
     ve  <- evalTyping e -- TODO: combine with next two lines?
     let veborder = border ve vts
     unlessM (veborder === vgts) $
@@ -379,8 +405,9 @@ checkPLam :: Val -> Ter -> Typing (Val,Val)
 checkPLam v (PLam i a) = do
   rho <- asks env
   -- checkFresh i
-  local (addSub (i,Atom i)) $ check (v @@ i) a
-  return (eval (sub (i,Dir 0) rho) a,eval (sub (i,Dir 1) rho) a)
+  is <- asks supportEnv
+  local (addSub (i,Atom i)) $ check (appFormula (i:is) v i) a
+  return (eval is (sub (i,Dir 0) rho) a,eval is (sub (i,Dir 1) rho) a)
 checkPLam v t = do
   vt <- infer t
   case vt of
@@ -399,21 +426,24 @@ checkPLamSystem t0 va ps = do
     local (faceEnv alpha) $ do
       rhoAlpha <- asks env
       (a0,a1)  <- checkPLam (va `face` alpha) pAlpha
-      unlessM (a0 === eval rhoAlpha t0) $
+      is <- asks supportEnv
+      unlessM (a0 === eval is rhoAlpha t0) $
         throwError $ "Incompatible system " ++ showSystem ps ++
                      ", component\n " ++ show pAlpha ++
                      "\nincompatible with\n " ++ show t0 ++
                      "\na0 = " ++ show a0 ++
-                     "\nt0alpha = " ++ show (eval rhoAlpha t0) ++
+                     "\nt0alpha = " ++ show (eval is rhoAlpha t0) ++
                      "\nva = " ++ show va
       return a1) ps
-  checkCompSystem (evalSystem rho ps)
+  is <- asks supportEnv
+  checkCompSystem (evalSystem is rho ps)
   return v
 
 checks :: (Tele,Env) -> [Ter] -> Typing ()
 checks ([],_)         []     = return ()
 checks ((x,a):xas,nu) (e:es) = do
-  check (eval nu a) e
+  is <- asks supportEnv
+  check (eval is nu a) e
   v' <- evalTyping e
   checks (xas,upd (x,v') nu) es
 checks _              _      =
@@ -423,14 +453,15 @@ checks _              _      =
 infer :: Ter -> Typing Val
 infer e = case e of
   U           -> return VU  -- U : U
-  Var n       -> lookType n <$> asks env
+  Var n       -> lookType <$> asks supportEnv <*> pure n <*> asks env
   App t u -> do
     c <- infer t
     case c of
       VPi a f -> do
         check a u
         v <- evalTyping u
-        return $ app f v
+        is <- asks supportEnv
+        return $ app is f v
       _       -> throwError $ show c ++ " is not a product"
   Fst t -> do
     c <- infer t
@@ -442,7 +473,8 @@ infer e = case e of
     case c of
       VSigma a f -> do
         v <- evalTyping t
-        return $ app f (fstVal v)
+        is <- asks supportEnv
+        return $ app is f (fstVal v)
       _          -> throwError $ show c ++ " is not a sigma-type"
   Where t d -> do
     checkDecls d
@@ -455,8 +487,9 @@ infer e = case e of
   AppFormula e phi -> do
     checkFormula phi
     t <- infer e
+    is <- asks supportEnv
     case t of
-      VPathP a _ _ -> return $ a @@ phi
+      VPathP a _ _ -> return $ appFormula is a phi
       _ -> throwError (show e ++ " is not a path")
   Comp a t0 ps -> do
     (va0, va1) <- checkPLam (constPath VU) a
@@ -471,8 +504,9 @@ infer e = case e of
     checkPLamSystem t0 va ps
     vt  <- evalTyping t0
     rho <- asks env
-    let vps = evalSystem rho ps
-    return (VPathP va vt (compLine va vt vps))
+    is <- asks supportEnv
+    let vps = evalSystem is rho ps
+    return (VPathP va vt (compLine is va vt vps))
   PCon c a es phis -> do
     check VU a
     va <- evalTyping a

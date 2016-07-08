@@ -141,7 +141,7 @@ loop flags f names tenv = do
                              loop flags f names tenv
               Right _  -> do
                 start <- liftIO getCurrentTime
-                let e = mod $ E.eval (TC.env tenv) body
+                let e = mod $ E.eval [] (TC.env tenv) body
 
                 -- Let's not crash if the evaluation raises an error:
                 liftIO $ catch (putStrLn (msg ++ shrink (show e)))

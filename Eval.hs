@@ -271,7 +271,7 @@ inferType is v = case v of
   _ -> error $ "inferType: not neutral " ++ show v
 
 appFormula :: ToFormula a => [Name] -> Val -> a -> Val
-appFormula is (VPLam i u) phi         = act (i:is) u (i,toFormula phi)
+appFormula is (VPLam i u) phi         = act is u (i,toFormula phi)
 appFormula is v@(Ter Hole{} _) phi    = VAppFormula v (toFormula phi)
 appFormula is v phi | isNeutral v     = case (inferType is v,toFormula phi) of
   (VPathP _ a0 _,Dir 0) -> a0
@@ -293,7 +293,7 @@ comp is i a u ts | eps `member` ts = face is (ts ! eps) (i ~> 1)
 comp is i a u ts = case a of
   VPathP p v0 v1 ->
     let j = gensym (i:is) -- fresh (Atom i,a,u,ts)
-        is' = i:j:is
+        is' = j:is
     in VPLam j $ comp is' i (appFormula is' p j) (appFormula is' u j) $
          insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
            (Map.map (\t -> appFormula is' t j) ts)
@@ -344,7 +344,7 @@ fill :: [Name] -> Name -> Val -> Val -> System Val -> Val
 fill is i a u ts =
   comp is' j (conj is' a (i,j)) u (insertSystem (i ~> 0) u (conj is' ts (i,j)))
   where j = gensym (i:is) -- fresh (Atom i,a,u,ts)
-        is' = i:j:is
+        is' = j:is
 
 fillNeg :: [Name] -> Name -> Val -> Val -> System Val -> Val
 fillNeg is i a u ts = sym is (fill is i (sym is a i) u (sym is ts i)) i
@@ -404,13 +404,13 @@ transFillNeg is i a u = sym is (transFill is i (sym is a i) u) i
 squeeze :: [Name] -> Name -> Val -> Val -> Val
 squeeze is i a u = comp is' j (disj is' a (i,j)) u $ mkSystem [ (i ~> 1, ui1) ]
   where j   = gensym (i:is) -- fresh (Atom i,a,u)
-        is' = i:j:is
+        is' = j:is
         ui1 = face is' u (i ~> 1)
 
 squeezes :: [Name] -> Name -> [(Ident,Ter)] -> Env -> [Val] -> [Val]
 squeezes is i xas e us = comps is' j xas (disj is' e (i,j)) us'
   where j   = gensym (i:is) -- fresh (Atom i,e,us)
-        is' = i:j:is
+        is' = j:is
         us' = [ (mkSystem [(i ~> 1, face is' u (i ~> 1))],u) | u <- us ]
 
 
@@ -433,13 +433,13 @@ compHIT is i a u us
   | otherwise =
       hComp is (face is a (i ~> 1)) (transpHIT is i a u) $
         mapWithKey (\alpha uAlpha ->
-                     VPLam i $ squeezeHIT (i:is) i (face (i:is) a alpha) uAlpha) us
+                     VPLam i $ squeezeHIT is i (face is a alpha) uAlpha) us
 
 -- Given u of type a(i=0), transpHIT i a u is an element of a(i=1).
 transpHIT :: [Name] -> Name -> Val -> Val -> Val
 transpHIT is i a@(Ter (HSum _ _ nass) env) u =
  let j = gensym is -- fresh (a,u)
-     is' = i:j:is
+     is' = j:is
      aij = swap a (i,j)
  in
  case u of
@@ -460,7 +460,7 @@ transpHIT is i a@(Ter (HSum _ _ nass) env) u =
 squeezeHIT :: [Name] -> Name -> Val -> Val -> Val
 squeezeHIT is i a@(Ter (HSum _ _ nass) env) u =
  let j = gensym is -- fresh (a,u)
-     is' = i:j:is
+     is' = j:is
  in
  case u of
   VCon n us -> case lookupLabel n nass of
@@ -529,7 +529,7 @@ isNeutralGlue is i equivs u0 ts = (eps `notMember` equivsi0 && isNeutral u0) ||
            eps `notMember` (face is' equivs alpha) && isNeutral talpha)
     (assocs ts)
   where equivsi0 = face is' equivs (i ~> 0)
-        is' = i:is
+        is' = is
 
 -- this is exactly the same as isNeutralGlue?
 isNeutralU :: [Name] -> Name -> System Val -> Val -> System Val -> Bool
@@ -538,7 +538,7 @@ isNeutralU is i eqs u0 ts = (eps `notMember` eqsi0 && isNeutral u0) ||
            eps `notMember` (face is' eqs alpha) && isNeutral talpha)
     (assocs ts)
   where eqsi0 = face is' eqs (i ~> 0)
-        is' = i:is
+        is' = is
 
 -- Extend the system ts to a total element in b given q : isContr b
 extend :: [Name] -> Val -> Val -> System Val -> Val
@@ -612,7 +612,7 @@ mkFiberType is a x equiv = eval is rho $
 pathComp :: [Name] -> Name -> Val -> Val -> Val -> System Val -> Val
 pathComp is i a u0 u' us = VPLam j $ comp is' i a u0 us'
   where j   = gensym (i:is) -- fresh (Atom i,a,us,u0,u')
-        is' = i:j:is
+        is' = j:is
         us' = insertsSystem [(j ~> 1, u')] us
 
 -------------------------------------------------------------------------------
@@ -856,9 +856,9 @@ instance Convertible Val where
       (VOpaque x _, VOpaque x' _) -> x == x'
       (VVar x _, VVar x' _)       -> x == x'
       (VPathP a b c,VPathP a' b' c') -> conv is ns (a,b,c) (a',b',c')
-      (VPLam i a,VPLam i' a')    -> conv (i:i':j:is) ns (a `swap` (i,j)) (a' `swap` (i',j))
-      (VPLam i a,p')             -> conv (i:j:is) ns (a `swap` (i,j)) (appFormula (i:j:is) p' j)
-      (p,VPLam i' a')            -> conv (i':j:is) ns (appFormula (i':j:is) p j) (a' `swap` (i',j))
+      (VPLam i a,VPLam i' a')    -> conv (j:is) ns (a `swap` (i,j)) (a' `swap` (i',j))
+      (VPLam i a,p')             -> conv (j:is) ns (a `swap` (i,j)) (appFormula (j:is) p' j)
+      (p,VPLam i' a')            -> conv (j:is) ns (appFormula (j:is) p j) (a' `swap` (i',j))
       (VAppFormula u x,VAppFormula u' x') -> conv is ns (u,x) (u',x')
       (VComp a u ts,VComp a' u' ts')      -> conv is ns (a,u,ts) (a',u',ts')
       (VHComp a u ts,VHComp a' u' ts')    -> conv is ns (a,u,ts) (a',u',ts')

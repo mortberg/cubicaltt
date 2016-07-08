@@ -90,8 +90,8 @@ instance Nominal Val where
          VPathP a u v -> VPathP (acti a) (acti u) (acti v)
          VPLam j v | j == i -> u
                    | j `notElem` sphi -> VPLam j (act (j:is) v (i,phi))
-                   | otherwise -> VPLam k (act (j:k:is) (v `swap` (j,k)) (i,phi))
-              where k = fresh (v,Atom i,phi) -- TODO: fix
+                   | otherwise -> VPLam k (act (k:is) (v `swap` (j,k)) (i,phi))
+              where k = gensym (i:is) -- fresh (v,Atom i,phi) 
          VSigma a f              -> VSigma (acti a) (acti f)
          VPair u v               -> VPair (acti u) (acti v)
          VFst u                  -> fstVal (acti u)
@@ -168,7 +168,7 @@ eval is rho@(_,_,_,Nameless os) v = case v of
   Undef{}             -> Ter v rho
   Hole{}              -> Ter v rho
   PathP a e0 e1       -> VPathP (eval is rho a) (eval is rho e0) (eval is rho e1)
-  PLam i t            -> let j = fresh rho -- gensym is   -- Anders: add i??
+  PLam i t            -> let j = gensym is -- fresh rho -- Anders: add i??
                          in VPLam j (eval (j:is) (sub (i,Atom j) rho) t)
   AppFormula e phi    -> appFormula is (eval is rho e) (evalFormula rho phi)
   Comp a t0 ts        ->
@@ -210,7 +210,7 @@ app is u v = case (u,v) of
         eval is (subs (zip is' phis) (upds (zip xs us) e)) t -- Anders: add is'?
     _ -> error $ "app: missing case in split for " ++ c
   (Ter (Split _ _ ty hbr) e,VHComp a w ws) -> case eval is e ty of
-    VPi _ f -> let j   = fresh (e,v) -- gensym is
+    VPi _ f -> let j   = gensym is -- fresh (e,v)
                    is' = j:is
                    wsj = Map.map (\u -> appFormula is' u j) ws
                    w'  = app is' u w
@@ -220,7 +220,7 @@ app is u v = case (u,v) of
     _ -> error $ "app: Split annotation not a Pi type " ++ show u
   (Ter Split{} _,_) | isNeutral v         -> VSplit u v
   (VComp (VPLam i (VPi a f)) li0 ts,vi1) ->
-    let j       = fresh (u,vi1) -- gensym is
+    let j       = gensym is -- fresh (u,vi1)
         is'     = j:is
         (aj,fj) = (a,f) `swap` (i,j)
         tsj     = Map.map (\t -> appFormula is' t j) ts
@@ -271,7 +271,7 @@ inferType is v = case v of
   _ -> error $ "inferType: not neutral " ++ show v
 
 appFormula :: ToFormula a => [Name] -> Val -> a -> Val
-appFormula is (VPLam i u) phi         = act is u (i,toFormula phi)
+appFormula is (VPLam i u) phi         = act (i:is) u (i,toFormula phi)
 appFormula is v@(Ter Hole{} _) phi    = VAppFormula v (toFormula phi)
 appFormula is v phi | isNeutral v     = case (inferType is v,toFormula phi) of
   (VPathP _ a0 _,Dir 0) -> a0
@@ -292,8 +292,8 @@ comp :: [Name] -> Name -> Val -> Val -> System Val -> Val
 comp is i a u ts | eps `member` ts = face is (ts ! eps) (i ~> 1)
 comp is i a u ts = case a of
   VPathP p v0 v1 ->
-    let j = fresh (Atom i,a,u,ts) -- gensym (i:is)
-        is' = j : is
+    let j = gensym (i:is) -- fresh (Atom i,a,u,ts)
+        is' = i:j:is
     in VPLam j $ comp is' i (appFormula is' p j) (appFormula is' u j) $
          insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
            (Map.map (\t -> appFormula is' t j) ts)
@@ -322,13 +322,13 @@ compNeg is i a u ts = comp is i (sym is a i) u (sym is ts i)
 compLine :: [Name] -> Val -> Val -> System Val -> Val
 compLine is a u ts =
   comp is' i (appFormula is' a i) u (Map.map (\t -> appFormula is' t i) ts)
-    where i = fresh (a,u,ts) -- gensym is
+    where i = gensym is -- fresh (a,u,ts)
           is' = i:is
 
 compConstLine :: [Name] -> Val -> Val -> System Val -> Val
 compConstLine is a u ts =
   comp is' i a u (Map.map (\t -> appFormula is' t i) ts)
-    where i = fresh (a,u,ts) -- gensym is
+    where i = gensym is -- fresh (a,u,ts)
           is' = i:is
 
 comps :: [Name] -> Name -> [(Ident,Ter)] -> Env -> [(System Val,Val)] -> [Val]
@@ -343,8 +343,8 @@ comps _ _ _ _ _ = error "comps: different lengths of types and values"
 fill :: [Name] -> Name -> Val -> Val -> System Val -> Val
 fill is i a u ts =
   comp is' j (conj is' a (i,j)) u (insertSystem (i ~> 0) u (conj is' ts (i,j)))
-  where j = fresh (Atom i,a,u,ts) -- gensym (i:is)
-        is' = j:is   -- Anders: add i?
+  where j = gensym (i:is) -- fresh (Atom i,a,u,ts)
+        is' = i:j:is
 
 fillNeg :: [Name] -> Name -> Val -> Val -> System Val -> Val
 fillNeg is i a u ts = sym is (fill is i (sym is a i) u (sym is ts i)) i
@@ -352,7 +352,7 @@ fillNeg is i a u ts = sym is (fill is i (sym is a i) u (sym is ts i)) i
 fillLine :: [Name] -> Val -> Val -> System Val -> Val
 fillLine is a u ts =
   VPLam i $ fill is' i (appFormula is' a i) u (Map.map (\t -> appFormula is' t i) ts)
-    where i = fresh (a,u,ts) -- gensym is
+    where i = gensym is -- fresh (a,u,ts)
           is' = i:is
 
 -- fills :: Name -> [(Ident,Ter)] -> Env -> [(System Val,Val)] -> [Val]
@@ -375,12 +375,12 @@ transNeg is i a u = trans is i (sym is a i) u
 
 transLine :: [Name] -> Val -> Val -> Val
 transLine is u v = trans is' i (appFormula is' u i) v
-  where i = fresh (u,v) -- gensym is
+  where i = gensym is -- fresh (u,v)
         is' = i:is
 
 transNegLine :: [Name] -> Val -> Val -> Val
 transNegLine is u v = transNeg is' i (appFormula is' u i) v
-  where i = fresh (u,v) -- gensym is
+  where i = gensym is -- fresh (u,v)
         is' = i:is
 
 -- TODO: define in terms of comps?
@@ -403,14 +403,14 @@ transFillNeg is i a u = sym is (transFill is i (sym is a i) u) i
 -- trans i a u(i=0) to u(i=1)
 squeeze :: [Name] -> Name -> Val -> Val -> Val
 squeeze is i a u = comp is' j (disj is' a (i,j)) u $ mkSystem [ (i ~> 1, ui1) ]
-  where j   = fresh (Atom i,a,u) -- gensym (i:is)
-        is' = j:is -- TODO: comp with (i:j:is)?
+  where j   = gensym (i:is) -- fresh (Atom i,a,u)
+        is' = i:j:is
         ui1 = face is' u (i ~> 1)
 
 squeezes :: [Name] -> Name -> [(Ident,Ter)] -> Env -> [Val] -> [Val]
 squeezes is i xas e us = comps is' j xas (disj is' e (i,j)) us'
-  where j   = fresh (Atom i,e,us) -- gensym (i:is) -- Anders: same as in squeeze?
-        is' = j:is
+  where j   = gensym (i:is) -- fresh (Atom i,e,us)
+        is' = i:j:is
         us' = [ (mkSystem [(i ~> 1, face is' u (i ~> 1))],u) | u <- us ]
 
 
@@ -438,8 +438,8 @@ compHIT is i a u us
 -- Given u of type a(i=0), transpHIT i a u is an element of a(i=1).
 transpHIT :: [Name] -> Name -> Val -> Val -> Val
 transpHIT is i a@(Ter (HSum _ _ nass) env) u =
- let j = fresh (a,u) -- gensym is
-     is' = j:is -- TODO: add i?
+ let j = gensym is -- fresh (a,u)
+     is' = i:j:is
      aij = swap a (i,j)
  in
  case u of
@@ -459,8 +459,8 @@ transpHIT is i a@(Ter (HSum _ _ nass) env) u =
 -- transHIT i a u(i=0) to u(i=1) in a(1)
 squeezeHIT :: [Name] -> Name -> Val -> Val -> Val
 squeezeHIT is i a@(Ter (HSum _ _ nass) env) u =
- let j = fresh (a,u) -- gensym is
-     is' = j:is -- TODO: add i?
+ let j = gensym is -- fresh (a,u)
+     is' = i:j:is
  in
  case u of
   VCon n us -> case lookupLabel n nass of
@@ -543,7 +543,7 @@ isNeutralU is i eqs u0 ts = (eps `notMember` eqsi0 && isNeutral u0) ||
 -- Extend the system ts to a total element in b given q : isContr b
 extend :: [Name] -> Val -> Val -> System Val -> Val
 extend is b q ts = comp is' i b (fstVal q) ts'
-  where i = fresh (b,q,ts) -- TODO: fix
+  where i = gensym is -- fresh (b,q,ts)
         is' = i:is
         ts' = mapWithKey
                 (\alpha tAlpha ->
@@ -611,8 +611,8 @@ mkFiberType is a x equiv = eval is rho $
 -- The output is an L-path in A(i1) between comp i u0 us and u'(i1)
 pathComp :: [Name] -> Name -> Val -> Val -> Val -> System Val -> Val
 pathComp is i a u0 u' us = VPLam j $ comp is' i a u0 us'
-  where j   = fresh (Atom i,a,us,u0,u') -- gensym is
-        is' = j:is
+  where j   = gensym (i:is) -- fresh (Atom i,a,us,u0,u')
+        is' = i:j:is
         us' = insertsSystem [(j ~> 1, u')] us
 
 -------------------------------------------------------------------------------
@@ -678,7 +678,7 @@ compU is i a eqs wi0 ws = glueElem vi1 usi1
 lemEq :: [Name] -> Val -> Val -> System (Val,Val) -> (Val,Val)
 lemEq is eq b aps = (a,VPLam i (compNeg is' j (appFormula is' eq j) p1 thetas'))
  where
-   i:j:_ = freshs (eq,b,aps) -- gensym is
+   i:j:_ = gensyms is -- freshs (eq,b,aps)
    is'   = i:j:is
    ta = appFormula is' eq One
    p1s = mapWithKey (\alpha (aa,pa) ->
@@ -818,8 +818,8 @@ isCompSystem is ns ts =
 
 instance Convertible Val where
   conv is ns u v | u == v = True
-              | otherwise =
-    let j = fresh (u,v) -- todo: fix
+                 | otherwise =
+    let j = gensym is -- fresh (u,v)
     in case (u,v) of
       (Ter (Lam x a u) e,Ter (Lam x' a' u') e') ->
         let v@(VVar n _) = mkVarNice ns x (eval is e a)
@@ -856,9 +856,9 @@ instance Convertible Val where
       (VOpaque x _, VOpaque x' _) -> x == x'
       (VVar x _, VVar x' _)       -> x == x'
       (VPathP a b c,VPathP a' b' c') -> conv is ns (a,b,c) (a',b',c')
-      (VPLam i a,VPLam i' a')    -> conv (j:is) ns (a `swap` (i,j)) (a' `swap` (i',j))
-      (VPLam i a,p')             -> conv (j:is) ns (a `swap` (i,j)) (appFormula (j:is) p' j)
-      (p,VPLam i' a')            -> conv (j:is) ns (appFormula (j:is) p j) (a' `swap` (i',j))
+      (VPLam i a,VPLam i' a')    -> conv (i:i':j:is) ns (a `swap` (i,j)) (a' `swap` (i',j))
+      (VPLam i a,p')             -> conv (i:j:is) ns (a `swap` (i,j)) (appFormula (i:j:is) p' j)
+      (p,VPLam i' a')            -> conv (i':j:is) ns (appFormula (i':j:is) p j) (a' `swap` (i',j))
       (VAppFormula u x,VAppFormula u' x') -> conv is ns (u,x) (u',x')
       (VComp a u ts,VComp a' u' ts')      -> conv is ns (a,u,ts) (a',u',ts')
       (VHComp a u ts,VHComp a' u' ts')    -> conv is ns (a,u,ts) (a',u',ts')

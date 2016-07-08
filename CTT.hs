@@ -273,9 +273,6 @@ valOfEnv = fst . valAndFormulaOfEnv
 formulaOfEnv :: Env -> [Formula]
 formulaOfEnv = snd . valAndFormulaOfEnv
 
-supportOfEnv :: Env -> [Name]
-supportOfEnv = support . formulaOfEnv
-
 domainEnv :: Env -> [Name]
 domainEnv (rho,_,_,_) = domCtxt rho
   where domCtxt rho = case rho of

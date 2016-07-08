@@ -1,0 +1,188 @@
+module subset where
+
+import prelude
+import injective
+import sigma
+import univalence
+
+
+-- The first definition of a subset. Informally, there exists a second set B
+-- and an injective function from B to A.
+subset0 (A : U) (sA : set A) : U
+  = (B : U) * (sB : set B) * (f : B -> A) * (inj1 B A f sB sA)
+
+-- The second definition of a subset. Informally, each element of A is tagged
+-- with a proposition indicating whether its included in the subset or not.
+subset1 (A : U) (sA : set A) : U
+  = (a : A) -> (X : U) * (prop X)
+
+-- A map from the first to the second definition of subsets.
+subset01 (A : U) (sA : set A) : subset0 A sA -> subset1 A sA
+  = \ (s : subset0 A sA) (a : A) -> let
+    -- Take apart s
+    B : U
+      = s.1
+    sB : set B
+      = s.2.1
+    f : B -> A
+      = s.2.2.1
+    i : inj1 B A f sB sA
+      = s.2.2.2
+    -- Construct a proposition to tag the element a with
+    X : U
+      = (b : B) * (Id A (f b) a)
+    pX : prop X
+      = i a
+  in
+    (X, pX)
+
+-- A map from the second to the first definition of subsets.
+subset10 (A : U) (sA : set A)
+  : subset1 A sA -> subset0 A sA
+  = \ (P : subset1 A sA) -> let
+    -- Construct a predicate on A
+    Q : (a : A) -> U
+      = \ (a : A) -> (P a).1
+    -- Tag each element of A with the predicate Q to construct B
+    B : U
+      = (a : A) * Q a
+    -- Show that the predicate Q is a set (this follows from it being a
+    -- proposition)
+    sQ (a : A) : set (Q a)
+      = propSet (Q a) (P a).2
+    -- Using that A and Q are sets we show that B is a set as well.
+    sB : set B
+      = setSig A Q sA sQ
+    -- Construct a map from B to A by taking the first projection of B.
+    f : B -> A
+      = \ (b : B) -> b.1
+    -- Show that f is injective.
+    inj : inj1 B A f sB sA
+      = \ (a : A) (c d : (b : B) * Id A (f b) a) -> let
+        p : Id A c.1.1 d.1.1
+          = <i> comp (<j> A) (c.2 @ i) [ (i = 0) -> <j> c.1.1
+                                       , (i = 1) -> <j> d.2 @ -j ]
+        q : Id B c.1 d.1
+          = lem A Q (\ (x : A) -> (P x).2) c.1 d.1 p
+        r : Id ((b : B) * Id A (f b) a) c d
+          = lem B (\(b : B) -> Id A (f b) a) (\ (b : B) -> sA (f b) a) c d q
+      in
+        r
+  in
+    (B, sB, f, inj)
+
+-- Show that subset10 âˆ˜ subset01 can be identified with the identity function
+subsetIso0 (A : U) (sA : set A) : (s0 : subset0 A sA) ->
+      Id (subset0 A sA) (subset10 A sA (subset01 A sA s0)) s0
+  = \ (s0 : subset0 A sA) -> let
+    s0'
+      : subset0 A sA
+      = subset10 A sA (subset01 A sA s0)
+    -- Take apart s0 and s0'
+    B : U
+      = s0.1
+    B' : U
+      = s0'.1
+    sB : set B
+      = s0.2.1
+    sB' : set B'
+      = s0'.2.1
+    f : B -> A
+      = s0.2.2.1
+    f' : B' -> A
+      = s0'.2.2.1
+    inj : inj1 B A f sB sA
+      = s0.2.2.2
+    inj' : inj1 B' A f' sB' sA
+      = s0'.2.2.2
+    -- Show that B' and B are equivalent
+    g (b : B) : B'
+      = (f b, b, <i> f b)
+    g' (b' : B') : B
+      = b'.2.1
+    s (x : B) : Id B (g' (g x)) x
+      = <i> x
+    t (x : B') : Id B' (g (g' x)) x
+      = <i> (x.2.2 @ i, x.2.1, <j> x.2.2 @ i /\ j)
+    -- Compute a path between B' and B, as well as a path between f'âˆ˜gâˆ˜g' and f
+    P (X : U) (h: X -> B) : U
+      = (p : Id U X B) * (IdP (<i> p @ i -> A) (\ (x : X) -> f' (g (h x))) f)
+    q : P B' g'
+      = elimEquiv B P (<i> B, <i> f) B' (g', gradLemma B' B g' g s t)
+    idB : Id U B' B
+      = q.1
+    -- Show that sB can be identified with sB'
+    idsB : IdP (<i> set (idB @ i)) sB' sB
+--      = lemPropF U set setIsProp B' B idB sB' sB
+      = undefined
+    -- Show that f' can be identified with f. This follows from gâˆ˜g' â‡” \x -> x
+    -- and that there is a path q.2 between f'âˆ˜gâˆ˜g' and f
+    idf : IdP (<i> idB @ i -> A) f' f
+      = let
+        TEMP : IdP (<i> idB @ i -> A) f' f = undefined
+        Q (h : B' -> B') : U
+          = IdP (<i> q.1 @ i -> A) (\ (x : B') -> f' (h x)) f
+        a : B' -> B' = \ (x : B') -> g (g' x)
+        b : B' -> B' = \ (x : B') -> x
+        p : Id (B' -> B') a b = <i> \ (x : B') -> (t x) @ i
+      in
+        -- subst (B' -> B') Q a b p q.2
+        TEMP
+    -- Show that inj can be identified with inj'
+    idinj : IdP (<i> inj1 (idB @ i) A (idf @ i) (idsB @ i) sA) inj' inj
+      = let
+        TEMP : IdP (<i> inj1 (idB @ i) A (idf @ i) (idsB @ i) sA) inj' inj = undefined
+        T : U
+          = (X : U) * (_ : X -> A) * (set X)
+        P : T -> U
+          = \ (t : T) -> inj1 t.1 A t.2.1 t.2.2 sA
+        pP : (t : T) -> prop (P t)
+          = \ (t : T) -> prop_inj1 t.1 A t.2.1 t.2.2 sA
+        t0 : T
+          = (B', f', sB')
+        t1 : T
+          = (B, f, sB)
+        idT : Id T t0 t1
+          = <i> (idB @ i, idf @ i, idsB @ i)
+      in
+        -- lemPropF T P pP t0 t1 idT inj' inj
+        TEMP
+  in
+    <i> (idB @ i, idsB @ i, idf @ i, idinj @ i)
+    -- TEMP
+
+-- Show that subset10 âˆ˜ subset01 can be identified with the identity function
+subsetIso1 (A : U) (sA : set A) : (s1 : subset1 A sA) ->
+      Id (subset1 A sA) (subset01 A sA (subset10 A sA s1)) s1
+  = \ (s1 : subset1 A sA) -> let
+    -- Construct the second subset s1' from s1.
+    s1' : subset1 A sA
+      = subset01 A sA (subset10 A sA s1)
+    -- Show that s1' and s1 produces the same result for all a : A
+    ids1 : (a : A) -> Id ((X : U) * (prop X)) (s1' a) (s1 a)
+      = \ (a : A) -> let
+        -- Construct isomorphism between (s1' a).1 and (s1 a).1 to show that
+        -- (s1' a).1 can be identified with (s1 a).1
+        f : (s1' a).1 -> (s1 a).1
+          = \ (x : (s1' a).1) -> subst A (\(a : A) -> (s1 a).1) x.1.1 a x.2 x.1.2
+        g : (s1 a).1 -> (s1' a).1
+          = \ (x : (s1 a).1) -> ((a, x), <i> a)
+        s : (x : (s1 a).1) -> Id (s1 a).1 (f (g x)) x
+          = \ (x : (s1 a).1) -> (s1 a).2 (f (g x)) x
+        t : (x : (s1' a).1) -> Id (s1' a).1 (g (f x)) x
+          = \ (x : (s1' a).1) -> (s1' a).2 (g (f x)) x
+        p : Id U (s1' a).1 (s1 a).1
+          = isoId (s1' a).1 (s1 a).1 f g s t
+        -- Show that for x : prop (s1' a).1, y : prop (s1 a).1,
+        -- x can be identified with y.
+        q : IdP (<i> prop (p @ i)) (s1' a).2 (s1 a).2
+          = lemPropF U prop propIsProp (s1' a).1 (s1 a).1 p (s1' a).2 (s1 a).2
+      in
+        <i> (p @ i, q @ i)
+  in
+    funExt A (\ (_ : A) -> (X : U) * (prop X)) s1' s1 ids1
+
+-- Show that we can identify the two definitions of subsets with each other
+subsetId (A : U) (sA : set A) : Id U (subset0 A sA) (subset1 A sA)
+  = isoId (subset0 A sA) (subset1 A sA) (subset01 A sA) (subset10 A sA)
+      (subsetIso1 A sA) (subsetIso0 A sA)

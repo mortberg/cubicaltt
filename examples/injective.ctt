@@ -1,0 +1,104 @@
+module injective where
+
+import prelude
+import prop
+
+
+-- First definition of injectivity, informally: if two elements f a0, f a1 are
+-- equal in B, then a0, a1 must be equal in A.
+inj0 (A B : U) (f : A -> B) (sA : set A) (sB : set B) : U
+  = (a0 a1 : A) -> Id B (f a0) (f a1) -> Id A a0 a1
+
+-- Second definition of injectivity, informally: for any b in B, there are
+-- only one elment a in A such that f a is equal to b.
+inj1 (A B : U) (f : A -> B) (sA : set A) (sB : set B) : U
+  = (b : B) -> prop ((a : A) * Id B (f a) b)
+
+-- A map from the first to the second definition.
+inj01 (A B : U) (f : A -> B) (sA : set A) (sB : set B) : inj0 A B f sA sB ->
+    inj1 A B f sA sB
+  = \ (i0 : inj0 A B f sA sB) (b : B) (c d : (a : A) * Id B (f a) b) -> let
+    F (a : A) : U
+      = Id B (f a) b
+    pF (a : A) : prop (F a)
+      = sB (f a) b
+    p : Id B (f c.1) (f d.1)
+      = <i> comp (<j> B) (c.2 @ i) [ (i = 0) -> <j> f c.1
+                                   , (i = 1) -> <j> d.2 @ -j ]
+    q : Id A c.1 d.1
+      = i0 c.1 d.1 p
+  in
+    lemSig A F pF c d q
+
+-- A map from the second to the first definition.
+inj10 (A B : U) (f : A -> B) (sA : set A) (sB : set B) : inj1 A B f sA sB ->
+    inj0 A B f sA sB
+  = \ (i1 : inj1 A B f sA sB) (a0 a1 : A) (p : Id B (f a0) (f a1)) -> let
+    c : (a : A) * Id B (f a) (f a1)
+      = (a0, p)
+    d : (a : A) * Id B (f a) (f a1)
+      = (a1, <i> f a1)
+    q : Id ((a : A) * Id B (f a) (f a1)) c d
+      = i1 (f a1) c d
+    fst : ((a : A) * Id B (f a) (f a1)) -> A
+      = \ (x : (a : A) * Id B (f a) (f a1)) -> x.1
+  in
+    <i> fst (q @ i)
+
+-- A proof that the first definition of injectivity is a proposition.
+prop_inj0 (A B : U) (f : A -> B) (sA : set A) (sB : set B)
+  : prop (inj0 A B f sA sB)
+  = let
+    c (a0 a1 : A) : prop (Id B (f a0) (f a1) -> Id A a0 a1)
+      = let
+        P : Id B (f a0) (f a1) -> U
+          = \ (_ : Id B (f a0) (f a1)) -> Id A a0 a1
+        h : (x : Id B (f a0) (f a1)) -> prop (P x)
+          = \ (_ : Id B (f a0) (f a1)) -> sA a0 a1
+      in
+        propPi (Id B (f a0) (f a1)) P h
+    d (a0 : A) : prop ((a1 : A) -> Id B (f a0) (f a1) -> Id A a0 a1)
+      = let
+        P : A -> U
+          = \ (a1 : A) -> ( Id B (f a0) (f a1) -> Id A a0 a1 )
+        h : (a1 : A) -> prop (P a1)
+          = \ (a1 : A) -> c a0 a1
+      in
+        propPi A P h
+    e : prop (inj0 A B f sA sB)
+      = let
+        P : A -> U
+          = \ (a0 : A) -> ( (a1 : A) -> Id B (f a0) (f a1) -> Id A a0 a1 )
+        h : (a0 : A) -> prop ( (a1 : A) -> Id B (f a0) (f a1) -> Id A a0 a1 )
+          = \ (a0 : A) -> d a0
+      in
+        propPi A P h
+  in
+    e
+
+-- A proof that the second definition of injectivity is a proposition.
+prop_inj1 (A B : U) (f : A -> B) (sA : set A) (sB : set B) :
+    prop (inj1 A B f sA sB)
+  = let
+    P : B -> U
+      = \ (b : B) -> (a : A) * Id B (f a) b
+    Q : B -> U
+      = \ (b : B) -> prop (P b)
+    h : (b : B) -> prop (Q b)
+      = \ (b : B) -> propIsProp (P b)
+  in
+    propPi B Q h
+
+-- A proof that two propositions with maps between them can be identified with
+-- each other
+propId (A B : U) (f : A -> B) (g : B -> A) (pA : prop A) (pB : prop B) :
+    Id U A B
+  = isoId A B f g (\ (b : B) -> pB (f (g b)) b) (\ (a : A) -> pA (g (f a)) a)
+
+-- A proof that the two definitions of injectivity can be identified with each
+-- other
+injId (A B : U) (f : A -> B) (sA : set A) (sB : set B) :
+    Id U (inj0 A B f sA sB) (inj1 A B f sA sB)
+  = propId (inj0 A B f sA sB) (inj1 A B f sA sB)
+      (inj01 A B f sA sB) (inj10 A B f sA sB)
+      (prop_inj0 A B f sA sB) (prop_inj1 A B f sA sB)

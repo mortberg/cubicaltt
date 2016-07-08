@@ -808,154 +808,155 @@ lemEq is eq b aps = (a,VPLam i (compNeg is' j (appFormula is' eq j) p1 thetas'))
 -- | Conversion
 
 class Convertible a where
-  conv :: [String] -> a -> a -> Bool
+  conv :: [Name] -> [String] -> a -> a -> Bool
 
-isCompSystem :: (Nominal a, Convertible a) => [String] -> System a -> Bool
-isCompSystem ns ts = and [ conv ns (getFace alpha beta) (getFace beta alpha)
-                         | (alpha,beta) <- allCompatible (keys ts) ]
-    where getFace a b = face [] (ts ! a) (b `minus` a) -- FIX
+isCompSystem :: (Nominal a, Convertible a) => [Name] -> [String] -> System a -> Bool
+isCompSystem is ns ts =
+  and [ conv is ns (getFace alpha beta) (getFace beta alpha)
+      | (alpha,beta) <- allCompatible (keys ts) ]
+    where getFace a b = face is (ts ! a) (b `minus` a)
 
 instance Convertible Val where
-  conv ns u v | u == v    = True
+  conv is ns u v | u == v = True
               | otherwise =
-    let j = fresh (u,v)
+    let j = fresh (u,v) -- todo: fix
     in case (u,v) of
       (Ter (Lam x a u) e,Ter (Lam x' a' u') e') ->
-        let v@(VVar n _) = mkVarNice ns x (eval [] e a) -- FIX
-        in conv (n:ns) (eval [] (upd (x,v) e) u) (eval [] (upd (x',v) e') u') -- FIX
+        let v@(VVar n _) = mkVarNice ns x (eval is e a)
+        in conv is (n:ns) (eval is (upd (x,v) e) u) (eval is (upd (x',v) e') u')
       (Ter (Lam x a u) e,u') ->
-        let v@(VVar n _) = mkVarNice ns x (eval [] e a) -- FIX
-        in conv (n:ns) (eval [] (upd (x,v) e) u) (app [] u' v) -- FIX
+        let v@(VVar n _) = mkVarNice ns x (eval is e a)
+        in conv is (n:ns) (eval is (upd (x,v) e) u) (app is u' v)
       (u',Ter (Lam x a u) e) ->
-        let v@(VVar n _) = mkVarNice ns x (eval [] e a) -- FIX
-        in conv (n:ns) (app [] u' v) (eval [] (upd (x,v) e) u) -- FIX
-      (Ter (Split _ p _ _) e,Ter (Split _ p' _ _) e') -> (p == p') && conv ns e e'
-      (Ter (Sum p _ _) e,Ter (Sum p' _ _) e')         -> (p == p') && conv ns e e'
-      (Ter (HSum p _ _) e,Ter (HSum p' _ _) e')       -> (p == p') && conv ns e e'
-      (Ter (Undef p _) e,Ter (Undef p' _) e') -> p == p' && conv ns e e'
-      (Ter (Hole p) e,Ter (Hole p') e') -> p == p' && conv ns e e'
+        let v@(VVar n _) = mkVarNice ns x (eval is e a)
+        in conv is (n:ns) (app is u' v) (eval is (upd (x,v) e) u)
+      (Ter (Split _ p _ _) e,Ter (Split _ p' _ _) e') -> (p == p') && conv is ns e e'
+      (Ter (Sum p _ _) e,Ter (Sum p' _ _) e')         -> (p == p') && conv is ns e e'
+      (Ter (HSum p _ _) e,Ter (HSum p' _ _) e')       -> (p == p') && conv is ns e e'
+      (Ter (Undef p _) e,Ter (Undef p' _) e') -> p == p' && conv is ns e e'
+      (Ter (Hole p) e,Ter (Hole p') e') -> p == p' && conv is ns e e'
       -- (Ter Hole{} e,_) -> True
       -- (_,Ter Hole{} e') -> True
       (VPi u v,VPi u' v') ->
         let w@(VVar n _) = mkVarNice ns "X" u
-        in conv ns u u' && conv (n:ns) (app [] v w) (app [] v' w) -- FIX
+        in conv is ns u u' && conv is (n:ns) (app is v w) (app is v' w)
       (VSigma u v,VSigma u' v') ->
         let w@(VVar n _) = mkVarNice ns "X" u
-        in conv ns u u' && conv (n:ns) (app [] v w) (app [] v' w) -- FIX
-      (VCon c us,VCon c' us')   -> (c == c') && conv ns us us'
+        in conv is ns u u' && conv is (n:ns) (app is v w) (app is v' w)
+      (VCon c us,VCon c' us')   -> (c == c') && conv is ns us us'
       (VPCon c v us phis,VPCon c' v' us' phis') ->
-        (c == c') && conv ns (v,us,phis) (v',us',phis')
-      (VPair u v,VPair u' v')    -> conv ns u u' && conv ns v v'
-      (VPair u v,w)              -> conv ns u (fstVal w) && conv ns v (sndVal w)
-      (w,VPair u v)              -> conv ns (fstVal w) u && conv ns (sndVal w) v
-      (VFst u,VFst u')           -> conv ns u u'
-      (VSnd u,VSnd u')           -> conv ns u u'
-      (VApp u v,VApp u' v')      -> conv ns u u' && conv ns v v'
-      (VSplit u v,VSplit u' v')  -> conv ns u u' && conv ns v v'
+        (c == c') && conv is ns (v,us,phis) (v',us',phis')
+      (VPair u v,VPair u' v')    -> conv is ns (u,v) (u',v')
+      (VPair u v,w)              -> conv is ns u (fstVal w) && conv is ns v (sndVal w)
+      (w,VPair u v)              -> conv is ns (fstVal w) u && conv is ns (sndVal w) v
+      (VFst u,VFst u')           -> conv is ns u u'
+      (VSnd u,VSnd u')           -> conv is ns u u'
+      (VApp u v,VApp u' v')      -> conv is ns (u,v) (u',v')
+      (VSplit u v,VSplit u' v')  -> conv is ns (u,v) (u',v')
       (VOpaque x _, VOpaque x' _) -> x == x'
       (VVar x _, VVar x' _)       -> x == x'
-      (VPathP a b c,VPathP a' b' c') -> conv ns a a' && conv ns b b' && conv ns c c'
-      (VPLam i a,VPLam i' a')    -> conv ns (a `swap` (i,j)) (a' `swap` (i',j))
-      (VPLam i a,p')             -> conv ns (a `swap` (i,j)) (appFormula [] p' j) -- FIX
-      (p,VPLam i' a')            -> conv ns (appFormula [] p j) (a' `swap` (i',j)) -- FIX
-      (VAppFormula u x,VAppFormula u' x') -> conv ns (u,x) (u',x')
-      (VComp a u ts,VComp a' u' ts')      -> conv ns (a,u,ts) (a',u',ts')
-      (VHComp a u ts,VHComp a' u' ts')    -> conv ns (a,u,ts) (a',u',ts')
-      (VGlue v equivs,VGlue v' equivs')   -> conv ns (v,equivs) (v',equivs')
-      (VGlueElem u us,VGlueElem u' us')   -> conv ns (u,us) (u',us')
-      (VUnGlueElemU u _ _,VUnGlueElemU u' _ _) -> conv ns u u'
-      (VUnGlueElem u ts,VUnGlueElem u' ts')    -> conv ns (u,ts) (u',ts')
-      (VCompU u es,VCompU u' es')              -> conv ns (u,es) (u',es')
+      (VPathP a b c,VPathP a' b' c') -> conv is ns (a,b,c) (a',b',c')
+      (VPLam i a,VPLam i' a')    -> conv (j:is) ns (a `swap` (i,j)) (a' `swap` (i',j))
+      (VPLam i a,p')             -> conv (j:is) ns (a `swap` (i,j)) (appFormula (j:is) p' j)
+      (p,VPLam i' a')            -> conv (j:is) ns (appFormula (j:is) p j) (a' `swap` (i',j))
+      (VAppFormula u x,VAppFormula u' x') -> conv is ns (u,x) (u',x')
+      (VComp a u ts,VComp a' u' ts')      -> conv is ns (a,u,ts) (a',u',ts')
+      (VHComp a u ts,VHComp a' u' ts')    -> conv is ns (a,u,ts) (a',u',ts')
+      (VGlue v equivs,VGlue v' equivs')   -> conv is ns (v,equivs) (v',equivs')
+      (VGlueElem u us,VGlueElem u' us')   -> conv is ns (u,us) (u',us')
+      (VUnGlueElemU u _ _,VUnGlueElemU u' _ _) -> conv is ns u u'
+      (VUnGlueElem u ts,VUnGlueElem u' ts')    -> conv is ns (u,ts) (u',ts')
+      (VCompU u es,VCompU u' es')              -> conv is ns (u,es) (u',es')
       _                                        -> False
 
 instance Convertible Ctxt where
-  conv _ _ _ = True
+  conv _ _ _ _ = True
 
 instance Convertible () where
-  conv _ _ _ = True
+  conv _ _ _ _ = True
 
 instance (Convertible a, Convertible b) => Convertible (a, b) where
-  conv ns (u, v) (u', v') = conv ns u u' && conv ns v v'
+  conv is ns (u, v) (u', v') = conv is ns u u' && conv is ns v v'
 
 instance (Convertible a, Convertible b, Convertible c)
       => Convertible (a, b, c) where
-  conv ns (u, v, w) (u', v', w') = conv ns (u,(v,w)) (u',(v',w'))
+  conv is ns (u, v, w) (u', v', w') = conv is ns (u,(v,w)) (u',(v',w'))
 
 instance (Convertible a,Convertible b,Convertible c,Convertible d)
       => Convertible (a,b,c,d) where
-  conv ns (u,v,w,x) (u',v',w',x') = conv ns (u,v,(w,x)) (u',v',(w',x'))
+  conv is ns (u,v,w,x) (u',v',w',x') = conv is ns (u,v,(w,x)) (u',v',(w',x'))
 
 instance Convertible a => Convertible [a] where
-  conv ns us us' = length us == length us' &&
-                  and [conv ns u u' | (u,u') <- zip us us']
+  conv is ns us us' = length us == length us' &&
+                      and [conv is ns u u' | (u,u') <- zip us us']
 
 instance Convertible a => Convertible (System a) where
-  conv ns ts ts' = keys ts == keys ts' &&
-                   and (elems (intersectionWith (conv ns) ts ts'))
+  conv is ns ts ts' = keys ts == keys ts' &&
+                      and (elems (intersectionWith (conv is ns) ts ts'))
 
 instance Convertible Formula where
-  conv _ phi psi = dnf phi == dnf psi
+  conv _ _ phi psi = dnf phi == dnf psi
 
 instance Convertible (Nameless a) where
-  conv _ _ _ = True
+  conv _ _ _ _ = True
 
 -------------------------------------------------------------------------------
 -- | Normalization
 
 class Normal a where
-  normal :: [String] -> a -> a
+  normal :: [Name] -> [String] -> a -> a
 
 instance Normal Val where
-  normal ns v = case v of
+  normal is ns v = case v of
     VU                  -> VU
     Ter (Lam x t u) e   ->
-      let w = eval [] e t -- FIX
+      let w = eval is e t
           v@(VVar n _) = mkVarNice ns x w
-      in VLam n (normal ns w) $ normal (n:ns) (eval [] (upd (x,v) e) u) -- FIX
-    Ter t e             -> Ter t (normal ns e)
-    VPi u v             -> VPi (normal ns u) (normal ns v)
-    VSigma u v          -> VSigma (normal ns u) (normal ns v)
-    VPair u v           -> VPair (normal ns u) (normal ns v)
-    VCon n us           -> VCon n (normal ns us)
-    VPCon n u us phis   -> VPCon n (normal ns u) (normal ns us) phis
-    VPathP a u0 u1      -> VPathP (normal ns a) (normal ns u0) (normal ns u1)
-    VPLam i u           -> VPLam i (normal ns u)
-    VComp u v vs        -> compLine [] (normal ns u) (normal ns v) (normal ns vs) -- FIX
-    VHComp u v vs       -> hComp [] (normal ns u) (normal ns v) (normal ns vs) -- FIX
-    VGlue u equivs      -> glue (normal ns u) (normal ns equivs)
-    VGlueElem u us      -> glueElem (normal ns u) (normal ns us)
-    VUnGlueElem u us    -> unglueElem [] (normal ns u) (normal ns us) -- FIX
-    VUnGlueElemU e u us -> unGlueU [] (normal ns e) (normal ns u) (normal ns us) -- FIX
-    VCompU a ts         -> VCompU (normal ns a) (normal ns ts)
-    VVar x t            -> VVar x t -- (normal ns t)
-    VFst t              -> fstVal (normal ns t)
-    VSnd t              -> sndVal (normal ns t)
-    VSplit u t          -> VSplit (normal ns u) (normal ns t)
-    VApp u v            -> app [] (normal ns u) (normal ns v) -- FIX
-    VAppFormula u phi   -> VAppFormula (normal ns u) (normal ns phi)
+      in VLam n (normal is ns w) $ normal is (n:ns) (eval is (upd (x,v) e) u)
+    Ter t e             -> Ter t (normal is ns e)
+    VPi u v             -> VPi (normal is ns u) (normal is ns v)
+    VSigma u v          -> VSigma (normal is ns u) (normal is ns v)
+    VPair u v           -> VPair (normal is ns u) (normal is ns v)
+    VCon n us           -> VCon n (normal is ns us)
+    VPCon n u us phis   -> VPCon n (normal is ns u) (normal is ns us) phis
+    VPathP a u0 u1      -> VPathP (normal is ns a) (normal is ns u0) (normal is ns u1)
+    VPLam i u           -> VPLam i (normal (i:is) ns u)
+    VComp u v vs        -> compLine is (normal is ns u) (normal is ns v) (normal is ns vs)
+    VHComp u v vs       -> hComp is (normal is ns u) (normal is ns v) (normal is ns vs)
+    VGlue u equivs      -> glue (normal is ns u) (normal is ns equivs)
+    VGlueElem u us      -> glueElem (normal is ns u) (normal is ns us)
+    VUnGlueElem u us    -> unglueElem is (normal is ns u) (normal is ns us)
+    VUnGlueElemU e u us -> unGlueU is (normal is ns e) (normal is ns u) (normal is ns us)
+    VCompU a ts         -> VCompU (normal is ns a) (normal is ns ts)
+    VVar x t            -> VVar x t -- (normal is ns t)
+    VFst t              -> fstVal (normal is ns t)
+    VSnd t              -> sndVal (normal is ns t)
+    VSplit u t          -> VSplit (normal is ns u) (normal is ns t)
+    VApp u v            -> app is (normal is ns u) (normal is ns v)
+    VAppFormula u phi   -> VAppFormula (normal is ns u) (normal is ns phi)
     _                   -> v
 
 instance Normal (Nameless a) where
-  normal _ = id
+  normal _ _ = id
 
 instance Normal Ctxt where
-  normal _ = id
+  normal _ _ = id
 
 instance Normal Formula where
-  normal _ = fromDNF . dnf
+  normal _ _ = fromDNF . dnf
 
 instance Normal a => Normal (Map k a) where
-  normal ns = Map.map (normal ns)
+  normal is ns = Map.map (normal is ns)
 
 instance (Normal a,Normal b) => Normal (a,b) where
-  normal ns (u,v) = (normal ns u,normal ns v)
+  normal is ns (u,v) = (normal is ns u,normal is ns v)
 
 instance (Normal a,Normal b,Normal c) => Normal (a,b,c) where
-  normal ns (u,v,w) = (normal ns u,normal ns v,normal ns w)
+  normal is ns (u,v,w) = (normal is ns u,normal is ns v,normal is ns w)
 
 instance (Normal a,Normal b,Normal c,Normal d) => Normal (a,b,c,d) where
-  normal ns (u,v,w,x) =
-    (normal ns u,normal ns v,normal ns w, normal ns x)
+  normal is ns (u,v,w,x) =
+    (normal is ns u,normal is ns v,normal is ns w, normal is ns x)
 
 instance Normal a => Normal [a] where
-  normal ns = map (normal ns)
+  normal is ns = map (normal is ns)

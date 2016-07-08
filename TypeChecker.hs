@@ -118,7 +118,7 @@ mkVars is ns ((x,a):xas) nu =
 
 -- Test if two values are convertible
 (===) :: Convertible a => a -> a -> Typing Bool
-u === v = conv <$> asks names <*> pure u <*> pure v
+u === v = conv <$> asks supportEnv <*> asks names <*> pure u <*> pure v
 
 -- eval in the typing monad
 evalTyping :: Ter -> Typing Val
@@ -135,8 +135,9 @@ check a t = case (a,t) of
       rho <- asks env
       let e = unlines (reverse (contextOfEnv rho))
       ns <- asks names
+      is <- asks supportEnv
       trace $ "\nHole at " ++ show l ++ ":\n\n" ++
-              e ++ replicate 80 '-' ++ "\n" ++ show (normal ns a)  ++ "\n"
+              e ++ replicate 80 '-' ++ "\n" ++ show (normal is ns a)  ++ "\n"
   (_,Con c es) -> do
     (bs,nu) <- getLblType c a
     checks (bs,nu) es
@@ -190,7 +191,7 @@ check a t = case (a,t) of
       throwError $ "check: lam types don't match"
         ++ "\nlambda type annotation: " ++ show a'
         ++ "\ndomain of Pi: " ++ show a
-        ++ "\nnormal form of type: " ++ show (normal ns a)
+        ++ "\nnormal form of type: " ++ show (normal is ns a)
     let var = mkVarNice ns x a
 
     local (addTypeVal (x,a)) $ do
@@ -211,7 +212,8 @@ check a t = case (a,t) of
   (VPathP p a0 a1,PLam _ e) -> do
     (u0,u1) <- checkPLam p t
     ns <- asks names
-    unless (conv ns a0 u0 && conv ns a1 u1) $
+    is <- asks supportEnv
+    unless (conv is ns a0 u0 && conv is ns a1 u1) $
       throwError $ "path endpoints don't match for " ++ show e ++ ", got " ++
                    show (u0,u1) ++ ", but expected " ++ show (a0,a1)
   (VU,Glue a ts) -> do
@@ -266,7 +268,8 @@ checkFam x = throwError $ "checkFam: " ++ show x
 checkCompSystem :: System Val -> Typing ()
 checkCompSystem vus = do
   ns <- asks names
-  unless (isCompSystem ns vus)
+  is <- asks supportEnv
+  unless (isCompSystem is ns vus)
     (throwError $ "Incompatible system " ++ showSystem vus)
 
 -- Check the values at corresponding faces with a function, assumes

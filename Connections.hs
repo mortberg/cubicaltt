@@ -436,16 +436,16 @@ instance Nominal a => Nominal (System a) where
   swap s ij = mapKeys (`swapFace` ij) (Map.map (`swap` ij) s)
 
 -- carve a using the same shape as the system b
-border :: Nominal a => [Name] -> a -> System b -> System a
-border is v = mapWithKey (const . face is v)
+border :: Nominal a => a -> System b -> System a
+border v = mapWithKey (const . face [] v)
 
 shape :: System a -> System ()
-shape = border [] ()
+shape = border ()
 
 instance (Nominal a, Arbitrary a) => Arbitrary (System a) where
   arbitrary = do
     a <- arbitrary
-    border (support a) a <$> arbitraryShape (support a)
+    border a <$> arbitraryShape (support a)
     where
       arbitraryShape :: [Name] -> Gen (System ())
       arbitraryShape supp = do

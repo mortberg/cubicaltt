@@ -356,11 +356,11 @@ checkBranch (PLabel _ tele is ts,nu) f (PBranch c ns js e) g va = do
       vus  = map snd us
       js'  = map Atom js
       vts  = evalSystem [] (subs (zip is js') (upds us nu)) ts
-      vgts = intersectionWith (app []) (border [] g vts) vts
+      vgts = intersectionWith (app []) (border g vts) vts
   local (addSubs (zip js js') . addBranch (zip ns vus) nu) $ do
     check (app [] f (VPCon c va vus js')) e
     ve  <- evalTyping e -- TODO: combine with next two lines?
-    let veborder = border [] ve vts
+    let veborder = border ve vts
     unlessM (veborder === vgts) $
       throwError $ "Faces in branch for " ++ show c ++ " don't match:"
                    ++ "\ngot\n" ++ showSystem veborder ++ "\nbut expected\n"

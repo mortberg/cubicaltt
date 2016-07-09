@@ -224,10 +224,10 @@ app is u v = case (u,v) of
         is'     = j:is
         (aj,fj) = (a,f) `swap` (i,j)
         tsj     = Map.map (\t -> appFormula is' t j) ts
-        v'       = transFillNeg is' j aj v
+        v'      = transFillNeg is' j aj v
         vi0     = transNeg is' j aj v
     in comp is' j (app is' fj v') (app is' li0 vi0)
-                  (intersectionWith (app is') tsj (border is' v' tsj))
+                  (intersectionWith (app is') tsj (border v' tsj))
   _ | isNeutral u       -> VApp u v
   _                     -> error $ "app \n  " ++ show u ++ "\n  " ++ show v
 

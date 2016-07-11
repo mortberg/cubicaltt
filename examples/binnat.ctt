@@ -1,6 +1,5 @@
 module binnat where
 
-import univalence
 import nat
 
 -- Positive binary numbers like in Coq
@@ -95,7 +94,7 @@ BinNtoN : binN -> nat = split
   binNpos p -> PosToN p
 
 NtoBinNK : (n:nat) -> Path nat (BinNtoN (NtoBinN n)) n = split
-  zero  -> refl nat zero
+  zero  -> <_> zero
   suc n -> PosToNK n
 
 rem (p : pos) : Path binN (NtoBinN (PosToN (sucPos p))) (binNpos (sucPos p)) =
@@ -123,22 +122,13 @@ PathbinNN : Path U binN nat
  = isoPath binN nat BinNtoN NtoBinN NtoBinNK BinNtoNK
 
 -- Doubling
-one : nat   = suc zero
-two : nat   = suc one
-three : nat = suc two
-four : nat  = suc three
-five : nat  = suc four
 
 -- doublesN n m = 2^n * m
 doublesN : nat -> nat -> nat = split
   zero  -> \(m:nat) -> m
   suc n -> \(m:nat) -> doublesN n (doubleN m)
 
-addN (n:nat) : nat -> nat = split
- zero -> n
- suc m -> suc (addN n m)
-
-n1024 : nat = doublesN (addN four four) four
+n1024 : nat = doublesN (add four four) four
 
 doubleBinN : binN -> binN = split
   binN0     -> binN0
@@ -150,18 +140,16 @@ doublesBinN : nat -> binN -> binN = split
 
 -- Doubling structure
 data Double =
-  D (A : U) -- carrier
-    (double : A -> A) -- doubling function computing 2 * x
-    (elt : A) -- element to double
+  D (A : U)            -- carrier
+    (double : A -> A)  -- doubling function computing 2 * x
+    (elt : A)          -- element to double
 
-carrier : Double -> U 
- = split D c _ _ -> c
+carrier : Double -> U = split D c _ _ -> c
 
 double : (D : Double) -> (carrier D -> carrier D)
  = split D _ op _ -> op
 
-elt : (D : Double) -> carrier D
- = split D _ _ e -> e
+elt : (D : Double) -> carrier D = split D _ _ e -> e
 
 DoubleN : Double = D nat doubleN n1024
 
@@ -172,52 +160,51 @@ iter (A : U) : nat -> (A -> A) -> A -> A = split
   zero  -> \(f:A->A) (z:A) -> z
   suc n -> \(f:A->A) (z:A) -> f (iter A n f z)
 
+ten : nat = add five five
+
 -- 2^10 * e = 2^5 * (2^5 * e)
 propDouble (D : Double) : U
- = Path (carrier D) (iter (carrier D) (doubleN five) (double D) (elt D))
+ = Path (carrier D) (iter (carrier D) ten (double D) (elt D))
                               (iter (carrier D) five (double D) (iter (carrier D) five (double D) (elt D)))
 
 -- The property we want to prove that takes long to typecheck:
 -- 2^10 * 1024 = 2^5 * (2^5 * 1024)
 -- propN : propDouble DoubleN
--- propN = refl N (doublesN (addN five five) n1024)
+-- propN = refl N (doublesN ten n1024)
 
 -- With binary numbers it is instant
 propBin : propDouble DoubleBinN
- = refl binN (doublesBinN (addN five five) (elt DoubleBinN))
+ = <_> doublesBinN ten (elt DoubleBinN)
 
 -- Define intermediate structure:
-doubleBinN' (b:binN) : binN
- = NtoBinN (doubleN (BinNtoN b))
+doubleBinN' (b:binN) : binN = NtoBinN (doubleN (BinNtoN b))
 
-DoubleBinN' : Double
- = D binN doubleBinN' (NtoBinN n1024)
+DoubleBinN' : Double = D binN doubleBinN' (NtoBinN n1024)
 
 eqDouble1 : Path Double DoubleN DoubleBinN'
  = elimIsIso nat (\(B : U) (f : nat -> B) (g : B -> nat) -> Path Double DoubleN (D B (\(b : B) -> f (doubleN (g b))) (f n1024)))
-             (refl Double DoubleN) binN NtoBinN BinNtoN BinNtoNK NtoBinNK
+             (<_> DoubleN) binN NtoBinN BinNtoN BinNtoNK NtoBinNK
 
 eqDouble2 : Path Double DoubleBinN' DoubleBinN
  = mapOnPath (binN -> binN) Double F doubleBinN' doubleBinN rem
   where
-   F (d:binN -> binN) : Double
-    = D binN d (NtoBinN n1024)
+   F (d:binN -> binN) : Double = D binN d (NtoBinN n1024)
 
    rem : Path (binN -> binN) doubleBinN' doubleBinN
-    = funExt binN (\(x:binN) -> binN) doubleBinN' doubleBinN rem1
+    = <i> \(x : binN) -> rem1 x @ i
     where
      rem1 : (n : binN) -> Path binN (doubleBinN' n) (doubleBinN n)
       = split
-      binN0     -> refl binN binN0
-      binNpos p ->
-        let p1 : Path binN (NtoBinN (doubleN (PosToN p))) (NtoBinN (PosToN (x0 p)))
-             = mapOnPath nat binN NtoBinN (doubleN (PosToN p)) (PosToN (x0 p)) (refl nat (doubleN (PosToN p)))
-        in compPath binN (NtoBinN (doubleN (PosToN p))) (NtoBinN (PosToN (x0 p))) (binNpos (x0 p)) p1 (lem1 (x0 p))
+      binN0     -> <_> binN0
+      binNpos p -> <i> comp (<_> binN) (NtoBinN (doubleN (PosToN p)))
+                          [ (i=0) -> <_> NtoBinN (doubleN (PosToN p))
+                          , (i=1) -> lem1 (x0 p) ]
 
 eqDouble : Path Double DoubleN DoubleBinN
  = compPath Double DoubleN DoubleBinN' DoubleBinN eqDouble1 eqDouble2
 
--- opaque doubleN
+opaque doubleN
 
--- goal : propDouble DoubleN = substInv Double propDouble DoubleN DoubleBinN eqDouble propBin
+goal : propDouble DoubleN =
+  substInv Double propDouble DoubleN DoubleBinN eqDouble propBin
 

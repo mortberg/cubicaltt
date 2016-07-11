@@ -1,12 +1,14 @@
 module nat where
 
-import hedberg
 import bool
 
 data nat = zero | suc (n : nat)
 
 one : nat = suc zero
 two : nat = suc one
+three : nat = suc two
+four : nat  = suc three
+five : nat  = suc four
 
 pred : nat -> nat = split
   zero -> zero

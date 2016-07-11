@@ -115,15 +115,14 @@ lem1 (p : pos) : Path binN (NtoBinN (PosToN p)) (binNpos p)
        = posInd (\ (p:pos) -> Path binN (NtoBinN (PosToN p)) (binNpos p)) (refl binN (binNpos pos1))
                 (\ (p:pos) (_:Path binN (NtoBinN (PosToN p)) (binNpos p)) -> rem p) p
 
-BinNtoNK : (b:binN) -> Path binN (NtoBinN (BinNtoN b)) b = split --  retract binN N BinNtoN NtoBinN = split
-  binN0     -> refl binN binN0
+BinNtoNK : (b:binN) -> Path binN (NtoBinN (BinNtoN b)) b = split
+  binN0     -> <_> binN0
   binNpos p -> lem1 p
 
 PathbinNN : Path U binN nat
  = isoPath binN nat BinNtoN NtoBinN NtoBinNK BinNtoNK
 
 -- Doubling
-
 one : nat   = suc zero
 two : nat   = suc one
 three : nat = suc two

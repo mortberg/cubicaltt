@@ -200,6 +200,9 @@ propIsContr (A : U) : prop (isContr A) = lemProp (isContr A) rem
         pB (x : A) : prop (T x) =
           propPi A (\ (y : A) -> Path A x y) (propSet A pA x)
 
+isContrProp (A : U) (h : isContr A) : prop A =
+  \(a b : A) -> <i> comp (<_> A) h.1 [ (i = 0) -> h.2 a, (i = 1) -> h.2 b ]
+
 
 -- Alternative proof:
 -- propIsContr (A:U) (z0 z1:isContr A) : Path (isContr A) z0 z1 =

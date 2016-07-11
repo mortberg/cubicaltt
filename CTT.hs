@@ -313,7 +313,7 @@ showEnv b e =
     (Empty,_,_,_)            -> PP.empty
     (Def _ env,vs,fs,os)     -> showEnv b (env,vs,fs,os)
     (Upd x env,u:us,fs,os)   ->
-      par $ showEnv1 (env,us,fs,os) <+> names x <+> showVal u
+      par $ showEnv1 (env,us,fs,os) <+> names x <+> showVal1 u
     (Sub i env,us,phi:fs,os) ->
       par $ showEnv1 (env,us,fs,os) <+> names (show i) <+> text (show phi)
 

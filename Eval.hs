@@ -7,6 +7,7 @@ import Data.Map (Map,(!),mapWithKey,assocs,filterWithKey
                 ,elems,intersectionWith,intersection,keys
                 ,member,notMember,empty)
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 
 import Connections
 import CTT
@@ -150,7 +151,7 @@ eval rho@(_,_,_,Nameless os) v = case v of
   U                   -> VU
   App r s             -> app (eval rho r) (eval rho s)
   Var i
-    | i `elem` os     -> VOpaque i (lookType i rho)
+    | i `Set.member` os -> VOpaque i (lookType i rho)
     | otherwise       -> look i rho
   Pi t@(Lam _ a _)    -> VPi (eval rho a) (eval rho t)
   Sigma t@(Lam _ a _) -> VSigma (eval rho a) (eval rho t)

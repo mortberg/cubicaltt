@@ -222,14 +222,14 @@ check a t = case (a,t) of
 
 -- Check a list of declarations
 checkDecls :: Decls -> Typing ()
-checkDecls (MutualDecls []) = return ()
-checkDecls (MutualDecls d)  = do
+checkDecls (MutualDecls _ []) = return ()
+checkDecls (MutualDecls l d)  = do
   a <- asks env
   let (idents,tele,ters) = (declIdents d,declTele d,declTers d)
   ind <- asks indent
   trace (replicate ind ' ' ++ "Checking: " ++ unwords idents)
   checkTele tele
-  local (addDecls (MutualDecls d)) $ do
+  local (addDecls (MutualDecls l d)) $ do
     rho <- asks env
     checks (tele,rho) ters
 checkDecls (OpaqueDecl _)      = return ()

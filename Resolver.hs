@@ -8,6 +8,7 @@ import Control.Monad
 import Control.Monad.Reader
 import Control.Monad.Except
 import Control.Monad.Identity
+import Data.Maybe
 import Data.List
 import Data.Map (Map,(!))
 import qualified Data.Map as Map
@@ -332,6 +333,22 @@ resolveRTele (i:is) (t:ts) = do
   as <- local (insertVar i) (resolveRTele is ts)
   return ((i,a):as)
 
+-- Best effort to find the location of a declaration. This implementation
+-- returns the location of the first identifier it contains.
+findDeclLoc :: Decl -> Resolver Loc
+findDeclLoc d = getLoc loc
+    where loc = fromMaybe (-1, 0) $ mloc d
+          mloc d = case d of
+            DeclDef (AIdent (l, _)) _ _ _   -> Just l
+            DeclData (AIdent (l, _)) _ _    -> Just l
+            DeclHData (AIdent (l, _)) _ _   -> Just l
+            DeclSplit (AIdent (l, _)) _ _ _ -> Just l
+            DeclUndef (AIdent (l, _)) _ _   -> Just l
+            DeclMutual ds                   -> listToMaybe $ mapMaybe mloc ds
+            DeclOpaque (AIdent (l, _))      -> Just l
+            DeclTransparent (AIdent (l, _)) -> Just l
+            DeclTransparentAll              -> Nothing
+
 -- Resolve a declaration
 resolveDecl :: Decl -> Resolver (CTT.Decls,[(Ident,SymKind)])
 resolveDecl d = case d of
@@ -345,7 +362,8 @@ resolveDecl d = case d of
     -- mutual block
     ds <- sequence $ map (local (insertIdents ns)) bs
     let ads = zipWith (\ (x,y) z -> (x,(y,z))) as ds
-    return (CTT.MutualDecls ads,ns)
+    l <- findDeclLoc d
+    return (CTT.MutualDecls l ads,ns)
   DeclOpaque i  -> do
     resolveVar i
     return (CTT.OpaqueDecl (unAIdent i), [])
@@ -354,9 +372,10 @@ resolveDecl d = case d of
     return (CTT.TransparentDecl (unAIdent i), [])
   DeclTransparentAll -> return (CTT.TransparentAllDecl, [])
   _ -> do let (f,typ,body,ns) = resolveNonMutualDecl d
+          l <- findDeclLoc d
           a <- typ
           d <- body
-          return (CTT.MutualDecls [(f,(a,d))],ns)
+          return (CTT.MutualDecls l [(f,(a,d))],ns)
 
 resolveDecls :: [Decl] -> Resolver ([CTT.Decls],[(Ident,SymKind)])
 resolveDecls []     = return ([],[])

@@ -86,8 +86,7 @@ sethProp (P P' : hProp) : prop (Path hProp P P') =
 
 hsubtypes (X : U) : U = X -> hProp
 
-carrier (X : U) (A : hsubtypes X) : U = Sigma X (\(x : X) -> (A x).1)
-
+carrier (X : U) (A : hsubtypes X) : U = (x : X) * (A x).1
 sethsubtypes (X : U) : set (hsubtypes X) =
   setPi X (\(_ : X) -> hProp) (\(_ : X) -> sethProp)
 

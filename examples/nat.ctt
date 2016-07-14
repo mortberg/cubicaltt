@@ -10,6 +10,28 @@ three : nat = suc two
 four : nat  = suc three
 five : nat  = suc four
 
+n0 : nat = zero
+n1 : nat = suc n0
+n2 : nat = suc n1
+n3 : nat = suc n2
+n4 : nat = suc n3
+n5 : nat = suc n4
+n6 : nat = suc n5
+n7 : nat = suc n6
+n8 : nat = suc n7
+n9 : nat = suc n8
+n10 : nat = suc n9
+n11 : nat = suc n10
+n12 : nat = suc n11
+n13 : nat = suc n12
+n14 : nat = suc n13
+n15 : nat = suc n14
+n16 : nat = suc n15
+n17 : nat = suc n16
+n18 : nat = suc n17
+n19 : nat = suc n18
+n20 : nat = suc n19
+
 pred : nat -> nat = split
   zero -> zero
   suc n -> n

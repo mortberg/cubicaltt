@@ -153,7 +153,9 @@ elt : (D : Double) -> carrier D = split D _ _ e -> e
 
 DoubleN : Double = D nat doubleN n1024
 
-DoubleBinN : Double = D binN doubleBinN (NtoBinN n1024)
+bin1024 : binN = binNpos (x0 (x0 (x0 (x0 (x0 (x0 (x0 (x0 (x0 (x0 pos1))))))))))
+
+DoubleBinN : Double = D binN doubleBinN bin1024
 
 -- iterate
 iter (A : U) : nat -> (A -> A) -> A -> A = split
@@ -162,10 +164,14 @@ iter (A : U) : nat -> (A -> A) -> A -> A = split
 
 ten : nat = add five five
 
--- 2^10 * e = 2^5 * (2^5 * e)
+-- Compute: 2^n * x
+doubles (D : Double) (n : nat) (x : carrier D) : carrier D = 
+  iter (carrier D) n (double D) x
+  
+-- 2^20 * e = 2^5 * (2^15 * e)
 propDouble (D : Double) : U
- = Path (carrier D) (iter (carrier D) ten (double D) (elt D))
-                              (iter (carrier D) five (double D) (iter (carrier D) five (double D) (elt D)))
+ = Path (carrier D) (doubles D n20 (elt D))
+                    (doubles D n5 (doubles D n15 (elt D)))
 
 -- The property we want to prove that takes long to typecheck:
 -- 2^10 * 1024 = 2^5 * (2^5 * 1024)
@@ -173,8 +179,7 @@ propDouble (D : Double) : U
 -- propN = refl N (doublesN ten n1024)
 
 -- With binary numbers it is instant
-propBin : propDouble DoubleBinN
- = <_> doublesBinN ten (elt DoubleBinN)
+propBin : propDouble DoubleBinN = <_> doublesBinN n20 (elt DoubleBinN)
 
 -- Define intermediate structure:
 doubleBinN' (b:binN) : binN = NtoBinN (doubleN (BinNtoN b))
@@ -200,11 +205,14 @@ eqDouble2 : Path Double DoubleBinN' DoubleBinN
                           [ (i=0) -> <_> NtoBinN (doubleN (PosToN p))
                           , (i=1) -> lem1 (x0 p) ]
 
-eqDouble : Path Double DoubleN DoubleBinN
- = compPath Double DoubleN DoubleBinN' DoubleBinN eqDouble1 eqDouble2
+eqDouble : Path Double DoubleN DoubleBinN =
+  compPath Double DoubleN DoubleBinN' DoubleBinN eqDouble1 eqDouble2
 
 opaque doubleN
 
-goal : propDouble DoubleN =
-  substInv Double propDouble DoubleN DoubleBinN eqDouble propBin
+propDoubleImpl : propDouble DoubleBinN -> propDouble DoubleN =
+  substInv Double propDouble DoubleN DoubleBinN eqDouble
 
+goal : propDouble DoubleN = propDoubleImpl propBin
+
+transparent_all

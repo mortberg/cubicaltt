@@ -766,13 +766,17 @@ lem (C:sequence) (l:nat) (Cl:wpconstSequence (suc l) C)
       inj k p -> edI n y k p
       gl k p @ i -> edG n y k p @ i
 
-    encodeDecode (n:nat) (y:C.1 n) : (c:code (inj n y)) -> Path (code (inj n y)) (transport (<i> code (decodeI n y c @ i)) c0) c = undefined
+    encodeDecode (n:nat) (y:C.1 n) (c:code (inj n y)) : Path (code (inj n y)) (transport (<i> code (decodeI n y c @ i)) c0) c
+      = <i> comp (<k> code (decodeI n y c @ k\/i))
+            (encodeDecode' n y c @ i)
+            [(i=0)-><k> fill (<i> code (decodeI n y c @ i)) c0 [] @ k
+            ,(i=1)-><_> c
+            ]
 
     seqCoEquiv (n:nat) (y:C.1 n) : Path U (Path (seqCo C) (inj zero x) (inj n y)) (code (inj n y))
-      = undefined
-      -- = isoPath (Path (seqCo C) (inj zero x) (inj n y)) (code (inj n y))
-      --         (encode (inj n y)) (decode (inj n y))
-      --         (encodeDecode n y) (decodeEncode (inj n y))
+      = isoPath (Path (seqCo C) (inj zero x) (inj n y)) (code (inj n y))
+              (encode (inj n y)) (decode (inj n y))
+              (encodeDecode n y) (decodeEncode (inj n y))
 
     holeI (n:nat) (y:C.1 n) : lemT C l (inj zero x) (inj n y)
       = (code_i n y, seqCoEquiv n y, \(m:nat) -> Cl (add n m) (liftPoint C x (add n m)) (liftPoint' C n y m))

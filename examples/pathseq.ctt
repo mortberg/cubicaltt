@@ -1,0 +1,146 @@
+-- Similar to pathseq from HoTT-Agda
+-- Support for dependent paths
+
+module pathseq where
+
+import prelude
+
+idU(X:U):U=X
+
+fillCompPath (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : PathP (<i> Path A a (q@i)) p (compPath A a b c p q) =
+  <i j> fill (<k> A) (p @ j) [ (j=1) -> q, (j=0) -> <j> a ] @ i
+
+compPathP (X:U) (f:X->U)
+          (A B C:X) (p0:Path X A B) (q0:Path X B C)
+          (a:f A) (b:f B) (c:f C) (p : PathP (<i>f(p0@i)) a b) (q : PathP (<i>f(q0@i)) b c)
+  : PathP (<i>f(compPath X A B C p0 q0@i)) a c
+  = <i> comp (<k> f (fillCompPath X A B C p0 q0@k@i)) (p @ i) [ (i=1) -> q, (i=0) -> <j> a ]
+
+transitivity (A:U) (a b c d:A) (p0:Path A a b) (p1:Path A b c) (p2:Path A c d)
+  : Path (Path A a d)
+         (compPath A a b d p0 (compPath A b c d p1 p2))
+         (compPath A a c d (compPath A a b c p0 p1) p2)
+  = undefined
+
+transitivityP (X:U) (f:X->U)
+              (A B C D:X) (p0:Path X A B) (p1:Path X B C) (p2:Path X C D)
+              (a:f A) (b:f B) (c:f C) (d:f D) (q0:PathP (<i>f(p0@i)) a b) (q1:PathP (<i>f(p1@i)) b c) (q2:PathP (<i>f(p2@i)) c d)
+  : PathP (<i> PathP (<j>f(transitivity X A B C D p0 p1 p2@i@j)) a d)
+          (compPathP X f A B D p0 (compPath X B C D p1 p2) a b d q0 (compPathP X f B C D p1 p2 b c d q1 q2))
+          (compPathP X f A C D (compPath X A B C p0 p1) p2 a c d (compPathP X f A B C p0 p1 a b c q0 q1) q2)
+  = undefined
+
+data pathseq (A:U) (x y:A) =
+   ppath (p:Path A x y)
+ | pcomp (z:A) (p1:pathseq A x z) (p2:pathseq A z y)
+
+dpathseq (X:U) (f:X->U) (A B:X) (x:f A) (y:f B) : pathseq X A B -> U = split
+  ppath p -> PathP (<i>f(p@i)) x y
+  pcomp C p1 p2 -> (z:f C) * (_ : dpathseq X f A C x z p1) * dpathseq X f C B z y p2
+
+do_comp (A:U) (a b:A) : pathseq A a b -> Path A a b = split
+  ppath p -> p
+  pcomp z p1 p2 -> compPath A a z b (do_comp A a z p1) (do_comp A z b p2)
+
+ddo_comp (X:U) (f:X->U) (A B:X) (x:f A) (y:f B) : (p:pathseq X A B) -> dpathseq X f A B x y p -> PathP (<i>f(do_comp X A B p@i)) x y = split
+  ppath p0 -> \(p : PathP (<i>f(p0@i)) x y) -> p
+  pcomp C p1 p2 -> \(p:dpathseq X f A B x y (pcomp C p1 p2)) ->
+                   compPathP X f A C B (do_comp X A C p1) (do_comp X C B p2)
+                                 x p.1 y (ddo_comp X f A C x p.1 p1 p.2.1) (ddo_comp X f C B p.1 y p2 p.2.2)
+
+do_comp_norm (A:U) (a b c:A) (e:Path A b c) : pathseq A a b -> Path A a c = split
+  ppath p -> compPath A a b c p e
+  pcomp z p1 p2 -> do_comp_norm A a z c (do_comp_norm A z b c e p2) p1
+
+ddo_comp_norm (X:U) (f:X->U) (A B C:X) (e0:Path X B C) (x:f A) (y:f B) (z:f C) (e:PathP (<i>f(e0@i)) y z)
+  : (p : pathseq X A B) -> dpathseq X f A B x y p -> PathP (<i>f(do_comp_norm X A B C e0 p@i)) x z = split
+  ppath p0 -> \(p : PathP (<i>f(p0@i)) x y) -> compPathP X f A B C p0 e0 x y z p e
+  pcomp D p1 p2 -> \(p:dpathseq X f A B x y (pcomp D p1 p2)) ->
+                   ddo_comp_norm X f
+                    A D C (do_comp_norm X D B C e0 p2)
+                    x p.1 z
+                    (ddo_comp_norm X f D B C e0 p.1 y z e p2 p.2.2) p1 p.2.1
+
+do_comp_path (A:U) (a b c:A) (e:Path A b c)
+  : (p:pathseq A a b) -> Path (Path A a c) (compPath A a b c (do_comp A a b p) e) (do_comp_norm A a b c e p) = split
+  ppath p -> <_> compPath A a b c p e
+  pcomp z p1 p2 -> compPath (Path A a c)
+                            (compPath A a b c (compPath A a z b (do_comp A a z p1) (do_comp A z b p2)) e)
+                            (compPath A a z c (do_comp A a z p1) (compPath A z b c (do_comp A z b p2) e))
+                            (do_comp_norm A a z c (do_comp_norm A z b c e p2) p1)
+                            (<i> transitivity A a z b c (do_comp A a z p1) (do_comp A z b p2) e @ -i)
+                  (compPath (Path A a c)
+                            (compPath A a z c (do_comp A a z p1) (compPath A z b c (do_comp A z b p2) e))
+                            (compPath A a z c (do_comp A a z p1) (do_comp_norm A z b c e p2))
+                            (do_comp_norm A a z c (do_comp_norm A z b c e p2) p1)
+                            (<i> compPath A a z c (do_comp A a z p1) (do_comp_path A z b c e p2 @ i))
+                            (do_comp_path A a z c (do_comp_norm A z b c e p2) p1))
+
+ddo_comp_path (X:U) (f:X->U) (A B C:X) (e0:Path X B C) (x:f A) (y:f B) (z:f C) (e:PathP (<i>f(e0@i)) y z)
+  : (p0 : pathseq X A B) -> (p:dpathseq X f A B x y p0)
+  -> PathP (<r> PathP (<i> f (do_comp_path X A B C e0 p0 @ r @ i)) x z)
+           (compPathP X f A B C (do_comp X A B p0) e0 x y z (ddo_comp X f A B x y p0 p) e)
+           (ddo_comp_norm X f A B C e0 x y z e p0 p) = split
+  ppath p0 -> \(p : PathP (<i>f(p0@i)) x y) -> <_> compPathP X f A B C p0 e0 x y z p e
+  pcomp D p1 p2 -> \(p:dpathseq X f A B x y (pcomp D p1 p2)) ->
+                   compPathP (Path X A C) (\(p:Path X A C) -> PathP (<i>f(p@i)) x z)
+                             (compPath X A B C (compPath X A D B (do_comp X A D p1) (do_comp X D B p2)) e0)
+                             (compPath X A D C (do_comp X A D p1) (compPath X D B C (do_comp X D B p2) e0))
+                             (do_comp_norm X A D C (do_comp_norm X D B C e0 p2) p1)
+                             (<i> transitivity X A D B C (do_comp X A D p1) (do_comp X D B p2) e0 @ -i)
+                             (compPath (Path X A C)
+                               (compPath X A D C (do_comp X A D p1) (compPath X D B C (do_comp X D B p2) e0))
+                               (compPath X A D C (do_comp X A D p1) (do_comp_norm X D B C e0 p2))
+                               (do_comp_norm X A D C (do_comp_norm X D B C e0 p2) p1)
+                               (<i> compPath X A D C (do_comp X A D p1) (do_comp_path X D B C e0 p2 @ i))
+                               (do_comp_path X A D C (do_comp_norm X D B C e0 p2) p1))
+                             (compPathP X f A B C (compPath X A D B (do_comp X A D p1) (do_comp X D B p2)) e0
+                              x y z (compPathP X f A D B (do_comp X A D p1) (do_comp X D B p2)
+                                      x p.1 y (ddo_comp X f A D x p.1 p1 p.2.1) (ddo_comp X f D B p.1 y p2 p.2.2)) e)
+                             (compPathP X f A D C (do_comp X A D p1) (compPath X D B C (do_comp X D B p2) e0)
+                              x p.1 z (ddo_comp X f A D x p.1 p1 p.2.1) (compPathP X f D B C (do_comp X D B p2) e0 p.1 y z (ddo_comp X f D B p.1 y p2 p.2.2) e))
+                             (ddo_comp_norm X f A D C (do_comp_norm X D B C e0 p2)
+                              x p.1 z (ddo_comp_norm X f D B C e0 p.1 y z e p2 p.2.2)
+                              p1 p.2.1)
+                             (<i> transitivityP X f A D B C (do_comp X A D p1) (do_comp X D B p2) e0
+                                   x p.1 y z (ddo_comp X f A D x p.1 p1 p.2.1) (ddo_comp X f D B p.1 y p2 p.2.2) e @ -i)
+                  (compPathP (Path X A C) (\(p:Path X A C) -> PathP (<i>f(p@i)) x z)
+                             (compPath X A D C (do_comp X A D p1) (compPath X D B C (do_comp X D B p2) e0))
+                             (compPath X A D C (do_comp X A D p1) (do_comp_norm X D B C e0 p2))
+                             (do_comp_norm X A D C (do_comp_norm X D B C e0 p2) p1)
+                             (<i> compPath X A D C (do_comp X A D p1) (do_comp_path X D B C e0 p2 @ i))
+                             (do_comp_path X A D C (do_comp_norm X D B C e0 p2) p1)
+                             (compPathP X f A D C (do_comp X A D p1) (compPath X D B C (do_comp X D B p2) e0)
+                              x p.1 z (ddo_comp X f A D x p.1 p1 p.2.1) (compPathP X f D B C (do_comp X D B p2) e0 p.1 y z (ddo_comp X f D B p.1 y p2 p.2.2) e))
+                             (compPathP X f A D C (do_comp X A D p1) (do_comp_norm X D B C e0 p2)
+                              x p.1 z (ddo_comp X f A D x p.1 p1 p.2.1) (ddo_comp_norm X f D B C e0 p.1 y z e p2 p.2.2))
+                             (ddo_comp_norm X f A D C (do_comp_norm X D B C e0 p2)
+                              x p.1 z (ddo_comp_norm X f D B C e0 p.1 y z e p2 p.2.2)
+                              p1 p.2.1)
+                             (<i> compPathP X f A D C (do_comp X A D p1) (do_comp_path X D B C e0 p2 @ i)
+                              x p.1 z (ddo_comp X f A D x p.1 p1 p.2.1) (ddo_comp_path X f D B C e0 p.1 y z e p2 p.2.2 @ i))
+                             (ddo_comp_path X f A D C (do_comp_norm X D B C e0 p2)
+                              x p.1 z (ddo_comp_norm X f D B C e0 p.1 y z e p2 p.2.2)
+                              p1 p.2.1))
+
+-- Usually refl
+
+equiv_pathseq (A:U) (a b:A) (p q:pathseq A a b) : U
+  = Path (Path A a b) (do_comp_norm A a b b (<_> b) p) (do_comp_norm A a b b (<_> b) q)
+
+equiv_dpathseq (X:U) (f:X->U) (A B:X) (a:f A) (b:f B) (p0 p1:pathseq X A B)
+               (e:equiv_pathseq X A B p0 p1)
+               (q0:dpathseq X f A B a b p0) (q1:dpathseq X f A B a b p1) : U
+  = PathP (<i> PathP (<j> f(e@i@j)) a b) (ddo_comp_norm X f A B B (<_> B) a b b (<_> b) p0 q0) (ddo_comp_norm X f A B B (<_> B) a b b (<_> b) p1 q1)
+
+eq_pathseq (A:U) (a b:A) (p q:pathseq A a b) (e:equiv_pathseq A a b p q)
+  : Path (Path A a b) (do_comp A a b p) (do_comp A a b q)
+  = undefined
+
+eq_dpathseq (X:U) (f:X->U) (A B:X) (a:f A) (b:f B) (p0 p1:pathseq X A B)
+            (e:equiv_pathseq X A B p0 p1)
+            (q0:dpathseq X f A B a b p0) (q1:dpathseq X f A B a b p1)
+  : PathP (<i> PathP (<j> f (eq_pathseq X A B p0 p1 e@i@j)) a b)
+          (ddo_comp X f A B a b p0 q0)
+          (ddo_comp X f A B a b p1 q1)
+  = undefined

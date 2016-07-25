@@ -42,6 +42,52 @@
        (modify-syntax-entry ?\n ">" st)
    st))
 
+
+(defgroup ctt nil "Options for ctt-mode for cubical type theory" :group 'languages)
+
+(defcustom ctt-command "cubical"
+  "The command to be run for cubical."
+  :group 'ctt
+  :type 'string
+  :options '("cubical" "cabal exec cubical"))
+
+(defvar *ctt-cubical-process* nil
+  "The subprocess buffer for cubical.")
+
+(defvar *ctt-loaded-buffer* nil
+  "The currently-loaded buffer for cubical.
+
+If no buffer is loaded, then this variable is nil.")
+
+
+(defun ctt-ensure-process ()
+  "Ensure that a process is running for cubical and return the process buffer."
+  (if (and *ctt-cubical-process* (get-buffer-process *ctt-cubical-process*))
+      *ctt-cubical-process*
+    (let ((process (make-comint "cubical" ctt-command)))
+      (setq *ctt-cubical-process* process)
+      process)))
+
+
+(defun ctt-load ()
+  "Start cubical if it is not running, and get the current buffer loaded."
+  (interactive)
+  (let ((file (buffer-file-name)))
+    (unless file
+      (error "The current buffer is not associated with a file"))
+    (let ((cubical-proc (ctt-ensure-process))
+          (dir (file-name-directory file))
+          (f (file-name-nondirectory file)))
+      (save-buffer)
+      ;; Get in the right working directory. No space-escaping is
+      ;; necessary for cubical.
+      (comint-send-string *ctt-cubical-process* (concat ":cd " dir "\n"))
+      ;; Load the file
+      (comint-send-string *ctt-cubical-process* (concat ":l " f "\n"))
+      ;; Show the buffer
+      (pop-to-buffer *ctt-cubical-process* '(display-buffer-use-some-window (inhibit-same-window . t))))))
+
+
 ;; define the mode
 (define-derived-mode ctt-mode fundamental-mode
   "ctt mode"
@@ -55,11 +101,11 @@
 
   ;; modify the keymap
   (define-key ctt-mode-map [remap comment-dwim] 'ctt-comment-dwim)
+  (define-key ctt-mode-map (kbd "C-c C-l") 'ctt-load)
 
   ;; clear memory
   (setq ctt-keywords-regexp nil)
   (setq ctt-operators-regexp nil)
-  (setq ctt-special-regexp nil)
-)
+  (setq ctt-special-regexp nil))
 
 (provide 'ctt-mode)

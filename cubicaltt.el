@@ -1,7 +1,7 @@
 ;;; cubicaltt.el --- Mode for cubical type theory -*- lexical-binding: t -*-
 ;; URL: https://github.com/mortberg/cubicaltt
 ;; Package-version: 1.0
-;; Package-Requires: ((emacs "24.1"))
+;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
 ;; Keywords: languages
 
 ;; This file is not part of GNU Emacs.
@@ -35,6 +35,7 @@
 ;;; Code:
 
 (require 'comint)
+(require 'cl-lib)
 
 ;;;; Customization options
 
@@ -134,6 +135,49 @@ If no buffer is loaded, then this variable is nil.")
       ;; Show the buffer
       (pop-to-buffer cubical-proc '(display-buffer-use-some-window (inhibit-same-window . t))))))
 
+;;;; Completion support
+
+(defvar ctt--completion-regexp
+  "^\\(?1:[[:word:]']+\\) [:(]\\|^data \\(?1:[[:word:]']+\\)\\|=\\s-*\\(?1:[[:word:]']\\)\\||\\s-*\\(?1:[[:word:]']\\)"
+  "Regexp for finding names to complete.
+
+This regexp matches the following kinds of strings:
+
+<NAME> :
+<NAME> (
+data <NAME>
+= <NAME>
+| <NAME>
+
+It is overly liberal, but it is better to have too many
+suggestions for completion rather than too few.")
+
+(defun ctt-defined-names ()
+  "Find all names defined in this buffer."
+  (save-excursion
+    (let (names)
+      (goto-char (point-min))
+      (while (re-search-forward ctt--completion-regexp nil t)
+        ;; Do not save if inside comment
+        (unless (nth 4 (syntax-ppss))
+          (push (match-string-no-properties 1) names)))
+      names)))
+
+(defun ctt-completion-at-point ()
+  "Attempt to perform completion for cubical's keywords and the definitions in this file."
+  (when (looking-back "\\w+" nil t)
+    (let* ((match (match-string-no-properties 0))
+           (start-pos (match-beginning 0))
+           (end-pos (match-end 0))
+           (candidates (cl-remove-if-not
+                        (apply-partially #'string-prefix-p match)
+                        (append ctt-keywords
+                                ctt-special
+                                (ctt-defined-names)))))
+      (if (null candidates)
+          nil
+        (list start-pos end-pos candidates)))))
+
 ;;;; The mode itself
 
 ;;;###autoload
@@ -143,15 +187,19 @@ If no buffer is loaded, then this variable is nil.")
 
   :syntax-table ctt-syntax-table
 
-  ;; code for syntax highlighting
+  ;; Code for syntax highlighting
   (setq font-lock-defaults '(ctt-font-lock-keywords))
   (setq mode-name "ctt")
 
-  ;; modify the keymap
+  ;; Modify the keymap
   (define-key ctt-mode-map [remap comment-dwim] 'ctt-comment-dwim)
   (define-key ctt-mode-map (kbd "C-c C-l") 'ctt-load)
 
-  ;; clear memory
+  ;; Install the completion handler
+  (set (make-local-variable 'completion-at-point-functions)
+       '(ctt-completion-at-point))
+
+  ;; Clear memory
   (setq ctt-keywords-regexp nil)
   (setq ctt-operators-regexp nil)
   (setq ctt-special-regexp nil))

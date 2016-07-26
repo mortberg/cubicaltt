@@ -39,12 +39,16 @@
 
 ;;;; Customization options
 
-(defgroup ctt nil "Options for ctt-mode for cubical type theory" :group 'languages)
+(defgroup ctt nil "Options for ctt-mode for cubical type theory"
+  :group 'languages
+  :prefix 'ctt-
+  :tag "Cubical type theory")
 
 (defcustom ctt-command "cubical"
   "The command to be run for cubical."
   :group 'ctt
   :type 'string
+  :tag "Command for cubical"
   :options '("cubical" "cabal exec cubical"))
 
 ;;;; Syntax

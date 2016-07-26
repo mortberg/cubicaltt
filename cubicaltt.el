@@ -199,6 +199,12 @@ suggestions for completion rather than too few.")
   (set (make-local-variable 'completion-at-point-functions)
        '(ctt-completion-at-point))
 
+  ;; Setup imenu, to allow tools such as imenu and Helm to jump
+  ;; directly to names in the current buffer.
+  (set (make-local-variable 'imenu-generic-expression)
+       '(("Definitions" "^\\(?1:[[:word:]']+\\) *[:(]" 1)
+         ("Datatypes" "^\\s-*data\\s-+\\(?1:[[:word:]']+\\)" 1)))
+
   ;; Clear memory
   (setq ctt-keywords-regexp nil)
   (setq ctt-operators-regexp nil)

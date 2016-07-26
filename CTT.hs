@@ -450,6 +450,9 @@ showVal v = case v of
   VUnGlueElemU v b es -> text "unglue U" <+> showVals [v,b]
                          <+> text (showSystem es)
   VCompU a ts       -> text "comp (<_> U)" <+> showVal1 a <+> text (showSystem ts)
+  VId a u v           -> text "Id" <+> showVals [a,u,v]
+  VIdPair b ts        -> text "IdC" <+> showVal1 b <+> text (showSystem ts)
+  VIdJ a t c d x p    -> text "IdJ" <+> showVals [a,t,c,d,x,p]
 
 showPLam :: Val -> Doc
 showPLam e = case e of

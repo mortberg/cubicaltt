@@ -1,6 +1,6 @@
-module eq where
+module idtypes where
 
-import prelude
+import univalence
 
 refId (A : U) (a : A) : Id A a a =
   idC (<i> a) [  -> a ]
@@ -33,35 +33,51 @@ idToPath (A : U) (a b : A) (p : Id A a b) : Path A a b =
   idJ A a (\ (b : A) (p : Id A a b) -> Path A a b)
     (<i> a) b p
 
-idToId (A : U) (a b : A) (p : Path A a b) : Id A a b =
+pathToId (A : U) (a b : A) (p : Path A a b) : Id A a b =
 --  idC p []
   J A a (\ (b : A) (p : Path A a b) -> Id A a b)
     (refId A a) b p
 
-idToIdRef (A : U) (a : A) : Path (Id A a a) (refId A a) (idToId A a a (<_> a)) =
+pathToIdRef (A : U) (a : A) : Path (Id A a a) (refId A a) (pathToId A a a (<_> a)) =
   JEq A a (\ (b : A) (p : Path A a b) -> Id A a b) (refId A a)
 
 idToPathRef (A : U) (a : A) : Path (Path A a a) (<_> a) (idToPath A a a (refId A a)) =
   <i j> a
-  
 
-idToIdToPath (A : U) (a b : A) (p : Path A a b) :
-  Path (Path A a b) p (idToPath A a b (idToId A a b p)) =
+pathToIdToPath (A : U) (a b : A) (p : Path A a b) :
+  Path (Path A a b) p (idToPath A a b (pathToId A a b p)) =
   J A a (\ (b : A) (p : Path A a b) ->
-    Path (Path A a b) p (idToPath A a b (idToId A a b p)))
-    (<j> idToPath A a a (idToIdRef A a @ j)) b p
+    Path (Path A a b) p (idToPath A a b (pathToId A a b p)))
+    (<j> idToPath A a a (pathToIdRef A a @ j)) b p
 
 lem (A : U) (a : A) :
-  Path (Id A a a) (refId A a) (idToId A a a (idToPath A a a (refId A a))) =
+  Path (Id A a a) (refId A a) (pathToId A a a (idToPath A a a (refId A a))) =
     compPath (Id A a a)
-      (refId A a) (idToId A a a (<_> a)) (idToId A a a (idToPath A a a (refId A a)))
-      (idToIdRef A a) (<k> idToId A a a (idToPathRef A a @ k))
+      (refId A a) (pathToId A a a (<_> a)) (pathToId A a a (idToPath A a a (refId A a)))
+      (pathToIdRef A a) (<k> pathToId A a a (idToPathRef A a @ k))
 
 idToPathToId (A : U) (a b : A) (p : Id A a b) :
-  Path (Id A a b) p (idToId A a b (idToPath A a b p)) =
+  Path (Id A a b) p (pathToId A a b (idToPath A a b p)) =
   idJ A a (\ (b : A) (p : Id A a b) ->
-    Path (Id A a b) p (idToId A a b (idToPath A a b p)))
+    Path (Id A a b) p (pathToId A a b (idToPath A a b p)))
     (lem A a) b p
+
+PathIdPath (A B : U) : Path U (Id U A B) (Path U A B) =
+  equivPath (Id U A B) (Path U A B) (idToPath U A B) rem
+  where rem : isEquiv (Id U A B) (Path U A B) (idToPath U A B) =
+          gradLemma (Id U A B) (Path U A B) (idToPath U A B) (pathToId U A B)
+            (\(p : Path U A B) -> <i> pathToIdToPath U A B p @ - i)
+            (\(p : Id U A B) -> <i> idToPathToId U A B p @ - i)
+
+-- One version of univalence for Id
+IdUnivalence1 (A B : U) : Path U (Id U A B) (equiv A B) = 
+  compPath U (Id U A B) (Path U A B) (equiv A B) (PathIdPath A B) (corrUniv A B)
+
+-- TODO: prove the following:
+
+-- equivIdEquiv (A B : U) : equiv (Id U A B) (equiv A B) = undefined
+
+-- IdUnivalence2 (A B : U) : Id U (Id U A B) (equiv A B) = undefined
 
 
 --------------------------------------------------------------------------------

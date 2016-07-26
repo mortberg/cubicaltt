@@ -69,16 +69,17 @@ PathIdPath (A B : U) : Path U (Id U A B) (Path U A B) =
             (\(p : Path U A B) -> <i> pathToIdToPath U A B p @ - i)
             (\(p : Id U A B) -> <i> idToPathToId U A B p @ - i)
 
--- One version of univalence for Id
+-- A few different versions of univalence for Id:
 IdUnivalence1 (A B : U) : Path U (Id U A B) (equiv A B) = 
   compPath U (Id U A B) (Path U A B) (equiv A B) (PathIdPath A B) (corrUniv A B)
 
--- TODO: prove the following:
+IdUnivalence2 (A B : U) : equiv (Id U A B) (equiv A B) =
+  transEquiv' (equiv A B) (Id U A B) (IdUnivalence1 A B)
 
--- equivIdEquiv (A B : U) : equiv (Id U A B) (equiv A B) = undefined
+IdUnivalence3 (A B : U) : Id U (Id U A B) (equiv A B) =
+  pathToId U (Id U A B) (equiv A B) (IdUnivalence1 A B)
 
--- IdUnivalence2 (A B : U) : Id U (Id U A B) (equiv A B) = undefined
-
+-- TODO: redefine equiv using Id?
 
 --------------------------------------------------------------------------------
 -- Some tests

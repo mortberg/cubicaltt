@@ -1,47 +1,42 @@
-;; define several class of keywords
-(setq ctt-keywords '("hdata" "data" "import" "mutual" "let" "in" "split"
-                     "with" "module" "where" "U" "opaque" "visible") )
-(setq ctt-special '("undefined" "primitive"))
+;;; cubicaltt.el --- Mode for cubical type theory -*- lexical-binding: t -*-
+;; URL: https://github.com/mortberg/cubicaltt
+;; Package-version: 1.0
+;; Package-Requires: ((emacs "24.1"))
+;; Keywords: languages
 
-;; create regex strings
-(setq ctt-keywords-regexp (regexp-opt ctt-keywords 'words))
-(setq ctt-operators-regexp
-      (regexp-opt '(":" "->" "=" "|" "\\" "*" "_" "<" ">" "\\/" "/\\" "-" "@") t))
-(setq ctt-special-regexp (regexp-opt ctt-special 'words))
-(setq ctt-def-regexp "^[[:word:]']+")
+;; This file is not part of GNU Emacs.
 
-;; clear memory
-(setq ctt-keywords nil)
-(setq ctt-special nil)
+;; Copyright (c) 2015 Cyril Cohen, Thierry Coquand, Simon Huber, Anders Mörtberg
 
-;; create the list for font-lock.
-;; each class of keyword is given a particular face
-(setq ctt-font-lock-keywords
-  `(
-    (,ctt-keywords-regexp . font-lock-type-face)
-    (,ctt-operators-regexp . font-lock-variable-name-face)
-    (,ctt-special-regexp . font-lock-warning-face)
-    (,ctt-def-regexp . font-lock-function-name-face)
-))
+;; Permission is hereby granted, free of charge, to any person obtaining
+;; a copy of this software and associated documentation files (the
+;; "Software"), to deal in the Software without restriction, including
+;; without limitation the rights to use, copy, modify, merge, publish,
+;; distribute, sublicense, and/or sell copies of the Software, and to
+;; permit persons to whom the Software is furnished to do so, subject to
+;; the following conditions:
 
-;; command to comment/uncomment text
-(defun ctt-comment-dwim (arg)
-  "Comment or uncomment current line or region in a smart way. For detail, see `comment-dwim'."
-  (interactive "*P")
-  (require 'newcomment)
-  (let ((comment-start "--") (comment-end ""))
-    (comment-dwim arg)))
+;; The above copyright notice and this permission notice shall be included
+;; in all copies or substantial portions of the Software.
+
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+;; EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+;; MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+;; IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+;; CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+;; TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+;; SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+;;; Commentary:
+;; This package provides a major mode for editing proofs or programs
+;; in cubical, an implementation of cubical type theory.
 
 
-;; syntax table for comments, same as for haskell-mode
-(defvar ctt-syntax-table
-  (let ((st (make-syntax-table)))
-       (modify-syntax-entry ?\{  "(}1nb" st)
-       (modify-syntax-entry ?\}  "){4nb" st)
-       (modify-syntax-entry ?-  "_ 123" st)
-       (modify-syntax-entry ?\n ">" st)
-   st))
+;;; Code:
 
+(require 'comint)
+
+;;;; Customization options
 
 (defgroup ctt nil "Options for ctt-mode for cubical type theory" :group 'languages)
 
@@ -51,6 +46,60 @@
   :type 'string
   :options '("cubical" "cabal exec cubical"))
 
+;;;; Syntax
+
+(defvar ctt-keywords
+  '("hdata" "data" "import" "mutual" "let" "in" "split"
+    "with" "module" "where" "U" "opaque" "visible")
+  "Keywords for cubical.")
+
+(defvar ctt-special
+  '("undefined" "primitive")
+  "Special operators for cubical.")
+
+(defvar ctt-keywords-regexp
+  (regexp-opt ctt-keywords 'words)
+  "Regexp that recognizes keywords for cubical.")
+
+(defvar ctt-operators-regexp
+  (regexp-opt '(":" "->" "=" "|" "\\" "*" "_" "<" ">" "\\/" "/\\" "-" "@") t)
+  "Regexp that recognizes operators for cubical.")
+
+(defvar ctt-special-regexp
+  (regexp-opt ctt-special 'words)
+  "Regexp that recognizes special operators for cubical.")
+
+(defvar ctt-def-regexp "^[[:word:]']+"
+  "Regexp that recognizes the beginning of a cubical definition.")
+
+(defvar ctt-font-lock-keywords
+  `((,ctt-keywords-regexp . font-lock-type-face)
+    (,ctt-operators-regexp . font-lock-variable-name-face)
+    (,ctt-special-regexp . font-lock-warning-face)
+    (,ctt-def-regexp . font-lock-function-name-face))
+  "Font-lock information, assigning each class of keyword a face.")
+
+(defun ctt-comment-dwim (arg)
+  "Comment or uncomment current line or region in a smart way, or kill with ARG.
+
+For details, see `comment-dwim'."
+  (interactive "*P")
+  (require 'newcomment)
+  (let ((comment-start "--") (comment-end ""))
+    (comment-dwim arg)))
+
+(defvar ctt-syntax-table
+  (let ((st (make-syntax-table)))
+    (modify-syntax-entry ?\{  "(}1nb" st)
+    (modify-syntax-entry ?\}  "){4nb" st)
+    (modify-syntax-entry ?-  "_ 123" st)
+    (modify-syntax-entry ?\n ">" st)
+    st)
+  "The syntax table for cubical, with Haskell-style comments.")
+
+
+;;;; The interactive toplevel
+
 (defvar *ctt-cubical-process* nil
   "The subprocess buffer for cubical.")
 
@@ -59,7 +108,6 @@
 
 If no buffer is loaded, then this variable is nil.")
 
-
 (defun ctt-ensure-process ()
   "Ensure that a process is running for cubical and return the process buffer."
   (if (and *ctt-cubical-process* (get-buffer-process *ctt-cubical-process*))
@@ -67,7 +115,6 @@ If no buffer is loaded, then this variable is nil.")
     (let ((process (make-comint "cubical" ctt-command)))
       (setq *ctt-cubical-process* process)
       process)))
-
 
 (defun ctt-load ()
   "Start cubical if it is not running, and get the current buffer loaded."
@@ -81,16 +128,17 @@ If no buffer is loaded, then this variable is nil.")
       (save-buffer)
       ;; Get in the right working directory. No space-escaping is
       ;; necessary for cubical.
-      (comint-send-string *ctt-cubical-process* (concat ":cd " dir "\n"))
+      (comint-send-string cubical-proc (concat ":cd " dir "\n"))
       ;; Load the file
-      (comint-send-string *ctt-cubical-process* (concat ":l " f "\n"))
+      (comint-send-string cubical-proc (concat ":l " f "\n"))
       ;; Show the buffer
-      (pop-to-buffer *ctt-cubical-process* '(display-buffer-use-some-window (inhibit-same-window . t))))))
+      (pop-to-buffer cubical-proc '(display-buffer-use-some-window (inhibit-same-window . t))))))
 
+;;;; The mode itself
 
-;; define the mode
-(define-derived-mode ctt-mode fundamental-mode
-  "ctt mode"
+;;;###autoload
+(define-derived-mode ctt-mode prog-mode
+                     "ctt mode"
   "Major mode for editing cubical type theory files."
 
   :syntax-table ctt-syntax-table
@@ -108,4 +156,8 @@ If no buffer is loaded, then this variable is nil.")
   (setq ctt-operators-regexp nil)
   (setq ctt-special-regexp nil))
 
-(provide 'ctt-mode)
+;;;###autoload
+(add-to-list 'auto-mode-alist '("\\.ctt\\'" . ctt-mode))
+
+(provide 'cubicaltt)
+;;; cubicaltt.el ends here

@@ -2,80 +2,80 @@ module eq where
 
 import prelude
 
-refEq (A : U) (a : A) : Eq A a a =
-  eqC (<i> a) [  -> a ]
+refId (A : U) (a : A) : Id A a a =
+  idC (<i> a) [  -> a ]
 
-JJ (A : U) (a : A) (C : (x : A) -> Eq A a x -> U) (d : C a (refEq A a))
-   (x : A) (p : Eq A a x) : C x p
-   = eqJ A a C d x p
+JJ (A : U) (a : A) (C : (x : A) -> Id A a x -> U) (d : C a (refId A a))
+   (x : A) (p : Id A a x) : C x p
+   = idJ A a C d x p
 
-JJref (A : U) (a : A) (C : (x : A) -> Eq A a x -> U) (d : C a (refEq A a))
-   : C a (refEq A a)
-   = eqJ A a C d a (refEq A a)
+JJref (A : U) (a : A) (C : (x : A) -> Id A a x -> U) (d : C a (refId A a))
+   : C a (refId A a)
+   = idJ A a C d a (refId A a)
 
-JJEq (A : U) (a : A) (C : (x : A) -> Eq A a x -> U) (d : C a (refEq A a))
-   : Eq (C a (refEq A a)) d (JJ A a C d a (refEq A a))
-   = refEq (C a (refEq A a)) d
+JJId (A : U) (a : A) (C : (x : A) -> Id A a x -> U) (d : C a (refId A a))
+   : Id (C a (refId A a)) d (JJ A a C d a (refId A a))
+   = refId (C a (refId A a)) d
 
-substEq (A : U) (F : A -> U) (a b : A) (p : Eq A a b) (e : F a) : F b =
-  JJ A a (\ (x : A) (_ : Eq A a x) -> F x) e b p
+substId (A : U) (F : A -> U) (a b : A) (p : Id A a b) (e : F a) : F b =
+  JJ A a (\ (x : A) (_ : Id A a x) -> F x) e b p
 
-substEqRef (A : U) (F : A -> U) (a : A) (e : F a) : F a =
-  substEq A F a a (refEq A a) e
+substIdRef (A : U) (F : A -> U) (a : A) (e : F a) : F a =
+  substId A F a a (refId A a) e
 
-transEq (A : U) (a b c : A) (p : Eq A a b) (q : Eq A b c) : Eq A a c =
-  substEq A (\ (z : A) -> Eq A a z) b c q p
+transId (A : U) (a b c : A) (p : Id A a b) (q : Id A b c) : Id A a c =
+  substId A (\ (z : A) -> Id A a z) b c q p
 
-transEqRef (A : U) (a b : A) (p : Eq A a b): Eq A a b =
-  transEq A a a b (refEq A a) p
+transIdRef (A : U) (a b : A) (p : Id A a b): Id A a b =
+  transId A a a b (refId A a) p
 
-eqToId (A : U) (a b : A) (p : Eq A a b) : Id A a b =
-  eqJ A a (\ (b : A) (p : Eq A a b) -> Id A a b)
+idToPath (A : U) (a b : A) (p : Id A a b) : Path A a b =
+  idJ A a (\ (b : A) (p : Id A a b) -> Path A a b)
     (<i> a) b p
 
-idToEq (A : U) (a b : A) (p : Id A a b) : Eq A a b =
---  eqC p []
-  J A a (\ (b : A) (p : Id A a b) -> Eq A a b)
-    (refEq A a) b p
+idToId (A : U) (a b : A) (p : Path A a b) : Id A a b =
+--  idC p []
+  J A a (\ (b : A) (p : Path A a b) -> Id A a b)
+    (refId A a) b p
 
-idToEqRef (A : U) (a : A) : Id (Eq A a a) (refEq A a) (idToEq A a a (<_> a)) =
-  JEq A a (\ (b : A) (p : Id A a b) -> Eq A a b) (refEq A a)
+idToIdRef (A : U) (a : A) : Path (Id A a a) (refId A a) (idToId A a a (<_> a)) =
+  JEq A a (\ (b : A) (p : Path A a b) -> Id A a b) (refId A a)
 
-eqToIdRef (A : U) (a : A) : Id (Id A a a) (<_> a) (eqToId A a a (refEq A a)) =
+idToPathRef (A : U) (a : A) : Path (Path A a a) (<_> a) (idToPath A a a (refId A a)) =
   <i j> a
   
 
-idToEqToId (A : U) (a b : A) (p : Id A a b) :
-  Id (Id A a b) p (eqToId A a b (idToEq A a b p)) =
-  J A a (\ (b : A) (p : Id A a b) ->
-    Id (Id A a b) p (eqToId A a b (idToEq A a b p)))
-    (<j> eqToId A a a (idToEqRef A a @ j)) b p
+idToIdToPath (A : U) (a b : A) (p : Path A a b) :
+  Path (Path A a b) p (idToPath A a b (idToId A a b p)) =
+  J A a (\ (b : A) (p : Path A a b) ->
+    Path (Path A a b) p (idToPath A a b (idToId A a b p)))
+    (<j> idToPath A a a (idToIdRef A a @ j)) b p
 
 lem (A : U) (a : A) :
-  Id (Eq A a a) (refEq A a) (idToEq A a a (eqToId A a a (refEq A a))) =
-    compId (Eq A a a)
-      (refEq A a) (idToEq A a a (<_> a)) (idToEq A a a (eqToId A a a (refEq A a)))
-      (idToEqRef A a) (<k> idToEq A a a (eqToIdRef A a @ k))
+  Path (Id A a a) (refId A a) (idToId A a a (idToPath A a a (refId A a))) =
+    compPath (Id A a a)
+      (refId A a) (idToId A a a (<_> a)) (idToId A a a (idToPath A a a (refId A a)))
+      (idToIdRef A a) (<k> idToId A a a (idToPathRef A a @ k))
 
-eqToIdToEq (A : U) (a b : A) (p : Eq A a b) :
-  Id (Eq A a b) p (idToEq A a b (eqToId A a b p)) =
-  eqJ A a (\ (b : A) (p : Eq A a b) ->
-    Id (Eq A a b) p (idToEq A a b (eqToId A a b p)))
+idToPathToId (A : U) (a b : A) (p : Id A a b) :
+  Path (Id A a b) p (idToId A a b (idToPath A a b p)) =
+  idJ A a (\ (b : A) (p : Id A a b) ->
+    Path (Id A a b) p (idToId A a b (idToPath A a b p)))
     (lem A a) b p
 
 
 --------------------------------------------------------------------------------
 -- Some tests
 
-mop (A B : U) (f : A -> B) (u v : A) (p : Eq A u v) : Eq B (f u) (f v) =
-  JJ A u (\ (v : A) (p : Eq A u v) -> Eq B (f u) (f v))
-    (refEq B (f u)) v p
+mop (A B : U) (f : A -> B) (u v : A) (p : Id A u v) : Id B (f u) (f v) =
+  JJ A u (\ (v : A) (p : Id A u v) -> Id B (f u) (f v))
+    (refId B (f u)) v p
 
-mopComp (A B C : U) (f : A -> B) (g : B -> C) (u v : A) (p : Eq A u v)
-  : Eq C (g (f u)) (g (f v)) = mop A C (\ (x : A) -> g (f x)) u v p
+mopComp (A B C : U) (f : A -> B) (g : B -> C) (u v : A) (p : Id A u v)
+  : Id C (g (f u)) (g (f v)) = mop A C (\ (x : A) -> g (f x)) u v p
 
-mopComp' (A B C : U) (f : A -> B) (g : B -> C) (u v : A) (p : Eq A u v)
-  : Eq C (g (f u)) (g (f v)) = mop B C g (f u) (f v) (mop A B f u v p)
+mopComp' (A B C : U) (f : A -> B) (g : B -> C) (u v : A) (p : Id A u v)
+  : Id C (g (f u)) (g (f v)) = mop B C g (f u) (f v) (mop A B f u v p)
 
-superMop (A B : U) (f : A -> B) (u v : A) (p : Id A u v) : Eq B (f u) (f v) =
-  eqC (<i> f (p @ i)) [ ]
+superMop (A B : U) (f : A -> B) (u v : A) (p : Path A u v) : Id B (f u) (f v) =
+  idC (<i> f (p @ i)) [ ]

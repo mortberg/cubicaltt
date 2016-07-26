@@ -215,12 +215,12 @@ check a t = case (a,t) of
     check va u
     vu <- evalTyping u
     checkGlueElemU vu ves us
-  (VU,Eq a a0 a1) -> do
+  (VU,Id a a0 a1) -> do
     check VU a
     va <- evalTyping a
     check va a0
     check va a1
-  (VEq va va0 va1,EqPair w ts) -> do
+  (VId va va0 va1,IdPair w ts) -> do
     check (VPathP (constPath va) va0 va1) w
     vw <- evalTyping w
     checkSystemWith ts $ \alpha tAlpha ->
@@ -498,21 +498,21 @@ infer e = case e of
     checks (bs,nu) es
     mapM_ checkFormula phis
     return va
-  EqJ a u c d x p -> do
+  IdJ a u c d x p -> do
     check VU a
     va <- evalTyping a
     check va u
     vu <- evalTyping u
-    let refu = VEqPair (constPath vu) $ mkSystem [(eps,vu)]
+    let refu = VIdPair (constPath vu) $ mkSystem [(eps,vu)]
     rho <- asks env
     let z = Var "z"
-        ctype = eval rho $ Pi $ Lam "z" a $ Pi $ Lam "_" (Eq a u z) U
+        ctype = eval rho $ Pi $ Lam "z" a $ Pi $ Lam "_" (Id a u z) U
     check ctype c
     vc <- evalTyping c
     check (app (app vc vu) refu) d
     check va x
     vx <- evalTyping x
-    check (VEq va vu vx) p
+    check (VId va vu vx) p
     vp <- evalTyping p
     return (app (app vc vx) vp)
   _ -> throwError ("infer " ++ show e)

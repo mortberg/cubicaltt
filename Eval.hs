@@ -791,9 +791,19 @@ isCompSystem ns ts = and [ conv ns (getFace alpha beta) (getFace beta alpha)
     where getFace a b = face (ts ! a) (b `minus` a)
 
 instance Convertible Val where
-  conv ns u v =
+  conv ns u v | u == v    = True
+              | otherwise =
     let j = fresh (u,v)
     in case (u,v) of
+      (Ter (Lam x a u) e,Ter (Lam x' a' u') e') ->
+        let v@(VVar n _) = mkVarNice ns x (eval e a)
+        in conv (n:ns) (eval (upd (x,v) e) u) (eval (upd (x',v) e') u')
+      (Ter (Lam x a u) e,u') ->
+        let v@(VVar n _) = mkVarNice ns x (eval e a)
+        in conv (n:ns) (eval (upd (x,v) e) u) (app u' v)
+      (u',Ter (Lam x a u) e) ->
+        let v@(VVar n _) = mkVarNice ns x (eval e a)
+        in conv (n:ns) (app u' v) (eval (upd (x,v) e) u)
       (Ter (Split _ p _ _) e,Ter (Split _ p' _ _) e') -> (p == p') && conv ns e e'
       (Ter (Sum p _ _) e,Ter (Sum p' _ _) e')         -> (p == p') && conv ns e e'
       (Ter (HSum p _ _) e,Ter (HSum p' _ _) e')       -> (p == p') && conv ns e e'
@@ -811,6 +821,8 @@ instance Convertible Val where
       (VPCon c v us phis,VPCon c' v' us' phis') ->
         (c == c') && conv ns (v,us,phis) (v',us',phis')
       (VPair u v,VPair u' v')    -> conv ns u u' && conv ns v v'
+      (VPair u v,w)              -> conv ns u (fstVal w) && conv ns v (sndVal w)
+      (w,VPair u v)              -> conv ns (fstVal w) u && conv ns (sndVal w) v
       (VFst u,VFst u')           -> conv ns u u'
       (VSnd u,VSnd u')           -> conv ns u u'
       (VApp u v,VApp u' v')      -> conv ns u u' && conv ns v v'
@@ -819,6 +831,8 @@ instance Convertible Val where
       (VVar x _, VVar x' _)       -> x == x'
       (VPathP a b c,VPathP a' b' c') -> conv ns a a' && conv ns b b' && conv ns c c'
       (VPLam i a,VPLam i' a')    -> conv ns (a `swap` (i,j)) (a' `swap` (i',j))
+      (VPLam i a,p')             -> conv ns (a `swap` (i,j)) (p' @@ j)
+      (p,VPLam i' a')            -> conv ns (p @@ j) (a' `swap` (i',j))
       (VAppFormula u x,VAppFormula u' x') -> conv ns (u,x) (u',x')
       (VComp a u ts,VComp a' u' ts')      -> conv ns (a,u,ts) (a',u',ts')
       (VHComp a u ts,VHComp a' u' ts')    -> conv ns (a,u,ts) (a',u',ts')
@@ -827,20 +841,6 @@ instance Convertible Val where
       (VUnGlueElemU u _ _,VUnGlueElemU u' _ _) -> conv ns u u'
       (VUnGlueElem u ts,VUnGlueElem u' ts')    -> conv ns (u,ts) (u',ts')
       (VCompU u es,VCompU u' es')              -> conv ns (u,es) (u',es')
-      _ | u == v -> True
-      (Ter (Lam x a u) e,Ter (Lam x' a' u') e') ->
-        let v@(VVar n _) = mkVarNice ns x (eval e a)
-        in conv (n:ns) (eval (upd (x,v) e) u) (eval (upd (x',v) e') u')
-      (Ter (Lam x a u) e,u') ->
-        let v@(VVar n _) = mkVarNice ns x (eval e a)
-        in conv (n:ns) (eval (upd (x,v) e) u) (app u' v)
-      (u',Ter (Lam x a u) e) ->
-        let v@(VVar n _) = mkVarNice ns x (eval e a)
-        in conv (n:ns) (app u' v) (eval (upd (x,v) e) u)
-      (VPair u v,w)              -> conv ns u (fstVal w) && conv ns v (sndVal w)
-      (w,VPair u v)              -> conv ns (fstVal w) u && conv ns (sndVal w) v
-      (VPLam i a,p')             -> conv ns (a `swap` (i,j)) (p' @@ j)
-      (p,VPLam i' a')            -> conv ns (p @@ j) (a' `swap` (i',j))
       _                                        -> False
 
 instance Convertible Ctxt where

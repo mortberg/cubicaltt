@@ -7,6 +7,7 @@ import Data.Map (Map,(!),mapWithKey,assocs,filterWithKey
                 ,elems,intersectionWith,intersection,keys
                 ,member,notMember,empty)
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 
 import Connections
 import CTT
@@ -17,7 +18,7 @@ import CTT
 look :: String -> Env -> Val
 look x (Upd y rho,v:vs,fs,os) | x == y = v
                               | otherwise = look x (rho,vs,fs,os)
-look x r@(Def decls rho,vs,fs,Nameless os) = case lookup x decls of
+look x r@(Def _ decls rho,vs,fs,Nameless os) = case lookup x decls of
   Just (_,t) -> eval r t
   Nothing    -> look x (rho,vs,fs,Nameless os)
 look x (Sub _ rho,vs,_:fs,os) = look x (rho,vs,fs,os)
@@ -28,7 +29,7 @@ lookType x (Upd y rho,v:vs,fs,os)
   | x /= y        = lookType x (rho,vs,fs,os)
   | VVar _ a <- v = a
   | otherwise     = error ""
-lookType x r@(Def decls rho,vs,fs,os) = case lookup x decls of
+lookType x r@(Def _ decls rho,vs,fs,os) = case lookup x decls of
   Just (a,_) -> eval r a
   Nothing -> lookType x (rho,vs,fs,os)
 lookType x (Sub _ rho,vs,_:fs,os) = lookType x (rho,vs,fs,os)
@@ -36,7 +37,7 @@ lookType x (Empty,_,_,_)                  = error $ "lookType: not found " ++ sh
 
 lookName :: Name -> Env -> Formula
 lookName i (Upd _ rho,v:vs,fs,os) = lookName i (rho,vs,fs,os)
-lookName i (Def _ rho,vs,fs,os)   = lookName i (rho,vs,fs,os)
+lookName i (Def _ _ rho,vs,fs,os) = lookName i (rho,vs,fs,os)
 lookName i (Sub j rho,vs,phi:fs,os) | i == j    = phi
                                     | otherwise = lookName i (rho,vs,fs,os)
 lookName i _ = error $ "lookName: not found " ++ show i
@@ -150,7 +151,7 @@ eval rho@(_,_,_,Nameless os) v = case v of
   U                   -> VU
   App r s             -> app (eval rho r) (eval rho s)
   Var i
-    | i `elem` os     -> VOpaque i (lookType i rho)
+    | i `Set.member` os -> VOpaque i (lookType i rho)
     | otherwise       -> look i rho
   Pi t@(Lam _ a _)    -> VPi (eval rho a) (eval rho t)
   Sigma t@(Lam _ a _) -> VSigma (eval rho a) (eval rho t)

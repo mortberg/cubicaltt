@@ -36,8 +36,10 @@ data Branch = OBranch LIdent [Ident] Ter
   deriving (Eq,Show)
 
 -- Declarations: x : A = e
+-- A group of mutual declarations is identified by its location. It is used to
+-- speed up the Eq instance for Ctxt.
 type Decl  = (Ident,(Ter,Ter))
-data Decls = MutualDecls [Decl]
+data Decls = MutualDecls Loc [Decl]
            | OpaqueDecl Ident
            | TransparentDecl Ident
            | TransparentAllDecl
@@ -222,8 +224,18 @@ constPath = VPLam (Name "_")
 data Ctxt = Empty
           | Upd Ident Ctxt
           | Sub Name Ctxt
-          | Def [Decl] Ctxt
-  deriving (Show,Eq)
+          | Def Loc [Decl] Ctxt
+  deriving (Show)
+
+instance Eq Ctxt where
+    c == d = case (c, d) of
+        (Empty, Empty)              -> True
+        (Upd x c', Upd y d')        -> x == y && c' == d'
+        (Sub i c', Sub j d')        -> i == j && c' == d'
+        (Def m xs c', Def n ys d')  -> (m == n || xs == ys) && c' == d'
+            -- Invariant: if two declaration groups come from the same
+            -- location, they are equal and their contents are not compared.
+        _                           -> False
 
 -- The Idents and Names in the Ctxt refer to the elements in the two
 -- lists. This is more efficient because acting on an environment now
@@ -235,13 +247,13 @@ emptyEnv :: Env
 emptyEnv = (Empty,[],[],Nameless Set.empty)
 
 def :: Decls -> Env -> Env
-def (MutualDecls ds) (rho,vs,fs,Nameless os) = (Def ds rho,vs,fs,Nameless (os Set.\\ Set.fromList (declIdents ds)))
+def (MutualDecls m ds) (rho,vs,fs,Nameless os) = (Def m ds rho,vs,fs,Nameless (os Set.\\ Set.fromList (declIdents ds)))
 def (OpaqueDecl n) (rho,vs,fs,Nameless os) = (rho,vs,fs,Nameless (Set.insert n os))
 def (TransparentDecl n) (rho,vs,fs,Nameless os) = (rho,vs,fs,Nameless (Set.delete n os))
 def TransparentAllDecl (rho,vs,fs,Nameless os) = (rho,vs,fs,Nameless Set.empty)
 
 defWhere :: Decls -> Env -> Env
-defWhere (MutualDecls ds) (rho,vs,fs,Nameless os) = (Def ds rho,vs,fs,Nameless (os Set.\\ Set.fromList (declIdents ds)))
+defWhere (MutualDecls m ds) (rho,vs,fs,Nameless os) = (Def m ds rho,vs,fs,Nameless (os Set.\\ Set.fromList (declIdents ds)))
 defWhere (OpaqueDecl _) rho = rho
 defWhere (TransparentDecl _) rho = rho
 defWhere TransparentAllDecl rho = rho
@@ -276,10 +288,10 @@ formulaOfEnv = snd . valAndFormulaOfEnv
 domainEnv :: Env -> [Name]
 domainEnv (rho,_,_,_) = domCtxt rho
   where domCtxt rho = case rho of
-          Empty    -> []
-          Upd _ e  -> domCtxt e
-          Def ts e -> domCtxt e
-          Sub i e  -> i : domCtxt e
+          Empty      -> []
+          Upd _ e    -> domCtxt e
+          Def _ ts e -> domCtxt e
+          Sub i e    -> i : domCtxt e
 
 -- Extract the context from the environment, used when printing holes
 contextOfEnv :: Env -> [String]
@@ -287,7 +299,7 @@ contextOfEnv rho = case rho of
   (Empty,_,_,_)               -> []
   (Upd x e,VVar n t:vs,fs,os) -> (n ++ " : " ++ show t) : contextOfEnv (e,vs,fs,os)
   (Upd x e,v:vs,fs,os)        -> (x ++ " = " ++ show v) : contextOfEnv (e,vs,fs,os)
-  (Def _ e,vs,fs,os)          -> contextOfEnv (e,vs,fs,os)
+  (Def _ _ e,vs,fs,os)        -> contextOfEnv (e,vs,fs,os)
   (Sub i e,vs,phi:fs,os)      -> (show i ++ " = " ++ show phi) : contextOfEnv (e,vs,fs,os)
 
 --------------------------------------------------------------------------------
@@ -307,11 +319,11 @@ showEnv b e =
           showEnv1 (env,us,fs,os) <+> names x <+> showVal1 u <> com
         (Sub i env,us,phi:fs,os) ->
           showEnv1 (env,us,fs,os) <+> names (show i) <+> text (show phi) <> com
-        (Def _ env,vs,fs,os)     -> showEnv1 (env,vs,fs,os)
+        (Def _ _ env,vs,fs,os)   -> showEnv1 (env,vs,fs,os)
         _                        -> showEnv b e
   in case e of
     (Empty,_,_,_)            -> PP.empty
-    (Def _ env,vs,fs,os)     -> showEnv b (env,vs,fs,os)
+    (Def _ _ env,vs,fs,os)   -> showEnv b (env,vs,fs,os)
     (Upd x env,u:us,fs,os)   ->
       par $ showEnv1 (env,us,fs,os) <+> names x <+> showVal1 u
     (Sub i env,us,phi:fs,os) ->
@@ -380,7 +392,7 @@ showTer1 t = case t of
   _        -> parens (showTer t)
 
 showDecls :: Decls -> Doc
-showDecls (MutualDecls defs) =
+showDecls (MutualDecls _ defs) =
   hsep $ punctuate comma
   [ text x <+> equals <+> showTer d | (x,(_,d)) <- defs ]
 showDecls (OpaqueDecl i) = text "opaque" <+> text i

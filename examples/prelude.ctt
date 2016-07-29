@@ -17,6 +17,27 @@ funExt (A : U) (B : A -> U) (f g : (x : A) -> B x)
 
 -- Transport can be defined using comp
 trans (A B : U) (p : Path U A B) (a : A) : B = comp p a []
+transNeg (A B : U) (p : Path U A B) (b : B) : A = comp (<i> p @ - i) b []
+
+transK (A B : U) (p : Path U A B) (y : B) :
+  Path B y (trans A B p (transNeg A B p y)) =
+    <i> comp p (transNeg A B p y) [(i=0) -> rem1
+                                  ,(i=1) -> rem2 (transNeg A B p y)]
+    where
+    rem1 : PathP p (transNeg A B p y) y =
+      <i> comp (<j> p @ (i\/-j)) y [(i=1) -> <j>y]
+    rem2 (x:A) : PathP p x (trans A B p x) =
+      <i> comp (<j> p @ (i/\j)) x [(i=0) -> <j> x]
+
+transNegK (A B : U) (p : Path U A B) (a : A) :
+  Path A a (transNeg A B p (trans A B p a)) =
+    <i> comp (<j> p @ -j) (trans A B p a) [(i=0) -> rem1
+                                         ,(i=1) -> rem2 (trans A B p a) ]
+    where
+    rem1 : PathP (<i> p@-i) (trans A B p a) a = 
+       <i> comp (<j> p @ (-i /\ j)) a [(i=1) -> <j>a]
+    rem2 (b:B) : PathP (<i> p@-i) b (transNeg A B p b) = 
+      <i> comp (<j> p @ (-i \/ -j)) b [(i=0) -> <j> b]
 
 -- subst can be defined using trans:
 substTrans (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =

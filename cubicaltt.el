@@ -84,14 +84,6 @@
     (,cubicaltt-def-regexp . font-lock-function-name-face))
   "Font-lock information, assigning each class of keyword a face.")
 
-(defun cubicaltt-comment-dwim (arg)
-  "Comment or uncomment current line or region in a smart way, or kill with ARG.
-
-For details, see `comment-dwim'."
-  (interactive "*P")
-  (let ((comment-start "--") (comment-end ""))
-    (comment-dwim arg)))
-
 (defvar cubicaltt-syntax-table
   (let ((st (make-syntax-table)))
     (modify-syntax-entry ?\{  "(}1nb" st)
@@ -191,11 +183,14 @@ suggestions for completion rather than too few.")
 
   :syntax-table cubicaltt-syntax-table
 
+  ;; Make comment-dwim do the right thing for Cubical
+  (set (make-local-variable 'comment-start) "--")
+  (set (make-local-variable 'comment-end) "")
+
   ;; Code for syntax highlighting
   (setq font-lock-defaults '(cubicaltt-font-lock-keywords))
 
-  ;; Modify the keymap
-  (define-key cubicaltt-mode-map [remap comment-dwim] 'cubicaltt-comment-dwim)
+  ;; Bind mode-specific commands to keys
   (define-key cubicaltt-mode-map (kbd "C-c C-l") 'cubicaltt-load)
 
   ;; Install the completion handler

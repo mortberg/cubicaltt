@@ -41,12 +41,12 @@
 
 (defgroup cubicaltt nil "Options for cubicaltt-mode for cubical type theory"
   :group 'languages
-  :prefix 'cubicaltt
+  :prefix 'cubicaltt-
   :tag "Cubical type theory")
 
 (defcustom cubicaltt-command "cubical"
   "The command to be run for cubical."
-  :group 'ctt
+  :group 'cubicaltt
   :type 'string
   :tag "Command for cubical"
   :options '("cubical" "cabal exec cubical"))

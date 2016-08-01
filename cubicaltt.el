@@ -104,20 +104,20 @@ For details, see `comment-dwim'."
 
 ;;;; The interactive toplevel
 
-(defvar *cubicaltt-cubical-process* nil
+(defvar cubicaltt-cubical-process nil
   "The subprocess buffer for cubical.")
 
-(defvar *cubicaltt-loaded-buffer* nil
+(defvar cubicaltt-loaded-buffer nil
   "The currently-loaded buffer for cubical.
 
 If no buffer is loaded, then this variable is nil.")
 
 (defun cubicaltt-ensure-process ()
   "Ensure that a process is running for cubical and return the process buffer."
-  (if (and *cubicaltt-cubical-process* (get-buffer-process *cubicaltt-cubical-process*))
-      *cubicaltt-cubical-process*
+  (if (and cubicaltt-cubical-process (get-buffer-process cubicaltt-cubical-process))
+      cubicaltt-cubical-process
     (let ((process (make-comint "cubical" cubicaltt-command)))
-      (setq *cubicaltt-cubical-process* process)
+      (setq cubicaltt-cubical-process process)
       process)))
 
 (defun cubicaltt-load ()

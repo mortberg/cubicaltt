@@ -132,7 +132,8 @@ If no buffer is loaded, then this variable is nil.")
           (f (file-name-nondirectory file)))
       (save-buffer)
       ;; Get in the right working directory. No space-escaping is
-      ;; necessary for cubical.
+      ;; necessary for cubical, which in fact expects filenames to be
+      ;; written without quotes or space-escaping.
       (comint-send-string cubical-proc (concat ":cd " dir "\n"))
       ;; Load the file
       (comint-send-string cubical-proc (concat ":l " f "\n"))

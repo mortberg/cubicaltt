@@ -99,6 +99,12 @@ on emacs' ```load-path```, or else load it in advance, either manually with
 (load-file "cubicaltt.el")
 ```
 
+When using `ctt-mode` in Emacs, the command `ctt-load` will launch the
+interactive toplevel in an Emacs buffer and load the current file. It
+is bound to `C-c C-l` by default. If `cubical` is not on Emacs's
+`exec-path`, then set the variable `ctt-command` to the command that
+runs it.
+
 References and notes
 --------------------
 

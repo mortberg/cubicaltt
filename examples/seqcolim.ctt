@@ -186,6 +186,8 @@ wpconst2 (n:nat) (A B:U) (f:A->B) : U
 --       hole : equiv (wpconst zero A B f) (wpconst2 zero A B f) = undefined
 --   suc n -> ?
 
+wpconstToNType (n:nat) (A B:U) (f:A->B) (pB:hasLevel n B) : wpconst n A B f = undefined
+
 hasLevelSequence (l:nat) (C:sequence) : U = (m:nat) -> hasLevel l (C.1 m)
 wconstSequence (C:sequence) : U = (n:nat) -> wconst (C.1 n) (C.1 (suc n)) (C.2 n)
 wpconstSequence (m:nat) (C:sequence) : U = (n:nat) -> wpconst m (C.1 n) (C.1 (suc n)) (C.2 n)
@@ -1306,8 +1308,23 @@ wconstProp (C:sequence) (_:wconstSequence C) : prop (seqCo C) = undefined
 --
 
 lemShift2 (C:sequence) (l:nat) (P:wpconstSequence l C)
-          (n:nat) (x:C.1 n) : (D:sequence) * (_:wpconstSequence l D) * (p:Path U (seqCo C) (seqCo D)) * (x' : D.1 zero) * PathP p (inj n x) (inj zero x')
-  = undefined
+        : (n:nat) (x:C.1 n) -> (D:sequence) * (_:wpconstSequence l D) * (p:Path U (seqCo C) (seqCo D)) * (x' : D.1 zero) * PathP p (inj n x) (inj zero x')
+  = split
+  zero  -> \(x:C.1 zero) -> (C, P, <_> seqCo C, x, <_> inj zero x)
+  suc n -> \(x:C.1 (suc n)) ->
+    let t : (D:sequence) * (_:wpconstSequence l D) * (p:Path U (seqCo (shiftSequence C)) (seqCo D)) * (x' : D.1 zero) * PathP p (inj n x) (inj zero x')
+          = lemShift2 (shiftSequence C) l (\(n:nat)->P (suc n)) n x
+    in (t.1
+       ,t.2.1
+       ,compPath U (seqCo C) (seqCo (shiftSequence C)) (seqCo t.1) (lemShift C) t.2.2.1
+       ,t.2.2.2.1
+       ,compPathP U idU (seqCo C) (seqCo (shiftSequence C)) (seqCo t.1) (lemShift C) t.2.2.1
+          (inj (suc n) x) (inj n x) (inj zero t.2.2.2.1)
+          (compPathP0 U idU (seqCo C) (seqCo (shiftSequence C)) (lemShift C)
+           (inj (suc n) x) (inj (suc n) (C.2 (suc n) x)) (inj n x)
+           (lemShiftEq C (inj (suc n) x))
+           (<i> gl {seqCo (shiftSequence C)} n x @ -i))
+          t.2.2.2.2)
 
 lem2 (C:sequence) (l:nat) (Cl:wpconstSequence (suc l) C) :
      (x:seqCo C) (y : seqCo C) -> ishinh_UU (lemT C l x y) = split
@@ -1332,5 +1349,49 @@ thm : (l:nat) -> (C:sequence) (_:wpconstSequence l C) -> hasLevel l (seqCo C) = 
                h0 (p:lemT C l x y) : hasLevel l (Path (seqCo C) x y)
                   = transport (<i> hasLevel l (p.2.1 @ -i)) (thm l p.1 p.2.2)
            in PT (hasLevel l (Path (seqCo C) x y), propHasLevel l (Path (seqCo C) x y)) h0
+
+--
+
+isNTrunc (n:nat) (T:U->U) : U = (A:U) -> and (hasLevel n (T A))
+                                             ((f:A->T A) * ((B : U)(pB:hasLevel n B) -> isEquiv (T A -> B) (A -> B) (\(g : T A -> B)(x:A) -> g (f x))))
+
+NTruncInd (n:nat) (T:U->U) (pT:isNTrunc n T) (A:U) (B:U) (pB:hasLevel n B) (f:A->B) : T A -> B
+  = ((pT A).2.2 B pB f).1.1
+
+Map (T:U->U) : U = (A B : U) (f : A -> B) -> T A -> T B
+
+NTruncMap (n:nat) (T:U->U) (p:isNTrunc n T) : Map T
+  = \(A B:U) (f:A -> B) -> NTruncInd n T p A (T B) (p B).1 (\(x:A) -> (p B).2.1 (f x))
+
+mapSeq (T:U->U) (M:Map T) (A:sequence) : sequence
+  = ( \(m:nat) -> T (A.1 m)
+    , \(m:nat) -> M (A.1 m) (A.1 (suc m)) (A.2 m)
+    )
+
+OmegaCocont (T:U->U) (M:Map T) : U = (A:sequence) -> Path U (T (seqCo A)) (seqCo (mapSeq T M A))
+
+NTrunc_OmegaCocont (n:nat) (T:U->U) (pT:isNTrunc n T) (A:sequence) : Path U (T (seqCo A)) (seqCo (mapSeq T (NTruncMap n T pT) A)) = hole
+  where
+    tproj (A:U) : A -> T A = (pT A).2.1
+
+    p2 (m:nat) : wpconst n (T (A.1 m)) (T (A.1 (suc m))) (NTruncMap n T pT (A.1 m) (A.1 (suc m)) (A.2 m))
+      = wpconstToNType n (T (A.1 m)) (T (A.1 (suc m))) (NTruncMap n T pT (A.1 m) (A.1 (suc m)) (A.2 m)) (pT (A.1 (suc m))).1
+    p1 : wpconstSequence n (mapSeq T (NTruncMap n T pT) A) = \(m:nat) -> p2 m
+    p0 : hasLevel n (seqCo (mapSeq T (NTruncMap n T pT) A))
+       = thm n (mapSeq T (NTruncMap n T pT) A) p1
+
+    F0 : seqCo A -> seqCo (mapSeq T (NTruncMap n T pT) A) = split
+      inj n x -> inj n (tproj (A.1 n) x)
+      gl n x @ i -> ? -- inj n (tproj (A.1 n) x) = inj (suc n) (tproj (A.1 (suc n)) (A.2 n x))
+                      -- need (NTruncInd . tproj) = ...
+
+    F : T (seqCo A) -> seqCo (mapSeq T (NTruncMap n T pT) A)
+      = NTruncInd n T pT (seqCo A) (seqCo (mapSeq T (NTruncMap n T pT) A)) p0 F0
+
+    G : seqCo (mapSeq T (NTruncMap n T pT) A) -> T (seqCo A) = split
+      inj n x -> ?
+      gl n x @ i -> ?
+
+    hole : Path U (T (seqCo A)) (seqCo (mapSeq T (NTruncMap n T pT) A)) = undefined
 
 --

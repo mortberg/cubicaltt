@@ -1,0 +1,696 @@
+module seqcolim_sigma where
+
+import nat
+import equiv
+
+-- General lemmas
+
+compPath3 (A:U) (a b c d:A) (p:Path A a b) (q:Path A b c) (r:Path A c d) : Path A a d
+  = compPath A a b d p (compPath A b c d q r)
+
+fillCompPath (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : PathP (<i> Path A a (q@i)) p (compPath A a b c p q) =
+  <i j> fill (<k> A) (p @ j) [ (j=1) -> q, (j=0) -> <j> a ] @ i
+opaque fillCompPath
+
+fillCompPath' (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : PathP (<i> Path A (p@-i) c) q (compPath A a b c p q)
+  = <i j> comp (<_> A)
+               (p @ j\/-i)
+               [(j=0)-><_>p@-i
+               ,(j=1)->q
+               ,(i=0)-><k>q@j/\k
+               ]
+
+lemPathPProp (A B : U) (AProp : prop A) (p : Path U A B) : (x : A) -> (y : B) -> PathP p x y
+  = J U A (\(B : U) -> \(p : Path U A B) -> (x : A) -> (y : B) -> PathP p x y) AProp B p
+opaque lemPathPProp
+
+substPathP (A B : U) (p : Path U A B) (x : A) (y : B) (q : Path B (transport p x) y) : PathP p x y
+  = transport (<i> PathP p x (q@i)) hole
+  where
+    hole : PathP p x (transport p x) = <i> comp (<j> p @ (i /\ j)) x [(i=0) -> <_> x]
+opaque substPathP
+
+transRefl (A : U) (a : A) : Path A (transport (<_> A) a) a = <i> comp (<_> A) a [(i=1) -> <_>a]
+opaque transRefl
+
+substLR (A B : U) (p : Path U A B) (x : A) (y : B) (q : Path B (transport p x) y) : Path A (transport (<i>p@-i) y) x
+  = J U A (\(B:U)(p:Path U A B)->(y:B)->(q:Path B (transport p x) y)->Path A (transport (<i>p@-i) y) x)
+    (\(y:A)(q:Path A (transport (<_>A) x) y)->transport (<r> Path A (transRefl A y @ -r) (transRefl A x @ r)) (<i>q@-i)) B p y q
+opaque substLR
+
+substPathP' (A B : U) (p : Path U A B) (x : A) (y : B) (q : PathP p x y) : Path B (transport p x) y
+  = J U A (\(B:U)(p:Path U A B)->(y:B)->PathP p x y->Path B (transport p x) y)
+    (\(y:A)(q:Path A x y)->transport (<i> Path A (transRefl A x @ -i) y) q)
+    B p y q
+opaque substPathP'
+
+lemReflComp (A : U) (a b : A) (p : Path A a b) : Path (Path A a b) (compPath A a a b (<_> a) p) p =
+  <j i> comp (<k> A) (p @ i /\ j) [(i=0) -> <_> a, (j=1) -> <_> p @ i, (i=1) -> <k> p @ k \/ j ]
+opaque lemReflComp
+
+lemReflComp' (A : U) (a b : A) (p : Path A a b) : Path (Path A a b) (compPath A a b b p (<_> b)) p =
+  <j i> comp (<k> A) (p @ i) [(i=0) -> <_> a, (j=1) -> <_> p @ i, (i=1) -> <_> b ]
+opaque lemReflComp'
+
+compPathP (X:U) (f:X->U)
+          (A B C:X) (p0:Path X A B) (q0:Path X B C)
+          (a:f A) (b:f B) (c:f C) (p : PathP (<i>f(p0@i)) a b) (q : PathP (<i>f(q0@i)) b c)
+  : PathP (<i>f(compPath X A B C p0 q0@i)) a c
+  = <i> comp (<k> f (fillCompPath X A B C p0 q0@k@i)) (p @ i) [ (i=1) -> q, (i=0) -> <j> a ]
+
+compPath3P (X:U) (f:X->U)
+           (A B C D:X) (p0:Path X A B) (q0:Path X B C) (r0:Path X C D)
+           (a:f A) (b:f B) (c:f C) (d:f D) (p : PathP (<i>f(p0@i)) a b) (q : PathP (<i>f(q0@i)) b c) (r : PathP (<i>f(r0@i)) c d)
+  : PathP (<i>f(compPath3 X A B C D p0 q0 r0@i)) a d
+  = compPathP X f A B D p0 (compPath X B C D q0 r0) a b d p (compPathP X f B C D q0 r0 b c d q r)
+
+idU(X:U):U=X
+
+fillCompPathP (X:U) (f:X->U)
+              (A B C:X) (p0:Path X A B) (q0:Path X B C)
+              (a:f A) (b:f B) (c:f C) (p : PathP (<i>f(p0@i)) a b) (q : PathP (<i>f(q0@i)) b c)
+  : PathP (<i> PathP (<j>f(fillCompPath X A B C p0 q0@i@j)) a (q@i)) p (compPathP X f A B C p0 q0 a b c p q)
+  = <i j> fill (<k> f (fillCompPath X A B C p0 q0@k@j)) (p @ j) [ (j=1) -> q, (j=0) -> <j> a ] @ i
+
+fillCompPathP' (X:U) (f:X->U)
+               (A B C:X) (p0:Path X A B) (q0:Path X B C)
+               (a:f A) (b:f B) (c:f C) (p : PathP (<i>f(p0@i)) a b) (q : PathP (<i>f(q0@i)) b c)
+  : PathP (<i> PathP (<j>f(fillCompPath' X A B C p0 q0@i@j)) (p@-i) c) q (compPathP X f A B C p0 q0 a b c p q)
+  = undefined
+
+compPathP0 (X:U) (f:X->U) (A B : X) (p0:Path X A B) (a:f A) (b:f B) (c:f B) (p : PathP (<i>f(p0@i)) a b) (q : Path (f B) b c) : PathP (<i>f(p0@i)) a c
+  = <i> comp (<_> f (p0@i))
+             (p@i)
+             [(i=1) -> q, (i=0) -> <_>a]
+
+compPathP1 (X:U) (f:X->U) (A B : X) (q0:Path X A B) (a:f A) (b:f A) (c:f B) (p : Path (f A) a b) (q : PathP (<i>f(q0@i)) b c) : PathP (<i>f(q0@i)) a c
+  = undefined
+  -- <i> comp (<j> q0 @ j/\i)
+  --          (p@i)
+  --          [(i=1) -> q, (i=0) -> <_>a]
+opaque compPathP1
+
+lemReflCompP' (X:U) (f:X->U) (A B : X) (p0 : Path X A B)
+              (a:f A) (b:f B) (p:PathP (<i>f(p0@i)) a b)
+             : PathP (<r> PathP (<i>f(lemReflComp' X A B p0 @ r @ i)) a b) (compPathP X f A B B p0 (<_> B) a b b p (<_> b)) p
+  = undefined
+opaque lemReflCompP'
+
+
+transComp (X:U) (f:X->U) (A B C : X) (p : Path X A B) (q : Path X B C) (x : f A)
+  : Path (f C) (transport (<i> f(compPath X A B C p q@i)) x) (transport (<i>f(q@i)) (transport (<i>f(p@i)) x))
+  = J X B (\(C:X)(q:Path X B C)->Path (f C) (transport (<i> f(compPath X A B C p q@i)) x) (transport (<i>f(q@i)) (transport (<i>f(p@i)) x)))
+    (transport (<i> Path (f B) (transport (<j> f(lemReflComp' X A B p @ -i@j)) x) (transRefl (f B) (transport (<i>f(p@i)) x) @ -i)) (<_> transport (<i>f(p@i)) x))
+    C q
+opaque transComp
+
+transComp' (X:U) (f:X->U) (A B C : X) (p : Path X A B) (q : Path X B C) (x : f C)
+  : Path (f A) (transport (<i> f(compPath X A B C p q@-i)) x) (transport (<i>f(p@-i)) (transport (<i>f(q@-i)) x))
+  = J X B (\(C:X)(q:Path X B C)->(x:f C)->Path (f A) (transport (<i> f(compPath X A B C p q@-i)) x) (transport (<i>f(p@-i)) (transport (<i>f(q@-i)) x)))
+    (\(x:f B)->
+      transport (<i> Path (f A) (transport (<j> f(lemReflComp' X A B p @ -i@-j)) x) (transport (<i>f(p@-i)) (transRefl (f B) x @ -i))) (<_> transport (<i>f(p@-i)) x))
+    C q x
+opaque transComp'
+
+transportIsoPath (A B : U) (f : A -> B) (g : B -> A)
+               (s : (y : B) -> Path B (f (g y)) y)
+               (t : (x : A) -> Path A (g (f x)) x)
+               (x : A)
+               : Path B (transport (isoPath A B f g s t) x) (f x)
+               = compPath B (transport (<_> B) (transport (<_> B) (f x))) (transport (<_> B) (f x)) (f x)
+                 (<i> transport (<_> B) (transRefl B (f x) @ i)) (transRefl B (f x))
+opaque transportIsoPath
+
+transportIsoPath' (A B : U) (f : A -> B) (g : B -> A)
+               (s : (y : B) -> Path B (f (g y)) y)
+               (t : (x : A) -> Path A (g (f x)) x)
+               (x : B)
+               : Path A (transport (<i> isoPath A B f g s t @ -i) x) (g x)
+               = compPath A (transport (<_> A) (g (transport (<_> B) x))) (transport (<_> A) (g x)) (g x)
+                 (<i> transport (<_> A) (g (transRefl B x @ i))) (transRefl A (g x))
+opaque transportIsoPath'
+
+isoPathP (A B : U) (f : A -> B) (g : B -> A)
+         (s : (y : B) -> Path B (f (g y)) y)
+         (t : (x : A) -> Path A (g (f x)) x)
+         (x : A)
+         : PathP (isoPath A B f g s t) x (f x)
+         = substPathP A B (isoPath A B f g s t) x (f x) (transportIsoPath A B f g s t x)
+opaque isoPathP
+
+-- Truncation
+hProp : U = (X : U) * prop X
+ishinh_UU (X : U) : U = (P : hProp) -> ((X -> P.1) -> P.1)
+propishinh (X : U) : prop (ishinh_UU X) =
+  propPi hProp (\(P : hProp) -> ((X -> P.1) -> P.1)) rem1
+  where
+   rem1 (P : hProp) : prop ((X -> P.1) -> P.1) =
+     propPi (X -> P.1) (\(_ : X -> P.1) -> P.1) (\(f : X -> P.1) -> P.2)
+ishinh (X : U) : hProp = (ishinh_UU X,propishinh X)
+hinhpr (X : U) : X -> (ishinh X).1 =
+  \(x : X) (P : hProp) (f : X -> P.1) -> f x
+
+-- h-levels
+hasLevel : (n : nat) -> (A : U) -> U = split
+  zero  -> \(A:U) -> prop A
+  suc n -> \(A:U) -> (x y : A) -> hasLevel n (Path A x y)
+
+propHasLevel : (n:nat) (A:U) -> prop (hasLevel n A) = split
+  zero -> \(A:U) -> propIsProp A
+  suc n -> \(A:U) -> propPi A (\(x:A)->(y:A)->hasLevel n (Path A x y))
+          (\(x:A) -> propPi A (\(y:A)->hasLevel n (Path A x y))
+          (\(y:A) -> propHasLevel n (Path A x y)))
+
+-- sequential colimit
+
+sequence : U = (A:nat->U) * ((n:nat) -> (x:A n) -> A (suc n))
+shiftSequence (C:sequence):sequence
+ = (\(n:nat)->C.1 (suc n), \(n:nat)->C.2 (suc n))
+
+wconst (A B:U) (f:A->B) : U = (x y : A) -> Path B (f x) (f y)
+-- name : weakly n-path constant function ?
+wpconst : (n:nat) (A B:U) (f:A->B) -> U = split
+  zero -> wconst
+  suc n -> \(A B:U)(f:A->B) -> (x y : A) -> wpconst n (Path A x y) (Path B (f x) (f y)) (mapOnPath A B f x y)
+
+hasLevelSequence (l:nat) (C:sequence) : U = (m:nat) -> hasLevel l (C.1 m)
+wconstSequence (C:sequence) : U = (n:nat) -> wconst (C.1 n) (C.1 (suc n)) (C.2 n)
+wpconstSequence (m:nat) (C:sequence) : U = (n:nat) -> wpconst m (C.1 n) (C.1 (suc n)) (C.2 n)
+
+data seqCo (C:sequence)
+  = inj (n:nat) (x:C.1 n)
+  | gl (n:nat) (x:C.1 n) <i>
+    [ (i=0)->inj n x
+    , (i=1)->inj (suc n) (C.2 n x)
+    ]
+
+lemShiftF (C:sequence) : seqCo C -> seqCo (shiftSequence C) = split
+  inj n x -> inj n (C.2 n x)
+  gl n x @ i -> gl {seqCo (shiftSequence C)} n (C.2 n x) @ i
+lemShiftG (C:sequence) : seqCo (shiftSequence C) -> seqCo C = split
+  inj n x -> inj (suc n) x
+  gl n x @ i -> gl {seqCo C} (suc n) x @ i
+lemShiftFG (C:sequence) : (x:seqCo (shiftSequence C)) -> Path (seqCo (shiftSequence C)) (lemShiftF C (lemShiftG C x)) x = split
+  inj n x -> <i> gl {seqCo (shiftSequence C)} n x @ -i
+  gl n x @ i -> <j> comp (<_> seqCo (shiftSequence C))
+                         (gl {seqCo (shiftSequence C)} n x @ i\/-j)
+                         [(i=0)-><_>gl {seqCo (shiftSequence C)} n x @ -j
+                         ,(j=1)-><_>gl {seqCo (shiftSequence C)} n x @ i
+                         ,(i=1)-><k>gl {seqCo (shiftSequence C)} (suc n) (C.2 (suc n) x) @ -j/\k
+                         ,(j=0)-><k>gl {seqCo (shiftSequence C)} (suc n) (C.2 (suc n) x) @ i/\k
+                         ]
+lemShiftGF (C:sequence) : (x:seqCo C) -> Path (seqCo C) (lemShiftG C (lemShiftF C x)) x = split
+  inj n x -> <i> gl {seqCo C} n x @ -i
+  gl n x @ i -> <j> comp (<_> seqCo C)
+                         (gl {seqCo C} n x @ i\/-j)
+                         [(i=0)-><_>gl {seqCo C} n x @ -j
+                         ,(j=1)-><_>gl {seqCo C} n x @ i
+                         ,(i=1)-><k>gl {seqCo C} (suc n) (C.2 n x) @ -j/\k
+                         ,(j=0)-><k>gl {seqCo C} (suc n) (C.2 n x) @ i/\k
+                         ]
+
+lemShift (C:sequence) : Path U (seqCo C) (seqCo (shiftSequence C))
+  = isoPath (seqCo C) (seqCo (shiftSequence C)) (lemShiftF C) (lemShiftG C) (lemShiftFG C) (lemShiftGF C)
+
+transLemShift (C:sequence) (x:seqCo C) : Path (seqCo (shiftSequence C)) (transport (lemShift C) x) (lemShiftF C x)
+  = transportIsoPath (seqCo C) (seqCo (shiftSequence C)) (lemShiftF C) (lemShiftG C) (lemShiftFG C) (lemShiftGF C) x
+
+lemShiftEq (C:sequence) (x:seqCo C) : PathP (lemShift C) x (lemShiftF C x)
+  = isoPathP (seqCo C) (seqCo (shiftSequence C)) (lemShiftF C) (lemShiftG C) (lemShiftFG C) (lemShiftGF C) x
+
+-- Path types of seqCo
+
+liftPoint (C:sequence) (x:C.1 zero) : (n:nat) -> C.1 n = split
+  zero  -> x
+  suc n -> C.2 n (liftPoint C x n)
+
+liftPointEq (C:sequence) (x:C.1 zero) : (n:nat) -> Path (seqCo C) (inj zero x) (inj n (liftPoint C x n)) = split
+  zero  -> <_> inj zero x
+  suc n -> compPath (seqCo C) (inj zero x) (inj n (liftPoint C x n)) (inj (suc n) (liftPoint C x (suc n)))
+                  (liftPointEq C x n) (<i> gl {seqCo C} n (liftPoint C x n) @ i)
+
+liftPointEq2 (C:sequence) (x:C.1 zero) (n:nat)
+  : PathP (<i> Path (seqCo C) (inj zero x) (gl {seqCo C} n (liftPoint C x n) @ i))
+          (liftPointEq C x n) (liftPointEq C x (suc n))
+  = fillCompPath (seqCo C) (inj zero x) (inj n (liftPoint C x n)) (inj (suc n) (liftPoint C x (suc n)))
+                 (liftPointEq C x n) (<i> gl {seqCo C} n (liftPoint C x n) @ i)
+
+liftPoint' (C:sequence) (n:nat) (x:C.1 n) : (m:nat) -> C.1 (add n m) = split
+  zero  -> x
+  suc m -> C.2 (add n m) (liftPoint' C n x m)
+
+lemLiftPoint' (C:sequence) (n:nat) (x:C.1 n)
+  : (m:nat) -> PathP (<i> C.1 (add_suc n m @ -i)) (liftPoint' C n x (suc m)) (liftPoint' C (suc n) (C.2 n x) m) = split
+  zero -> <_> liftPoint' C n x (suc zero)
+  suc m -> <i> C.2 (add_suc n m @ -i) (lemLiftPoint' C n x m @ i)
+
+liftPointEq' (C:sequence) (n:nat) (x:C.1 n) : (m:nat) -> Path (seqCo C) (inj n x) (inj (add n m) (liftPoint' C n x m)) = split
+  zero -> <_> inj n x
+  suc m -> compPath3 (seqCo C)
+                     (inj n x)
+                     (inj (suc n) (C.2 n x))
+                     (inj (add (suc n) m) (liftPoint' C (suc n) (C.2 n x) m))
+                     (inj (suc (add n m)) (liftPoint' C n x (suc m)))
+                     (<i> gl {seqCo C} n x @ i)
+                     (liftPointEq' C (suc n) (C.2 n x) m)
+                     (<i> inj (add_suc n m @ i) (lemLiftPoint' C n x m @ -i))
+
+ssequence (A:sequence):U = (P:(n:nat)(a:A.1 n)->U)
+                         * ((n:nat)(a:A.1 n)->P n a->P (suc n) (A.2 n a))
+
+A:sequence=undefined
+B:ssequence A=undefined
+opaque A
+opaque B
+
+glA (n:nat) (x:A.1 n) : Path (seqCo A) (inj n x) (inj (suc n) (A.2 n x))
+  = <i> gl {seqCo A} n x @ i
+
+sigmaSeq : sequence
+  = (\(n:nat) -> Sigma (A.1 n) (B.1 n)
+    ,\(n:nat) (x:Sigma (A.1 n) (B.1 n)) -> (A.2 n x.1, B.2 n x.1 x.2))
+
+code_ip (n:nat) (x:A.1 n) (m:nat) : U = B.1 (add n m) (liftPoint' A n x m)
+code_ip_lift (n:nat) (x:A.1 n) (m:nat) : code_ip n x m -> code_ip n x (suc m) = B.2 (add n m) (liftPoint' A n x m)
+code_ip_shift (n:nat) (x:A.1 n) (m:nat) : Path U (code_ip n x (suc m)) (code_ip (suc n) (A.2 n x) m)
+  = <i> B.1 (add_suc n m @ -i) (lemLiftPoint' A n x m @ i)
+
+code_i (n:nat) (x:A.1 n) : sequence
+  = (code_ip n x, code_ip_lift n x)
+
+code_g' (n:nat) (x:A.1 n) : Path sequence (shiftSequence (code_i n x)) (code_i (suc n) (A.2 n x))
+  = <i> (\(m:nat) -> B.1 (add_suc n m @ -i) (lemLiftPoint' A n x m @ i)
+        ,\(m:nat) -> B.2 (add_suc n m @ -i) (lemLiftPoint' A n x m @ i))
+
+code_g (n:nat) (x:A.1 n) : Path U (seqCo (code_i n x)) (seqCo (code_i (suc n) (A.2 n x)))
+  = compPath U (seqCo (code_i n x))
+               (seqCo (shiftSequence (code_i n x)))
+               (seqCo (code_i (suc n) (A.2 n x)))
+               (lemShift (code_i n x))
+               (<i> seqCo (code_g' n x @ i))
+
+shift_eq1 (n:nat) (x:A.1 n) (m:nat) (y:code_ip n x (suc m))
+  : Path (code_ip (suc n) (A.2 n x) (suc m))
+         (code_ip_lift (suc n) (A.2 n x) m (transport (code_ip_shift n x m) y))
+         (transport (code_ip_shift n x (suc m)) (code_ip_lift n x (suc m) y))
+  = <i> comp (code_ip_shift n x (suc m))
+             (code_ip_lift n x (suc m) y)
+             [(i=0) -> <j> B.2 (add_suc n m @ -j) (lemLiftPoint' A n x m @ j) (fill (code_ip_shift n x m) y [] @ j)
+             ]
+
+shift_eq2 (n:nat) (x:A.1 n) (m:nat) (y:code_ip n x (suc m))
+  : PathP (<r> PathP (<i> B.1 (add_suc n (suc m) @ -i) (lemLiftPoint' A n x (suc m) @ i)) (code_ip_lift n x (suc m) y) (shift_eq1 n x m y @ r))
+          (<i> B.2 (add_suc n m @ -i) (lemLiftPoint' A n x m @ i) (fill (code_ip_shift n x m) y [] @ i))
+          (<i> fill (code_ip_shift n x (suc m)) (code_ip_lift n x (suc m) y) [] @ i)
+  = <r> <i> fill (code_ip_shift n x (suc m))
+                 (code_ip_lift n x (suc m) y)
+                 [(r=0) -> <j> B.2 (add_suc n m @ -j) (lemLiftPoint' A n x m @ j) (fill (code_ip_shift n x m) y [] @ j)
+                 ] @ i
+
+shift_eq (n:nat) (x:A.1 n) (k:nat) (y:code_ip n x (suc k))
+  : Path (seqCo (code_i (suc n) (A.2 n x)))
+         (inj k (transport (code_ip_shift n x k) y))
+         (inj (suc k) (transport (code_ip_shift n x (suc k)) (code_ip_lift n x (suc k) y)))
+  = compPath (seqCo (code_i (suc n) (A.2 n x)))
+             (inj k (transport (code_ip_shift n x k) y))
+             (inj (suc k) (code_ip_lift (suc n) (A.2 n x) k (transport (code_ip_shift n x k) y)))
+             (inj (suc k) (transport (code_ip_shift n x (suc k)) (code_ip_lift n x (suc k) y)))
+             (<i> gl {seqCo (code_i (suc n) (A.2 n x))} k (transport (code_ip_shift n x k) y) @ i)
+             (<i> inj (suc k) (shift_eq1 n x k y @ i))
+
+tr_code_g (n:nat) (x:A.1 n) (y:seqCo (code_i n x))
+  : Path (seqCo (code_i (suc n) (A.2 n x)))
+         (transport (code_g n x) y)
+         (transport (<i> seqCo (code_g' n x @ i)) (lemShiftF (code_i n x) y))
+  = undefined
+
+code_g_eqp (n:nat) (x:A.1 n) (m:nat) (p:code_ip n x m)
+  : PathP (code_g n x)
+          (inj m p)
+          (inj m (transport (code_ip_shift n x m) (code_ip_lift n x m p)))
+  = compPathP U idU
+     (seqCo (code_i n x))
+     (seqCo (shiftSequence (code_i n x)))
+     (seqCo (code_i (suc n) (A.2 n x)))
+     (lemShift (code_i n x))
+     (<i> seqCo (code_g' n x @ i))
+     (inj m p)
+     (inj m (code_ip_lift n x m p))
+     (inj m (transport (code_ip_shift n x m) (code_ip_lift n x m p)))
+     (lemShiftEq (code_i n x) (inj m p))
+     (<l> inj m (fill (code_ip_shift n x m) (code_ip_lift n x m p) [] @ l))
+
+code_g_eqp_suc (n:nat) (x:A.1 n) (m:nat) (y:code_ip n x (suc m))
+  : PathP (code_g n x)
+          (inj (suc m) y)
+          (inj m (transport (code_ip_shift n x m) y))
+  = undefined
+
+code_g_eqp_suc2 (n:nat) (x:A.1 n) (m:nat) (y:code_ip n x (suc m))
+  : PathP (<r> PathP (code_g n x)
+                     (gl {seqCo (code_i n x)} (suc m) y @ r)
+                     (shift_eq n x m y @ r))
+          (code_g_eqp_suc n x m y)
+          (code_g_eqp_suc n x (suc m) (code_ip_lift n x (suc m) y))
+  = undefined
+             -- (gl {seqCo (code_i (add n (suc k1)) (liftPoint' A n x (suc k1)))} k2 y' @ r)
+             -- (gl {seqCo (code_i (add n k1) (liftPoint' A n x k1))} (suc k2) y @ r)
+
+code_g_eqp_zero (n:nat) (x:A.1 n) (p:code_ip n x zero)
+  : PathP (code_g n x)
+          (inj zero p)
+          (inj zero (code_ip_lift n x zero p))
+  = compPathP0 U idU
+     (seqCo (code_i n x)) (seqCo (code_i (suc n) (A.2 n x)))
+     (code_g n x)
+     (inj zero p)
+     (inj zero (transport (code_ip_shift n x zero) (code_ip_lift n x zero p)))
+     (inj zero (code_ip_lift n x zero p))
+     (code_g_eqp n x zero p)
+     (<i> inj zero (transRefl (code_ip (suc n) (A.2 n x) zero) (code_ip_lift n x zero p) @ i))
+
+
+code : (a:seqCo A) -> U = split
+  inj n x -> seqCo (code_i n x)
+  gl n x @ i -> code_g n x @ i
+
+-- lem : equiv (seqCo sigmaSeq) (Sigma (seqCo A) code) = hole
+-- where
+F : seqCo sigmaSeq -> Sigma (seqCo A) code = split
+  inj n x -> (inj n x.1, inj zero x.2)
+  gl n x @ i -> (gl {seqCo A} n x.1 @ i, code_g_eqp_zero n x.1 x.2 @ i)
+
+-- G
+
+GII (n:nat) (x:A.1 n) (m:nat) (y:code_ip n x m) : seqCo sigmaSeq
+  = inj (add n m) (liftPoint' A n x m, y)
+
+GIG (n:nat) (x:A.1 n) (m:nat) (y:code_ip n x m)
+  : Path (seqCo sigmaSeq) (GII n x m y) (GII n x (suc m) (code_ip_lift n x m y))
+  = <i> gl {seqCo sigmaSeq} (add n m) (liftPoint' A n x m, y) @ i
+
+GI (n:nat) (x:A.1 n) : (y:seqCo (code_i n x)) -> seqCo sigmaSeq = split
+  inj m y -> GII n x m y
+  gl m y @ j -> GIG n x m y @ j
+
+GGI (n:nat) (x:A.1 n) (m:nat) (y:code_ip n x m)
+  : Path (seqCo sigmaSeq)
+         (GII n x m y)
+         (GI (suc n) (A.2 n x) (transport (<i> seqCo (code_g' n x @ i)) (inj m (code_ip_lift n x m y))))
+  = compPath (seqCo sigmaSeq)
+             (inj (add n m) (liftPoint' A n x m, y))
+             (inj (add n (suc m)) (liftPoint' A n x (suc m), code_ip_lift n x m y))
+             (GI (suc n) (A.2 n x) (transport (<i> seqCo (code_g' n x @ i)) (inj m (code_ip_lift n x m y))))
+             (<i> gl {seqCo sigmaSeq} (add n m) (liftPoint' A n x m, y) @ i)
+   (compPath (seqCo sigmaSeq)
+             (inj (add n (suc m)) (liftPoint' A n x (suc m), code_ip_lift n x m y))
+             (inj (add (suc n) m) (liftPoint' A (suc n) (A.2 n x) m, transport (code_ip_shift n x m) (code_ip_lift n x m y)))
+             (GI (suc n) (A.2 n x) (transport (<i> seqCo (code_g' n x @ i)) (inj m (code_ip_lift n x m y))))
+             (<i> inj (add_suc n m @ -i) (lemLiftPoint' A n x m @ i, fill (code_ip_shift n x m) (code_ip_lift n x m y) [] @ i))
+             (<j> GI (suc n) (A.2 n x)
+                  (comp (<i> seqCo (code_g' n x @ i))
+                        (inj m (code_ip_lift n x m y))
+                        [(j=0)-><k>inj m (fill (code_ip_shift n x m) (code_ip_lift n x m y) [] @ k)
+                        ])))
+
+sqPQ (X:U) (a b c:X) (p:Path X a b) (q:Path X b c) : PathP (<r> Path X (p@r) (q@r)) p q = undefined
+
+GGG (n:nat) (x:A.1 n) (m:nat) (y:code_ip n x m)
+  : PathP (<r> Path (seqCo sigmaSeq)
+                    (GIG n x m y @ r)
+                    (GI (suc n) (A.2 n x) (transport (<i> seqCo (code_g' n x @ i))
+                                           (gl {seqCo (shiftSequence (code_i n x))} m (code_ip_lift n x m y) @ r))))
+     (GGI n x m y)
+     (GGI n x (suc m) (code_ip_lift n x m y))
+  = undefined -- HIT bug
+  -- = <r> compPath (seqCo sigmaSeq)
+  --                (gl {seqCo sigmaSeq} (add n m) (liftPoint' A n x m, y) @ r)
+  --                (gl {seqCo sigmaSeq} (add n (suc m)) (liftPoint' A n x (suc m), code_ip_lift n x m y) @ r)
+  --                (GI (suc n) (A.2 n x) (transport (<i> seqCo (code_g' n x @ i))
+  --                                       (gl {seqCo (shiftSequence (code_i n x))} m (code_ip_lift n x m y) @ r)))
+  --                (sqPQ (seqCo sigmaSeq)
+  --                      (inj (add n m) (liftPoint' A n x m, y))
+  --                      (inj (add n (suc m)) (liftPoint' A n x (suc m), code_ip_lift n x m y))
+  --                      (inj (add n (suc (suc m))) (liftPoint' A n x (suc (suc m)), code_ip_lift n x (suc m) (code_ip_lift n x m y)))
+  --                      (<i>gl {seqCo sigmaSeq} (add n m) (liftPoint' A n x m, y) @ i)
+  --                      (<i>gl {seqCo sigmaSeq} (add n (suc m)) (liftPoint' A n x (suc m), code_ip_lift n x m y) @ i)
+  --                      @ r)
+  --      (compPath (seqCo sigmaSeq)
+  --                (gl {seqCo sigmaSeq} (add n (suc m)) (liftPoint' A n x (suc m), code_ip_lift n x m y) @ r)
+  --                (comp (<_> seqCo sigmaSeq)
+  --                      (gl {seqCo sigmaSeq} (add (suc n) m) (liftPoint' A (suc n) (A.2 n x) m, transport (code_ip_shift n x m) (code_ip_lift n x m y)) @ r)
+  --                      [(r=1)-><k> inj (add (suc n) (suc m))
+  --                                      ( liftPoint' A (suc n) (A.2 n x) (suc m)
+  --                                      , shift_eq1 n x m (code_ip_lift n x m y) @ k)
+  --                      ])
+  --                (GI (suc n) (A.2 n x) (transport (<i> seqCo (code_g' n x @ i))
+  --                                       (gl {seqCo (shiftSequence (code_i n x))} m (code_ip_lift n x m y) @ r)))
+  --                (<i> comp (<_> seqCo sigmaSeq)
+  --                          (gl {seqCo sigmaSeq} (add_suc n m @ -i) (lemLiftPoint' A n x m @ i, fill (code_ip_shift n x m) (code_ip_lift n x m y) [] @ i) @ r)
+  --                          [(r=1)-><k>inj (add_suc n (suc m) @ -i)
+  --                                         ( lemLiftPoint' A n x (suc m) @ i
+  --                                         , shift_eq2 n x m (code_ip_lift n x m y) @ k @ i)
+  --                          ,(i=0)-><_>gl {seqCo sigmaSeq} (add n (suc m)) (liftPoint' A n x (suc m), code_ip_lift n x m y) @ r
+  --                          ])
+  --                (<j> comp (<_> seqCo sigmaSeq)
+  --                          (GI (suc n) (A.2 n x)
+  --                              (comp (<i> seqCo (code_g' n x @ i))
+  --                                    (gl {seqCo (shiftSequence (code_i n x))} m (code_ip_lift n x m y) @ r)
+  --                                    [(j=0)-><k>gl {seqCo (code_g' n x @ k)} m (fill (code_ip_shift n x m) (code_ip_lift n x m y) [] @ k) @ r
+  --                                    --,(r=1)(j=1)->fill (<i> seqCo (code_g' n x @ i)) (inj (suc m) (code_ip_lift n x (suc m) (code_ip_lift n x m y))) []
+  --                                    ]))
+  --                          [
+  --                          (j=1)-><_>GI (suc n) (A.2 n x)
+  --                                      (comp (<i> seqCo (code_g' n x @ i))
+  --                                            (gl {seqCo (shiftSequence (code_i n x))} m (code_ip_lift n x m y) @ r)
+  --                                            [--(r=1)->fill (<i> seqCo (code_g' n x @ i)) (inj (suc m) (code_ip_lift n x (suc m) (code_ip_lift n x m y))) []
+  --                                            ])
+  --                          ,(r=1)-><k>
+  --                                GI (suc n) (A.2 n x)
+  --                                   (comp (<i> seqCo (code_g' n x @ i))
+  --                                         (inj (suc m) (code_ip_lift n x (suc m) (code_ip_lift n x m y)))
+  --                                         [(j=0)-><i>inj (suc m) (shift_eq2 n x m (code_ip_lift n x m y) @ k @ i)
+  --                                         ])
+  --                          ]))
+
+GG2 (n:nat) (x:A.1 n)
+  : (y:seqCo (code_i n x)) -> Path (seqCo sigmaSeq)
+                                   (GI n x y)
+                                   (GI (suc n) (A.2 n x) (transport (<i> seqCo (code_g' n x @ i)) (lemShiftF (code_i n x) y))) = split
+  inj m y -> GGI n x m y
+  gl m y @ j -> GGG n x m y @ j
+
+GG1 (n:nat) (x:A.1 n) (y:seqCo (code_i n x)) : Path (seqCo sigmaSeq) (GI n x y) (GI (suc n) (A.2 n x) (transport (code_g n x) y))
+  = transport (<i> Path (seqCo sigmaSeq) (GI n x y) (GI (suc n) (A.2 n x) (tr_code_g n x y @ -i))) (GG2 n x y)
+
+GG0 (n:nat) (x:A.1 n)
+  : Path (seqCo (code_i n x) -> seqCo sigmaSeq)
+         (GI n x)
+         (\(y:seqCo (code_i n x)) ->
+          transport (<_> seqCo sigmaSeq) (GI (suc n) (A.2 n x) (transport (code_g n x) y)))
+  = transport
+     (<r> Path (seqCo (code_i n x) -> seqCo sigmaSeq)
+           (GI n x)
+           (\(y:seqCo (code_i n x)) ->
+            transRefl (seqCo sigmaSeq) (GI (suc n) (A.2 n x) (transport (code_g n x) y)) @ -r))
+     (<i> \(y:seqCo (code_i n x)) -> GG1 n x y @ i)
+
+GG (n:nat) (x:A.1 n)
+  : PathP (<i> code (glA n x @ i) -> seqCo sigmaSeq) (GI n x) (GI (suc n) (A.2 n x))
+  = <i> substPathP
+         (code (glA n x @ 1) -> seqCo sigmaSeq) (code (inj n x) -> seqCo sigmaSeq)
+         (<i> code (glA n x @ -i) -> seqCo sigmaSeq)
+         (GI (suc n) (A.2 n x)) (GI n x)
+         (<i> GG0 n x @ -i)
+         @ -i
+
+G0 : (x:seqCo A) (y:code x) -> seqCo sigmaSeq = split
+  inj n x -> GI n x
+  gl n x @ i -> GG n x @ i
+
+G (x : Sigma (seqCo A) code) : seqCo sigmaSeq = G0 x.1 x.2
+
+-- -- GF
+
+-- -- GF : (x:seqCo sigmaSeq) -> Path (seqCo sigmaSeq) (G (F x)) x = split
+-- --   inj n x -> <_> inj n x
+-- --   gl n x @ i -> GFG n x @ i
+
+-- FG
+
+FGII0 (n:nat) (x:A.1 n) (k1:nat)
+  : (k2:nat) (y:code_ip (add n k1) (liftPoint' A n x k1) k2)
+  -> Path (seqCo A)
+          (inj (add (add n k1) k2) (liftPoint' A (add n k1) (liftPoint' A n x k1) k2))
+          (inj (add n k1) (liftPoint' A n x k1)) = split
+  zero -> \(y:code_ip (add n k1) (liftPoint' A n x k1) zero) -> <_> inj (add n k1) (liftPoint' A n x k1)
+  suc k2 -> \(y:code_ip (add n k1) (liftPoint' A n x k1) (suc k2)) ->
+            let y' : code_ip (add n (suc k1)) (liftPoint' A n x (suc k1)) k2
+                   = transport (code_ip_shift (add n k1) (liftPoint' A n x k1) k2) y in
+            compPath3 (seqCo A)
+             (inj (add (add n k1) (suc k2)) (liftPoint' A (add n k1) (liftPoint' A n x k1) (suc k2)))
+             (inj (add (add n (suc k1)) k2) (liftPoint' A (add n (suc k1)) (liftPoint' A n x (suc k1)) k2))
+             (inj (add n (suc k1)) (liftPoint' A n x (suc k1)))
+             (inj (add n k1) (liftPoint' A n x k1))
+             (<i> inj (add_suc (add n k1) k2 @ -i) (lemLiftPoint' A (add n k1) (liftPoint' A n x k1) k2 @ i))
+             (FGII0 n x (suc k1) k2 y')
+             (<i> glA (add n k1) (liftPoint' A n x k1) @ -i)
+
+FGIG00 (n:nat) (x:A.1 n) (k1:nat) (y:code_ip (add n k1) (liftPoint' A n x k1) zero)
+  : PathP (<r> Path (seqCo A)
+                    (gl {seqCo A} (add (add n k1) zero) (liftPoint' A (add n k1) (liftPoint' A n x k1) zero) @ r)
+                    (inj (add n k1) (liftPoint' A n x k1)))
+          (FGII0 n x k1 zero y)
+          (FGII0 n x k1 (suc zero) (code_ip_lift (add n k1) (liftPoint' A n x k1) zero y))
+  = undefined
+
+FGIG0 (n:nat) (x:A.1 n) (k1:nat)
+  : (k2:nat) (y:code_ip (add n k1) (liftPoint' A n x k1) k2)
+  -> PathP (<r> Path (seqCo A)
+                     (gl {seqCo A} (add (add n k1) k2) (liftPoint' A (add n k1) (liftPoint' A n x k1) k2) @ r)
+                     (inj (add n k1) (liftPoint' A n x k1)))
+           (FGII0 n x k1 k2 y)
+           (FGII0 n x k1 (suc k2) (code_ip_lift (add n k1) (liftPoint' A n x k1) k2 y)) = split
+  zero -> FGIG00 n x k1
+  suc k2 -> \(y:code_ip (add n k1) (liftPoint' A n x k1) (suc k2)) -> <r>
+            let y' : code_ip (add n (suc k1)) (liftPoint' A n x (suc k1)) k2
+                   = transport (code_ip_shift (add n k1) (liftPoint' A n x k1) k2) y in
+            compPath3 (seqCo A)
+             (gl {seqCo A} (add (add n k1) (suc k2)) (liftPoint' A (add n k1) (liftPoint' A n x k1) (suc k2)) @ r)
+             (gl {seqCo A} (add (add n (suc k1)) k2) (liftPoint' A (add n (suc k1)) (liftPoint' A n x (suc k1)) k2) @ r)
+             (inj (add n (suc k1)) (liftPoint' A n x (suc k1)))
+             (inj (add n k1) (liftPoint' A n x k1))
+             (<i> gl {seqCo A} (add_suc (add n k1) k2 @ -i) (lemLiftPoint' A (add n k1) (liftPoint' A n x k1) k2 @ i) @ r)
+             (<i> comp (<_> seqCo A)
+                   (FGIG0 n x (suc k1) k2 y' @ r @ i)
+                   [(r=0)-><_> FGII0 n x (suc k1) k2 y' @ i
+                   ,(r=1)-><k> FGII0 n x (suc k1) (suc k2) (shift_eq1 (add n k1) (liftPoint' A n x k1) k2 y @ k) @ i
+                   ,(i=0)-><_> gl {seqCo A} (add (add n (suc k1)) k2) (liftPoint' A (add n (suc k1)) (liftPoint' A n x (suc k1)) k2) @ r
+                   ,(i=1)-><_> inj (add n (suc k1)) (liftPoint' A n x (suc k1))
+                   ])
+             (<i> glA (add n k1) (liftPoint' A n x k1) @ -i)
+
+FGII1 (n:nat) (x:A.1 n) (k1:nat)
+  : (k2:nat) (y:code_ip (add n k1) (liftPoint' A n x k1) k2)
+  -> PathP (<i> code (FGII0 n x k1 k2 y @ i))
+           (inj zero y)
+           (inj k2 y) = split
+  zero -> \(y:code_ip (add n k1) (liftPoint' A n x k1) zero) -> <_> inj zero y
+  suc k2 -> \(y:code_ip (add n k1) (liftPoint' A n x k1) (suc k2)) ->
+            let y' : code_ip (add n (suc k1)) (liftPoint' A n x (suc k1)) k2
+                   = transport (code_ip_shift (add n k1) (liftPoint' A n x k1) k2) y in
+            compPath3P (seqCo A) code
+             (inj (add (add n k1) (suc k2)) (liftPoint' A (add n k1) (liftPoint' A n x k1) (suc k2)))
+             (inj (add (add n (suc k1)) k2) (liftPoint' A (add n (suc k1)) (liftPoint' A n x (suc k1)) k2))
+             (inj (add n (suc k1)) (liftPoint' A n x (suc k1)))
+             (inj (add n k1) (liftPoint' A n x k1))
+             (<i> inj (add_suc (add n k1) k2 @ -i) (lemLiftPoint' A (add n k1) (liftPoint' A n x k1) k2 @ i))
+             (FGII0 n x (suc k1) k2 y')
+             (<i> glA (add n k1) (liftPoint' A n x k1) @ -i)
+             (inj zero y)
+             (inj zero y')
+             (inj k2 y')
+             (inj (suc k2) y)
+             (<i> inj zero (fill (code_ip_shift (add n k1) (liftPoint' A n x k1) k2) y [] @ i))
+             (FGII1 n x (suc k1) k2 y')
+             (<i> code_g_eqp_suc (add n k1) (liftPoint' A n x k1) k2 y @ -i)
+
+FGIG10 (n:nat) (x:A.1 n) (k1:nat) (y:code_ip (add n k1) (liftPoint' A n x k1) zero)
+  : PathP (<r> PathP (<i> code (FGIG00 n x k1 y @ r @ i))
+                     (code_g_eqp_zero (add n k1) (liftPoint' A n x k1) y @ r)
+                     (gl {seqCo (code_i (add n k1) (liftPoint' A n x k1))} zero y @ r))
+          (FGII1 n x k1 zero y)
+          (FGII1 n x k1 (suc zero) (code_ip_lift (add n k1) (liftPoint' A n x k1) zero y))
+          = undefined
+
+FGIG1 (n:nat) (x:A.1 n) (k1:nat)
+  : (k2:nat) (y:code_ip (add n k1) (liftPoint' A n x k1) k2)
+  -> PathP (<r> PathP (<i> code (FGIG0 n x k1 k2 y @ r @ i))
+                      (code_g_eqp_zero (add (add n k1) k2) (liftPoint' A (add n k1) (liftPoint' A n x k1) k2) y @ r)
+                      (gl {seqCo (code_i (add n k1) (liftPoint' A n x k1))} k2 y @ r))
+           (FGII1 n x k1 k2 y)
+           (FGII1 n x k1 (suc k2) (code_ip_lift (add n k1) (liftPoint' A n x k1) k2 y)) = split
+  zero -> FGIG10 n x k1
+  suc k2 -> \(y:code_ip (add n k1) (liftPoint' A n x k1) (suc k2)) -> <r>
+            let y' : code_ip (add n (suc k1)) (liftPoint' A n x (suc k1)) k2
+                   = transport (code_ip_shift (add n k1) (liftPoint' A n x k1) k2) y in
+            compPath3P (seqCo A) code
+             (gl {seqCo A} (add (add n k1) (suc k2)) (liftPoint' A (add n k1) (liftPoint' A n x k1) (suc k2)) @ r)
+             (gl {seqCo A} (add (add n (suc k1)) k2) (liftPoint' A (add n (suc k1)) (liftPoint' A n x (suc k1)) k2) @ r)
+             (inj (add n (suc k1)) (liftPoint' A n x (suc k1)))
+             (inj (add n k1) (liftPoint' A n x k1))
+             (<i> gl {seqCo A} (add_suc (add n k1) k2 @ -i) (lemLiftPoint' A (add n k1) (liftPoint' A n x k1) k2 @ i) @ r)
+             (<i> comp (<_> seqCo A)
+                   (FGIG0 n x (suc k1) k2 y' @ r @ i)
+                   [(r=0)-><_> FGII0 n x (suc k1) k2 y' @ i
+                   ,(r=1)-><k> FGII0 n x (suc k1) (suc k2) (shift_eq1 (add n k1) (liftPoint' A n x k1) k2 y @ k) @ i
+                   ,(i=0)-><_> gl {seqCo A} (add (add n (suc k1)) k2) (liftPoint' A (add n (suc k1)) (liftPoint' A n x (suc k1)) k2) @ r
+                   ,(i=1)-><_> inj (add n (suc k1)) (liftPoint' A n x (suc k1))
+                   ])
+             (<i> glA (add n k1) (liftPoint' A n x k1) @ -i)
+
+             (code_g_eqp_zero (add (add n k1) (suc k2)) (liftPoint' A (add n k1) (liftPoint' A n x k1) (suc k2)) y @ r)
+             (code_g_eqp_zero (add (add n (suc k1)) k2) (liftPoint' A (add n (suc k1)) (liftPoint' A n x (suc k1)) k2) y' @ r)
+             (shift_eq (add n k1) (liftPoint' A n x k1) k2 y' @ r)
+             -- (gl {seqCo (code_i (add n (suc k1)) (liftPoint' A n x (suc k1)))} k2 y' @ r)
+             (gl {seqCo (code_i (add n k1) (liftPoint' A n x k1))} (suc k2) y @ r)
+             (<i> code_g_eqp_zero (add_suc (add n k1) k2 @ -i) (lemLiftPoint' A (add n k1) (liftPoint' A n x k1) k2 @ i)
+                   (fill (code_ip_shift (add n k1) (liftPoint' A n x k1) k2) y [] @ i) @ r)
+             (<i> comp (<j> code (fill (<_> seqCo A)
+                                       (FGIG0 n x (suc k1) k2 y' @ r @ i)
+                                       [(r=0)-><_> FGII0 n x (suc k1) k2 y' @ i
+                                       ,(r=1)-><k> FGII0 n x (suc k1) (suc k2) (shift_eq1 (add n k1) (liftPoint' A n x k1) k2 y @ k) @ i
+                                       ,(i=0)-><_> gl {seqCo A} (add (add n (suc k1)) k2) (liftPoint' A (add n (suc k1)) (liftPoint' A n x (suc k1)) k2) @ r
+                                       ,(i=1)-><_> inj (add n (suc k1)) (liftPoint' A n x (suc k1))
+                                       ] @ j))
+                   (FGIG1 n x (suc k1) k2 y' @ r @ i)
+                   [(r=0)-> <_> FGII1 n x (suc k1) k2 y' @ i
+                   ,(r=1)-> <k> FGII1 n x (suc k1) (suc k2) (shift_eq1 (add n k1) (liftPoint' A n x k1) k2 y @ k) @ i
+                   -- (r=1)(i=0) -> <k> inj zero (shift_eq1 (add n k1) (liftPoint' A n x k1) k2 y @ k)
+                   -- (r=1)(i=1) -> <k> inj (suc k2) (shift_eq1 (add n k1) (liftPoint' A n x k1) k2 y @ k)
+
+                   -- ,(i=0)-> <k> code_g_eqp_zero (add (add n (suc k1)) k2) (liftPoint' A (add n (suc k1)) (liftPoint' A n x (suc k1)) k2) y' @ r
+                   -- ,(i=1)-> <k> shift_eq (add n k1) (liftPoint' A n x k1) k2 y' @ r
+                   ])
+             ?
+             -- (<i> code_g_eqp_suc2 (add n k1) (liftPoint' A n x k1) k2 y @ r @ -i)
+
+-- shift_eq (n:nat) (x:A.1 n) (k:nat) (y:code_ip n x (suc k))
+--   : Path (seqCo (code_i (suc n) (A.2 n x)))
+--          (inj k (transport (code_ip_shift n x k) y))
+--          (inj (suc k) (transport (code_ip_shift n x (suc k)) (code_ip_lift n x (suc k) y)))
+--   = compPath (seqCo (code_i (suc n) (A.2 n x)))
+--              (inj k (transport (code_ip_shift n x k) y))
+--              (inj (suc k) (code_ip_lift (suc n) (A.2 n x) k (transport (code_ip_shift n x k) y)))
+--              (inj (suc k) (transport (code_ip_shift n x (suc k)) (code_ip_lift n x (suc k) y)))
+--              (<i> gl {seqCo (code_i (suc n) (A.2 n y))} k (transport (code_ip_shift n y k) y) @ i)
+--              (<i> inj (suc k) (shift_eq1 n y k y @ i))
+
+
+
+
+FGII (n:nat) (x:A.1 n) (m:nat) (y:code_ip n x m) : Path (Sigma (seqCo A) code) (F (GII n x m y)) (inj n x, inj m y)
+  = <i> (FGII0 n x zero m y @ i, FGII1 n x zero m y @ i)
+
+FGIG (n:nat) (x:A.1 n) (m:nat) (y:code_ip n x m)
+  : PathP (<r> Path (Sigma (seqCo A) code) (F (GIG n x m y @ r)) (inj n x, gl {seqCo (code_i n x)} m y @ r))
+          (FGII n x m y)
+          (FGII n x (suc m) (code_ip_lift n x m y))
+  = <r> <i> (FGIG0 n x zero m y @ r @ i, FGIG1 n x zero m y @ r @ i)
+
+FGI (n:nat) (x:A.1 n) : (y:seqCo (code_i n x)) -> Path (Sigma (seqCo A) code) (F (GI n x y)) (inj n x, y) = split
+  inj m y -> FGII n x m y
+  gl m y @ i -> FGIG n x m y @ i
+
+-- FGG (n:nat) (x:A.1 n)
+--   : PathP (<i> (y:code (glA n x@i)) -> Path (Sigma (seqCo A) code) (F ((GG n x @ i) y)) (glA n x @ i, y))
+--           (FGI n x) (FGI (suc n) (A.2 n x))
+--   = undefined
+
+-- FG0 : (x:seqCo A) (y:code x) -> Path (Sigma (seqCo A) code) (F (G0 x y)) (x, y) = split
+--   inj n x -> FGI n x
+--   gl n x @ i -> FGG n x @ i
+
+-- FG (x : Sigma (seqCo A) code) : Path (Sigma (seqCo A) code) (F (G x)) x = FG0 x.1 x.2
+
+-- hole : equiv (seqCo sigmaSeq) (Sigma (seqCo A) code) = undefined

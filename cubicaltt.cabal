@@ -45,7 +45,7 @@ executable cubical
     pretty >=1.1 && <1.2,
     QuickCheck >=2.6 && <2.10,
     mtl >=2.2 && <2.3,
-    time >=1.4 && <1.6,
+    time >=1.4 && <1.7,
     directory >=1.2 && <1.3,
     filepath >=1.4 && <1.5,
     haskeline >=0.7 && <0.8,

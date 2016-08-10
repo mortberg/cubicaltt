@@ -39,61 +39,52 @@
 
 ;;;; Customization options
 
-(defgroup ctt nil "Options for ctt-mode for cubical type theory"
+(defgroup cubicaltt nil "Options for cubicaltt-mode for cubical type theory"
   :group 'languages
-  :prefix 'ctt-
+  :prefix 'cubicaltt-
   :tag "Cubical type theory")
 
-(defcustom ctt-command "cubical"
+(defcustom cubicaltt-command "cubical"
   "The command to be run for cubical."
-  :group 'ctt
+  :group 'cubicaltt
   :type 'string
   :tag "Command for cubical"
   :options '("cubical" "cabal exec cubical"))
 
 ;;;; Syntax
 
-(defvar ctt-keywords
+(defvar cubicaltt-keywords
   '("hdata" "data" "import" "mutual" "let" "in" "split"
     "with" "module" "where" "U" "opaque" "visible")
   "Keywords for cubical.")
 
-(defvar ctt-special
+(defvar cubicaltt-special
   '("undefined" "primitive")
   "Special operators for cubical.")
 
-(defvar ctt-keywords-regexp
-  (regexp-opt ctt-keywords 'words)
+(defvar cubicaltt-keywords-regexp
+  (regexp-opt cubicaltt-keywords 'words)
   "Regexp that recognizes keywords for cubical.")
 
-(defvar ctt-operators-regexp
+(defvar cubicaltt-operators-regexp
   (regexp-opt '(":" "->" "=" "|" "\\" "*" "_" "<" ">" "\\/" "/\\" "-" "@") t)
   "Regexp that recognizes operators for cubical.")
 
-(defvar ctt-special-regexp
-  (regexp-opt ctt-special 'words)
+(defvar cubicaltt-special-regexp
+  (regexp-opt cubicaltt-special 'words)
   "Regexp that recognizes special operators for cubical.")
 
-(defvar ctt-def-regexp "^[[:word:]']+"
+(defvar cubicaltt-def-regexp "^[[:word:]']+"
   "Regexp that recognizes the beginning of a cubical definition.")
 
-(defvar ctt-font-lock-keywords
-  `((,ctt-keywords-regexp . font-lock-type-face)
-    (,ctt-operators-regexp . font-lock-variable-name-face)
-    (,ctt-special-regexp . font-lock-warning-face)
-    (,ctt-def-regexp . font-lock-function-name-face))
+(defvar cubicaltt-font-lock-keywords
+  `((,cubicaltt-keywords-regexp . font-lock-type-face)
+    (,cubicaltt-operators-regexp . font-lock-variable-name-face)
+    (,cubicaltt-special-regexp . font-lock-warning-face)
+    (,cubicaltt-def-regexp . font-lock-function-name-face))
   "Font-lock information, assigning each class of keyword a face.")
 
-(defun ctt-comment-dwim (arg)
-  "Comment or uncomment current line or region in a smart way, or kill with ARG.
-
-For details, see `comment-dwim'."
-  (interactive "*P")
-  (require 'newcomment)
-  (let ((comment-start "--") (comment-end ""))
-    (comment-dwim arg)))
-
-(defvar ctt-syntax-table
+(defvar cubicaltt-syntax-table
   (let ((st (make-syntax-table)))
     (modify-syntax-entry ?\{  "(}1nb" st)
     (modify-syntax-entry ?\}  "){4nb" st)
@@ -105,34 +96,35 @@ For details, see `comment-dwim'."
 
 ;;;; The interactive toplevel
 
-(defvar *ctt-cubical-process* nil
+(defvar cubicaltt-cubical-process nil
   "The subprocess buffer for cubical.")
 
-(defvar *ctt-loaded-buffer* nil
+(defvar cubicaltt-loaded-buffer nil
   "The currently-loaded buffer for cubical.
 
 If no buffer is loaded, then this variable is nil.")
 
-(defun ctt-ensure-process ()
+(defun cubicaltt-ensure-process ()
   "Ensure that a process is running for cubical and return the process buffer."
-  (if (and *ctt-cubical-process* (get-buffer-process *ctt-cubical-process*))
-      *ctt-cubical-process*
-    (let ((process (make-comint "cubical" ctt-command)))
-      (setq *ctt-cubical-process* process)
+  (if (and cubicaltt-cubical-process (get-buffer-process cubicaltt-cubical-process))
+      cubicaltt-cubical-process
+    (let ((process (make-comint "cubical" cubicaltt-command)))
+      (setq cubicaltt-cubical-process process)
       process)))
 
-(defun ctt-load ()
+(defun cubicaltt-load ()
   "Start cubical if it is not running, and get the current buffer loaded."
   (interactive)
   (let ((file (buffer-file-name)))
     (unless file
       (error "The current buffer is not associated with a file"))
-    (let ((cubical-proc (ctt-ensure-process))
+    (let ((cubical-proc (cubicaltt-ensure-process))
           (dir (file-name-directory file))
           (f (file-name-nondirectory file)))
       (save-buffer)
       ;; Get in the right working directory. No space-escaping is
-      ;; necessary for cubical.
+      ;; necessary for cubical, which in fact expects filenames to be
+      ;; written without quotes or space-escaping.
       (comint-send-string cubical-proc (concat ":cd " dir "\n"))
       ;; Load the file
       (comint-send-string cubical-proc (concat ":l " f "\n"))
@@ -141,7 +133,7 @@ If no buffer is loaded, then this variable is nil.")
 
 ;;;; Completion support
 
-(defvar ctt--completion-regexp
+(defvar cubicaltt--completion-regexp
   "^\\(?1:[[:word:]']+\\) [:(]\\|^data \\(?1:[[:word:]']+\\)\\|=\\s-*\\(?1:[[:word:]']\\)\\||\\s-*\\(?1:[[:word:]']\\)"
   "Regexp for finding names to complete.
 
@@ -156,18 +148,18 @@ data <NAME>
 It is overly liberal, but it is better to have too many
 suggestions for completion rather than too few.")
 
-(defun ctt-defined-names ()
+(defun cubicaltt-defined-names ()
   "Find all names defined in this buffer."
   (save-excursion
     (let (names)
       (goto-char (point-min))
-      (while (re-search-forward ctt--completion-regexp nil t)
+      (while (re-search-forward cubicaltt--completion-regexp nil t)
         ;; Do not save if inside comment
         (unless (nth 4 (syntax-ppss))
           (push (match-string-no-properties 1) names)))
       names)))
 
-(defun ctt-completion-at-point ()
+(defun cubicaltt-completion-at-point ()
   "Attempt to perform completion for cubical's keywords and the definitions in this file."
   (when (looking-back "\\w+" nil t)
     (let* ((match (match-string-no-properties 0))
@@ -175,9 +167,9 @@ suggestions for completion rather than too few.")
            (end-pos (match-end 0))
            (candidates (cl-remove-if-not
                         (apply-partially #'string-prefix-p match)
-                        (append ctt-keywords
-                                ctt-special
-                                (ctt-defined-names)))))
+                        (append cubicaltt-keywords
+                                cubicaltt-special
+                                (cubicaltt-defined-names)))))
       (if (null candidates)
           nil
         (list start-pos end-pos candidates)))))
@@ -185,23 +177,25 @@ suggestions for completion rather than too few.")
 ;;;; The mode itself
 
 ;;;###autoload
-(define-derived-mode ctt-mode prog-mode
-                     "ctt mode"
+(define-derived-mode cubicaltt-mode prog-mode
+  "ctt"
   "Major mode for editing cubical type theory files."
 
-  :syntax-table ctt-syntax-table
+  :syntax-table cubicaltt-syntax-table
+
+  ;; Make comment-dwim do the right thing for Cubical
+  (set (make-local-variable 'comment-start) "--")
+  (set (make-local-variable 'comment-end) "")
 
   ;; Code for syntax highlighting
-  (setq font-lock-defaults '(ctt-font-lock-keywords))
-  (setq mode-name "ctt")
+  (setq font-lock-defaults '(cubicaltt-font-lock-keywords))
 
-  ;; Modify the keymap
-  (define-key ctt-mode-map [remap comment-dwim] 'ctt-comment-dwim)
-  (define-key ctt-mode-map (kbd "C-c C-l") 'ctt-load)
+  ;; Bind mode-specific commands to keys
+  (define-key cubicaltt-mode-map (kbd "C-c C-l") 'cubicaltt-load)
 
   ;; Install the completion handler
   (set (make-local-variable 'completion-at-point-functions)
-       '(ctt-completion-at-point))
+       '(cubicaltt-completion-at-point))
 
   ;; Setup imenu, to allow tools such as imenu and Helm to jump
   ;; directly to names in the current buffer.
@@ -210,12 +204,12 @@ suggestions for completion rather than too few.")
          ("Datatypes" "^\\s-*data\\s-+\\(?1:[[:word:]']+\\)" 1)))
 
   ;; Clear memory
-  (setq ctt-keywords-regexp nil)
-  (setq ctt-operators-regexp nil)
-  (setq ctt-special-regexp nil))
+  (setq cubicaltt-keywords-regexp nil)
+  (setq cubicaltt-operators-regexp nil)
+  (setq cubicaltt-special-regexp nil))
 
 ;;;###autoload
-(add-to-list 'auto-mode-alist '("\\.ctt\\'" . ctt-mode))
+(add-to-list 'auto-mode-alist '("\\.ctt\\'" . cubicaltt-mode))
 
 (provide 'cubicaltt)
 ;;; cubicaltt.el ends here

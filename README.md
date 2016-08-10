@@ -86,11 +86,11 @@ When using cabal sandboxes, `cubical` can be invoked using
   `cabal exec cubical <filename>`
 
 
-To enable emacs to edit ```*.ctt``` files in ```ctt-mode```, add the following
+To enable emacs to edit ```*.ctt``` files in ```cubicaltt-mode```, add the following
 line to your ```.emacs``` file:
 ```
-(autoload 'ctt-mode "cubicaltt" "cubical editing mode" t)
-(setq auto-mode-alist (append auto-mode-alist '(("\\.ctt$" . ctt-mode))))
+(autoload 'cubicaltt-mode "cubicaltt" "cubical editing mode" t)
+(setq auto-mode-alist (append auto-mode-alist '(("\\.ctt$" . cubicaltt-mode))))
 ```
 and ensure that the file ```cubicaltt.el``` is visible in one of the diretories
 on emacs' ```load-path```, or else load it in advance, either manually with
@@ -99,10 +99,10 @@ on emacs' ```load-path```, or else load it in advance, either manually with
 (load-file "cubicaltt.el")
 ```
 
-When using `ctt-mode` in Emacs, the command `ctt-load` will launch the
+When using `cubicaltt-mode` in Emacs, the command `cubicaltt-load` will launch the
 interactive toplevel in an Emacs buffer and load the current file. It
 is bound to `C-c C-l` by default. If `cubical` is not on Emacs's
-`exec-path`, then set the variable `ctt-command` to the command that
+`exec-path`, then set the variable `cubicaltt-command` to the command that
 runs it.
 
 References and notes

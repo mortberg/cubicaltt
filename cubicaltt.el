@@ -55,7 +55,7 @@
 
 (defvar cubicaltt-keywords
   '("hdata" "data" "import" "mutual" "let" "in" "split"
-    "with" "module" "where" "U" "opaque" "visible")
+    "with" "module" "where" "U" "opaque" "transparent")
   "Keywords for cubical.")
 
 (defvar cubicaltt-special

@@ -2,9 +2,9 @@ module retract where
 
 import prelude
 
-section (A B : U) (f : A -> B) (g : B -> A) :U = (b : B) -> Path B (f (g b)) b
+section (A B : U) (f : A -> B) (g : B -> A) : U = (b : B) -> Path B (f (g b)) b
 
-retract (A B : U) (f : A -> B) (g : B -> A) : U = section B A g f
+retract (A B : U) (f : A -> B) (g : B -> A) : U = (a : A) -> Path A (g (f a)) a
 
 lemRetract (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g) (x y:A) :
              Path A (g (f x)) (g (f y)) -> Path A x y

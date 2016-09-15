@@ -149,7 +149,7 @@ uaret (A B : U) : retract (equiv A B) (Path U A B) (ua A B) (transEquiv A B) =
     equivLemma A B (transEquiv A B (ua A B e)) e (uabeta A B e)
 
 
--- So  (B:U) x Equiv A B    is a retract of    (B:U) x Path U A B
+-- So  (B:U) x equiv A B    is a retract of    (B:U) x Path U A B
 opaque uaret
 
 f1 (A : U) (p : (B : U) * equiv A B) : ((B : U) * Path U A B) = (p.1,ua A p.1 p.2)
@@ -182,7 +182,7 @@ univalence (A : U) : isContr ((B : U) * equiv A B) =
 
 
 -- From here on it is just the proof of the standard formulation of
--- univalence, taken from examples/univalence.ctt
+-- univalence from the above formulation, taken from examples/univalence.ctt
 
 sigIsContr (A : U) (B : A -> U) (u : isContr A)
   (q : (x : A) -> isContr (B x)) : isContr ((x:A) * B x) = ((a,g a),r)

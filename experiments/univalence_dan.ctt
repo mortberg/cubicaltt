@@ -1,8 +1,12 @@
--- This is a selfcontained proof of univalence using an idea of Dan Licata:
+-- This is a selfcontained proof of univalence using an idea of Dan Licata from:
+--
 --   https://groups.google.com/forum/#!topic/homotopytypetheory/j2KBIvDw53s
+--
+-- The proof follows a sketch due to Thierry Coquand.
 module univalence_dan where
 
 -- Preliminary stuff:
+
 Path (A : U) (a0 a1 : A) : U = PathP (<i> A) a0 a1
 
 compPath (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
@@ -32,7 +36,8 @@ propPi (A : U) (B : A -> U) (h : (x : A) -> prop (B x))
 
 lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a0 a1 :A)
          (p : Path A a0 a1) (b0 : P a0) (b1 : P a1) : PathP (<i>P (p@i)) b0 b1 =
- <i>pP (p@i) (comp (<j>P (p@i/\j)) b0 [(i=0) -> <_>b0]) (comp (<j>P (p@i\/-j)) b1 [(i=1) -> <_>b1])@i
+ <i> pP (p@i) (comp (<j>P (p@i/\j)) b0 [(i=0) -> <_>b0])
+                    (comp (<j>P (p@i\/-j)) b1 [(i=1) -> <_>b1])@i
 
 propSet (A : U) (h : prop A) : set A =
  \(a b : A) (p q : Path A a b) ->
@@ -40,8 +45,6 @@ propSet (A : U) (h : prop A) : set A =
                        , (i=1) -> h a b
                        , (j=0) -> h a (p @ i)
                        , (j=1) -> h a (q @ i)]
-
-Sigma (A : U) (B : A -> U) : U = (x : A) * B x
 
 lemSig (A : U) (B : A -> U) (pB : (x : A) -> prop (B x))
        (u v : (x:A) * B x) (p : Path A u.1 v.1) :
@@ -66,8 +69,7 @@ propIsContr (A : U) : prop (isContr A) = lemProp (isContr A) rem
 
 
 propIsEquiv (A B : U) (f : A -> B) : prop (isEquiv A B f) = \ (u0
-  u1:isEquiv A B f) -> <i> \ (y:B) -> propIsContr (fiber A B f y) (u0
-  y) (u1 y) @ i
+  u1:isEquiv A B f) -> <i> \ (y:B) -> propIsContr (fiber A B f y) (u0 y) (u1 y) @ i
 
 equivLemma (A B : U) : (v w : equiv A B) -> Path (A -> B) v.1 w.1 ->
   Path (equiv A B) v w = lemSig (A -> B) (isEquiv A B) (propIsEquiv A B)
@@ -120,15 +122,20 @@ retIsContr (A B : U) (f : A -> B) (g : B -> A)
 
 -- The new stuff starts here:
 
---  ua + uabeta implies univalence
+-- The goal is to prove that ua + uabeta implies univalence
 
+-- ua can be directly defined using Glue
+ua (A B : U) (e : equiv A B) : Path U A B =
+  <i> Glue B [ (i = 0) -> (A,e)
+             , (i = 1) -> (B,idEquiv B) ]
 
-ua (A B : U) (e : equiv A B) : Path U A B = 
-  <i> Glue B [ (i = 0) -> (A,e), (i=1) -> (B,idEquiv B) ]
-
-
+-- uabeta is proved using funext and computation. The lhs computes to
+-- two transports along constant paths of the rhs. These transports
+-- have to be handled by hand, if transport along constant paths would
+-- have been the identity function (i.e. if the computation rule for J
+-- would be definitional) this proof would be trivial.
 uabeta (A B : U) (e : equiv A B) : Path (A -> B) (trans A B (ua A B e)) e.1 =
-  <i> \(a : A) -> 
+  <i> \(a : A) ->
       let b : B = trans B B (<_> B) (e.1 a)
           rem1 : Path B b (e.1 a) = <i> fill (<_> B) (e.1 a) [] @ -i
           rem2 : Path B (trans B B (<_> B) b) b = <i> fill (<_> B) b [] @ -i
@@ -136,37 +143,33 @@ uabeta (A B : U) (e : equiv A B) : Path (A -> B) (trans A B (ua A B e)) e.1 =
             compPath B (trans B B (<_> B) b) b (e.1 a) rem2 rem1
       in goal @ i
 
--- We first get that equiv A B is a retract of Path U A B
+-- uabeta implies that equiv A B is a retract of Path U A B
 uaret (A B : U) : retract (equiv A B) (Path U A B) (ua A B) (transEquiv A B) =
-  let rem (e : equiv A B) : Path (A -> B) (trans A B (ua A B e)) e.1 = uabeta A B e
-      goal (e : equiv A B) : Path (equiv A B) (transEquiv A B (ua A B e)) e =
-        equivLemma A B (transEquiv A B (ua A B e)) e (rem e)
-  in goal
+  \(e : equiv A B) ->
+    equivLemma A B (transEquiv A B (ua A B e)) e (uabeta A B e)
 
 
--- From this we get that  (B:U) x Equiv A B    is a retract of    (B:U) x Path U A B
-
+-- So  (B:U) x Equiv A B    is a retract of    (B:U) x Path U A B
 opaque uaret
 
 f1 (A : U) (p : (B : U) * equiv A B) : ((B : U) * Path U A B) = (p.1,ua A p.1 p.2)
 f2 (A : U) (p : (B : U) * Path U A B) : ((B : U) * equiv A B) = (p.1,transEquiv A p.1 p.2)
 
-uaretsig (A : U) :
-  retract ((B : U) * equiv A B) ((B : U) * Path U A B) (f1 A) (f2 A) = 
+uaretsig (A : U) : retract ((B : U) * equiv A B) ((B : U) * Path U A B) (f1 A) (f2 A) =
   \(p : (B : U) * equiv A B) -> <i> (p.1,uaret A p.1 p.2 @ i)
 
 transparent uaret
 
--- Which gives that   (B:U) x Equiv A B   is contractible
+-- But   (B : U) x Path U A B   is contractible
+isContrPath (A : U) : isContr ((B : U) * Path U A B) =
+  let ctr : (B : U) * Path U A B = (A,<_> A)
+      ctrpath (q : (B : U) * Path U A B) : Path ((B : U) * Path U A B) ctr q =
+        <i> (q.2 @ i,<j> q.2 @ i/\j)
+  in (ctr,ctrpath)
 
-isContrPath (A : U) : isContr ((B : U) * Path U A B) = 
-  let T : U = (B : U) * Path U A B
-      ctr : T = (A,<_> A)
-      contrsingl (q : T) : Path T ctr q = <i> (q.2 @ i,<j> q.2 @ i/\j)
-  in (ctr,contrsingl)
-
+-- So we get the following formulation of univalence:
 univalence (A : U) : isContr ((B : U) * equiv A B) =
-  retIsContr ((B : U) * equiv A B) ((B : U) * Path U A B) 
+  retIsContr ((B : U) * equiv A B) ((B : U) * Path U A B)
      (f1 A) (f2 A) (uaretsig A) (isContrPath A)
 
 
@@ -174,5 +177,91 @@ univalence (A : U) : isContr ((B : U) * equiv A B) =
 
 
 
--- "If I understand Simon’s conjecture right, it is that conversely to
--- prove (X:U) x Equiv A X contractible is essentially to prove"
+
+
+
+
+-- From here on it is just the proof of the standard formulation of
+-- univalence, taken from examples/univalence.ctt
+
+sigIsContr (A : U) (B : A -> U) (u : isContr A)
+  (q : (x : A) -> isContr (B x)) : isContr ((x:A) * B x) = ((a,g a),r)
+ where
+  a : A = u.1
+  p : (x:A) -> Path A a x = u.2
+  g (x:A) : B x = (q x).1
+  h (x:A) : (y:B x) -> Path (B x) (g x) y = (q x).2
+  C : U = (x:A) * B x
+  r (z:C) : Path C (a,g a) z =
+   <i>(p z.1@i,h (p z.1@i) (comp (<j>B (p z.1@i\/-j)) z.2 [(i=1)-><j>z.2])@i)
+
+isPathContr (A:U) (cA:isContr A) (x y:A) : isContr (Path A x y) =  (p0,q)
+ where
+  a : A = cA.1
+  f : (x:A) -> Path A a x = cA.2
+  p0 : Path A x y = <i>comp (<j>A) a [(i=0) -> f x,(i=1) -> f y]
+  q (p:Path A x y) : Path (Path A x y) p0 p =
+   <j i>comp (<k>A) a [(i=0) -> f x,(i=1) -> f y,
+                       (j=0) -> <k>comp (<l>A) a [(k=0) -> <l>a,(i=0) -> <l>f x@k/\l,(i=1) -> <l>f y@k/\l],
+                       (j=1) -> f (p@i)]
+
+isEquivContr (A B:U) (cA:isContr A) (cB:isContr B) (f:A->B) : isEquiv A B f =
+ \ (y:B) -> sigIsContr A (\ (x:A) -> Path B y (f x)) cA (\ (x:A) -> isPathContr B cB y (f x))
+
+Sigma (A : U) (B : A -> U) : U = (x : A) * B x
+
+totalFun (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (w:Sigma A B) : Sigma A C =
+ (w.1,f (w.1) (w.2))
+
+funFib1  (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (x0:A) (z0:C x0) (u:fiber (B x0) (C x0) (f x0) z0) :
+ fiber (Sigma A B) (Sigma A C) (totalFun A B C f) (x0,z0) =  ((x0,u.1),<i>(x0,u.2@i))
+
+funFib2  (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (x0:A) (z0:C x0)
+         (w : fiber (Sigma A B) (Sigma A C) (totalFun A B C f) (x0,z0)) : fiber (B x0) (C x0) (f x0) z0 = (b0,s)
+ where
+  x : A = w.1.1
+  b : B x = w.1.2
+  p : Path A x0 x = <i>(w.2@i).1
+  q : PathP (<i>C (p@i)) z0 (f x b) = <i>(w.2@i).2
+  b0 : B x0 = comp (<i>B (p@-i)) b []
+  r : PathP (<i>B (p@-i)) b b0 = <i>comp (<j>B (p@-j\/-i)) b [(i=0) -> <k>b]
+  s : Path (C x0) z0 (f x0 b0) = <i>comp (<j>C (p@(i/\-j))) (q@i) [(i=0) -> <k>z0,(i=1) -> <k>f (p@-k) (r@k)]
+
+retFunFib (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (x0:A) (z0:C x0) (u:fiber (B x0) (C x0) (f x0) z0) :
+   Path (fiber (B x0) (C x0) (f x0) z0) (funFib2 A B C f x0 z0 (funFib1 A B C f x0 z0 u)) u =
+ <l> (comp (<i> B x0) u.1 [(l=1) -> <j>u.1],
+      <i> comp (<j> C x0) (u.2 @ i) [ (l=1) -> <j> u.2 @ i,
+                                      (i = 0) -> <j> z0,
+                                      (i = 1) -> <j> f x0 (comp (<k> B x0) u.1 [ (j = 0) -> <k> u.1, (l=1) -> <k>u.1 ]) ])
+
+equivFunFib (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (cB : isContr (Sigma A B)) (cC : isContr (Sigma A C)) (x:A)
+  : isEquiv (B x) (C x) (f x) =
+ \ (z:C x) -> retIsContr (fiber (B x) (C x) (f x) z) (fiber (Sigma A B) (Sigma A C) (totalFun A B C f) (x,z))
+                         (funFib1 A B C f x z)
+                         (funFib2 A B C f x z)
+                         (retFunFib A B C f x z)
+                         (isEquivContr (Sigma A B) (Sigma A C) cB cC (totalFun A B C f) (x,z))
+
+lemSinglContr (A:U) (a:A) : isContr ((x:A) * Path A a x) =
+ ((a,<_> a),\ (z:(x:A) * Path A a x) -> contrSingl A a z.1 z.2)
+
+thmUniv (t : (A X : U) -> Path U A X -> equiv A X) (A : U) :
+  (X : U) -> isEquiv (Path U A X) (equiv A X) (t A X) =
+    equivFunFib U (\(X : U) -> Path U A X) (\(X : U) -> equiv A X)
+      (t A) (lemSinglContr U A) (univalence A)
+
+subst (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
+  trans (P a) (P b) (<i> P (p @ i)) e
+
+J (A : U) (a : A) (C : (x : A) -> Path A a x -> U)
+  (d : C a (<_> a)) (x : A) (p : Path A a x) : C x p =
+    subst ((x : A) * Path A a x) T (a, <_> a) (x, p) (contrSingl A a x p) d
+      where T (z : (x : A) * Path A a x) : U = C (z.1) (z.2)
+
+-- The canonical map defined using J
+canPathToEquiv (A : U) : (B : U) -> Path U A B -> equiv A B =
+  J U A (\ (B : U) (_ : Path U A B) -> equiv A B) (idEquiv A)
+
+-- Finally the standard formulation of univalence
+univalenceJ (A B : U) : equiv (Path U A B) (equiv A B) =
+  (canPathToEquiv A B,thmUniv (\(A X : U) -> canPathToEquiv A X) A B)

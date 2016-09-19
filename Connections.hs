@@ -388,10 +388,10 @@ showSystem :: Show a => System a -> String
 showSystem = showListSystem . toList
 
 insertSystem :: Face -> a -> System a -> System a
-insertSystem alpha v ts = case find (comparable alpha) (keys ts) of
-  Just beta | alpha `leq` beta -> ts
-            | otherwise        -> Map.insert alpha v (Map.delete beta ts)
-  Nothing -> Map.insert alpha v ts
+insertSystem alpha v ts
+  | any (leq alpha) (keys ts) = ts
+  | otherwise = Map.insert alpha v
+                (Map.filterWithKey (\gamma _ -> not (gamma `leq` alpha)) ts)
 
 insertsSystem :: [(Face, a)] -> System a -> System a
 insertsSystem faces us = foldr (uncurry insertSystem) us faces

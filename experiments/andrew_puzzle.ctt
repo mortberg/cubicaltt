@@ -1,0 +1,66 @@
+-- Formalization of a puzzle posted by Andrew Polonsky in:
+--   https://groups.google.com/forum/#!topic/homotopytypetheory/ebUESBRBxVc
+module andrew_puzzle where
+
+Path (A : U) (a0 a1 : A) : U = PathP (<i> A) a0 a1
+
+mapOnPath (A B : U) (f : A -> B) (a b : A)
+          (p : Path A a b) : Path B (f a) (f b) = <i> f (p @ i)
+
+subst (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
+  transport (mapOnPath A U P a b p) e
+
+
+data Bool = tt | ff
+data Unit = uu
+
+-- f, g : Bool -> Bool -> Bool
+-- f x y = if x then y else ff
+-- g x y = if y then x else ff
+f : Bool -> Bool -> Bool = split
+  tt -> \(y : Bool) -> y
+  ff -> \(_ : Bool) -> ff
+
+g (x : Bool) : Bool -> Bool = split
+  tt -> x
+  ff -> ff
+
+-- e : f = g
+e : Path (Bool -> Bool -> Bool) f g = 
+  let p : (x y : Bool) -> Path Bool (f x y) (g x y) = split
+    tt -> split@((y : Bool) -> Path Bool (f tt y) (g tt y)) with
+      tt -> <_> tt
+      ff -> <_> ff
+    ff -> split@((y : Bool) -> Path Bool (f ff y) (g ff y)) with
+      tt -> <_> ff
+      ff -> <_> ff
+  in <i> \(x y : Bool) -> p x y @ i
+  
+
+-- Phi : Bool -> Type
+-- Phi tt = Bool
+-- Phi ff = Unit
+Phi : Bool -> U = split
+  tt -> Bool
+  ff -> Unit
+
+
+-- Psi : (Bool->Bool->Bool)->Type
+-- Psi = \u. (u tt tt) x (u tt ff) x (u ff tt) x (u ff ff)
+Prod (A B : U) : U = (_ : A) * B
+
+Psi : (Bool -> Bool -> Bool) -> U =
+  \(u : Bool -> Bool -> Bool) -> Prod (Phi (u tt tt))
+                                (Prod (Phi (u tt ff))
+                                (Prod (Phi (u ff tt)) (Phi (u ff ff))))
+
+-- X : Psi f
+-- X = (tt,*,*,*)
+X : Psi f = (tt,uu,uu,uu)
+
+-- Y : Psi g
+-- Y = subst Psi e X
+Y : Psi g = subst (Bool -> Bool -> Bool) Psi f g e X
+
+-- X and Y are definitionally equal:
+goal : Path (Psi f) X Y = <_> (tt,uu,uu,uu)

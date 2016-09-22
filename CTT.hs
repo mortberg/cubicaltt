@@ -119,6 +119,10 @@ data Ter = Pi Ter
          | Glue Ter (System Ter)
          | GlueElem Ter (System Ter)
          | UnGlueElem Ter (System Ter)
+           -- Id
+         | Id Ter Ter Ter
+         | IdPair Ter (System Ter)
+         | IdJ Ter Ter Ter Ter Ter Ter
   deriving Eq
 
 -- For an expression t, returns (u,ts) where u is no application and t = u ts
@@ -163,6 +167,10 @@ data Val = VU
            -- Composition for HITs; the type is constant
          | VHComp Val Val (System Val)
 
+           -- Id
+         | VId Val Val Val
+         | VIdPair Val (System Val)
+
            -- Neutral values:
          | VVar Ident Val
          | VOpaque Ident Val
@@ -173,23 +181,25 @@ data Val = VU
          | VAppFormula Val Formula
          | VLam Ident Val Val
          | VUnGlueElemU Val Val (System Val)
+         | VIdJ Val Val Val Val Val Val
   deriving Eq
 
 isNeutral :: Val -> Bool
 isNeutral v = case v of
-  Ter Undef{} _     -> True
-  Ter Hole{} _      -> True
-  VVar{}            -> True
-  VOpaque{}         -> True
-  VComp{}           -> True
-  VFst{}            -> True
-  VSnd{}            -> True
-  VSplit{}          -> True
-  VApp{}            -> True
-  VAppFormula{}     -> True
-  VUnGlueElemU{}    -> True
-  VUnGlueElem{}     -> True
-  _                 -> False
+  Ter Undef{} _  -> True
+  Ter Hole{} _   -> True
+  VVar{}         -> True
+  VOpaque{}      -> True
+  VComp{}        -> True
+  VFst{}         -> True
+  VSnd{}         -> True
+  VSplit{}       -> True
+  VApp{}         -> True
+  VAppFormula{}  -> True
+  VUnGlueElemU{} -> True
+  VUnGlueElem{}  -> True
+  VIdJ{}         -> True
+  _              -> False
 
 isNeutralSystem :: System Val -> Bool
 isNeutralSystem = any isNeutral . elems
@@ -373,6 +383,9 @@ showTer v = case v of
   Glue a ts          -> text "Glue" <+> showTer1 a <+> text (showSystem ts)
   GlueElem a ts      -> text "glue" <+> showTer1 a <+> text (showSystem ts)
   UnGlueElem a ts    -> text "unglue" <+> showTer1 a <+> text (showSystem ts)
+  Id a u v           -> text "Id" <+> showTers [a,u,v]
+  IdPair b ts        -> text "IdC" <+> showTer1 b <+> text (showSystem ts)
+  IdJ a t c d x p    -> text "IdJ" <+> showTers [a,t,c,d,x,p]
 
 showTers :: [Ter] -> Doc
 showTers = hsep . map showTer1
@@ -437,6 +450,9 @@ showVal v = case v of
   VUnGlueElemU v b es -> text "unglue U" <+> showVals [v,b]
                          <+> text (showSystem es)
   VCompU a ts       -> text "comp (<_> U)" <+> showVal1 a <+> text (showSystem ts)
+  VId a u v           -> text "Id" <+> showVals [a,u,v]
+  VIdPair b ts        -> text "IdC" <+> showVal1 b <+> text (showSystem ts)
+  VIdJ a t c d x p    -> text "IdJ" <+> showVals [a,t,c,d,x,p]
 
 showPLam :: Val -> Doc
 showPLam e = case e of

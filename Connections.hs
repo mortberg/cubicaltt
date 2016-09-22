@@ -403,6 +403,11 @@ unionSystem :: System a -> System a -> System a
 unionSystem us vs = insertsSystem (assocs us) vs
 
 
+joinSystem :: System (System a) -> System a
+joinSystem tss = mkSystem $
+  [ (alpha `meet` beta,t) | (alpha,ts) <- assocs tss, (beta,t) <- assocs ts ]
+
+
 -- TODO: add some checks
 transposeSystemAndList :: System [a] -> [b] -> [(System a,b)]
 transposeSystemAndList _  []      = []

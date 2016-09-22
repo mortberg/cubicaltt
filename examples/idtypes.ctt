@@ -1,0 +1,189 @@
+module idtypes where
+
+import sigma
+import univalence
+
+refId (A : U) (a : A) : Id A a a =
+  idC (<i> a) [  -> a ]
+
+JJ (A : U) (a : A) (C : (x : A) -> Id A a x -> U) (d : C a (refId A a))
+   (x : A) (p : Id A a x) : C x p
+   = idJ A a C d x p
+
+JJref (A : U) (a : A) (C : (x : A) -> Id A a x -> U) (d : C a (refId A a))
+   : C a (refId A a)
+   = idJ A a C d a (refId A a)
+
+JJId (A : U) (a : A) (C : (x : A) -> Id A a x -> U) (d : C a (refId A a))
+   : Id (C a (refId A a)) d (JJ A a C d a (refId A a))
+   = refId (C a (refId A a)) d
+
+substId (A : U) (F : A -> U) (a b : A) (p : Id A a b) (e : F a) : F b =
+  JJ A a (\ (x : A) (_ : Id A a x) -> F x) e b p
+
+substIdRef (A : U) (F : A -> U) (a : A) (e : F a) : F a =
+  substId A F a a (refId A a) e
+
+transId (A : U) (a b c : A) (p : Id A a b) (q : Id A b c) : Id A a c =
+  substId A (\ (z : A) -> Id A a z) b c q p
+
+transIdRef (A : U) (a b : A) (p : Id A a b): Id A a b =
+  transId A a a b (refId A a) p
+
+idToPath (A : U) (a b : A) (p : Id A a b) : Path A a b =
+  idJ A a (\ (b : A) (p : Id A a b) -> Path A a b)
+    (<i> a) b p
+
+pathToId (A : U) (a b : A) (p : Path A a b) : Id A a b =
+--  idC p []
+  J A a (\ (b : A) (p : Path A a b) -> Id A a b)
+    (refId A a) b p
+
+pathToIdRef (A : U) (a : A) : Path (Id A a a) (refId A a) (pathToId A a a (<_> a)) =
+  JEq A a (\ (b : A) (p : Path A a b) -> Id A a b) (refId A a)
+
+idToPathRef (A : U) (a : A) : Path (Path A a a) (<_> a) (idToPath A a a (refId A a)) =
+  <i j> a
+
+pathToIdToPath (A : U) (a b : A) (p : Path A a b) :
+  Path (Path A a b) p (idToPath A a b (pathToId A a b p)) =
+  J A a (\ (b : A) (p : Path A a b) ->
+    Path (Path A a b) p (idToPath A a b (pathToId A a b p)))
+    (<j> idToPath A a a (pathToIdRef A a @ j)) b p
+
+lem (A : U) (a : A) :
+  Path (Id A a a) (refId A a) (pathToId A a a (idToPath A a a (refId A a))) =
+    compPath (Id A a a)
+      (refId A a) (pathToId A a a (<_> a)) (pathToId A a a (idToPath A a a (refId A a)))
+      (pathToIdRef A a) (<k> pathToId A a a (idToPathRef A a @ k))
+
+idToPathToId (A : U) (a b : A) (p : Id A a b) :
+  Path (Id A a b) p (pathToId A a b (idToPath A a b p)) =
+  idJ A a (\ (b : A) (p : Id A a b) ->
+    Path (Id A a b) p (pathToId A a b (idToPath A a b p)))
+    (lem A a) b p
+
+PathIdPath (A B : U) : Path U (Id U A B) (Path U A B) =
+  equivPath (Id U A B) (Path U A B) (idToPath U A B) rem
+  where rem : isEquiv (Id U A B) (Path U A B) (idToPath U A B) =
+          gradLemma (Id U A B) (Path U A B) (idToPath U A B) (pathToId U A B)
+            (\(p : Path U A B) -> <i> pathToIdToPath U A B p @ - i)
+            (\(p : Id U A B) -> <i> idToPathToId U A B p @ - i)
+
+-- A few different versions of univalence for Id:
+IdUnivalence1 (A B : U) : Path U (Id U A B) (equiv A B) =
+  compPath U (Id U A B) (Path U A B) (equiv A B) (PathIdPath A B) (corrUniv A B)
+
+IdUnivalence2 (A B : U) : equiv (Id U A B) (equiv A B) =
+  transEquiv' (equiv A B) (Id U A B) (IdUnivalence1 A B)
+
+IdUnivalence3 (A B : U) : Id U (Id U A B) (equiv A B) =
+  pathToId U (Id U A B) (equiv A B) (IdUnivalence1 A B)
+
+
+-- Redefine equivalence using Id and prove univalence with this formulation
+
+fiberId (A B : U) (f : A -> B) (y : B) : U =
+  (x : A) * Id B y (f x)
+
+isContrId (A : U) : U = (x : A) * ((y : A) -> Id A x y)
+
+isEquivId (A B : U) (f : A -> B) : U = (y : B) -> isContrId (fiberId A B f y)
+
+equivId (A B : U) : U = (f : A -> B) * isEquivId A B f
+
+fiberToFiberId (A B : U) (f : A -> B) (y : B) :
+  Path U (fiber A B f y) (fiberId A B f y) =
+    isoPath (fiber A B f y) (fiberId A B f y) f1 f2 rem1 rem2
+  where
+  f1 (t : fiber A B f y) : fiberId A B f y = (t.1,pathToId B y (f t.1) t.2)
+  f2 (t : fiberId A B f y) : fiber A B f y = (t.1,idToPath B y (f t.1) t.2)
+  rem1 (x : fiberId A B f y) : Path (fiberId A B f y) (f1 (f2 x)) x =
+    <i> (x.1,idToPathToId B y (f x.1) x.2 @ -i)
+  rem2 (x : fiber A B f y) : Path (fiber A B f y) (f2 (f1 x)) x =
+      <i> (x.1,pathToIdToPath B y (f x.1) x.2 @ -i)
+
+isContrToIsContrId (A : U) (p : isContr A) : isContrId A =
+  (p.1,\(y : A) -> pathToId A p.1 y (p.2 y))
+
+equivToEquivId (A B : U) (e : equiv A B) : equivId A B = (f,rem)
+  where
+  f : A -> B = e.1
+  rem (y : B) : isContrId (fiberId A B f y) =
+    transport (<i> isContrId (fiberToFiberId A B f y @ i))
+              (isContrToIsContrId (fiber A B f y) (e.2 y))
+
+isContrToIsContrIdU (A : U) : Path U (isContr A) (isContrId A) =
+   isoPath (isContr A) (isContrId A) f1 f2 rem1 rem2
+  where
+  f1 : isContr A -> isContrId A = isContrToIsContrId A
+  f2 (p : isContrId A) : isContr A = (p.1,\(y : A) -> idToPath A p.1 y (p.2 y))
+
+  rem1 (x : isContrId A) : Path (isContrId A) (f1 (f2 x)) x =
+    <i> (x.1,\(y : A) -> idToPathToId A x.1 y (x.2 y) @ - i)
+  rem2 (x : isContr A) : Path (isContr A) (f2 (f1 x)) x =
+    <i> (x.1,\(y : A) -> pathToIdToPath A x.1 y (x.2 y) @ - i)
+
+isContrFiberToIsContrFiberId (A B : U) (f : A -> B) (y : B) :
+  Path U (isContr (fiber A B f y)) (isContrId (fiberId A B f y)) = goal
+  where
+  rem1 : Path U (isContr (fiber A B f y)) (isContr (fiberId A B f y)) =
+    <i> isContr (fiberToFiberId A B f y @ i)
+  rem2 : Path U (isContr (fiberId A B f y)) (isContrId (fiberId A B f y)) =
+    isContrToIsContrIdU (fiberId A B f y)
+  goal : Path U (isContr (fiber A B f y)) (isContrId (fiberId A B f y)) =
+    compPath U (isContr (fiber A B f y)) (isContr (fiberId A B f y))
+               (isContrId (fiberId A B f y)) rem1 rem2
+
+opaque isContrFiberToIsContrFiberId
+
+equivEquivIdU (A B : U) : Path U (equiv A B) (equivId A B) =
+  isoPath (equiv A B) (equivId A B) f1 f2 rem1 rem2
+  where
+  f1 (p : equiv A B) : equivId A B =
+    (p.1,\(y : B) -> trans (isContr (fiber A B p.1 y))
+                           (isContrId (fiberId A B p.1 y))
+                           (isContrFiberToIsContrFiberId A B p.1 y) (p.2 y))
+  f2 (p : equivId A B) : equiv A B =
+    (p.1,\(y : B) -> transNeg (isContr (fiber A B p.1 y))
+                              (isContrId (fiberId A B p.1 y))
+                              (isContrFiberToIsContrFiberId A B p.1 y) (p.2 y))
+
+  rem1 (x : equivId A B) : Path (equivId A B) (f1 (f2 x)) x =
+    <i> (x.1,\(y : B) -> transK (isContr (fiber A B x.1 y))
+                                (isContrId (fiberId A B x.1 y))
+                                (isContrFiberToIsContrFiberId A B x.1 y) (x.2 y) @ -i)
+
+  rem2 (x : equiv A B) : Path (equiv A B) (f2 (f1 x)) x =
+    <i> (x.1,\(y : B) -> transNegK (isContr (fiber A B x.1 y))
+                                   (isContrId (fiberId A B x.1 y))
+                                   (isContrFiberToIsContrFiberId A B x.1 y) (x.2 y) @ -i)
+
+transparent isContrFiberToIsContrFiberId
+
+-- Univalence expressed using Id everywhere:
+univalenceId (A B : U) : equivId (Id U A B) (equivId A B) =
+  equivToEquivId (Id U A B) (equivId A B) rem1
+  where
+  rem : Path U (Id U A B) (equivId A B) =
+    compPath U (Id U A B) (equiv A B) (equivId A B)
+             (IdUnivalence1 A B) (equivEquivIdU A B)
+  rem1 : equiv (Id U A B) (equivId A B) =
+    transEquiv' (equivId A B) (Id U A B) rem
+
+
+--------------------------------------------------------------------------------
+-- Some tests
+
+mop (A B : U) (f : A -> B) (u v : A) (p : Id A u v) : Id B (f u) (f v) =
+  JJ A u (\ (v : A) (p : Id A u v) -> Id B (f u) (f v))
+    (refId B (f u)) v p
+
+mopComp (A B C : U) (f : A -> B) (g : B -> C) (u v : A) (p : Id A u v)
+  : Id C (g (f u)) (g (f v)) = mop A C (\ (x : A) -> g (f x)) u v p
+
+mopComp' (A B C : U) (f : A -> B) (g : B -> C) (u v : A) (p : Id A u v)
+  : Id C (g (f u)) (g (f v)) = mop B C g (f u) (f v) (mop A B f u v p)
+
+superMop (A B : U) (f : A -> B) (u v : A) (p : Path A u v) : Id B (f u) (f v) =
+  idC (<i> f (p @ i)) [ ]

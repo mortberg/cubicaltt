@@ -1,8 +1,7 @@
+-- Categories with structure identity principle
 module category where
-import prelude
+
 import sigma
-import equiv
-import nat
 import univalence
 
 lemReflComp (A : U) (a b : A) (p : Path A a b) : Path (Path A a b) (compPath A a a b (<_> a) p) p =
@@ -271,7 +270,7 @@ isStandardStructure (X : precategory) (S : structure X) : U
     sH X S x x a b (cPath X x) -> sH X S x x b a (cPath X x) ->
     Path (sP X S x) a b
 
-sipPrecategory (C : precategory) (S : structure C) : precategory = ((ob, hom), (id, cmp, homSet, idL, idR, idC))
+sipPrecategory (C : precategory) (S : structure C) : precategory = ((ob, hom), (id, cmp, homSet, idL, idR, idC'))
   where
     ob : U = Sigma (cA C) (sP C S)
     hom (X Y : ob) : U = (f : cH C X.1 Y.1) * sH C S X.1 Y.1 X.2 Y.2 f
@@ -295,7 +294,7 @@ sipPrecategory (C : precategory) (S : structure C) : precategory = ((ob, hom), (
                         (sHProp C S x.1 y.1 x.2 y.2 (cmp x y y f (id y)).1)
                         (<i>sH C S x.1 y.1 x.2 y.2 (cPathR C x.1 y.1 f.1 @ i))
                         (cmp x y y f (id y)).2 f.2 @ i)
-    idC (x y z w : ob) (f : hom x y) (g : hom y z) (h : hom z w) : Path (hom x w) (cmp x z w (cmp x y z f g) h) (cmp x y w f (cmp y z w g h))
+    idC' (x y z w : ob) (f : hom x y) (g : hom y z) (h : hom z w) : Path (hom x w) (cmp x z w (cmp x y z f g) h) (cmp x y w f (cmp y z w g h))
       = <i> (cPathC C x.1 y.1 z.1 w.1 f.1 g.1 h.1 @ i
             ,lemPathPProp (sH C S x.1 w.1 x.2 w.2 (cmp x z w (cmp x y z f g) h).1)
                         (sH C S x.1 w.1 x.2 w.2 (cmp x y w f (cmp y z w g h)).1)
@@ -307,99 +306,98 @@ isContrProp (A : U) (p : isContr A) (x y : A) : Path A x y = compPath A x p.1 y 
 isContrSig (A:U) (B:A-> U) (cA:isContr A) (cB : (x:A) -> isContr (B x)) : isContr (Sigma A B)
   = ((cA.1, (cB cA.1).1), \(x:Sigma A B) -> propSig A B (isContrProp A cA) (\(x:A)->isContrProp (B x) (cB x)) (cA.1, (cB cA.1).1) x)
 
--- the uncommented definition is a bit slow to typecheck
+-- The structure identity principle for categories
 sip (X : precategory) (isC : isCategory X) (S : structure X) (isS : isStandardStructure X S) : isCategory (sipPrecategory X S)
-  = undefined
-  -- = hole
-  -- where
-  --   D : precategory = sipPrecategory X S
-  --   eq1 (A : cA D)
-  --     : Path U ((B : cA D) * iso D A B)
-  --            ((C : (B1 : cA X) * ( iso X A.1 B1))
-  --           * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
-  --            = isoPath
-  --              ((B : cA D) * iso D A B)
-  --              ((C : (B1 : cA X) * ( iso X A.1 B1))
-  --             * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
-  --              F G FG GF
-  --     where
-  --       F (C : (B : cA D) * iso D A B)
-  --        : ((C : (B1 : cA X) * ( iso X A.1 B1))
-  --        * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
-  --        = ((C.1.1, C.2.1.1, C.2.2.1.1, <i>(C.2.2.2.1@i).1, <i>(C.2.2.2.2@i).1),
-  --           C.1.2, C.2.1.2, C.2.2.1.2)
-  --       G (C : ((C : (B1 : cA X) * ( iso X A.1 B1))
-  --             * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1))
-  --        : (B : cA D) * iso D A B
-  --        = ((C.1.1, C.2.1), (C.1.2.1, C.2.2.1), (C.1.2.2.1, C.2.2.2)
-  --          , <i> (C.1.2.2.2.1 @ i
-  --                ,lemPathPProp (sH X S A.1 A.1 A.2 A.2 (cC X A.1 C.1.1 A.1 C.1.2.1 C.1.2.2.1))
-  --                            (sH X S A.1 A.1 A.2 A.2 (cPath X A.1))
-  --                            (sHProp X S A.1 A.1 A.2 A.2 (cC X A.1 C.1.1 A.1 C.1.2.1 C.1.2.2.1))
-  --                            (<i>sH X S A.1 A.1 A.2 A.2 (C.1.2.2.2.1 @ i))
-  --                            (sHComp X S A.1 C.1.1 A.1 A.2 C.2.1 A.2 C.1.2.1 C.1.2.2.1 C.2.2.1 C.2.2.2)
-  --                            (sHPath X S A.1 A.2) @ i)
-  --          , <i> (C.1.2.2.2.2 @ i
-  --                ,lemPathPProp (sH X S C.1.1 C.1.1 C.2.1 C.2.1 (cC X C.1.1 A.1 C.1.1 C.1.2.2.1 C.1.2.1))
-  --                            (sH X S C.1.1 C.1.1 C.2.1 C.2.1 (cPath X C.1.1))
-  --                            (sHProp X S C.1.1 C.1.1 C.2.1 C.2.1 (cC X C.1.1 A.1 C.1.1 C.1.2.2.1 C.1.2.1))
-  --                            (<i>sH X S C.1.1 C.1.1 C.2.1 C.2.1 (C.1.2.2.2.2 @ i))
-  --                            (sHComp X S C.1.1 A.1 C.1.1 C.2.1 A.2 C.2.1 C.1.2.2.1 C.1.2.1 C.2.2.2 C.2.2.1)
-  --                            (sHPath X S C.1.1 C.2.1) @ i))
-  --       FG (C : ((C : (B1 : cA X) * ( iso X A.1 B1))
-  --             * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1))
-  --         : Path ((C : (B1 : cA X) * ( iso X A.1 B1))
-  --            * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
-  --              (F (G C)) C
-  --         = <_> C
-  --       GF (C : (B : cA D) * iso D A B) : Path ((B : cA D) * iso D A B) (G (F C)) C
-  --         = <i> (C.1, C.2.1, C.2.2.1
-  --               , <j> ((C.2.2.2.1 @ j).1
-  --                     ,lemPathPSet (sH X S A.1 A.1 A.2 A.2 (cC X A.1 C.1.1 A.1 C.2.1.1 C.2.2.1.1))
-  --                                (sH X S A.1 A.1 A.2 A.2 (cPath X A.1))
-  --                                (propSet (sH X S A.1 A.1 A.2 A.2 (cC X A.1 C.1.1 A.1 C.2.1.1 C.2.2.1.1))
-  --                                         (sHProp X S A.1 A.1 A.2 A.2 (cC X A.1 C.1.1 A.1 C.2.1.1 C.2.2.1.1)))
-  --                                (<j>sH X S A.1 A.1 A.2 A.2 (C.2.2.2.1 @ j).1)
-  --                                (sHComp X S A.1 C.1.1 A.1 A.2 C.1.2 A.2 C.2.1.1 C.2.2.1.1 C.2.1.2 C.2.2.1.2)
-  --                                (sHPath X S A.1 A.2)
-  --                                (<j>((G (F C)).2.2.2.1 @ j).2)
-  --                                (<j>(C.2.2.2.1 @ j).2) @i@j)
-  --               , <j> ((C.2.2.2.2 @ j).1
-  --                     ,lemPathPSet (sH X S C.1.1 C.1.1 C.1.2 C.1.2 (cC X C.1.1 A.1 C.1.1 C.2.2.1.1 C.2.1.1))
-  --                                (sH X S C.1.1 C.1.1 C.1.2 C.1.2 (cPath X C.1.1))
-  --                                (propSet (sH X S C.1.1 C.1.1 C.1.2 C.1.2 (cC X C.1.1 A.1 C.1.1 C.2.2.1.1 C.2.1.1))
-  --                                         (sHProp X S C.1.1 C.1.1 C.1.2 C.1.2 (cC X C.1.1 A.1 C.1.1 C.2.2.1.1 C.2.1.1)))
-  --                                (<j>sH X S C.1.1 C.1.1 C.1.2 C.1.2 (C.2.2.2.2 @ j).1)
-  --                                (sHComp X S C.1.1 A.1 C.1.1 C.1.2 A.2 C.1.2 C.2.2.1.1 C.2.1.1 C.2.2.1.2 C.2.1.2)
-  --                                (sHPath X S C.1.1 C.1.2)
-  --                                (<j>((G (F C)).2.2.2.2 @ j).2)
-  --                                (<j>(C.2.2.2.2 @ j).2) @i@j))
-  --   hole0 (A : cA D)
-  --      : isContr ((C : (B1 : cA X) * ( iso X A.1 B1))
-  --               * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
-  --      = isContrSig ((B1 : cA X) * ( iso X A.1 B1))
-  --                   (\(C : (B1 : cA X) * ( iso X A.1 B1)) ->
-  --                     (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
-  --                   (isC A.1)
-  --                   (\(C : (B1 : cA X) * ( iso X A.1 B1)) ->
-  --                     let p : Path ((B1 : cA X) * ( iso X A.1 B1)) (A.1, idIso X A.1) C
-  --                           = lemIsCategory X isC A.1 C.1 C.2
-  --                     in transport
-  --                       (<i> isContr ((B2 : sP X S (p@i).1) * (_ : sH X S A.1 (p@i).1 A.2 B2 (p@i).2.1) * sH X S (p@i).1 A.1 B2 A.2 (p@i).2.2.1))
-  --                       ((A.2,sHPath X S A.1 A.2,sHPath X S A.1 A.2)
-  --                       ,\(Y : (B2 : sP X S A.1) * (_ : sH X S A.1 A.1 A.2 B2 (cPath X A.1)) * sH X S A.1 A.1 B2 A.2 (cPath X A.1)) ->
-  --                         <i> (isS A.1 A.2 Y.1 Y.2.1 Y.2.2 @ i
-  --                             ,lemPathPProp (sH X S A.1 A.1 A.2 A.2 (cPath X A.1))
-  --                                         (sH X S A.1 A.1 A.2 Y.1 (cPath X A.1))
-  --                                         (sHProp X S A.1 A.1 A.2 A.2 (cPath X A.1))
-  --                                         (<i>sH X S A.1 A.1 A.2 (isS A.1 A.2 Y.1 Y.2.1 Y.2.2 @ i) (cPath X A.1))
-  --                                         (sHPath X S A.1 A.2) Y.2.1 @ i
-  --                             ,lemPathPProp (sH X S A.1 A.1 A.2 A.2 (cPath X A.1))
-  --                                         (sH X S A.1 A.1 Y.1 A.2 (cPath X A.1))
-  --                                         (sHProp X S A.1 A.1 A.2 A.2 (cPath X A.1))
-  --                                         (<i>sH X S A.1 A.1 (isS A.1 A.2 Y.1 Y.2.1 Y.2.2 @ i) A.2 (cPath X A.1))
-  --                                         (sHPath X S A.1 A.2) Y.2.2 @ i)))
-  --   hole (A : cA D) : isContr ((B : cA D) * iso D A B) = transport (<i>isContr(eq1 A@-i)) (hole0 A)
+  = hole
+  where
+    D : precategory = sipPrecategory X S
+    eq1 (A : cA D)
+      : Path U ((B : cA D) * iso D A B)
+             ((C : (B1 : cA X) * ( iso X A.1 B1))
+            * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
+             = isoPath
+               ((B : cA D) * iso D A B)
+               ((C : (B1 : cA X) * ( iso X A.1 B1))
+              * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
+               F G FG GF
+      where
+        F (C : (B : cA D) * iso D A B)
+         : ((C : (B1 : cA X) * ( iso X A.1 B1))
+         * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
+         = ((C.1.1, C.2.1.1, C.2.2.1.1, <i>(C.2.2.2.1@i).1, <i>(C.2.2.2.2@i).1),
+            C.1.2, C.2.1.2, C.2.2.1.2)
+        G (C : ((C : (B1 : cA X) * ( iso X A.1 B1))
+              * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1))
+         : (B : cA D) * iso D A B
+         = ((C.1.1, C.2.1), (C.1.2.1, C.2.2.1), (C.1.2.2.1, C.2.2.2)
+           , <i> (C.1.2.2.2.1 @ i
+                 ,lemPathPProp (sH X S A.1 A.1 A.2 A.2 (cC X A.1 C.1.1 A.1 C.1.2.1 C.1.2.2.1))
+                             (sH X S A.1 A.1 A.2 A.2 (cPath X A.1))
+                             (sHProp X S A.1 A.1 A.2 A.2 (cC X A.1 C.1.1 A.1 C.1.2.1 C.1.2.2.1))
+                             (<i>sH X S A.1 A.1 A.2 A.2 (C.1.2.2.2.1 @ i))
+                             (sHComp X S A.1 C.1.1 A.1 A.2 C.2.1 A.2 C.1.2.1 C.1.2.2.1 C.2.2.1 C.2.2.2)
+                             (sHPath X S A.1 A.2) @ i)
+           , <i> (C.1.2.2.2.2 @ i
+                 ,lemPathPProp (sH X S C.1.1 C.1.1 C.2.1 C.2.1 (cC X C.1.1 A.1 C.1.1 C.1.2.2.1 C.1.2.1))
+                             (sH X S C.1.1 C.1.1 C.2.1 C.2.1 (cPath X C.1.1))
+                             (sHProp X S C.1.1 C.1.1 C.2.1 C.2.1 (cC X C.1.1 A.1 C.1.1 C.1.2.2.1 C.1.2.1))
+                             (<i>sH X S C.1.1 C.1.1 C.2.1 C.2.1 (C.1.2.2.2.2 @ i))
+                             (sHComp X S C.1.1 A.1 C.1.1 C.2.1 A.2 C.2.1 C.1.2.2.1 C.1.2.1 C.2.2.2 C.2.2.1)
+                             (sHPath X S C.1.1 C.2.1) @ i))
+        FG (C : ((C : (B1 : cA X) * ( iso X A.1 B1))
+              * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1))
+          : Path ((C : (B1 : cA X) * ( iso X A.1 B1))
+             * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
+               (F (G C)) C
+          = <_> C
+        GF (C : (B : cA D) * iso D A B) : Path ((B : cA D) * iso D A B) (G (F C)) C
+          = <i> (C.1, C.2.1, C.2.2.1
+                , <j> ((C.2.2.2.1 @ j).1
+                      ,lemPathPSet (sH X S A.1 A.1 A.2 A.2 (cC X A.1 C.1.1 A.1 C.2.1.1 C.2.2.1.1))
+                                 (sH X S A.1 A.1 A.2 A.2 (cPath X A.1))
+                                 (propSet (sH X S A.1 A.1 A.2 A.2 (cC X A.1 C.1.1 A.1 C.2.1.1 C.2.2.1.1))
+                                          (sHProp X S A.1 A.1 A.2 A.2 (cC X A.1 C.1.1 A.1 C.2.1.1 C.2.2.1.1)))
+                                 (<j>sH X S A.1 A.1 A.2 A.2 (C.2.2.2.1 @ j).1)
+                                 (sHComp X S A.1 C.1.1 A.1 A.2 C.1.2 A.2 C.2.1.1 C.2.2.1.1 C.2.1.2 C.2.2.1.2)
+                                 (sHPath X S A.1 A.2)
+                                 (<j>((G (F C)).2.2.2.1 @ j).2)
+                                 (<j>(C.2.2.2.1 @ j).2) @i@j)
+                , <j> ((C.2.2.2.2 @ j).1
+                      ,lemPathPSet (sH X S C.1.1 C.1.1 C.1.2 C.1.2 (cC X C.1.1 A.1 C.1.1 C.2.2.1.1 C.2.1.1))
+                                 (sH X S C.1.1 C.1.1 C.1.2 C.1.2 (cPath X C.1.1))
+                                 (propSet (sH X S C.1.1 C.1.1 C.1.2 C.1.2 (cC X C.1.1 A.1 C.1.1 C.2.2.1.1 C.2.1.1))
+                                          (sHProp X S C.1.1 C.1.1 C.1.2 C.1.2 (cC X C.1.1 A.1 C.1.1 C.2.2.1.1 C.2.1.1)))
+                                 (<j>sH X S C.1.1 C.1.1 C.1.2 C.1.2 (C.2.2.2.2 @ j).1)
+                                 (sHComp X S C.1.1 A.1 C.1.1 C.1.2 A.2 C.1.2 C.2.2.1.1 C.2.1.1 C.2.2.1.2 C.2.1.2)
+                                 (sHPath X S C.1.1 C.1.2)
+                                 (<j>((G (F C)).2.2.2.2 @ j).2)
+                                 (<j>(C.2.2.2.2 @ j).2) @i@j))
+    hole0 (A : cA D)
+       : isContr ((C : (B1 : cA X) * ( iso X A.1 B1))
+                * (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
+       = isContrSig ((B1 : cA X) * ( iso X A.1 B1))
+                    (\(C : (B1 : cA X) * ( iso X A.1 B1)) ->
+                      (B2 : sP X S C.1) * (_ : sH X S A.1 C.1 A.2 B2 C.2.1) * sH X S C.1 A.1 B2 A.2 C.2.2.1)
+                    (isC A.1)
+                    (\(C : (B1 : cA X) * ( iso X A.1 B1)) ->
+                      let p : Path ((B1 : cA X) * ( iso X A.1 B1)) (A.1, idIso X A.1) C
+                            = lemIsCategory X isC A.1 C.1 C.2
+                      in transport
+                        (<i> isContr ((B2 : sP X S (p@i).1) * (_ : sH X S A.1 (p@i).1 A.2 B2 (p@i).2.1) * sH X S (p@i).1 A.1 B2 A.2 (p@i).2.2.1))
+                        ((A.2,sHPath X S A.1 A.2,sHPath X S A.1 A.2)
+                        ,\(Y : (B2 : sP X S A.1) * (_ : sH X S A.1 A.1 A.2 B2 (cPath X A.1)) * sH X S A.1 A.1 B2 A.2 (cPath X A.1)) ->
+                          <i> (isS A.1 A.2 Y.1 Y.2.1 Y.2.2 @ i
+                              ,lemPathPProp (sH X S A.1 A.1 A.2 A.2 (cPath X A.1))
+                                          (sH X S A.1 A.1 A.2 Y.1 (cPath X A.1))
+                                          (sHProp X S A.1 A.1 A.2 A.2 (cPath X A.1))
+                                          (<i>sH X S A.1 A.1 A.2 (isS A.1 A.2 Y.1 Y.2.1 Y.2.2 @ i) (cPath X A.1))
+                                          (sHPath X S A.1 A.2) Y.2.1 @ i
+                              ,lemPathPProp (sH X S A.1 A.1 A.2 A.2 (cPath X A.1))
+                                          (sH X S A.1 A.1 Y.1 A.2 (cPath X A.1))
+                                          (sHProp X S A.1 A.1 A.2 A.2 (cPath X A.1))
+                                          (<i>sH X S A.1 A.1 (isS A.1 A.2 Y.1 Y.2.1 Y.2.2 @ i) A.2 (cPath X A.1))
+                                          (sHPath X S A.1 A.2) Y.2.2 @ i)))
+    hole (A : cA D) : isContr ((B : cA D) * iso D A B) = transport (<i>isContr(eq1 A@-i)) (hole0 A)
 opaque sip
 
 --
@@ -547,41 +545,39 @@ F12 (A B : precategory) (isC : isCategory A) (F : functor A B)
          = transport (<i> isContr ((y : cA A) * (hole2 y @ i))) (isC x)
 opaque F12
 
--- the uncommented definition is a bit slow to typecheck
 F23 (A B : precategory) (F : functor A B) (p2 : (x : cA A) -> isContr ((y : cA A) * iso B (F.1 y) (F.1 x)))
     (x : cA B)
     (a b : (y : cA A) * iso B (F.1 y) x) : Path ((y : cA A) * iso B (F.1 y) x) a b
-    = undefined
---     = transport p hole3
---   where
---     hole2 : Path ((y : cA A) * iso B (F.1 y) (F.1 a.1))
---             (a.1, idIso B (F.1 a.1)) (b.1, compIso B (F.1 b.1) x (F.1 a.1) b.2 (invIso B (F.1 a.1) x a.2))
---       = isContrProp ((y : cA A) * iso B (F.1 y) (F.1 a.1)) (p2 a.1)
---             (a.1, idIso B (F.1 a.1)) (b.1, compIso B (F.1 b.1) x (F.1 a.1) b.2 (invIso B (F.1 a.1) x a.2))
---     opaque hole2
---     hole3 : Path ((y : cA A) * iso B (F.1 y) x)
---             (a.1, compIso B (F.1 a.1) (F.1 a.1) x (idIso B (F.1 a.1)) a.2)
---             (b.1, compIso B (F.1 b.1) (F.1 a.1) x (compIso B (F.1 b.1) x (F.1 a.1) b.2 (invIso B (F.1 a.1) x a.2)) a.2)
---           = <i> ((hole2@i).1, compIso B (F.1 (hole2@i).1) (F.1 a.1) x (hole2@i).2 a.2)
---     opaque hole3
---     p : Path U (Path ((y : cA A) * iso B (F.1 y) x)
---               (a.1, compIso B (F.1 a.1) (F.1 a.1) x (idIso B (F.1 a.1)) a.2)
---               (b.1, compIso B (F.1 b.1) (F.1 a.1) x (compIso B (F.1 b.1) x (F.1 a.1) b.2 (invIso B (F.1 a.1) x a.2)) a.2))
---              (Path ((y : cA A) * iso B (F.1 y) x) a b)
---       = (<i>Path ((y : cA A) * iso B (F.1 y) x)
---                (a.1, PathLIso B (F.1 a.1) x a.2 @ i)
---                (b.1, compPath (iso B (F.1 b.1) x)
---                        (compIso B (F.1 b.1) (F.1 a.1) x (compIso B (F.1 b.1) x (F.1 a.1) b.2 (invIso B (F.1 a.1) x a.2)) a.2)
---                        (compIso B (F.1 b.1) x x b.2 (compIso B x (F.1 a.1) x (invIso B (F.1 a.1) x a.2) a.2))
---                        b.2
---                        (PathCIso B (F.1 b.1) x (F.1 a.1) x b.2 (invIso B (F.1 a.1) x a.2) a.2)
---                     (compPath (iso B (F.1 b.1) x)
---                        (compIso B (F.1 b.1) x x b.2 (compIso B x (F.1 a.1) x (invIso B (F.1 a.1) x a.2) a.2))
---                        (compIso B (F.1 b.1) x x b.2 (idIso B x))
---                        b.2
---                        (<i>compIso B (F.1 b.1) x x b.2 (PathInvLIso B (F.1 a.1) x a.2 @ i))
---                        (PathRIso B (F.1 b.1) x b.2))
---                        @ i))
+    = transport p hole3
+  where
+    hole2 : Path ((y : cA A) * iso B (F.1 y) (F.1 a.1))
+            (a.1, idIso B (F.1 a.1)) (b.1, compIso B (F.1 b.1) x (F.1 a.1) b.2 (invIso B (F.1 a.1) x a.2))
+      = isContrProp ((y : cA A) * iso B (F.1 y) (F.1 a.1)) (p2 a.1)
+            (a.1, idIso B (F.1 a.1)) (b.1, compIso B (F.1 b.1) x (F.1 a.1) b.2 (invIso B (F.1 a.1) x a.2))
+    opaque hole2
+    hole3 : Path ((y : cA A) * iso B (F.1 y) x)
+            (a.1, compIso B (F.1 a.1) (F.1 a.1) x (idIso B (F.1 a.1)) a.2)
+            (b.1, compIso B (F.1 b.1) (F.1 a.1) x (compIso B (F.1 b.1) x (F.1 a.1) b.2 (invIso B (F.1 a.1) x a.2)) a.2)
+          = <i> ((hole2@i).1, compIso B (F.1 (hole2@i).1) (F.1 a.1) x (hole2@i).2 a.2)
+    opaque hole3
+    p : Path U (Path ((y : cA A) * iso B (F.1 y) x)
+              (a.1, compIso B (F.1 a.1) (F.1 a.1) x (idIso B (F.1 a.1)) a.2)
+              (b.1, compIso B (F.1 b.1) (F.1 a.1) x (compIso B (F.1 b.1) x (F.1 a.1) b.2 (invIso B (F.1 a.1) x a.2)) a.2))
+             (Path ((y : cA A) * iso B (F.1 y) x) a b)
+      = (<i>Path ((y : cA A) * iso B (F.1 y) x)
+               (a.1, PathLIso B (F.1 a.1) x a.2 @ i)
+               (b.1, compPath (iso B (F.1 b.1) x)
+                       (compIso B (F.1 b.1) (F.1 a.1) x (compIso B (F.1 b.1) x (F.1 a.1) b.2 (invIso B (F.1 a.1) x a.2)) a.2)
+                       (compIso B (F.1 b.1) x x b.2 (compIso B x (F.1 a.1) x (invIso B (F.1 a.1) x a.2) a.2))
+                       b.2
+                       (PathCIso B (F.1 b.1) x (F.1 a.1) x b.2 (invIso B (F.1 a.1) x a.2) a.2)
+                    (compPath (iso B (F.1 b.1) x)
+                       (compIso B (F.1 b.1) x x b.2 (compIso B x (F.1 a.1) x (invIso B (F.1 a.1) x a.2) a.2))
+                       (compIso B (F.1 b.1) x x b.2 (idIso B x))
+                       b.2
+                       (<i>compIso B (F.1 b.1) x x b.2 (PathInvLIso B (F.1 a.1) x a.2 @ i))
+                       (PathRIso B (F.1 b.1) x b.2))
+                       @ i))
 opaque F23
 
 --

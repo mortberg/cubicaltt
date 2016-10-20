@@ -1,14 +1,12 @@
+-- The circle as a HIT.
 module circle where
 
 import bool
 import int
 
-              ----------------------------------
-              -- Example: The circle as a HIT --
-              ----------------------------------
-
 data S1 = base
-        | loop <i> [(i=0) -> base, (i=1) -> base]
+        | loop <i> [ (i=0) -> base
+                   , (i=1) -> base]
 
 loopS1 : U = Path S1 base base
 

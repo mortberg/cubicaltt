@@ -1,5 +1,7 @@
+-- Definition of C-systems and universe categories. Construction of a
+-- C-system from a universe category.
 module csystem where
-import prelude
+
 import sigma
 import equiv
 import nat

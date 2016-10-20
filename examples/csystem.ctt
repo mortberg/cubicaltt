@@ -452,74 +452,72 @@ ucToC0 (C : uc) : CSystem = hole
                         (p0 (suc n) X)
                        )
                        (cC DC f_star2 Z (n,X.1) (p0 (suc Z.1) f_star2.2) F)
-                  = undefined
-            --       = compPath (cH C.1 if_star2 (int n X.1))
-            --                (cC DC f_star2 (suc n, X) (n,X.1)
-            --                  (cC DC f_star2 (fstar n X Y f) (suc n, X) q2 (q_ n X Y f).1)
-            --                  (p0 (suc n) X))
-            --                (cC DC f_star2 (fstar n X Y f) (n,X.1)
-            --                  q2
-            --                  (cC DC (fstar n X Y f) (suc n, X) (n, X.1) (q_ n X Y f).1 (p0 (suc n) X)))
-            --                (cC DC f_star2 Z (n,X.1) (p0 (suc Z.1) f_star2.2) F)
-            --                (cPathC DC f_star2 (fstar n X Y f) (suc n, X) (n,X.1) q2 (q_ n X Y f).1 (p0 (suc n) X))
-            --        (compPath (cH C.1 if_star2 (int n X.1))
-            --                (cC DC f_star2 (fstar n X Y f) (n,X.1)
-            --                  q2
-            --                  (cC DC (fstar n X Y f) (suc n, X) (n, X.1) (q_ n X Y f).1 (p0 (suc n) X)))
-            --                (cC DC f_star2 (fstar n X Y f) (n,X.1)
-            --                  q2
-            --                  (cC DC (fstar n X Y f) Y (n, X.1) (p0 (suc Y.1) (fstar n X Y f).2) f))
-            --                (cC DC f_star2 Z (n,X.1) (p0 (suc Z.1) f_star2.2) F)
-            --                (<i> cC DC f_star2 (fstar n X Y f) (n,X.1) q2
-            --                       ((q_ n X Y f).2.1@-i))
-            --        (compPath (cH C.1 if_star2 (int n X.1))
-            --                (cC DC f_star2 (fstar n X Y f) (n,X.1)
-            --                  q2
-            --                  (cC DC (fstar n X Y f) Y (n, X.1) (p0 (suc Y.1) (fstar n X Y f).2) f))
-            --                (cC DC f_star2 Y (n,X.1)
-            --                  (cC DC f_star2 (fstar n X Y f) Y q2 (p0 (suc Y.1) (fstar n X Y f).2))
-            --                  f)
-            --                (cC DC f_star2 Z (n,X.1) (p0 (suc Z.1) f_star2.2) F)
-            --                (<i>cPathC DC f_star2 (fstar n X Y f) Y (n, X.1) q2 (p0 (suc Y.1) (fstar n X Y f).2) f@-i)
-            --        (compPath (cH C.1 if_star2 (int n X.1))
-            --                (cC DC f_star2 Y (n,X.1)
-            --                  (cC DC f_star2 (fstar n X Y f) Y q2 (p0 (suc Y.1) (fstar n X Y f).2))
-            --                  f)
-            --                (cC DC f_star2 Y (n,X.1)
-            --                  (cC DC f_star2 Z Y (p0 (suc Z.1) f_star2.2) g)
-            --                  f)
-            --                (cC DC f_star2 Z (n,X.1) (p0 (suc Z.1) f_star2.2) F)
-            --                (<i>cC DC f_star2 Y (n,X.1)
-            --                   ((q_ Y.1 (fstar n X Y f).2 Z g).2.1@-i) f)
-            --                (cPathC DC f_star2 Z Y (n, X.1) (p0 (suc Z.1) f_star2.2) g f))))
-            -- opaque hole3
+                  = compPath (cH C.1 if_star2 (int n X.1))
+                           (cC DC f_star2 (suc n, X) (n,X.1)
+                             (cC DC f_star2 (fstar n X Y f) (suc n, X) q2 (q_ n X Y f).1)
+                             (p0 (suc n) X))
+                           (cC DC f_star2 (fstar n X Y f) (n,X.1)
+                             q2
+                             (cC DC (fstar n X Y f) (suc n, X) (n, X.1) (q_ n X Y f).1 (p0 (suc n) X)))
+                           (cC DC f_star2 Z (n,X.1) (p0 (suc Z.1) f_star2.2) F)
+                           (cPathC DC f_star2 (fstar n X Y f) (suc n, X) (n,X.1) q2 (q_ n X Y f).1 (p0 (suc n) X))
+                   (compPath (cH C.1 if_star2 (int n X.1))
+                           (cC DC f_star2 (fstar n X Y f) (n,X.1)
+                             q2
+                             (cC DC (fstar n X Y f) (suc n, X) (n, X.1) (q_ n X Y f).1 (p0 (suc n) X)))
+                           (cC DC f_star2 (fstar n X Y f) (n,X.1)
+                             q2
+                             (cC DC (fstar n X Y f) Y (n, X.1) (p0 (suc Y.1) (fstar n X Y f).2) f))
+                           (cC DC f_star2 Z (n,X.1) (p0 (suc Z.1) f_star2.2) F)
+                           (<i> cC DC f_star2 (fstar n X Y f) (n,X.1) q2
+                                  ((q_ n X Y f).2.1@-i))
+                   (compPath (cH C.1 if_star2 (int n X.1))
+                           (cC DC f_star2 (fstar n X Y f) (n,X.1)
+                             q2
+                             (cC DC (fstar n X Y f) Y (n, X.1) (p0 (suc Y.1) (fstar n X Y f).2) f))
+                           (cC DC f_star2 Y (n,X.1)
+                             (cC DC f_star2 (fstar n X Y f) Y q2 (p0 (suc Y.1) (fstar n X Y f).2))
+                             f)
+                           (cC DC f_star2 Z (n,X.1) (p0 (suc Z.1) f_star2.2) F)
+                           (<i>cPathC DC f_star2 (fstar n X Y f) Y (n, X.1) q2 (p0 (suc Y.1) (fstar n X Y f).2) f@-i)
+                   (compPath (cH C.1 if_star2 (int n X.1))
+                           (cC DC f_star2 Y (n,X.1)
+                             (cC DC f_star2 (fstar n X Y f) Y q2 (p0 (suc Y.1) (fstar n X Y f).2))
+                             f)
+                           (cC DC f_star2 Y (n,X.1)
+                             (cC DC f_star2 Z Y (p0 (suc Z.1) f_star2.2) g)
+                             f)
+                           (cC DC f_star2 Z (n,X.1) (p0 (suc Z.1) f_star2.2) F)
+                           (<i>cC DC f_star2 Y (n,X.1)
+                              ((q_ Y.1 (fstar n X Y f).2 Z g).2.1@-i) f)
+                           (cPathC DC f_star2 Z Y (n, X.1) (p0 (suc Z.1) f_star2.2) g f))))
+            opaque hole3
 
             hole4 : Path (cH C.1 if_star2 VT)
                        (cC C.1 if_star2 (int (suc n) X) VT
                          (cC C.1 if_star2 (intD (fstar n X Y f)) (int (suc n) X) q2 (q_ n X Y f).1)
                          (pb n X).1.2.2.1)
                        (pb Z.1 (Z.2, cC C.1 (intD Z) (intD Y) V g (cC C.1 (intD Y) (int n X.1) V f X.2))).1.2.2.1
-                  = undefined
-            --       = compPath (cH C.1 if_star2 VT)
-            --                (cC C.1 if_star2 (int (suc n) X) VT
-            --                 (cC C.1 if_star2 (intD (fstar n X Y f)) (int (suc n) X) q2 (q_ n X Y f).1)
-            --                 (pb n X).1.2.2.1)
-            --                (cC C.1 if_star2 (intD (fstar n X Y f)) VT
-            --                 q2
-            --                 (cC C.1 (intD (fstar n X Y f)) (int (suc n) X) VT (q_ n X Y f).1 (pb n X).1.2.2.1))
-            --                (pb Z.1 (Z.2, cC C.1 (intD Z) (intD Y) V g (cC C.1 (intD Y) (int n X.1) V f X.2))).1.2.2.1
-            --                (cPathC C.1 if_star2 (intD (fstar n X Y f)) (int (suc n) X) VT q2 (q_ n X Y f).1 (pb n X).1.2.2.1)
-            --        (compPath (cH C.1 if_star2 VT)
-            --                (cC C.1 if_star2 (intD (fstar n X Y f)) VT
-            --                 q2
-            --                 (cC C.1 (intD (fstar n X Y f)) (int (suc n) X) VT (q_ n X Y f).1 (pb n X).1.2.2.1))
-            --                (cC C.1 if_star2 (intD (fstar n X Y f)) VT
-            --                 q2
-            --                 (pb Y.1 (Y.2, cC C.1 (intD Y) (int n X.1) V f X.2)).1.2.2.1)
-            --                (pb Z.1 (Z.2, cC C.1 (intD Z) (intD Y) V g (cC C.1 (intD Y) (int n X.1) V f X.2))).1.2.2.1
-            --                (<i> cC C.1 if_star2 (intD (fstar n X Y f)) VT q2 ((q_ n X Y f).2.2@i))
-            --                (q_ Y.1 (fstar n X Y f).2 Z g).2.2)
-            -- opaque hole4
+                  = compPath (cH C.1 if_star2 VT)
+                           (cC C.1 if_star2 (int (suc n) X) VT
+                            (cC C.1 if_star2 (intD (fstar n X Y f)) (int (suc n) X) q2 (q_ n X Y f).1)
+                            (pb n X).1.2.2.1)
+                           (cC C.1 if_star2 (intD (fstar n X Y f)) VT
+                            q2
+                            (cC C.1 (intD (fstar n X Y f)) (int (suc n) X) VT (q_ n X Y f).1 (pb n X).1.2.2.1))
+                           (pb Z.1 (Z.2, cC C.1 (intD Z) (intD Y) V g (cC C.1 (intD Y) (int n X.1) V f X.2))).1.2.2.1
+                           (cPathC C.1 if_star2 (intD (fstar n X Y f)) (int (suc n) X) VT q2 (q_ n X Y f).1 (pb n X).1.2.2.1)
+                   (compPath (cH C.1 if_star2 VT)
+                           (cC C.1 if_star2 (intD (fstar n X Y f)) VT
+                            q2
+                            (cC C.1 (intD (fstar n X Y f)) (int (suc n) X) VT (q_ n X Y f).1 (pb n X).1.2.2.1))
+                           (cC C.1 if_star2 (intD (fstar n X Y f)) VT
+                            q2
+                            (pb Y.1 (Y.2, cC C.1 (intD Y) (int n X.1) V f X.2)).1.2.2.1)
+                           (pb Z.1 (Z.2, cC C.1 (intD Z) (intD Y) V g (cC C.1 (intD Y) (int n X.1) V f X.2))).1.2.2.1
+                           (<i> cC C.1 if_star2 (intD (fstar n X Y f)) VT q2 ((q_ n X Y f).2.2.1@i))
+                           (q_ Y.1 (fstar n X Y f).2 Z g).2.2.1)
+            opaque hole4
 
             pph : cospanConeHom C.1 (cs n X) pp (pb n X).1
                 = transport

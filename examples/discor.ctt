@@ -1,3 +1,4 @@
+-- or A B is discrete if A and B are
 module discor where
 
 import prelude

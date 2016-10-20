@@ -61,4 +61,6 @@ sucPathZ : Path U Z Z = isoPath Z Z sucZ predZ sucpredZ predsucZ
 testOneZ : Z = transport sucPathZ zeroZ
 testNOneZ : Z = transport (<i> sucPathZ @ - i) zeroZ
 
+
+
 ZSet : set Z = hedberg Z (orDisc nat nat natDec natDec)

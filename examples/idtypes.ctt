@@ -1,3 +1,5 @@
+-- Identity types (variation of Path types with definitional equality
+-- for J). Including a proof univalence expressed only using Id. 
 module idtypes where
 
 import sigma

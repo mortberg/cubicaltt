@@ -1,3 +1,4 @@
+-- The groupoid truncation as a HIT
 module groupoidTrunc where
 
 import equiv

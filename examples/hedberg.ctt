@@ -1,3 +1,4 @@
+-- Hedbergs lemma: a type with decidable equality is a set
 module hedberg where
 
 import prelude

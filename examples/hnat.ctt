@@ -1,3 +1,4 @@
+-- Non-standard natural numbers as a HIT without any path constructor
 module hnat where
 
 import nat

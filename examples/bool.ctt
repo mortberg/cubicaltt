@@ -1,3 +1,4 @@
+-- Booleans
 module bool where
 
 import hedberg

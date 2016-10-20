@@ -1,3 +1,15 @@
+-- This file defines binary natural numbers are prove that they are
+-- isomorphic to unary natural numbers and by univalence we get a path
+-- in the universe between these two types.
+--
+-- We then define a "doubling structure" with an operation for
+-- computing 2*x and prove that the doubling structure for binary
+-- numbers is isomorphic to the one for unary. This is then used to
+-- transport a proof that 2^20 * 1024 = 2^5 * 2^15 * 1024 from binary
+-- to unary numbers. This computation is instant for binary numbers
+-- but impossible for unary, hence this illustrates how univalence can
+-- be used to do program and data refinements.
+--
 module binnat where
 
 import nat
@@ -128,6 +140,7 @@ doublesN : nat -> nat -> nat = split
   zero  -> \(m:nat) -> m
   suc n -> \(m:nat) -> doublesN n (doubleN m)
 
+-- 1024 = 2^8 * 2^2 = 2^10
 n1024 : nat = doublesN (add four four) four
 
 doubleBinN : binN -> binN = split
@@ -162,8 +175,6 @@ iter (A : U) : nat -> (A -> A) -> A -> A = split
   zero  -> \(f:A->A) (z:A) -> z
   suc n -> \(f:A->A) (z:A) -> f (iter A n f z)
 
-ten : nat = add five five
-
 -- Compute: 2^n * x
 doubles (D : Double) (n : nat) (x : carrier D) : carrier D = 
   iter (carrier D) n (double D) x
@@ -175,8 +186,7 @@ propDouble (D : Double) : U
 
 -- The property we want to prove that takes long to typecheck:
 -- 2^10 * 1024 = 2^5 * (2^5 * 1024)
--- propN : propDouble DoubleN
--- propN = refl N (doublesN ten n1024)
+-- propN : propDouble DoubleN = refl nat (doublesN n20 n1024)
 
 -- With binary numbers it is instant
 propBin : propDouble DoubleBinN = <_> doublesBinN n20 (elt DoubleBinN)

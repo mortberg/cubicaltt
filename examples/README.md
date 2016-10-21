@@ -4,10 +4,10 @@ Cubical Type Theory: examples
 This folder contains a lot of examples implemented using
 cubicaltt. The files contain:
 
-* binnat.ctt - Binary natural numbers and isomorphism to unary
-               numbers. Example of data and program refinement by
-               doing a proof for unary numbers by computation with
-               binary numbers.
+* *binnat.ctt* - Binary natural numbers and isomorphism to unary
+                 numbers. Example of data and program refinement by
+                 doing a proof for unary numbers by computation with
+                 binary numbers.
 
 bool.ctt - Booleans. Proof that bool = bool by negation and various
            other simple examples.

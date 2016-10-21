@@ -37,7 +37,7 @@ secEq (A B:U) (w:equiv A B) (x:A) : Path A (invEq A B w (w.1 x)) x =
  <i> ((w.2 (w.1 x)).2 (x,<j>w.1 x)@i).1
  --
 
-transEquiv (A B:U) (p:Path U A B) : equiv A B = (f,p)
+transEquivDirect (A B:U) (p:Path U A B) : equiv A B = (f,p)
  where
   f (x:A) : B = comp p x []
   g (y:B) : A = comp (<i>p@-i) y []

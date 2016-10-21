@@ -1,8 +1,8 @@
--- This file contains two proofs of the univalence axiom. One using
--- unglue (section 7.2) and a direct one (appendix B of the cubicaltt
--- paper). The normal form of the first proof can be computed (and
--- typechecked) while the second one uses very much memory and don't
--- terminate in reasonable time.
+-- This file contains three proofs of the univalence axiom. One using
+-- unglue (section 7.2) and two direct ones (appendix B of the
+-- cubicaltt paper). The normal form of the first proof can be
+-- computed (and typechecked) while the other uses very much memory
+-- and don't terminate in reasonable time.
 module univalence where
 
 import retract
@@ -80,7 +80,9 @@ equivFunFib (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (cB : isContr (Sigma A 
                          (isEquivContr (Sigma A B) (Sigma A C) cB cC (totalFun A B C f) (x,z))
 
 
--- Alternative formulation of univalence
+-- Alternative formulation of univalence. This is Corollary 10 of the
+-- cubical type theory paper (the proof of theorem 9 is
+-- inlined). The formalization is due to Fabian Ruch.
 univalenceAlt (B : U) : isContr ((X : U) * equiv X B) =
  ((B,idEquiv B)
  ,\(w : (X : U) * equiv X B)
@@ -120,6 +122,8 @@ contrSingl' (A : U) (a b : A) (p : Path A a b) :
 lemSinglContr' (A:U) (a:A) : isContr ((x:A) * Path A x a) =
  ((a,refl A a),\ (z:(x:A) * Path A x a) -> contrSingl' A z.1 a z.2)
 
+-- A version univalence. This is Corollary 11 of the cubical type
+-- theory paper.
 thmUniv (t : (A X : U) -> Path U X A -> equiv X A) (A : U) :
   (X : U) -> isEquiv (Path U X A) (equiv X A) (t A X) =
     equivFunFib U (\(X : U) -> Path U X A) (\(X : U) -> equiv X A)
@@ -157,7 +161,8 @@ univalenceJ (A B : U) : equiv (Path U A B) (equiv A B) =
 
 ------------------------------------------------------------------------------
 -- The direct proof of univalence using transEquiv which is too slow
--- to normalize:
+-- to normalize. This corresponds to Proof 1 of Corollary 26 of the
+-- paper.
 
 -- transEquiv is an equiv
 transEquivIsEquiv (A B : U)
@@ -165,7 +170,7 @@ transEquivIsEquiv (A B : U)
   = gradLemma (Path U A B) (equiv A B) (transEquiv A B)
       (transEquivToPath A B) (idToPath A B) (eqToEq A B)
 
--- Univalence proved using transEquiv
+-- Univalence proved using transEquiv.
 -- univalenceTrans takes extremely much memory when normalizing
 univalenceTrans (A B:U) : Path U (Path U A B) (equiv A B) = 
  isoPath (Path U A B) (equiv A B) (transEquiv A B)
@@ -178,6 +183,75 @@ univalenceTrans' (A B : U) : equiv (Path U A B) (equiv A B) =
 slowtest (A : U) : Path (equiv A A)
   (transEquiv A A (transEquivToPath A A (idEquiv A))) (idEquiv A) =
     idToPath A A (idEquiv A)
+
+
+
+------------------------------------------------------------------------------
+-- This is the third proof of univalence using an idea of Dan Licata from:
+--
+--   https://groups.google.com/forum/#!topic/homotopytypetheory/j2KBIvDw53s
+--
+-- The proof follows a sketch due to Thierry Coquand and it
+-- corresponds to Proof 2 of Corollary 26 in the paper.
+
+-- The goal is to prove that ua + uabeta implies univalence
+
+-- ua can be directly defined using Glue
+ua (A B : U) (e : equiv A B) : Path U A B =
+  <i> Glue B [ (i = 0) -> (A,e)
+             , (i = 1) -> (B,idEquiv B) ]
+
+-- uabeta is proved using funext and computation. The lhs computes to
+-- two transports along constant paths of the rhs. These transports
+-- have to be handled by hand, if transport along constant paths would
+-- have been the identity function (i.e. if the computation rule for J
+-- would be definitional) this proof would be trivial.
+uabeta (A B : U) (e : equiv A B) : Path (A -> B) (trans A B (ua A B e)) e.1 =
+  <i> \(a : A) ->
+      let b : B = trans B B (<_> B) (e.1 a)
+          rem1 : Path B b (e.1 a) = <i> fill (<_> B) (e.1 a) [] @ -i
+          rem2 : Path B (trans B B (<_> B) b) b = <i> fill (<_> B) b [] @ -i
+          goal : Path B (trans B B (<_> B) b) (e.1 a) =
+            compPath B (trans B B (<_> B) b) b (e.1 a) rem2 rem1
+      in goal @ i
+
+-- uabeta implies that equiv A B is a retract of Path U A B
+uaret (A B : U) : retract (equiv A B) (Path U A B) (ua A B) (transEquivDirect A B) =
+  \(e : equiv A B) ->
+    equivLemma A B (transEquivDirect A B (ua A B e)) e (uabeta A B e)
+
+
+-- So  (B:U) x equiv A B    is a retract of    (B:U) x Path U A B
+opaque uaret
+
+f1 (A : U) (p : (B : U) * equiv A B) : ((B : U) * Path U A B) = (p.1,ua A p.1 p.2)
+f2 (A : U) (p : (B : U) * Path U A B) : ((B : U) * equiv A B) = (p.1,transEquivDirect A p.1 p.2)
+
+uaretsig (A : U) : retract ((B : U) * equiv A B) ((B : U) * Path U A B) (f1 A) (f2 A) =
+  \(p : (B : U) * equiv A B) -> <i> (p.1,uaret A p.1 p.2 @ i)
+
+transparent uaret
+
+-- But   (B : U) x Path U A B   is contractible
+isContrPath (A : U) : isContr ((B : U) * Path U A B) =
+  let ctr : (B : U) * Path U A B = (A,<_> A)
+      ctrpath (q : (B : U) * Path U A B) : Path ((B : U) * Path U A B) ctr q =
+        <i> (q.2 @ i,<j> q.2 @ i/\j)
+  in (ctr,ctrpath)
+
+retIsContr (A B : U) (f : A -> B) (g : B -> A)
+           (h : (x : A) -> Path A (g (f x)) x) (v : isContr B)
+           : isContr A = (g b,p)
+ where
+  b : B = v.1
+  q : (y:B) -> Path B b y = v.2
+  p (x:A) : Path A (g b) x =
+    <i> comp (<_> A) (g (q (f x) @ i)) [(i=0) -> <j>g b,(i=1) -> h x]
+
+-- So we get the following formulation of univalence:
+univalenceAlt2 (A : U) : isContr ((B : U) * equiv A B) =
+  retIsContr ((B : U) * equiv A B) ((B : U) * Path U A B)
+     (f1 A) (f2 A) (uaretsig A) (isContrPath A)
 
 
 ------------------------------------------------------------------------------

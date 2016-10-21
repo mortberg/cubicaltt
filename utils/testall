@@ -1,3 +1,5 @@
+# Script for checking that all files compile
+
 files="binnat bool category circle collection csystem demo discor
        equiv groupoidTrunc hedberg helix hnat hz idtypes injective int
        integer interval list nat ordinal pi prelude propTrunc retract

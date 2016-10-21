@@ -1,0 +1,68 @@
+-- This file contains a summary of the main results from the cubicaltt
+-- paper and where to find them in the examples folder.
+module summary where
+
+import univalence
+import idtypes
+
+{- The examples in section 3.1 and 3.2 can be found in prelude.ctt:
+
+refl (A : U) (a : A) : Path A a a = <i> a
+
+inv (A : U) (a b : A) (p : Path A a b) : Path A b a = <i> p @ -i
+
+mapOnPath (A B : U) (f : A -> B) (a b : A)
+          (p : Path A a b) : Path B (f a) (f b) = <i> f (p @ i)
+
+funExt (A : U) (B : A -> U) (f g : (x : A) -> B x)
+       (p : (x : A) -> Path (B x) (f x) (g x)) :
+        Path ((y : A) -> B y) f g = <i> \(a : A) -> (p a) @ i
+
+contrSingl (A : U) (a b : A) (p : Path A a b) :
+  Path (singl A a) (a,refl A a) (b,p) = <i> (p @ i,<j> p @ i/\j)
+
+
+-- Example 4 in section 4.3 can also be found in the prelude. Note
+-- that the j from comp^j is implicit in the implementation.
+
+compPath (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
+  <i> comp (<j> A) (p @ i) [ (i=0) -> <j> a, (i = 1) -> q ]
+
+-}
+
+-- A variation of the construction of an equivalence from a path in
+-- the universe from Section 7.1 has been formalized in
+-- equiv.ctt. This is an example of a "very cubical" proof.
+section71 (A B : U) (p : Path U A B) : equiv A B =
+  transEquivDirect A B p
+
+
+-- The three proofs of univalence from section 7.2 and appendix B can
+-- all be found in the file univalence.ctt.
+
+-- Corollary 10 (theorem 9 is inlined in the proof)
+corollary10 (B : U) : isContr ((X : U) * equiv X B) = univalenceAlt B
+
+-- Corollary 11
+corollary11 (t : (A X : U) -> Path U X A -> equiv X A) (A : U) :
+  (X : U) -> isEquiv (Path U X A) (equiv X A) (t A X) = thmUniv t A
+
+-- Corollary 26, proof 1:
+corollary26_1 (A B : U) :
+  isEquiv (Path U A B) (equiv A B) (transEquiv A B) =
+    transEquivIsEquiv A B
+
+-- Corollary 26, proof 2:
+corollary26_2 (A : U) : isContr ((B : U) * equiv A B) =
+  univalenceAlt2 A
+
+
+-- The statement of univalence expressed only using the identity types
+-- from section 9.1 is proved in the file idtypes.ctt.
+section9_1 (A B : U) : equivId (Id U A B) (equivId A B) =
+  univalenceId A B
+
+
+-- The implementation also has an experimental implementation of
+-- HITs. The two HITs from section 9.2 can be found in circle.ctt and
+-- propTrunc.ctt.

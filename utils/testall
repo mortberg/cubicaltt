@@ -3,7 +3,7 @@
 files="binnat bool category circle collection csystem demo discor
        equiv groupoidTrunc hedberg helix hnat hz idtypes injective int
        integer interval list nat ordinal pi prelude propTrunc retract
-       setquot sigma subset susp torsor torus univalence"
+       setquot sigma subset summary susp torsor torus univalence"
 
 for file in $files
 do

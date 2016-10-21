@@ -1,3 +1,4 @@
+-- Propositional truncation as a HIT. (WARNING: not working correctly)
 module propTrunc where
 
 import prelude

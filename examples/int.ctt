@@ -1,3 +1,5 @@
+-- The integers as nat + nat with proof that suc is an iso giving a
+-- non-trivial path from Z to Z
 module int where
 
 import equiv

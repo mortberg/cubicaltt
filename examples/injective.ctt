@@ -1,6 +1,8 @@
+-- Two definitions of injectivity and proof that they can be
+-- identified
 module injective where
 
-import prop
+import equiv
 
 -- First definition of injectivity, informally: if two elements f a0, f a1 are
 -- equal in B, then a0, a1 must be equal in A.

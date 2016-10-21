@@ -1,8 +1,8 @@
 -- This file contains two proofs of the univalence axiom. One using
 -- unglue (section 7.2) and a direct one (appendix B of the cubicaltt
 -- paper). The normal form of the first proof can be computed (and
--- typecheck, see nthmUniv) while the second one uses very much memory
--- and don't terminate in reasonable time.
+-- typechecked) while the second one uses very much memory and don't
+-- terminate in reasonable time.
 module univalence where
 
 import retract

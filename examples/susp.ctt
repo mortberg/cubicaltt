@@ -1,10 +1,14 @@
+-- Suspension. Definition of the circle as the suspension of bool and
+-- a proof that this is equal to the standard HIT representation of
+-- the circle.
 module susp where
 
 import circle
 
 data susp (A : U) = north
                   | south
-                  | merid (a:A) <i> [(i=0) -> north, (i=1) -> south]
+                  | merid (a : A) <i> [ (i=0) -> north
+                                      , (i=1) -> south ]
 
 -- n-spheres
 sphere : nat -> U = split

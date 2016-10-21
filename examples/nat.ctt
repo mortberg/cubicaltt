@@ -1,3 +1,4 @@
+-- Natural numbers
 module nat where
 
 import bool

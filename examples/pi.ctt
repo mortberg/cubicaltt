@@ -1,3 +1,4 @@
+-- Characterization of equality in pi types.
 module pi where
 
 import equiv

@@ -1,6 +1,6 @@
+-- Experimental implementation of quotient HIT (not finished)
 module quotient where
 
-import prelude
 import circle
 
 -- Quotient A by R

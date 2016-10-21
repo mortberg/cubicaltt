@@ -1,30 +1,6 @@
 module multS1 where
 
-import circle
-
--- another inverse function
-
--- the multiplication is invertible
-
-lemPropFib (P:S1 -> U) (pP:(x:S1) -> prop (P x)) (bP: P base) : (x:S1) -> P x = split
- base -> bP
- loop @ i -> (lemPropF S1 P pP base base loop1 bP bP) @ i
-
-idL : (x : S1) -> Path S1 (mult base x) x = split
-       base -> refl S1 base
-       loop @ i -> <j> loop1 @ i
-
-multIsEquiv : (x:S1) -> isEquiv S1 S1 (mult x) =  lemPropFib P pP bP 
- where P (x:S1) : U            = isEquiv S1 S1 (mult x)
-       pP (x:S1) : prop (P x)  = propIsEquiv S1 S1 (mult x)
-       rem : Path (S1 -> S1) (idfun S1) (mult base) = <i>\ (x:S1) -> idL x @ -i
-       bP : P base = subst (S1->S1) (isEquiv S1 S1)  (idfun S1) (mult base) rem (idIsEquiv S1)
-
--- inverse of multiplication by x
-
-invMult (x y:S1) : S1 = (multIsEquiv x y).1.1
-
-invS1 (x:S1) : S1 = invMult x base
+import helix
 
 pt0 : S1 = mapOnPath S1 S1 invS1 base base loop2@0
 test1 : S1 = mapOnPath S1 S1 invS1 base base loop2@1

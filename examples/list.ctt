@@ -1,8 +1,10 @@
+-- Lists
 module list where
 
 import prelude
 
-data list (A : U) = nil | cons (a : A) (as : list A)
+data list (A : U) = nil 
+                  | cons (a : A) (as : list A)
 
 append (A : U) : list A -> list A -> list A = split
   nil -> idfun (list A)

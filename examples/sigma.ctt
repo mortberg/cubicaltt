@@ -1,3 +1,4 @@
+-- Various results about sigma types.
 module sigma where
 
 import equiv

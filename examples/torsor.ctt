@@ -1,9 +1,8 @@
+-- Torsors. Proof that S1 is equal to BZ, the classifying space of Z.
 module torsor where
-import prelude
+
 import int
-import circle
 import helix
-import univalence
 
 --
 

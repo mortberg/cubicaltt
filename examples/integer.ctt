@@ -1,3 +1,5 @@
+-- The integers as a HIT (identifying +0 with -0). Proof that this
+-- representation is isomorphic to the one in int.ctt
 module integer where
 
 import int

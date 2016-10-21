@@ -1,3 +1,4 @@
+-- Two definitions of a subset and a proof that they are equal.
 module subset where
 
 import injective

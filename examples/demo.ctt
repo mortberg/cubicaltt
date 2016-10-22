@@ -18,7 +18,7 @@ Makoto Takeya.
 Mini-TT is a variant Martin-Löf type theory with data
 types. cubiclaltt extends Mini-TT with:
 
- o  Name abstraction and application
+ o  Path types
  o  Compositions
  o  Equivalences can be transformed into equalities
  o  Some higher inductive types
@@ -45,21 +45,21 @@ not : bool -> bool = split
 
 
 {-
-                Identity types, names and formulas
+                   Path types, names and formulas
 --------------------------------------------------------------------------
 
-An element in ID A B is a line in the universe connecting A and B:
+An element in PATH A B is a line in the universe connecting A and B:
 
 
                    |- A  Type     |- B  Type
                  ------------------------------
-                       |- ID A B   Type
+                       |- PATH A B   Type
 
 
 PathP is heterogeneous equality:
 
 
-             |- P : ID A B      |- a : A     |- b : B
+             |- P : PATH A B      |- a : A     |- b : B
           -----------------------------------------------
                        |- PathP P a b   Type
 

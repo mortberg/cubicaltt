@@ -1,7 +1,7 @@
 Cubical Type Theory
 ===================
 
-Experimental implementation of a [Cubical Type
+Experimental implementation of [Cubical Type
 Theory](http://www.cse.chalmers.se/~coquand/cubicaltt.pdf) in which
 the user can directly manipulate n-dimensional cubes. The language
 extends type theory with:
@@ -16,7 +16,7 @@ extends type theory with:
 
 Because of this it is not necessary to have a special file of
 primitives (like in [cubical](https://github.com/simhu/cubical)), for
-instance function extensionality is provable in the system by:
+instance function extensionality is directly provable in the system:
 
 ```
 funExt (A : U) (B : A -> U) (f g : (x : A) -> B x)
@@ -34,7 +34,6 @@ The following keywords are reserved:
 module, where, let, in, split, with, mutual, import, data, hdata,
 undefined, PathP, comp, transport, fill, Glue, glue, unglue, U,
 opaque, transparent, transparent_all, Id, idC, idJ
-
 ```
 
 Install
@@ -59,7 +58,9 @@ Alternatively, a `Makefile` is provided:
 
 This assumes that the following Haskell packages are installed using cabal:
 
+```
   mtl, haskeline, directory, BNFC, alex, happy, QuickCheck
+```
 
 To build the TAGS file, run:
 

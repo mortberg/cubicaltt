@@ -131,8 +131,8 @@ References and notes
  * HoTT book and webpage:
    [http://homotopytypetheory.org/](http://homotopytypetheory.org/)
 
- * [Cubical Type Theory](http://www.cse.chalmers.se/~coquand/face.pdf)
-   - Old version of the typing rules of the system. See
+ * [Cubical Type Theory](http://www.cse.chalmers.se/~coquand/face.pdf) - 
+   Old version of the typing rules of the system. See
    [this](http://www.cse.chalmers.se/~coquand/face.pdf) for a
    variation using isomorphisms instead of equivalences.
 

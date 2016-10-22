@@ -1,14 +1,16 @@
 Cubical Type Theory
 ===================
 
-Experimental implementation of a cubical type theory in which the user
-can directly manipulate n-dimensional cubes. The language extends type
-theory with:
+Experimental implementation of a [Cubical Type
+Theory](http://www.cse.chalmers.se/~coquand/cubicaltt.pdf) in which
+the user can directly manipulate n-dimensional cubes. The language
+extends type theory with:
 
 * Path abstraction and application
 * Composition and transport
 * Equivalences can be transformed into equalities (and univalence can
   be proved, see "examples/univalence.ctt")
+* Identity types (see "examples/idtypes.ctt")
 * Some higher inductive types (see "examples/circle.ctt" and
   "examples/integer.ctt")
 
@@ -22,13 +24,17 @@ funExt (A : U) (B : A -> U) (f g : (x : A) -> B x)
        Id ((y : A) -> B y) f g = <i> \(a : A) -> (p a) @ i
 ```
 
-For more examples, see "examples/demo.ctt" and "examples/aim.ctt".
+For examples, including a demo ("examples/demo.ctt"), see the
+[examples](https://github.com/mortberg/cubicaltt/tree/master/examples#cubical-type-theory-examples)
+folder.
 
 The following keywords are reserved:
 
 ```
-module, where, let, in, split, mutual, import, data, hdata, undefined,
-IdP, comp, transport, fill, glue, glueElem, unglueElem, U
+module, where, let, in, split, with, mutual, import, data, hdata,
+undefined, PathP, comp, transport, fill, Glue, glue, unglue, U,
+opaque, transparent, transparent_all, Id, idC, idJ
+
 ```
 
 Install
@@ -76,7 +82,7 @@ To run the system type
 
   `cubical <filename>`
 
-To enable the debugging mode add the -d flag. In the interaction loop
+To see a list of options add the --help flag. In the interaction loop
 type :h to get a list of available commands. Note that the current
 directory will be taken as the search path for the imports.
 
@@ -108,21 +114,26 @@ runs it.
 References and notes
 --------------------
 
+ * [Cubical Type Theory: a constructive interpretation of the
+   univalence
+   axiom](http://www.cse.chalmers.se/~coquand/cubicaltt.pdf), Cyril
+   Cohen, Thierry Coquand, Simon Huber, and Anders Mörtberg. This
+   paper describes the type theory and its model.
+
+* [Canonicity for Cubical Type
+  Theory](https://arxiv.org/abs/1607.04156), Simon Huber. Proof of
+  canonicity for the type theory.
+
  * Voevodsky's lectures and texts on [univalent
    foundations](http://www.math.ias.edu/vladimir/home)
 
  * HoTT book and webpage:
    [http://homotopytypetheory.org/](http://homotopytypetheory.org/)
 
- * [Cubical Type Theory: a constructive interpretation of the
-   univalence
-   axiom](http://www.math.ias.edu/~amortberg/papers/cubicaltt.pdf),
-   Cyril Cohen, Thierry Coquand, Simon Huber, and Anders Mörtberg
-
- * [Cubical Type
-   Theory](http://www.cse.chalmers.se/~coquand/face.pdf) - The
-   typing rules of the system. See [this](http://www.cse.chalmers.se/~coquand/face.pdf)
-   for a variation using isomorphisms instead of equivalences.
+ * [Cubical Type Theory](http://www.cse.chalmers.se/~coquand/face.pdf)
+   - Old version of the typing rules of the system. See
+   [this](http://www.cse.chalmers.se/~coquand/face.pdf) for a
+   variation using isomorphisms instead of equivalences.
 
  * [Internal version of the uniform Kan filling
    condition](http://www.cse.chalmers.se/~coquand/shape.pdf)

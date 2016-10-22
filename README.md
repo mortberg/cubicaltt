@@ -121,9 +121,9 @@ References and notes
    Cohen, Thierry Coquand, Simon Huber, and Anders Mörtberg. This
    paper describes the type theory and its model.
 
-* [Canonicity for Cubical Type
-  Theory](https://arxiv.org/abs/1607.04156), Simon Huber. Proof of
-  canonicity for the type theory.
+ * [Canonicity for Cubical Type
+   Theory](https://arxiv.org/abs/1607.04156), Simon Huber. Proof of
+   canonicity for the type theory.
 
  * Voevodsky's lectures and texts on [univalent
    foundations](http://www.math.ias.edu/vladimir/home)

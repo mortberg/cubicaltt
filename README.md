@@ -26,7 +26,8 @@ funExt (A : U) (B : A -> U) (f g : (x : A) -> B x)
 
 For examples, including a demo ("examples/demo.ctt"), see the
 [examples](https://github.com/mortberg/cubicaltt/tree/master/examples#cubical-type-theory-examples)
-folder.
+folder. For a summary of where to find the main results of the cubical
+type theory paper in the examples folder see "examples/summary.ctt".
 
 The following keywords are reserved:
 

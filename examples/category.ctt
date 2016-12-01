@@ -404,6 +404,7 @@ opaque sip
 -- Functors
 --
 
+-- TODO: define as functor_data and isFunctor
 functor (A B : precategory) : U
   = (Fob : cA A -> cA B)
   * (Fmor : (x y : cA A) -> cH A x y -> cH B (Fob x) (Fob y))

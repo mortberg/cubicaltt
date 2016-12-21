@@ -1,0 +1,671 @@
+module algstruct where
+
+import prelude
+import pi
+import sigma
+
+-- Properties
+--------------------------------------------------------------------------------
+
+-- Associativity
+
+isAssociative (M : U) (op : M -> M -> M) : U
+  = (a b c : M) -> Path M (op a (op b c)) (op (op a b) c)
+
+propisAssociative (M : U) (sM : set M) (op : M -> M -> M)
+  : prop (isAssociative M op)
+  = let
+    B (a b c : M) : U
+      = Path M (op a (op b c)) (op (op a b) c)
+    h (a b c : M) : prop (B a b c)
+      = sM (op a (op b c)) (op (op a b) c)
+  in propPi3 M B h
+
+-- Has identity element
+
+hasLeftIdentity (M : U) (op : M -> M -> M) (id : M) : U
+  = (x : M) -> Path M (op id x) x
+
+prophasLeftIdentity (M : U) (sM : set M) (op : M -> M -> M) (id : M)
+  : prop (hasLeftIdentity M op id)
+  = let
+    B (x : M) : U
+      = Path M (op id x) x
+    h (x : M) : prop (B x)
+      = sM (op id x) x
+  in propPi M B h
+
+hasRightIdentity (M : U) (op : M -> M -> M) (id : M) : U
+  = (x : M) -> Path M (op x id) x
+
+prophasRightIdentity (M : U) (sM : set M) (op : M -> M -> M) (id : M)
+  : prop (hasRightIdentity M op id)
+  = let
+    B (x : M) : U
+      = Path M (op x id) x
+    h (x : M) : prop (B x)
+      = sM (op x id) x
+  in propPi M B h
+
+hasIdentity (M : U) (op : M -> M -> M) (id : M) : U
+  = (_ : hasLeftIdentity M op id)
+  * (hasRightIdentity M op id)
+
+prophasIdentity (M : U) (sM : set M) (op : M -> M -> M) (id : M)
+  : prop (hasIdentity M op id)
+  = propAnd (hasLeftIdentity M op id) (hasRightIdentity M op id)
+      (prophasLeftIdentity M sM op id) (prophasRightIdentity M sM op id)
+
+-- Commutativity
+
+isCommutative (M : U) (op : M -> M -> M) : U
+  = (x y : M) -> Path M (op x y) (op y x)
+
+propisCommutative (M : U) (sM : set M) (op : M -> M -> M)
+  : prop (isCommutative M op)
+  = let
+    B (x y : M) : U
+      = Path M (op x y) (op y x)
+    h (x y : M) : prop (B x y)
+      = sM (op x y) (op y x)
+  in propPi2 M B h
+
+-- Cancellativity
+
+isLeftCancellative (M : U) (op : M -> M -> M) : U
+  = (c x y : M) -> Path M (op c x) (op c y) -> Path M x y
+
+propisLeftCancellative (M : U) (sM : set M) (op : M -> M -> M)
+  : prop (isLeftCancellative M op)
+  = let
+    B (c x y : M) : U
+      = Path M (op c x) (op c y) -> Path M x y
+    h (c x y : M) : prop (B c x y)
+      = let
+        B0 (p : Path M (op c x) (op c y)) : U
+          = Path M x y
+        h0 (p : Path M (op c x) (op c y)) : prop (B0 p)
+          = sM x y
+      in propPi (Path M (op c x) (op c y)) B0 h0
+  in propPi3 M B h
+
+isRightCancellative (M : U) (op : M -> M -> M) : U
+  = (c x y : M) -> Path M (op x c) (op y c) -> Path M x y
+
+propisRightCancellative (M : U) (sM : set M) (op : M -> M -> M)
+  : prop (isRightCancellative M op)
+  = let
+    B (c x y : M) : U
+      = Path M (op x c) (op y c) -> Path M x y
+    h (c x y : M) : prop (B c x y)
+      = let
+        B0 (p : Path M (op x c) (op y c)) : U
+          = Path M x y
+        h0 (p : Path M (op x c) (op y c)) : prop (B0 p)
+          = sM x y
+      in propPi (Path M (op x c) (op y c)) B0 h0
+  in propPi3 M B h
+
+isCancellative (M : U) (op : M -> M -> M) : U
+  = (_ : isLeftCancellative M op)
+  * (isRightCancellative M op)
+
+propisCancellative (M : U) (sM : set M) (op : M -> M -> M)
+  : prop (isCancellative M op)
+  = propAnd (isLeftCancellative M op) (isRightCancellative M op)
+      (propisLeftCancellative M sM op) (propisRightCancellative M sM op)
+
+-- Has inverse element
+
+hasLeftInverse (G : U) (op : G -> G -> G) (id : G) (inv : G -> G) : U
+  = (x : G) -> Path G (op (inv x) x) id
+
+prophasLeftInverse (G : U) (sG : set G) (op : G -> G -> G) (id : G) (inv : G -> G)
+  : prop (hasLeftInverse G op id inv)
+  = let
+    B (x : G) : U
+      = Path G (op (inv x) x) id
+    h (x : G) : prop (B x)
+      = sG (op (inv x) x) id
+  in propPi G B h
+
+hasRightInverse (G : U) (op : G -> G -> G) (id : G) (inv : G -> G) : U
+  = (x : G) -> Path G (op x (inv x)) id
+
+prophasRightInverse (G : U) (sG : set G) (op : G -> G -> G) (id : G) (inv : G -> G)
+  : prop (hasRightInverse G op id inv)
+  = let
+    B (x : G) : U
+      = Path G (op x (inv x)) id
+    h (x : G) : prop (B x)
+      = sG (op x (inv x)) id
+  in propPi G B h
+
+hasInverse (G : U) (op : G -> G -> G) (id : G) (inv : G -> G) : U
+  = (_ : hasLeftInverse G op id inv)
+  * (hasRightInverse G op id inv)
+
+prophasInverse (G : U) (sG : set G) (op : G -> G -> G) (id : G) (inv : G -> G)
+  : prop (hasInverse G op id inv)
+  = propAnd (hasLeftInverse G op id inv) (hasRightInverse G op id inv)
+      (prophasLeftInverse G sG op id inv) (prophasRightInverse G sG op id inv)
+
+-- Distributivity
+
+isLeftDistributive (R : U) (add : R -> R -> R) (mul : R -> R -> R) : U
+  = (a b c : R) -> Path R (mul a (add b c)) (add (mul a b) (mul a c))
+
+propisLeftDistributive (R : U) (sR : set R) (add : R -> R -> R) (mul : R -> R -> R)
+  : prop (isLeftDistributive R add mul)
+  = let
+    B (a b c : R) : U
+      = Path R (mul a (add b c)) (add (mul a b) (mul a c))
+    h (a b c : R) : prop (B a b c)
+      = sR (mul a (add b c)) (add (mul a b) (mul a c))
+  in propPi3 R B h
+
+isRightDistributive (R : U) (add : R -> R -> R) (mul : R -> R -> R) : U
+  = (a b c : R) -> Path R (mul (add b c) a) (add (mul b a) (mul c a))
+
+propisRightDistributive (R : U) (sR : set R) (add : R -> R -> R) (mul : R -> R -> R)
+  : prop (isRightDistributive R add mul)
+  = let
+    B (a b c : R) : U
+      = Path R (mul (add b c) a) (add (mul b a) (mul c a))
+    h (a b c : R) : prop (B a b c)
+      = sR (mul (add b c) a) (add (mul b a) (mul c a))
+  in propPi3 R B h
+
+isDistributive (R : U) (add : R -> R -> R) (mul : R -> R -> R) : U
+  = (_ : isLeftDistributive R add mul)
+  * (isRightDistributive R add mul)
+
+propisDistributive (R : U) (sR : set R) (add : R -> R -> R) (mul : R -> R -> R)
+  : prop (isDistributive R add mul)
+  = propAnd (isLeftDistributive R add mul) (isRightDistributive R add mul)
+      (propisLeftDistributive R sR add mul) (propisRightDistributive R sR add mul)
+
+-- Structure preserving properties of maps
+
+preservesOp (A B : U) (oA : A -> A -> A) (oB : B -> B -> B) (f : A -> B) : U
+  = (a0 a1 : A) -> Path B (f (oA a0 a1)) (oB (f a0) (f a1))
+
+proppreservesOp (A B : U) (sB : set B) (oA : A -> A -> A) (oB : B -> B -> B)
+    (f : A -> B) : prop (preservesOp A B oA oB f)
+  = propPi2 A (\ (a0 a1 : A) -> Path B (f (oA a0 a1)) (oB (f a0) (f a1)))
+      (\ (a0 a1 : A) -> sB (f (oA a0 a1)) (oB (f a0) (f a1)))
+
+preservesId (A B : U) (iA : A) (iB : B) (f : A -> B) : U
+  = Path B (f iA) iB
+
+proppreservesId (A B : U) (sB : set B) (iA : A) (iB : B) (f : A -> B)
+  : prop (preservesId A B iA iB f)
+  = sB (f iA) iB
+
+
+-- Algebraic structures
+--------------------------------------------------------------------------------
+
+-- Group-like structures
+------------------------
+
+-- Monoid
+
+ismonoid (M : SET) : U
+  = (op : M.1 -> M.1 -> M.1)
+  * (_ : isAssociative M.1 op)
+  * (id : M.1)
+  * (hasIdentity M.1 op id)
+
+monoid : U
+  = (X : SET) * ismonoid X
+
+-- Group
+isgroup (G : SET) : U
+  = (m : ismonoid G)
+  * (inv : G.1 -> G.1)
+  * (hasInverse G.1 m.1 m.2.2.1 inv)
+
+group : U
+  = (X : SET) * isgroup X
+
+-- Commutative group-like structures
+------------------------------------
+
+-- Commutative monoid
+
+iscmonoid (M : SET) : U
+  = (m : ismonoid M)
+  * (isCommutative M.1 m.1)
+
+cmonoid : U
+  = (X : SET) * iscmonoid X
+
+-- Commutative group
+iscgroup (G : SET) : U
+  = (g : isgroup G)
+  * (isCommutative G.1 g.1.1)
+
+cgroup : U
+  = (X : SET) * iscgroup X
+
+-- Ring-like structures
+-----------------------
+
+-- Ring
+
+isring (R : SET) : U
+  = (mul : ismonoid R)
+  * (add : iscgroup R)
+  * (isDistributive R.1 add.1.1.1 mul.1)
+
+ring : U
+  = (X : SET) * isring X
+
+-- Commutative ring-like structures
+-----------------------------------
+
+-- Commutative ring
+
+iscring (R : SET) : U
+  = (mul : iscmonoid R)
+  * (add : iscgroup R)
+  * (isDistributive R.1 add.1.1.1 mul.1.1)
+
+cring : U
+  = (X : SET) * iscring X
+
+
+-- Simple algebraic properties of commutative groups
+----------------------------------------------------
+
+-- Commutative groups are cancellative
+
+lem_group_lcancellative (g : group) (c x y : g.1.1) (p : Path g.1.1 (g.2.1.1 c x) (g.2.1.1 c y))
+  : Path g.1.1 x y
+  = <i> comp (<_> g.1.1) (g.2.1.1 (g.2.2.1 c) (p @ i))
+    [ (i = 0) -> <j> comp (<_> g.1.1) (g.2.1.1 ((g.2.2.2).1 c @ j) x)
+        [ (j = 0) -> <k> g.2.1.2.1 (g.2.2.1 c) c x @ -k
+        , (j = 1) -> (g.2.1.2.2.2).1 x ]
+    , (i = 1) -> <j> comp (<_> g.1.1) (g.2.1.1 ((g.2.2.2).1 c @ j) y)
+        [ (j = 0) -> <k> g.2.1.2.1 (g.2.2.1 c) c y @ -k
+        , (j = 1) -> (g.2.1.2.2.2).1 y ] ]
+
+lem_group_rcancellative (g : group) (c x y : g.1.1) (p : Path g.1.1 (g.2.1.1 x c) (g.2.1.1 y c))
+  : Path g.1.1 x y
+  = <i> comp (<_> g.1.1) (g.2.1.1 (p @ i) (g.2.2.1 c))
+    [ (i = 0) -> <j> comp (<_> g.1.1) (g.2.1.1 x ((g.2.2.2).2 c @ j))
+        [ (j = 0) -> g.2.1.2.1 x c (g.2.2.1 c)
+        , (j = 1) -> (g.2.1.2.2.2).2 x ]
+    , (i = 1) -> <j> comp (<_> g.1.1) (g.2.1.1 y ((g.2.2.2).2 c @ j))
+        [ (j = 0) -> g.2.1.2.1 y c (g.2.2.1 c)
+        , (j = 1) -> (g.2.1.2.2.2).2 y ] ]
+
+lem_group_cancellative (g : group) : isCancellative g.1.1 (g.2.1.1)
+  = (lem_group_lcancellative g, lem_group_rcancellative g)
+
+-- (a · b)⁻¹ ≡ a⁻¹ · b⁻¹
+lem_cgroup_inv_dist (g : cgroup) (a b : g.1.1)
+  : Path g.1.1 (g.2.1.1.1 (g.2.1.2.1 a) (g.2.1.2.1 b)) (g.2.1.2.1 (g.2.1.1.1 a b))
+  = let
+    a' : g.1.1
+      = g.2.1.2.1 a
+    b' : g.1.1
+      = g.2.1.2.1 b
+    x : g.1.1
+      = g.2.1.1.1 a b
+    x' : g.1.1
+      = g.2.1.2.1 (g.2.1.1.1 a b)
+    p0 : Path g.1.1 (g.2.1.1.1 x' a) b'
+      = <i> comp (<_> g.1.1) (g.2.1.1.1 ((g.2.1.2.2).1 (g.2.1.1.1 a b) @ i) b')
+        [ (i = 1) -> (g.2.1.1.2.2.2).1 b'
+        , (i = 0) -> <j> comp (<_> g.1.1) (g.2.1.1.2.1 x' x b' @ -j)
+          [ (j = 0) -> <_> g.2.1.1.1 (g.2.1.1.1 x' x) b'
+          , (j = 1) -> <k> comp (<_> g.1.1) (g.2.1.1.1 x' (g.2.1.1.2.1 a b b' @ -k))
+            [ (k = 0) -> <_> g.2.1.1.1 x' (g.2.1.1.1 x b')
+            , (k = 1) -> <l> comp (<_> g.1.1) (g.2.1.1.1 x' (g.2.1.1.1 a ((g.2.1.2.2).2 b @ l)))
+              [ (l = 0) -> <_> g.2.1.1.1 x' (g.2.1.1.1 a (g.2.1.1.1 b b'))
+              , (l = 1) -> <m> g.2.1.1.1 x' ((g.2.1.1.2.2.2).2 a @ m) ]]]]
+    p1 : Path g.1.1 x' (g.2.1.1.1 b' a')
+      = <i> comp (<_> g.1.1) (g.2.1.1.1 (p0 @ i) a')
+        [ (i = 1) -> <_> g.2.1.1.1 b' a'
+        , (i = 0) -> <j> comp (<_> g.1.1) (g.2.1.1.2.1 x' a a' @ -j)
+          [ (j = 0) -> <_> g.2.1.1.1 (g.2.1.1.1 x' a) a'
+          , (j = 1) -> <k> comp (<_> g.1.1) (g.2.1.1.1 x' ((g.2.1.2.2).2 a @ k))
+            [ (k = 0) -> <_> g.2.1.1.1 x' (g.2.1.1.1 a a')
+            , (k = 1) -> (g.2.1.1.2.2.2).2 x' ]]]
+  in <i> comp (<_> g.1.1) (p1 @ -i)
+    [ (i = 0) -> g.2.2 (g.2.1.2.1 b) (g.2.1.2.1 a)
+    , (i = 1) -> <_> g.2.1.2.1 (g.2.1.1.1 a b) ]
+
+-- e⁻¹ ≡ e
+lemma_cgroup_inv_id (g : cgroup) : Path g.1.1 (g.2.1.2.1 (g.2.1.1.2.2.1)) (g.2.1.1.2.2.1)
+  = <i> comp (<_> g.1.1) ((g.2.1.1.2.2.2).2 (g.2.1.2.1 (g.2.1.1.2.2.1)) @ -i)
+    [ (i = 0) -> <_> g.2.1.2.1 (g.2.1.1.2.2.1)
+    , (i = 1) -> (g.2.1.2.2).1 (g.2.1.1.2.2.1) ]
+
+
+-- Homomorphisms
+----------------
+
+-- The monoid homomorphism preserves both the structure and the identity element
+ismonoidhom (a b : monoid) (f : a.1.1 -> b.1.1) : U
+  = (_ : preservesOp a.1.1 b.1.1 a.2.1 b.2.1 f)
+  * (preservesId a.1.1 b.1.1 a.2.2.2.1 b.2.2.2.1 f)
+
+propismonoidhom (a b : monoid) (f : a.1.1 -> b.1.1) : prop (ismonoidhom a b f)
+  = propAnd (preservesOp a.1.1 b.1.1 a.2.1 b.2.1 f)
+      (preservesId a.1.1 b.1.1 a.2.2.2.1 b.2.2.2.1 f)
+      (proppreservesOp a.1.1 b.1.1 b.1.2 a.2.1 b.2.1 f)
+      (proppreservesId a.1.1 b.1.1 b.1.2 a.2.2.2.1 b.2.2.2.1 f)
+
+monoidhom (a b : monoid) : U
+  = (f : a.1.1 -> b.1.1)
+  * (ismonoidhom a b f)
+
+setmonoidhom (a b : monoid) : set (monoidhom a b)
+  = let
+    setf : set (a.1.1 -> b.1.1)
+      = setPi a.1.1 (\ (_ : a.1.1) -> b.1.1) (\ (_ : a.1.1) -> b.1.2)
+    setm (f : a.1.1 -> b.1.1) : set (ismonoidhom a b f)
+      = propSet (ismonoidhom a b f) (propismonoidhom a b f) 
+  in setSig (a.1.1 -> b.1.1) (ismonoidhom a b) setf setm 
+
+-- Homomorphisms between underlying monoids
+
+cmonoidhom (a b : cmonoid) : U
+  = monoidhom (a.1, a.2.1) (b.1, b.2.1)
+
+grouphom (a b : group) : U
+  = monoidhom (a.1, a.2.1) (b.1, b.2.1)
+
+cgrouphom (a b : cgroup) : U
+  = monoidhom (a.1, a.2.1.1) (b.1, b.2.1.1)
+
+cmoncgrouphom (a : cmonoid) (b : cgroup) : U
+  = monoidhom (a.1, a.2.1) (b.1, b.2.1.1)
+
+-- Homomorphism constructors
+
+grouphom' (a b : group) (f : a.1.1 -> b.1.1)
+    (pO : preservesOp a.1.1 b.1.1 a.2.1.1 b.2.1.1 f)
+  : monoidhom (a.1, a.2.1) (b.1, b.2.1)
+  = let
+    p : Path b.1.1 (b.2.1.1 (f a.2.1.2.2.1) (f a.2.1.2.2.1)) (b.2.1.1 (f a.2.1.2.2.1) b.2.1.2.2.1)
+      = <i> comp (<_> b.1.1) (f (a.2.1.2.2.2.1 a.2.1.2.2.1 @ i))
+        [ (i = 0) -> pO a.2.1.2.2.1 a.2.1.2.2.1
+        , (i = 1) -> <j> b.2.1.2.2.2.2 (f a.2.1.2.2.1) @ -j ]
+  in (f, pO, (lem_group_cancellative b).1 (f a.2.1.2.2.1) (f a.2.1.2.2.1) b.2.1.2.2.1 p)
+
+cgrouphom' (a b : cgroup) (f : a.1.1 -> b.1.1)
+    (pO : preservesOp a.1.1 b.1.1 a.2.1.1.1 b.2.1.1.1 f)
+  : monoidhom (a.1, a.2.1.1) (b.1, b.2.1.1)
+  = grouphom' (a.1, a.2.1) (b.1, b.2.1) f pO
+
+-- g ∘ f
+monoidhomcomp (a b c : monoid)
+    (f : monoidhom a b) (g : monoidhom b c)
+  : monoidhom a c
+  = let
+    h (x : a.1.1) : c.1.1
+      = g.1 (f.1 x)
+    pO (x0 x1 : a.1.1) : Path c.1.1 (h (a.2.1 x0 x1)) (c.2.1 (h x0) (h x1))
+      = <i> comp (<_> c.1.1) (g.1 (f.2.1 x0 x1 @ i))
+        [ (i = 0) -> <_> h (a.2.1 x0 x1)
+        , (i = 1) -> g.2.1 (f.1 x0) (f.1 x1) ]
+    pI : Path c.1.1 (h a.2.2.2.1) c.2.2.2.1
+      = <i> comp (<_> c.1.1) (g.1 (f.2.2 @ i))
+        [ (i = 0) -> <_> h a.2.2.2.1
+        , (i = 1) -> g.2.2 ]
+  in (h, pO, pI)
+
+-- h ∘ (g ∘ f) ≡ (h ∘ g) ∘ f 
+lemma_monoidcomp0 (a b c d : monoid) (f : monoidhom a b)
+    (g : monoidhom b c) (h : monoidhom c d)
+  : Path (monoidhom a d) (monoidhomcomp a c d (monoidhomcomp a b c f g) h)
+                         (monoidhomcomp a b d f (monoidhomcomp b c d g h))
+  = let
+    f0 : monoidhom a d
+      = monoidhomcomp a c d (monoidhomcomp a b c f g) h
+    f1 : monoidhom a d
+      = monoidhomcomp a b d f (monoidhomcomp b c d g h)
+  in lemSig (a.1.1 -> d.1.1) (ismonoidhom a d) (propismonoidhom a d) f0 f1 (<_> f0.1)
+
+-- 1_a
+idmonoidhom (a : monoid) : monoidhom a a
+  = (\ (x : a.1.1) -> x, \ (a0 a1 : a.1.1) -> <_> a.2.1 a0 a1, <_> a.2.2.2.1)
+
+-- f ∘ 1_a ≡ f
+lemma_idmonoidhom0 (a b : monoid) (f : monoidhom a b)
+  : Path (monoidhom a b) (monoidhomcomp a a b (idmonoidhom a) f) f
+  = let
+    h : monoidhom a b
+      = monoidhomcomp a a b (idmonoidhom a) f
+  in lemSig (a.1.1 -> b.1.1) (ismonoidhom a b) (propismonoidhom a b) h f (<_> f.1)
+
+-- 1_b ∘ f ≡ f
+lemma_idmonoidhom1 (a b : monoid) (f : monoidhom a b)
+  : Path (monoidhom a b) (monoidhomcomp a b b f (idmonoidhom b)) f
+  = let
+    h : monoidhom a b
+      = monoidhomcomp a b b f (idmonoidhom b)
+  in lemSig (a.1.1 -> b.1.1) (ismonoidhom a b) (propismonoidhom a b) h f (<_> f.1)
+
+-- f(x⁻¹) ≡ f(x)⁻¹
+lem_cgrouphom_inv (g h : cgroup) (f : cgrouphom g h) (x : g.1.1)
+  : Path h.1.1 (f.1 (g.2.1.2.1 x)) (h.2.1.2.1 (f.1 x))
+  = let
+    x' : g.1.1
+      = g.2.1.2.1 x
+    y : h.1.1
+      = f.1 x
+    y' : h.1.1
+      = h.2.1.2.1 y
+    p0 : Path h.1.1 (h.2.1.1.1 y (f.1 x')) (h.2.1.1.2.2.1)
+      = <i> comp (<_> h.1.1) (f.1 ((g.2.1.2.2).2 x @ i))
+        [ (i = 0) -> f.2.1 x x'
+        , (i = 1) -> f.2.2 ]
+    p1 : Path h.1.1 (h.2.1.1.1 (h.2.1.1.1 y' y) (f.1 x')) y'
+      = <i> comp (<_> h.1.1) (h.2.1.1.1 y' (p0 @ i))
+        [ (i = 0) -> h.2.1.1.2.1 y' y (f.1 x')
+        , (i = 1) -> (h.2.1.1.2.2.2).2 y' ]
+    p2 : Path h.1.1 (h.2.1.1.1 (h.2.1.1.2.2.1) (f.1 x')) y'
+      = <i> comp (<_> h.1.1) (p1 @ i)
+        [ (i = 0) -> <j> h.2.1.1.1 ((h.2.1.2.2).1 y @ j) (f.1 x')
+        , (i = 1) -> <_> y' ]
+  in <i> comp (<_> h.1.1) (p2 @ i)
+    [ (i = 0) -> (h.2.1.1.2.2.2).1 (f.1 x')
+    , (i = 1) -> <_> y' ]
+
+
+-- Identities of commuative and associative algebraic structures.
+-----------------------------------------------------------------
+
+AscCom : U
+  = (A : U)
+  * (op : A -> A -> A)
+  * (_ : isAssociative A op)
+  * (isCommutative A op)
+
+swp0 (A : AscCom) (a b c : A.1)
+  : Path A.1 (A.2.1 a (A.2.1 b c)) (A.2.1 b (A.2.1 a c))
+  = let
+    op : A.1 -> A.1 -> A.1
+      = A.2.1
+    asc (x y z : A.1) : Path A.1 (op x (op y z)) (op (op x y) z)
+      = A.2.2.1 x y z
+    cm (x y : A.1) : Path A.1 (op x y) (op y x)
+      = A.2.2.2 x y
+  in <i> comp (<_> A.1) (asc a b c @ i)
+    [ (i = 0) -> <_> op a (op b c)
+    , (i = 1) -> <j> comp (<_> A.1) (op (cm a b @ j) c)
+      [ (j = 0) -> <_> op (op a b) c
+      , (j = 1) -> <k> asc b a c @ -k ]]
+
+swp1 (A : AscCom) (a b c : A.1)
+  : Path A.1 (A.2.1 a (A.2.1 b c)) (A.2.1 c (A.2.1 b a))
+  = let
+    op : A.1 -> A.1 -> A.1
+      = A.2.1
+    asc (x y z : A.1) : Path A.1 (op x (op y z)) (op (op x y) z)
+      = A.2.2.1 x y z
+    cm (x y : A.1) : Path A.1 (op x y) (op y x)
+      = A.2.2.2 x y
+  in <i> comp (<_> A.1) (op a (cm b c @ i))
+    [ (i = 0) -> <_> op a (op b c)
+    , (i = 1) -> <j> comp (<_> A.1) (swp0 A a c b @ j)
+      [ (j = 0) -> <_> op a (op c b)
+      , (j = 1) -> <k> op c (cm a b @ k) ]]
+
+swp2 (A : AscCom) (a b c : A.1)
+  : Path A.1 (A.2.1 (A.2.1 a b) c) (A.2.1 (A.2.1 c b) a)
+  = let
+    op : A.1 -> A.1 -> A.1
+      = A.2.1
+    asc (x y z : A.1) : Path A.1 (op x (op y z)) (op (op x y) z)
+      = A.2.2.1 x y z
+    cm (x y : A.1) : Path A.1 (op x y) (op y x)
+      = A.2.2.2 x y
+  in <i> comp (<_> A.1) (cm (op a b) c @ i)
+    [ (i = 0) -> <_> op (op a b) c
+    , (i = 1) -> <j> comp (<_> A.1) (swp0 A c a b @ j)
+      [ (j = 0) -> <_> op c (op a b)
+      , (j = 1) -> cm a (op c b) ]]
+
+swp3 (A : AscCom) (a b c : A.1)
+  : Path A.1 (A.2.1 (A.2.1 a b) c) (A.2.1 (A.2.1 a c) b)
+  = let
+    op : A.1 -> A.1 -> A.1
+      = A.2.1
+    asc (x y z : A.1) : Path A.1 (op x (op y z)) (op (op x y) z)
+      = A.2.2.1 x y z
+    cm (x y : A.1) : Path A.1 (op x y) (op y x)
+      = A.2.2.2 x y
+  in <i> comp (<_> A.1) (cm (op a b) c @ i)
+    [ (i = 0) -> <_> op (op a b) c
+    , (i = 1) -> <j> comp (<_> A.1) (swp1 A c a b @ j)
+      [ (j = 0) -> <_> op c (op a b)
+      , (j = 1) -> cm b (op a c) ]]
+
+swp4 (A : AscCom) (a b c d : A.1)
+  : Path A.1 (A.2.1 a (A.2.1 b (A.2.1 c d))) (A.2.1 c (A.2.1 b (A.2.1 a d)))
+  = let
+    op : A.1 -> A.1 -> A.1
+      = A.2.1
+    asc (x y z : A.1) : Path A.1 (op x (op y z)) (op (op x y) z)
+      = A.2.2.1 x y z
+    cm (x y : A.1) : Path A.1 (op x y) (op y x)
+      = A.2.2.2 x y
+  in <i> comp (<_> A.1) (swp0 A a b (op c d) @ i)
+    [ (i = 0) -> <_> op a (op b (op c d))
+    , (i = 1) -> <j> comp (<_> A.1) (op b (swp0 A a c d @ j))
+      [ (j = 0) -> <_> (op b (op a (op c d)))
+    , (j = 1) -> swp0 A b c (op a d) ]]
+
+swp5 (A : AscCom) (a b c d : A.1)
+  : Path A.1 (A.2.1 a (A.2.1 b (A.2.1 c d))) (A.2.1 d (A.2.1 b (A.2.1 c a)))
+  = let
+    op : A.1 -> A.1 -> A.1
+      = A.2.1
+    asc (x y z : A.1) : Path A.1 (op x (op y z)) (op (op x y) z)
+      = A.2.2.1 x y z
+    cm (x y : A.1) : Path A.1 (op x y) (op y x)
+      = A.2.2.2 x y
+  in <i> comp (<_> A.1) (swp0 A a b (op c d) @ i)
+    [ (i = 0) -> <_> op a (op b (op c d))
+    , (i = 1) -> <j> comp (<_> A.1) (op b (swp1 A a c d @ j))
+      [ (j = 0) -> <_> (op b (op a (op c d)))
+      , (j = 1) -> swp0 A b d (op c a) ]]
+
+swp6 (A : AscCom) (a b c d : A.1)
+  : Path A.1 (A.2.1 (A.2.1 a b) (A.2.1 c d)) (A.2.1 (A.2.1 c b) (A.2.1 a d))
+  = let
+    op : A.1 -> A.1 -> A.1
+      = A.2.1
+    asc (x y z : A.1) : Path A.1 (op x (op y z)) (op (op x y) z)
+      = A.2.2.1 x y z
+    cm (x y : A.1) : Path A.1 (op x y) (op y x)
+      = A.2.2.2 x y
+  in <i> comp (<_> A.1) (asc a b (op c d) @ -i)
+    [ (i = 0) -> <_> op (op a b) (op c d)
+    , (i = 1) -> <j> comp (<_> A.1) (swp4 A a b c d @ j)
+      [ (j = 0) -> <_> (op a (op b (op c d)))
+      , (j = 1) -> asc c b (op a d) ]]
+
+swp7 (A : AscCom) (a b c d : A.1)
+  : Path A.1 (A.2.1 (A.2.1 a b) (A.2.1 c d)) (A.2.1 (A.2.1 d b) (A.2.1 c a))
+  = let
+    op : A.1 -> A.1 -> A.1
+      = A.2.1
+    asc (x y z : A.1) : Path A.1 (op x (op y z)) (op (op x y) z)
+      = A.2.2.1 x y z
+    cm (x y : A.1) : Path A.1 (op x y) (op y x)
+      = A.2.2.2 x y
+  in <i> comp (<_> A.1) (asc a b (op c d) @ -i)
+    [ (i = 0) -> <_> op (op a b) (op c d)
+    , (i = 1) -> <j> comp (<_> A.1) (swp5 A a b c d @ j)
+      [ (j = 0) -> <_> (op a (op b (op c d)))
+      , (j = 1) -> asc d b (op c a) ]]
+
+swp8 (A : AscCom) (a b c d : A.1)
+  : Path A.1 (A.2.1 (A.2.1 a b) (A.2.1 c d)) (A.2.1 (A.2.1 a c) (A.2.1 b d))
+  = let
+    op : A.1 -> A.1 -> A.1
+      = A.2.1
+    asc (x y z : A.1) : Path A.1 (op x (op y z)) (op (op x y) z)
+      = A.2.2.1 x y z
+    cm (x y : A.1) : Path A.1 (op x y) (op y x)
+      = A.2.2.2 x y
+  in <i> comp (<_> A.1) (asc a b (op c d) @ -i)
+    [ (i = 0) -> <_> op (op a b) (op c d)
+    , (i = 1) -> <j> comp (<_> A.1) (op a (swp0 A b c d @ j))
+      [ (j = 0) -> <_> (op a (op b (op c d)))
+      , (j = 1) -> asc a c (op b d) ]]
+
+swp9 (A : AscCom) (a b c d : A.1)
+  : Path A.1 (A.2.1 (A.2.1 a b) (A.2.1 c d)) (A.2.1 (A.2.1 a d) (A.2.1 c b))
+  = let
+    op : A.1 -> A.1 -> A.1
+      = A.2.1
+    asc (x y z : A.1) : Path A.1 (op x (op y z)) (op (op x y) z)
+      = A.2.2.1 x y z
+    cm (x y : A.1) : Path A.1 (op x y) (op y x)
+      = A.2.2.2 x y
+  in <i> comp (<_> A.1) (asc a b (op c d) @ -i)
+    [ (i = 0) -> <_> op (op a b) (op c d)
+    , (i = 1) -> <j> comp (<_> A.1) (op a (swp1 A b c d @ j))
+      [ (j = 0) -> <_> (op a (op b (op c d)))
+      , (j = 1) -> asc a d (op c b) ]]
+
+swptrans (A : AscCom) (k l : A.1) (a b c : and A.1 A.1)
+    (p0 : Path A.1 (A.2.1 k (A.2.1 a.1 b.2)) (A.2.1 k (A.2.1 b.1 a.2)))
+    (p1 : Path A.1 (A.2.1 l (A.2.1 b.1 c.2)) (A.2.1 l (A.2.1 c.1 b.2)))
+  : Path A.1 (A.2.1 (A.2.1 k (A.2.1 l b.2)) (A.2.1 a.1 c.2))
+           (A.2.1 (A.2.1 k (A.2.1 l b.2)) (A.2.1 c.1 a.2))
+  = let
+    op : A.1 -> A.1 -> A.1
+      = A.2.1
+    op3 (x y z : A.1) : A.1
+      = op x (op y z)
+    asc (x y z : A.1) : Path A.1 (op x (op y z)) (op (op x y) z)
+      = A.2.2.1 x y z
+    cm (x y : A.1) : Path A.1 (op x y) (op y x)
+      = A.2.2.2 x y
+    p2 : Path A.1 (op (op l c.2) (op3 k a.1 b.2)) (op (op3 k l b.2) (op a.1 c.2))
+      = <i> comp (<_> A.1) (swp9 A l c.2 a.1 (op k b.2) @ i)
+        [ (i = 0) -> <j> op (op l c.2) (swp0 A k a.1 b.2 @ -j)
+        , (i = 1) -> <j> op (swp0 A l k b.2 @ j) (op a.1 c.2) ]
+    p3 : Path A.1 (op (op l c.2) (op3 k a.1 b.2)) (op (op k a.2) (op3 l b.1 c.2))
+      = <i> comp (<_> A.1) (swp1 A (op l c.2) k (op b.1 a.2) @ i)
+        [ (i = 0) -> <j> op (op l c.2) (p0 @ -j)
+        , (i = 1) -> <j> comp (<_> A.1) (swp6 A b.1 a.2 k (op l c.2) @ j)
+          [ (j = 0) -> <_> op (op b.1 a.2) (op3 k l c.2)
+          , (j = 1) -> <m> op (op k a.2) (swp0 A b.1 l c.2 @ m) ]]
+    p4 : Path A.1 (op (op k a.2) (op3 l b.1 c.2)) (op (op3 k l b.2) (op c.1 a.2))
+      = <i> comp (<_> A.1) (op (op k a.2) (swp0 A l c.1 b.2 @ i))
+        [ (i = 0) -> <j> op (op k a.2) (p1 @ -j)
+        , (i = 1) -> swp9 A k a.2 c.1 (op l b.2) ]
+  in <i> comp (<_> A.1) (p3 @ i) [ (i = 0) -> p2, (i = 1) -> p4 ]
+
+
+

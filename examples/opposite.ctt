@@ -31,5 +31,5 @@ oppCat (C : precategory) : precategory = (Copp,isPrecategoryCopp)
 
   isPrecategoryCopp : isPrecategory Copp = (idOpp,compOpp,isPrecategory2Copp)
 
-oppOppCat (C : precategory) : Path precategory C (oppCat (oppCat C)) =
+oppOppCat (C : precategory) : Path precategory (oppCat (oppCat C)) C =
   <i> C

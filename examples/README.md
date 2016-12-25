@@ -69,6 +69,9 @@ cubicaltt. The files contain:
 
 * **ordinal.ctt** - Ordinals.
 
+* **opposite.ctt** - Opposite category and a proof that C^op^op = C
+                     definitionally.
+
 * **pi.ctt** - Characterization of equality in pi types.
 
 * **prelude.ctt** - The prelude. Definition of Path types and basic

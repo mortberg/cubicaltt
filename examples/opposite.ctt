@@ -1,0 +1,35 @@
+-- Definition of the opposite category and verification that C^op^op = C definitionally
+module opposite where
+
+import category
+
+oppCat (C : precategory) : precategory = (Copp,isPrecategoryCopp)
+  where
+  A : U = cA C
+  homOpp (a b : A) : U = cH C b a
+
+  Copp : categoryData = (A,homOpp)
+  idOpp (a : A) : homOpp a a = C.2.1 a
+  compOpp (a b c : A) (f : homOpp a b) (g : homOpp b c) : homOpp a c =
+    C.2.2.1 c b a g f
+
+  homOppSet (a b : A) : set (homOpp a b) = cHSet C b a
+
+  left_id (a b : A) (f : homOpp a b) :
+    Path (homOpp a b) (compOpp a a b (idOpp a) f) f = cPathR C b a f
+
+  right_id (a b : A) (f : homOpp a b) :
+    Path (homOpp a b) (compOpp a b b f (idOpp b)) f = cPathL C b a f
+
+  assoc (a b c d : A) (f : homOpp a b) (g : homOpp b c) (h : homOpp c d) :
+    Path (homOpp a d) (compOpp a c d (compOpp a b c f g) h)
+                      (compOpp a b d f (compOpp b c d g h)) =
+      <i> cPathC C d c b a h g f @ -i
+
+  isPrecategory2Copp : isPrecategory2 Copp idOpp compOpp =
+    (homOppSet,left_id,right_id,assoc)
+
+  isPrecategoryCopp : isPrecategory Copp = (idOpp,compOpp,isPrecategory2Copp)
+
+oppOppCat (C : precategory) : Path precategory C (oppCat (oppCat C)) =
+  <i> C

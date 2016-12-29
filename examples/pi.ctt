@@ -34,4 +34,21 @@ groupoidPi (A:U) (B:A -> U) (h:(x:A) -> groupoid (B x)) (f g:pi A B) : set (Path
   rem1 : set T =  setPi A (\ (x:A) -> Path (B x) (f x) (g x)) (\ (x:A) -> h x (f x) (g x))
 
 
+propPi2 (A : U) (B0 : A -> A -> U) (h0 : (x y : A) -> prop (B0 x y))
+  : prop ((x y : A) -> B0 x y)
+  = let
+    p0 (a : A) : prop ((b : A) -> B0 a b)
+      = propPi A (B0 a) (h0 a)
+    B1 (a : A) : U
+      = (b : A) -> B0 a b
+  in propPi A B1 p0
+
+propPi3 (A : U) (B0 : A -> A -> A -> U) (h0 : (x y z : A) -> prop (B0 x y z))
+  : prop ((x y z : A) -> B0 x y z)
+  = let
+    p0 (a b : A) : prop ((c : A) -> B0 a b c)
+      = propPi A (B0 a b) (h0 a b)
+    B1 (a b : A) : U
+      = (c : A) -> B0 a b c
+  in propPi2 A B1 p0
 

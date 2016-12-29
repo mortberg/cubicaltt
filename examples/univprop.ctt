@@ -1,0 +1,698 @@
+module univprop where
+
+import category
+import grothendieck
+
+
+functorId (A B : precategory) (f g : functor A B)
+    (p : Path ( (Fob : cA A -> cA B)
+              * ((x y : cA A) -> cH A x y -> cH B (Fob x) (Fob y))) (f.1, f.2.1) (g.1, g.2.1))
+  : Path (functor A B) f g
+  = let
+    T0 : U
+      = (Fob : cA A -> cA B)
+      * ((x y : cA A) -> cH A x y -> cH B (Fob x) (Fob y))
+    T1 (t : T0) : U
+      = (Fid : (x : cA A) -> Path (cH B (t.1 x) (t.1 x)) (t.2 x x (cPath A x)) (cPath B (t.1 x)))
+      * ((x y z : cA A) -> (f : cH A x y) -> (g : cH A y z) -> Path (cH B (t.1 x) (t.1 z)) (t.2 x z (cC A x y z f g)) (cC B (t.1 x) (t.1 y) (t.1 z) (t.2 x y f) (t.2 y z g)))
+    pT1 (t : T0) : prop (T1 t)
+      = let
+        T2 : U
+          = (x : cA A) -> Path (cH B (t.1 x) (t.1 x)) (t.2 x x (cPath A x)) (cPath B (t.1 x))
+        pT2 : prop T2
+          = propPi (cA A) (\ (x : cA A) -> Path (cH B (t.1 x) (t.1 x)) (t.2 x x (cPath A x)) (cPath B (t.1 x)))
+              (\ (x : cA A) -> cHSet B (t.1 x) (t.1 x) (t.2 x x (cPath A x)) (cPath B (t.1 x)))
+        T3 : U
+          = (x y z : cA A) -> (f : cH A x y) -> (g : cH A y z) -> Path (cH B (t.1 x) (t.1 z)) (t.2 x z (cC A x y z f g)) (cC B (t.1 x) (t.1 y) (t.1 z) (t.2 x y f) (t.2 y z g))
+        pT3 : prop T3
+          = let
+            p0 (x y z : cA A) (f : cH A x y) (g : cH A y z) : prop (Path (cH B (t.1 x) (t.1 z)) (t.2 x z (cC A x y z f g)) (cC B (t.1 x) (t.1 y) (t.1 z) (t.2 x y f) (t.2 y z g)))
+              = cHSet B (t.1 x) (t.1 z) (t.2 x z (cC A x y z f g)) (cC B (t.1 x) (t.1 y) (t.1 z) (t.2 x y f) (t.2 y z g))
+            p1 (x y z : cA A) (f : cH A x y) : prop ((g : cH A y z) -> Path (cH B (t.1 x) (t.1 z)) (t.2 x z (cC A x y z f g)) (cC B (t.1 x) (t.1 y) (t.1 z) (t.2 x y f) (t.2 y z g)))
+              = propPi (cH A y z)
+                  (\ (g : cH A y z) -> Path (cH B (t.1 x) (t.1 z)) (t.2 x z (cC A x y z f g)) (cC B (t.1 x) (t.1 y) (t.1 z) (t.2 x y f) (t.2 y z g)))
+                  (p0 x y z f)
+            p2 (x y z : cA A) : prop ((f : cH A x y) (g : cH A y z) -> Path (cH B (t.1 x) (t.1 z)) (t.2 x z (cC A x y z f g)) (cC B (t.1 x) (t.1 y) (t.1 z) (t.2 x y f) (t.2 y z g)))
+              = propPi (cH A x y)
+                  (\ (f : cH A x y) -> (g : cH A y z) -> Path (cH B (t.1 x) (t.1 z)) (t.2 x z (cC A x y z f g)) (cC B (t.1 x) (t.1 y) (t.1 z) (t.2 x y f) (t.2 y z g)))
+                  (p1 x y z)
+          in propPi3 (cA A)
+             (\ (x y z : cA A) -> (f : cH A x y) -> (g : cH A y z) -> Path (cH B (t.1 x) (t.1 z)) (t.2 x z (cC A x y z f g)) (cC B (t.1 x) (t.1 y) (t.1 z) (t.2 x y f) (t.2 y z g)))
+             p2
+      in propAnd T2 T3 pT2 pT3
+    p0 : Path ((t : T0) * T1 t) ((f.1, f.2.1), (f.2.2.1, f.2.2.2)) ((g.1, g.2.1), (g.2.2.1, g.2.2.2))
+      = lemSig T0 T1 pT1 ((f.1, f.2.1), (f.2.2.1, f.2.2.2)) ((g.1, g.2.1), (g.2.2.1, g.2.2.2)) p
+  in <i> ((p0 @ i).1.1, (p0 @ i).1.2, (p0 @ i).2.1, (p0 @ i).2.2) 
+
+
+-- The coslice category, (a↓U)
+
+cosliceCat (C D : precategory) (a : cA C) (u : functor D C) : precategory
+  = let
+    obj : U
+      = (y : cA D)
+      * cH C a (u.1 y)
+    hom (x y : obj) : U
+      = (h : cH D x.1 y.1)
+      * Path (cH C a (u.1 y.1)) y.2 (cC C a (u.1 x.1) (u.1 y.1) x.2 (u.2.1 x.1 y.1 h))
+    id (x : obj) : hom x x
+      = (cPath D x.1, <i> comp (<_> (cH C a (u.1 x.1))) (cC C a (u.1 x.1) (u.1 x.1) x.2 (u.2.2.1 x.1 @ -i))
+            [ (i = 0) -> cPathR C a (u.1 x.1) x.2
+            , (i = 1) -> <_> cC C a (u.1 x.1) (u.1 x.1) x.2 (u.2.1 x.1 x.1 (cPath D x.1)) ])
+    cmp (x y z : obj) (f : hom x y) (g : hom y z) : hom x z
+      = let
+        h : cH D x.1 z.1
+          = cC D x.1 y.1 z.1 f.1 g.1
+        p : Path (cH C a (u.1 z.1)) z.2 (cC C a (u.1 x.1) (u.1 z.1) x.2 (u.2.1 x.1 z.1 h))
+          = let
+            p2 : Path (cH C a (u.1 z.1)) z.2
+                   (cC C a (u.1 y.1) (u.1 z.1) (cC C a (u.1 x.1) (u.1 y.1) x.2 (u.2.1 x.1 y.1 f.1)) (u.2.1 y.1 z.1 g.1))
+              = <i> comp (<_> cH C a (u.1 z.1)) (g.2 @ i)
+                [ (i = 0) -> <_> z.2
+                , (i = 1) -> <j> cC C a (u.1 y.1) (u.1 z.1) (f.2 @ j) (u.2.1 y.1 z.1 g.1) ]
+            p3 : Path (cH C a (u.1 z.1))
+                   (cC C a (u.1 y.1) (u.1 z.1) (cC C a (u.1 x.1) (u.1 y.1) x.2 (u.2.1 x.1 y.1 f.1)) (u.2.1 y.1 z.1 g.1))
+                   (cC C a (u.1 x.1) (u.1 z.1) x.2 (u.2.1 x.1 z.1 (cC D x.1 y.1 z.1 f.1 g.1)))
+              = <i> comp (<_> cH C a (u.1 z.1)) (cPathC C a (u.1 x.1) (u.1 y.1) (u.1 z.1) x.2 (u.2.1 x.1 y.1 f.1) (u.2.1 y.1 z.1 g.1) @ i)
+                [ (i = 0) -> <_> cC C a (u.1 y.1) (u.1 z.1) (cC C a (u.1 x.1) (u.1 y.1) x.2 (u.2.1 x.1 y.1 f.1)) (u.2.1 y.1 z.1 g.1)
+                , (i = 1) -> <j> cC C a (u.1 x.1) (u.1 z.1) x.2 (u.2.2.2 x.1 y.1 z.1 f.1 g.1 @ -j) ]
+          in <i> comp (<_> cH C a (u.1 z.1)) (p2 @ i)
+            [ (i = 0) -> <_> z.2
+            , (i = 1) -> p3 ]
+      in (h, p)
+    homSet (x y : obj) : set (hom x y)
+      = let
+        p0 : set (cH D x.1 y.1)
+          = cHSet D x.1 y.1
+        p1 (h : cH D x.1 y.1) : set (Path (cH C a (u.1 y.1)) y.2 (cC C a (u.1 x.1) (u.1 y.1) x.2 (u.2.1 x.1 y.1 h)))
+          = propSet ((Path (cH C a (u.1 y.1)) y.2 (cC C a (u.1 x.1) (u.1 y.1) x.2 (u.2.1 x.1 y.1 h))))
+              (cHSet C a (u.1 y.1) y.2 (cC C a (u.1 x.1) (u.1 y.1) x.2 (u.2.1 x.1 y.1 h)))
+      in setSig (cH D x.1 y.1)
+          (\ (h : cH D x.1 y.1) -> Path (cH C a (u.1 y.1)) y.2 (cC C a (u.1 x.1) (u.1 y.1) x.2 (u.2.1 x.1 y.1 h)))
+          p0 p1
+    homId (x y : obj) (h0 h1 : hom x y) (p : Path (cH D x.1 y.1) h0.1 h1.1)
+      : Path (hom x y) h0 h1
+      = let
+        A : U
+          = cH D x.1 y.1
+        P (h : A) : U
+          = Path (cH C a (u.1 y.1)) y.2 (cC C a (u.1 x.1) (u.1 y.1) x.2 (u.2.1 x.1 y.1 h))
+        pP (h : A) : prop (P h)
+          = cHSet C a (u.1 y.1) y.2 (cC C a (u.1 x.1) (u.1 y.1) x.2 (u.2.1 x.1 y.1 h))
+      in lemSig A P pP h0 h1 p 
+    cPL (x y : obj) (f : hom x y) : Path (hom x y) (cmp x x y (id x) f) f
+      = homId x y (cmp x x y (id x) f) f (cPathL D x.1 y.1 f.1)
+    cPR (x y : obj) (f : hom x y) : Path (hom x y) (cmp x y y f (id y)) f
+      = homId x y (cmp x y y f (id y)) f (cPathR D x.1 y.1 f.1)
+    cPC (x y z w : obj) (f : hom x y) (g : hom y z) (h : hom z w)
+      : Path (hom x w) (cmp x z w (cmp x y z f g) h) (cmp x y w f (cmp y z w g h))
+      = homId x w (cmp x z w (cmp x y z f g) h) (cmp x y w f (cmp y z w g h)) (cPathC D x.1 y.1 z.1 w.1 f.1 g.1 h.1)
+  in ((obj, hom), id, cmp, homSet, cPL, cPR, cPC)
+
+-- Initial and terminal objects
+
+isinitial (C : precategory) (x : cA C) : U
+  = (y : cA C) -> isContr (cH C x y)
+
+initobj (C : precategory) : U
+  = (x : cA C) * isinitial C x
+
+isterminal (C : precategory) (y : cA C) : U
+  = (x : cA C) -> isContr (cH C x y)
+
+terminalobj (C : precategory) : U
+  = (y : cA C) * isinitial C y
+
+-- Universal arrow
+
+univarr (C D : precategory) (a : cA C) (u : functor D C) : U
+  = initobj (cosliceCat C D a u)
+
+uO (C D : precategory) (u : functor D C) (a : cA C) (ua : univarr C D a u) : cA D
+  = ua.1.1
+
+uEta (C D : precategory) (u : functor D C) (a : cA C) (ua : univarr C D a u)
+  : cH C a (u.1 (uO C D u a ua))
+  = ua.1.2
+
+uH (C D : precategory) (u : functor D C) (a : cA C) (ua : univarr C D a u) (y : cA (cosliceCat C D a u))
+  : isContr (cH (cosliceCat C D a u) ua.1 y)
+  = ua.2 y
+
+uH' (C D : precategory) (u : functor D C) (a : cA C) (ua : univarr C D a u) (y : cA (cosliceCat C D a u))
+  : cH D ua.1.1 y.1
+  = (ua.2 y).1.1
+
+uHP (C D : precategory) (u : functor D C) (a : cA C) (ua : univarr C D a u) (y : cA (cosliceCat C D a u))
+  : Path (cH C a (u.1 y.1)) y.2 
+      -- (cC C a (u.1 ua.1.1) (u.1 y.1) ua.1.2 (u.2.1 ua.1.1 y.1 (ua.2 y).1.1))
+      (cC C a (u.1 ua.1.1) (u.1 y.1) (uEta C D u a ua) (u.2.1 ua.1.1 y.1 (uH' C D u a ua y)))
+  = (ua.2 y).1.2
+
+-- A family of universal functors from each (a : C) to u gives rise to a functor.
+-- The direction of this induced functor is opposite to that of u
+
+lemma_univarr_induced_functor (C D : precategory) (u : functor D C) (ua : (a : cA C) -> univarr C D a u)
+  : functor C D
+  = let
+    fob (a : cA C) : cA D
+      = uO C D u a (ua a)
+    fmor (a b : cA C) (f : cH C a b) : cH D (fob a) (fob b)
+      = uH' C D u a (ua a) (fob b, cC C a b (u.1 (fob b)) f (uEta C D u b (ua b)))
+    fid (a : cA C) : Path (cH D (fob a) (fob a)) (fmor a a (cPath C a)) (cPath D (fob a))
+      = let
+        h0 : cH (cosliceCat C D a u) (ua a).1 (ua a).1
+          = (cPath D (fob a), <i> comp (<_> cH C a (u.1 (fob a))) (cPathR C a (u.1 (fob a)) (ua a).1.2 @ -i)
+              [ (i = 0) -> <_> (ua a).1.2
+              , (i = 1) -> <j> cC C a (u.1 (fob a)) (u.1 (fob a)) (ua a).1.2 (u.2.2.1 (fob a) @ -j) ])
+        h1 : cH (cosliceCat C D a u) (ua a).1 (ua a).1
+          = let
+            y : cA (cosliceCat C D a u)
+              = (fob a, cC C a a (u.1 (fob a)) (cPath C a) (ua a).1.2)
+            h : cH D (fob a) (fob a)
+              = uH' C D u a (ua a) y
+            p : Path (cH C a (u.1 (fob a))) (ua a).1.2 (cC C a (u.1 (fob a)) (u.1 (fob a)) (ua a).1.2 (u.2.1 (fob a) (fob a) h))
+              = <i> comp (<_> cH C a (u.1 (fob a))) (cPathL C a (u.1 (fob a)) (ua a).1.2 @ -i)
+                [ (i = 0) -> <_> (ua a).1.2
+                , (i = 1) -> uHP C D u a (ua a) y ]
+          in (h, p)
+        p : Path (cH (cosliceCat C D a u) (ua a).1 (ua a).1) h0 h1
+          = <i> comp (<_> cH (cosliceCat C D a u) (ua a).1 (ua a).1) (((ua a).2 (ua a).1).2 h0 @ -i)
+            [ (i = 0) -> <_> h0
+            , (i = 1) -> ((ua a).2 (ua a).1).2 h1 ]
+      in <i> (p @ -i).1
+    fc (a b c : cA C) (f : cH C a b) (g : cH C b c)
+      : Path (cH D (fob a) (fob c)) (fmor a c (cC C a b c f g)) (cC D (fob a) (fob b) (fob c) (fmor a b f) (fmor b c g))
+      = let
+        eta_a : cH C a (u.1 (fob a))
+          = uEta C D u a (ua a)
+        eta_b : cH C b (u.1 (fob b))
+          = uEta C D u b (ua b)
+        eta_c : cH C c (u.1 (fob c))
+          = uEta C D u c (ua c)
+        x : cA (cosliceCat C D a u)
+          = (fob a, eta_a)
+        y : cA (cosliceCat C D a u)
+          = (fob c, cC C a c (u.1 (fob c)) (cC C a b c f g) eta_c)
+        z : cA (cosliceCat C D a u)
+          = (fob b, cC C a b (u.1 (fob b)) f eta_b)
+        w : cA (cosliceCat C D b u)
+          = (fob c, cC C b c (u.1 (fob c)) g eta_c)
+        h0 : cH (cosliceCat C D a u) x y
+          = let
+            h : cH D (fob a) (fob c)
+              -- = uH' C D u a (ua a) y
+              = fmor a c (cC C a b c f g)
+            p : Path (cH C a (u.1 (fob c)))
+                (cC C a c (u.1 (fob c)) (cC C a b c f g) eta_c)
+                (cC C a (u.1 (fob a)) (u.1 (fob c)) eta_a (u.2.1 (fob a) (fob c) h))
+              = uHP C D u a (ua a) y
+          in (h, p)
+        h1 : cH (cosliceCat C D a u) x y
+          = let
+            h : cH D x.1 y.1
+              -- = cC D (fob a) (fob b) (fob c) (fmor a b f) (fmor b c g)
+              = cC D (fob a) (fob b) (fob c) (uH' C D u a (ua a) z) (uH' C D u b (ua b) w)
+            p0 : Path (cH C a (u.1 (fob c)))
+                (cC C a (u.1 (fob a)) (u.1 (fob c)) eta_a (u.2.1 (fob a) (fob c) h))
+                (cC C a (u.1 (fob a)) (u.1 (fob c)) eta_a (cC C (u.1 (fob a)) (u.1 (fob b)) (u.1 (fob c))
+                  (u.2.1 (fob a) (fob b) (uH' C D u a (ua a) z)) (u.2.1 (fob b) (fob c) (uH' C D u b (ua b) w))))
+              = <i> cC C a (u.1 (fob a)) (u.1 (fob c)) eta_a (u.2.2.2 (fob a) (fob b) (fob c) (uH' C D u a (ua a) z) (uH' C D u b (ua b) w) @ i)
+            p1 : Path (cH C a (u.1 (fob c)))
+                (cC C a (u.1 (fob a)) (u.1 (fob c)) eta_a (cC C (u.1 (fob a)) (u.1 (fob b)) (u.1 (fob c))
+                  (u.2.1 (fob a) (fob b) (uH' C D u a (ua a) z)) (u.2.1 (fob b) (fob c) (uH' C D u b (ua b) w))))
+                (cC C a (u.1 (fob b)) (u.1 (fob c)) (cC C a (u.1 (fob a)) (u.1 (fob b)) eta_a
+                  (u.2.1 (fob a) (fob b) (uH' C D u a (ua a) z))) (u.2.1 (fob b) (fob c) (uH' C D u b (ua b) w)))
+              = <i> cPathC C a (u.1 (fob a)) (u.1 (fob b)) (u.1 (fob c)) eta_a (u.2.1 (fob a) (fob b) (uH' C D u a (ua a) z)) (u.2.1 (fob b) (fob c) (uH' C D u b (ua b) w)) @ -i
+            p2 : Path (cH C a (u.1 (fob c)))
+                (cC C a (u.1 (fob b)) (u.1 (fob c)) (cC C a (u.1 (fob a)) (u.1 (fob b)) eta_a
+                  (u.2.1 (fob a) (fob b) (uH' C D u a (ua a) z))) (u.2.1 (fob b) (fob c) (uH' C D u b (ua b) w)))
+                (cC C a (u.1 (fob b)) (u.1 (fob c)) z.2 (u.2.1 (fob b) (fob c) (uH' C D u b (ua b) w)))
+              = <i> cC C a (u.1 (fob b)) (u.1 (fob c)) (uHP C D u a (ua a) z @ -i) (u.2.1 (fob b) (fob c) (uH' C D u b (ua b) w))
+            p3 : Path (cH C a (u.1 (fob c)))
+                (cC C a (u.1 (fob b)) (u.1 (fob c)) z.2 (u.2.1 (fob b) (fob c) (uH' C D u b (ua b) w)))
+                (cC C a b (u.1 (fob c)) f (cC C b (u.1 (fob b)) (u.1 (fob c)) eta_b (u.2.1 (fob b) (fob c) (uH' C D u b (ua b) w))))
+              = cPathC C a b (u.1 (fob b)) (u.1 (fob c)) f eta_b (u.2.1 (fob b) (fob c) (uH' C D u b (ua b) w))
+            p4 : Path (cH C a (u.1 (fob c)))
+                (cC C a b (u.1 (fob c)) f (cC C b (u.1 (fob b)) (u.1 (fob c)) eta_b (u.2.1 (fob b) (fob c) (uH' C D u b (ua b) w))))
+                (cC C a b (u.1 (fob c)) f w.2)
+              = <i> cC C a b (u.1 (fob c)) f (uHP C D u b (ua b) w @ -i)
+            p5 : Path (cH C a (u.1 (fob c)))
+                (cC C a b (u.1 (fob c)) f w.2)
+                (cC C a c (u.1 (fob c)) (cC C a b c f g) eta_c)
+              = <i> cPathC C a b c (u.1 (fob c)) f g eta_c @ -i
+            p : Path (cH C a (u.1 (fob c)))
+                (cC C a c (u.1 (fob c)) (cC C a b c f g) eta_c)
+                (cC C a (u.1 (fob a)) (u.1 (fob c)) eta_a (u.2.1 (fob a) (fob c) h))
+              = <i> comp (<_> cH C a (u.1 (fob c))) (p2 @ -i)
+                [ (i = 1) -> <j> comp (<_> cH C a (u.1 (fob c))) (p1 @ -j)
+                  [ (j = 0) -> <_> p1 @ 1
+                  , (j = 1) -> <k> p0 @ -k ]
+                , (i = 0) -> <j> comp (<_> cH C a (u.1 (fob c))) (p4 @ j)
+                  [ (j = 0) -> <k> p3 @ -k
+                  , (j = 1) -> p5 ]]
+          in (h, p)
+      in <i> (comp (<_> cH (cosliceCat C D a u) x y) (((ua a).2 y).2 h0 @ -i)
+        [ (i = 0) -> <_> h0
+        , (i = 1) -> ((ua a).2 y).2 h1 ]).1
+  in (fob, fmor, fid, fc)
+
+isntrans (C D : precategory) (F G : functor C D) (eta : (x : cA C) -> cH D (F.1 x) (G.1 x))
+  : U
+  = (x y : cA C) (h : cH C x y) -> Path (cH D (F.1 x) (G.1 y))
+      (cC D (F.1 x) (F.1 y) (G.1 y) (F.2.1 x y h) (eta y))
+      (cC D (F.1 x) (G.1 x) (G.1 y) (eta x) (G.2.1 x y h))
+
+ntrans (C D : precategory) (F G : functor C D) : U
+  = (eta : (x : cA C) -> cH D (F.1 x) (G.1 x))
+  * (isntrans C D F G eta)
+
+ntransL (C D : precategory) (F G : functor C D) (f : ntrans C D F G) (B : precategory) (H : functor B C)
+  : ntrans B D (compFunctor B C D H F) (compFunctor B C D H G)
+  = let
+    F' : functor B D
+      = compFunctor B C D H F
+    G' : functor B D
+      = compFunctor B C D H G
+    eta (x : cA B) : cH D (F'.1 x) (G'.1 x)
+      = f.1 (H.1 x)
+    p (x y : cA B) (h : cH B x y) : Path (cH D (F'.1 x) (G'.1 y))
+        (cC D (F'.1 x) (F'.1 y) (G'.1 y) (F'.2.1 x y h) (eta y))
+        (cC D (F'.1 x) (G'.1 x) (G'.1 y) (eta x) (G'.2.1 x y h))
+      = f.2 (H.1 x) (H.1 y) (H.2.1 x y h)
+  in (eta, p)
+
+ntransR (C D : precategory) (F G : functor C D) (f : ntrans C D F G) (E : precategory) (H : functor D E)
+  : ntrans C E (compFunctor C D E F H) (compFunctor C D E G H)
+  = let
+    F' : functor C E
+      = compFunctor C D E F H
+    G' : functor C E
+      = compFunctor C D E G H
+    eta (x : cA C) : cH E (F'.1 x) (G'.1 x)
+      = H.2.1 (F.1 x) (G.1 x) (f.1 x)
+    p (x y : cA C) (h : cH C x y) : Path (cH E (F'.1 x) (G'.1 y))
+        (cC E (F'.1 x) (F'.1 y) (G'.1 y) (F'.2.1 x y h) (eta y))
+        (cC E (F'.1 x) (G'.1 x) (G'.1 y) (eta x) (G'.2.1 x y h))
+      = <i> comp (<_> cH E (F'.1 x) (G'.1 y)) (H.2.1 (F.1 x) (G.1 y) (f.2 x y h @ i))
+        [ (i = 0) -> H.2.2.2 (F.1 x) (F.1 y) (G.1 y) (F.2.1 x y h) (f.1 y)
+        , (i = 1) -> H.2.2.2 (F.1 x) (G.1 x) (G.1 y) (f.1 x) (G.2.1 x y h) ]
+  in (eta, p)
+
+areAdjoint (C D : precategory) (F : functor D C) (G : functor C D)
+    (unit : ntrans D D (idFunctor D) (compFunctor D C D F G))
+    (counit : ntrans C C (compFunctor C D C G F) (idFunctor C))
+  : U 
+  = let
+    h0 (x : cA C) : cH D (G.1 x) (G.1 x)
+      = cC D (G.1 x) (G.1 (F.1 (G.1 x))) (G.1 x)
+          ((ntransL D D (idFunctor D) (compFunctor D C D F G) unit C G).1 x)
+          ((ntransR C C (compFunctor C D C G F) (idFunctor C) counit D G).1 x)
+    h1 (x : cA D) : cH C (F.1 x) (F.1 x)
+      = cC C (F.1 x) (F.1 (G.1 (F.1 x))) (F.1 x)
+          ((ntransR D D (idFunctor D) (compFunctor D C D F G) unit C F).1 x)
+          ((ntransL C C (compFunctor C D C G F) (idFunctor C) counit D F).1 x)
+  in and ((x : cA C) -> Path (cH D (G.1 x) (G.1 x)) (cPath D (G.1 x)) (h0 x))
+         ((x : cA D) -> Path (cH C (F.1 x) (F.1 x)) (cPath C (F.1 x)) (h1 x))
+
+adjoint (C D : precategory) (F : functor D C) (G : functor C D) : U
+  = (unit : ntrans D D (idFunctor D) (compFunctor D C D F G))
+  * (counit : ntrans C C (compFunctor C D C G F) (idFunctor C))
+  * areAdjoint C D F G unit counit
+
+lemma_univarr_unit (C D : precategory) (u : functor D C) (ua : (a : cA C) -> univarr C D a u)
+  : ntrans C C (idFunctor C) (compFunctor C D C (lemma_univarr_induced_functor C D u ua) u)
+  = let
+    f : functor C D
+      = lemma_univarr_induced_functor C D u ua
+    eta (x : cA C) : cH C x (u.1 (f.1 x))
+      = uEta C D u x (ua x)
+    in ( eta
+       , \ (x y : cA C) (h : cH C x y) -> uHP C D u x (ua x) (f.1 y, cC C x y (u.1 (f.1 y)) h (eta y)))
+
+lemma_univarr_counit (C D : precategory) (u : functor D C) (ua : (a : cA C) -> univarr C D a u)
+  : ntrans D D (compFunctor D C D u (lemma_univarr_induced_functor C D u ua)) (idFunctor D)
+  = let
+    S : functor D D
+      = compFunctor D C D u (lemma_univarr_induced_functor C D u ua)
+    T : functor D D
+      = idFunctor D
+    f : functor C D
+      = lemma_univarr_induced_functor C D u ua
+    eta (x : cA C) : cH C x (u.1 (f.1 x))
+      = uEta C D u x (ua x)
+    tau (x : cA D) : cH D (f.1 (u.1 x)) x
+      = (uH' C D u (u.1 x) (ua (u.1 x)) (x, cPath C (u.1 x)))
+    p (x y : cA D) (h : cH D x y) : Path (cH D (S.1 x) y)
+        (cC D (S.1 x) (S.1 y) y (S.2.1 x y h) (tau y))
+        (cC D (S.1 x) x y (tau x) h)
+      = let 
+        a : cA C
+          = u.1 x
+        d : cA (cosliceCat C D a u)
+          = (f.1 (u.1 x), eta (u.1 x))
+        e : cA (cosliceCat C D a u)
+          = (y, u.2.1 x y h)
+
+        -- To prove the two homomorphisms in D equal I use them to construct two parallel homomorphisms in the coslice category.
+        -- It follows from universality that these are equal, and therefore that the two original homomorphisms are equal as well.
+        
+        -- The construction of the first homomorphism, hom0
+        h00 : cH D (S.1 x) (S.1 y)
+          = (uH' C D u (u.1 x) (ua (u.1 x)) (f.1 (u.1 y), cC C (u.1 x) (u.1 y) (u.1 (f.1 (u.1 y))) (u.2.1 x y h) (eta (u.1 y))))
+        h01 : cH D (S.1 y) y
+          = ((uH' C D u (u.1 y) (ua (u.1 y)) (y, cPath C (u.1 y))))
+        h0 : cH D d.1 e.1
+          = cC D (S.1 x) (S.1 y) y h00 h01
+        p0 : Path (cH C a (u.1 e.1))
+               (cC C a (u.1 d.1) (u.1 e.1) (eta (u.1 x)) (u.2.1 d.1 e.1 h0))
+               (cC C a (u.1 d.1) (u.1 e.1) (eta (u.1 x)) (cC C (u.1 (S.1 x)) (u.1 (S.1 y)) (u.1 y) (u.2.1 (S.1 x) (S.1 y) h00) (u.2.1 (S.1 y) y h01)))
+          = <i> cC C a (u.1 d.1) (u.1 e.1) (eta (u.1 x)) (u.2.2.2 (S.1 x) (S.1 y) y h00 h01 @ i)
+        p1 : Path (cH C a (u.1 e.1))
+               (cC C a (u.1 d.1) (u.1 e.1) (eta (u.1 x)) (cC C (u.1 (S.1 x)) (u.1 (S.1 y)) (u.1 y) (u.2.1 (S.1 x) (S.1 y) h00) (u.2.1 (S.1 y) y h01)))
+               (cC C a (u.1 (S.1 y)) (u.1 e.1) (cC C a (u.1 (S.1 x)) (u.1 (S.1 y)) (eta (u.1 x)) (u.2.1 (S.1 x) (S.1 y) h00)) (u.2.1 (S.1 y) y h01))
+          = <i> cPathC C a (u.1 d.1) (u.1 (S.1 y)) (u.1 y) (eta (u.1 x)) (u.2.1 (S.1 x) (S.1 y) h00) (u.2.1 (S.1 y) y h01) @ -i
+        p2 : Path (cH C a (u.1 e.1))
+               (cC C a (u.1 (S.1 y)) (u.1 e.1) (cC C a (u.1 (S.1 x)) (u.1 (S.1 y)) (eta (u.1 x)) (u.2.1 (S.1 x) (S.1 y) h00)) (u.2.1 (S.1 y) y h01))
+               (cC C a (u.1 (S.1 y)) (u.1 e.1) (cC C (u.1 x) (u.1 y) (u.1 (f.1 (u.1 y))) (u.2.1 x y h) (eta (u.1 y))) (u.2.1 (S.1 y) y h01))
+          = <i> (cC C a (u.1 (S.1 y)) (u.1 e.1) (uHP C D u a (ua a) (f.1 (u.1 y), cC C (u.1 x) (u.1 y) (u.1 (f.1 (u.1 y))) (u.2.1 x y h) (eta (u.1 y))) @ -i) (u.2.1 (S.1 y) y h01))
+        p3 : Path (cH C a (u.1 e.1))
+               (cC C a (u.1 (S.1 y)) (u.1 e.1) (cC C (u.1 x) (u.1 y) (u.1 (f.1 (u.1 y))) (u.2.1 x y h) (eta (u.1 y))) (u.2.1 (S.1 y) y h01))
+               (cC C a (u.1 y) (u.1 e.1) (u.2.1 x y h) (cC C (u.1 y) (u.1 (f.1 (u.1 y))) (u.1 e.1) (eta (u.1 y)) (u.2.1 (S.1 y) y h01)))
+          = cPathC C (u.1 x) (u.1 y) (u.1 (f.1 (u.1 y))) (u.1 e.1) (u.2.1 x y h) (eta (u.1 y)) (u.2.1 (S.1 y) y h01)
+        p4 : Path (cH C a (u.1 e.1))
+               (cC C a (u.1 y) (u.1 e.1) (u.2.1 x y h) (cC C (u.1 y) (u.1 (f.1 (u.1 y))) (u.1 e.1) (eta (u.1 y)) (u.2.1 (S.1 y) y h01)))
+               (cC C a (u.1 y) (u.1 e.1) (u.2.1 x y h) (cPath C (u.1 y)))
+          = <i> cC C a (u.1 y) (u.1 e.1) (u.2.1 x y h) (uHP C D u (u.1 y) (ua (u.1 y)) (y, cPath C (u.1 y)) @ -i)
+        p5 : Path (cH C a (u.1 e.1))
+               (cC C a (u.1 y) (u.1 e.1) (u.2.1 x y h) (cPath C (u.1 y)))
+               e.2
+          = cPathR C a (u.1 y) (u.2.1 x y h)
+        p : Path (cH C a (u.1 e.1)) e.2 (cC C a (u.1 d.1) (u.1 e.1) (eta (u.1 x)) (u.2.1 d.1 e.1 h0))
+          = <i> comp (<_> cH C a (u.1 e.1)) (p2 @ -i)
+            [ (i = 0) -> <j> comp (<_> cH C a (u.1 e.1)) (p4 @ j)
+              [ (j = 0) -> <k> p3 @ -k
+              , (j = 1) -> p5 ]
+            , (i = 1) -> <j> comp (<_> cH C a (u.1 e.1)) (p1 @ -j)
+              [ (j = 0) -> <_> p1 @ 1
+              , (j = 1) -> <k> p0 @ -k ] ]
+        hom0 : cH (cosliceCat C D a u) d e
+          = (h0, p)
+
+        -- The construction of the second homomorphism, hom1
+        h1 : cH D d.1 e.1
+          = (cC D (S.1 x) x y (uH' C D u (u.1 x) (ua (u.1 x)) (x, cPath C (u.1 x))) h)
+        q0 : Path (cH C a (u.1 e.1))
+              (cC C a (u.1 d.1) (u.1 e.1) (eta (u.1 x)) (u.2.1 d.1 e.1 h1))
+              (cC C a (u.1 d.1) (u.1 e.1) (eta (u.1 x)) (cC C (u.1 (S.1 x)) (u.1 x) (u.1 y) (u.2.1 (S.1 x) x (uH' C D u (u.1 x) (ua (u.1 x)) (x, cPath C (u.1 x)))) (u.2.1 x y h)))
+          = <i> cC C a (u.1 d.1) (u.1 e.1) (eta (u.1 x)) (u.2.2.2 (S.1 x) x y (uH' C D u (u.1 x) (ua (u.1 x)) (x, cPath C (u.1 x))) h @ i)
+        q1 : Path (cH C a (u.1 e.1))
+              (cC C a (u.1 d.1) (u.1 e.1) (eta (u.1 x)) (cC C (u.1 (S.1 x)) (u.1 x) (u.1 y) (u.2.1 (S.1 x) x (uH' C D u (u.1 x) (ua (u.1 x)) (x, cPath C (u.1 x)))) (u.2.1 x y h)))
+              (cC C a (u.1 x) (u.1 e.1) (cC C a (u.1 (S.1 x)) (u.1 x) (eta (u.1 x)) (u.2.1 (S.1 x) x (uH' C D u (u.1 x) (ua (u.1 x)) (x, cPath C (u.1 x))))) (u.2.1 x y h))
+          = <i> cPathC C a (u.1 d.1) (u.1 x) (u.1 e.1) (eta (u.1 x)) (u.2.1 (S.1 x) x (uH' C D u (u.1 x) (ua (u.1 x)) (x, cPath C (u.1 x)))) (u.2.1 x y h) @ -i
+        q2 : Path (cH C a (u.1 e.1))
+              (cC C a (u.1 x) (u.1 e.1) (cC C a (u.1 (S.1 x)) (u.1 x) (eta (u.1 x)) (u.2.1 (S.1 x) x (uH' C D u (u.1 x) (ua (u.1 x)) (x, cPath C (u.1 x))))) (u.2.1 x y h))
+              (cC C a (u.1 x) (u.1 e.1) (cPath C (u.1 x)) (u.2.1 x y h))
+          = <i> cC C a (u.1 x) (u.1 e.1) (uHP C D u (u.1 x) (ua (u.1 x)) (x, cPath C (u.1 x)) @ -i) (u.2.1 x y h)
+        q3 : Path (cH C a (u.1 e.1))
+              (cC C a (u.1 x) (u.1 e.1) (cPath C (u.1 x)) (u.2.1 x y h))
+              e.2
+          = cPathL C (u.1 x) (u.1 y) (u.2.1 x y h)
+        q : Path (cH C a (u.1 e.1)) e.2 (cC C a (u.1 d.1) (u.1 e.1) (eta (u.1 x)) (u.2.1 d.1 e.1 h1))
+          = <i> comp (<_> cH C a (u.1 e.1)) (q1 @ -i)
+            [ (i = 0) -> <j> comp (<_> cH C a (u.1 e.1)) (q3 @ j)
+              [ (j = 0) -> <k> q2 @ -k
+              , (j = 1) -> <_> e.2 ]
+            , (i = 1) -> <j> q0 @ -j ]
+        hom1 : cH (cosliceCat C D a u) d e
+          = (h1, q)
+
+        -- It follows from universality that hom0 ≡ hom1
+        phom : Path (cH (cosliceCat C D a u) d e) hom0 hom1
+          = <i> comp (<_> cH (cosliceCat C D a u) d e) (uH C D u (u.1 x) (ua (u.1 x)) e).1
+            [ (i = 0) -> (uH C D u (u.1 x) (ua (u.1 x)) e).2 hom0
+            , (i = 1) -> (uH C D u (u.1 x) (ua (u.1 x)) e).2 hom1 ]
+      in <i> (phom @ i).1
+  in (tau, p)
+
+lemma_univarr_adjoint (C D : precategory) (u : functor D C) (ua : (a : cA C) -> univarr C D a u)
+  : adjoint D C (lemma_univarr_induced_functor C D u ua) u
+  = let
+    f : functor C D
+      = lemma_univarr_induced_functor C D u ua
+    eta (x : cA C) : cH C x (u.1 (f.1 x))
+      = uEta C D u x (ua x)
+    unit : ntrans C C (idFunctor C) (compFunctor C D C f u)
+      = lemma_univarr_unit C D u ua
+    counit : ntrans D D (compFunctor D C D u f) (idFunctor D)
+      = lemma_univarr_counit C D u ua
+    h0 (x : cA D) : cH C (u.1 x) (u.1 x)
+      = cC C (u.1 x) (u.1 (f.1 (u.1 x))) (u.1 x)
+          ((ntransL C C (idFunctor C) (compFunctor C D C f u) unit D u).1 x)   -- (eta (u.1 x))
+          ((ntransR D D (compFunctor D C D u f) (idFunctor D) counit C u).1 x) -- (u.2.1 (f.1 (u.1 x)) x (uH' C D u (u.1 x) (ua (u.1 x)) (x, cPath C (u.1 x))))
+    p0 (x: cA D) : Path (cH C (u.1 x) (u.1 x)) (cPath C (u.1 x)) (h0 x)
+      = uHP C D u (u.1 x) (ua (u.1 x)) (x, cPath C (u.1 x))
+    h10 (x : cA C) : cH D (f.1 x) (f.1 (u.1 (f.1 x)))
+      = (uH' C D u x (ua x) (f.1 (u.1 (f.1 x)), cC C x (u.1 (f.1 x)) (u.1 (f.1 (u.1 (f.1 x)))) (eta x) (eta (u.1 (f.1 x)))))
+    h11 (x : cA C) : cH D (f.1 (u.1 (f.1 x))) (f.1 x)
+      = (uH' C D u (u.1 (f.1 x)) (ua (u.1 (f.1 x))) ((f.1 x), cPath C (u.1 (f.1 x))))
+    h1 (x : cA C) : cH D (f.1 x) (f.1 x)
+      = cC D (f.1 x) (f.1 (u.1 (f.1 x))) (f.1 x) (h10 x) (h11 x)
+    p1 (x: cA C) : Path (cH D (f.1 x) (f.1 x)) (cPath D (f.1 x)) (h1 x)
+      = let
+        e : cA (cosliceCat C D x u)
+          = (f.1 x, eta x)
+        h0 : cH D e.1 e.1
+          = cPath D e.1
+        hom0 : cH (cosliceCat C D x u) e e
+          = (h0, (cPath (cosliceCat C D x u) e).2)
+        p0 : Path (cH C x (u.1 (f.1 x)))
+          (cC C x (u.1 (f.1 x)) (u.1 (f.1 x)) (eta x) (u.2.1 (f.1 x) (f.1 x) (h1 x)))
+          (cC C x (u.1 (f.1 x)) (u.1 (f.1 x)) (eta x) (cC C (u.1 (f.1 x)) (u.1 (f.1 (u.1 (f.1 x)))) (u.1 (f.1 x))
+              (u.2.1 (f.1 x) (f.1 (u.1 (f.1 x))) (h10 x)) (u.2.1 (f.1 (u.1 (f.1 x))) (f.1 x) (h11 x))))
+          = <i> cC C x (u.1 (f.1 x)) (u.1 (f.1 x)) (eta x) (u.2.2.2 (f.1 x) (f.1 (u.1 (f.1 x))) (f.1 x) (h10 x) (h11 x) @ i)
+        p1 : Path (cH C x (u.1 (f.1 x)))
+          (cC C x (u.1 (f.1 x)) (u.1 (f.1 x)) (eta x) (cC C (u.1 (f.1 x)) (u.1 (f.1 (u.1 (f.1 x)))) (u.1 (f.1 x))
+              (u.2.1 (f.1 x) (f.1 (u.1 (f.1 x))) (h10 x)) (u.2.1 (f.1 (u.1 (f.1 x))) (f.1 x) (h11 x))))
+          (cC C x (u.1 (f.1 (u.1 (f.1 x)))) (u.1 (f.1 x)) (cC C x (u.1 (f.1 x)) (u.1 (f.1 (u.1 (f.1 x)))) (eta x)
+              (u.2.1 (f.1 x) (f.1 (u.1 (f.1 x))) (h10 x))) (u.2.1 (f.1 (u.1 (f.1 x))) (f.1 x) (h11 x)))
+          = <i> cPathC C x (u.1 (f.1 x)) (u.1 (f.1 (u.1 (f.1 x)))) (u.1 (f.1 x)) (eta x) (u.2.1 (f.1 x) (f.1 (u.1 (f.1 x))) (h10 x)) (u.2.1 (f.1 (u.1 (f.1 x))) (f.1 x) (h11 x)) @ -i
+        p2 : Path (cH C x (u.1 (f.1 x)))
+          (cC C x (u.1 (f.1 (u.1 (f.1 x)))) (u.1 (f.1 x)) (cC C x (u.1 (f.1 x)) (u.1 (f.1 (u.1 (f.1 x)))) (eta x)
+              (u.2.1 (f.1 x) (f.1 (u.1 (f.1 x))) (h10 x))) (u.2.1 (f.1 (u.1 (f.1 x))) (f.1 x) (h11 x)))
+          (cC C x (u.1 (f.1 (u.1 (f.1 x)))) (u.1 (f.1 x)) (cC C x (u.1 (f.1 x)) (u.1 (f.1 (u.1 (f.1 x)))) (eta x)
+              (eta (u.1 (f.1 x)))) (u.2.1 (f.1 (u.1 (f.1 x))) (f.1 x) (h11 x)))
+          = <i> cC C x (u.1 (f.1 (u.1 (f.1 x)))) (u.1 (f.1 x)) (uHP C D u x (ua x) (f.1 (u.1 (f.1 x)), cC C x (u.1 (f.1 x)) (u.1 (f.1 (u.1 (f.1 x)))) (eta x) (eta (u.1 (f.1 x)))) @ -i) (u.2.1 (f.1 (u.1 (f.1 x))) (f.1 x) (h11 x))
+        p3 : Path (cH C x (u.1 (f.1 x)))
+          (cC C x (u.1 (f.1 (u.1 (f.1 x)))) (u.1 (f.1 x)) (cC C x (u.1 (f.1 x)) (u.1 (f.1 (u.1 (f.1 x)))) (eta x)
+              (eta (u.1 (f.1 x)))) (u.2.1 (f.1 (u.1 (f.1 x))) (f.1 x) (h11 x)))
+          (cC C x (u.1 (f.1 x)) (u.1 (f.1 x)) (eta x) (cC C (u.1 (f.1 x)) (u.1 (f.1 (u.1 (f.1 x)))) (u.1 (f.1 x))
+              (eta (u.1 (f.1 x))) (u.2.1 (f.1 (u.1 (f.1 x))) (f.1 x) (h11 x))))
+          = cPathC C x (u.1 (f.1 x)) (u.1 (f.1 (u.1 (f.1 x)))) (u.1 (f.1 x)) (eta x) (eta (u.1 (f.1 x))) (u.2.1 (f.1 (u.1 (f.1 x))) (f.1 x) (h11 x))
+        p4 : Path (cH C x (u.1 (f.1 x)))
+          (cC C x (u.1 (f.1 x)) (u.1 (f.1 x)) (eta x) (cC C (u.1 (f.1 x)) (u.1 (f.1 (u.1 (f.1 x)))) (u.1 (f.1 x))
+              (eta (u.1 (f.1 x))) (u.2.1 (f.1 (u.1 (f.1 x))) (f.1 x) (h11 x))))
+          (cC C x (u.1 (f.1 x)) (u.1 (f.1 x)) (eta x) (cPath C (u.1 (f.1 x))))
+          = <i> cC C x (u.1 (f.1 x)) (u.1 (f.1 x)) (eta x) (uHP C D u (u.1 (f.1 x)) (ua (u.1 (f.1 x))) ((f.1 x), cPath C (u.1 (f.1 x))) @ -i)
+        p5 : Path (cH C x (u.1 (f.1 x)))
+          (cC C x (u.1 (f.1 x)) (u.1 (f.1 x)) (eta x) (cPath C (u.1 (f.1 x))))
+          (eta x)
+          = cPathR C x (u.1 (f.1 x)) (eta x)
+        p : Path (cH C x (u.1 (f.1 x))) (eta x) (cC C x (u.1 (f.1 x)) (u.1 (f.1 x)) (eta x) (u.2.1 (f.1 x) (f.1 x) (h1 x)))
+          = <i> comp (<_> cH C x (u.1 (f.1 x))) (cC C x (u.1 (f.1 (u.1 (f.1 x)))) (u.1 (f.1 x)) (cC C x (u.1 (f.1 x)) (u.1 (f.1 (u.1 (f.1 x)))) (eta x)
+                  (eta (u.1 (f.1 x)))) (u.2.1 (f.1 (u.1 (f.1 x))) (f.1 x) (h11 x)))
+            [ (i = 0) -> <j> comp (<_> cH C x (u.1 (f.1 x))) (p4 @ j)
+              [ (j = 0) -> <k> p3 @ -k
+              , (j = 1) -> p5 ]
+            , (i = 1) -> <j> comp (<_> cH C x (u.1 (f.1 x))) (p1 @ -j)
+              [ (j = 0) -> p2
+              , (j = 1) -> <k> p0 @ -k ]]
+        hom1 : cH (cosliceCat C D x u) e e
+          = (h1 x, p)
+        phom : Path (cH (cosliceCat C D x u) e e) hom0 hom1
+          = <i> comp (<_> cH (cosliceCat C D x u) e e) (uH C D u x (ua x) e).1
+            [ (i = 0) -> (uH C D u x (ua x) e).2 hom0
+            , (i = 1) -> (uH C D u x (ua x) e).2 hom1 ]
+      in <i> (phom @ i).1
+  in (unit, counit, p0, p1)
+
+
+CMon : precategory
+  = let
+    hom (A B : cmonoid) : U
+      = cmonoidhom A B
+    id (A : cmonoid) : hom A A
+      = idmonoidhom (A.1, A.2.1)
+    c (A B C : cmonoid) (f : hom A B) (g : hom B C) : hom A C
+      = monoidhomcomp (A.1, A.2.1) (B.1, B.2.1) (C.1, C.2.1) f g
+    homSet (A B : cmonoid) : set (hom A B)
+      = setmonoidhom (A.1, A.2.1) (B.1, B.2.1)
+    cPathL (A B : cmonoid) (f : hom A B) : Path (hom A B) (c A A B (id A) f) f
+      = lemma_idmonoidhom0 (A.1, A.2.1) (B.1, B.2.1) f
+    cPathR (A B : cmonoid) (f : hom A B) : Path (hom A B) (c A B B f (id B)) f
+      = lemma_idmonoidhom1 (A.1, A.2.1) (B.1, B.2.1) f
+    cPath (A B C D : cmonoid) (f : hom A B) (g : hom B C) (h : hom C D)
+      : Path (hom A D) (c A C D (c A B C f g) h) (c A B D f (c B C D g h))
+      = lemma_monoidcomp0 (A.1, A.2.1) (B.1, B.2.1) (C.1, C.2.1) (D.1, D.2.1) f g h
+  in ((cmonoid, cmonoidhom), (id, (c, (homSet, (cPathL, (cPathR, cPath))))))
+
+Ab : precategory
+  = let
+    hom (A B : cgroup) : U
+      = cgrouphom A B
+    id (A : cgroup) : hom A A
+      = idmonoidhom (A.1, A.2.1.1)
+    c (A B C : cgroup) (f : hom A B) (g : hom B C) : hom A C
+      = monoidhomcomp (A.1, A.2.1.1) (B.1, B.2.1.1) (C.1, C.2.1.1) f g
+    homSet (A B : cgroup) : set (hom A B)
+      = setmonoidhom (A.1, A.2.1.1) (B.1, B.2.1.1)
+    cPathL (A B : cgroup) (f : hom A B) : Path (hom A B) (c A A B (id A) f) f
+      = lemma_idmonoidhom0 (A.1, A.2.1.1) (B.1, B.2.1.1) f
+    cPathR (A B : cgroup) (f : hom A B) : Path (hom A B) (c A B B f (id B)) f
+      = lemma_idmonoidhom1 (A.1, A.2.1.1) (B.1, B.2.1.1) f
+    cPath (A B C D : cgroup) (f : hom A B) (g : hom B C) (h : hom C D)
+      : Path (hom A D) (c A C D (c A B C f g) h) (c A B D f (c B C D g h))
+      = lemma_monoidcomp0 (A.1, A.2.1.1) (B.1, B.2.1.1) (C.1, C.2.1.1) (D.1, D.2.1.1) f g h
+  in ((cgroup, cgrouphom), (id, (c, (homSet, (cPathL, (cPathR, cPath))))))
+
+Fforgetful : functor Ab CMon
+  = let
+    f : cgroup -> cmonoid
+      = forgetfulAb
+    Fmor (x y : cgroup) (g : cgrouphom x y) : (cmonoidhom (f x) (f y))
+      = g
+    Fid (x : cgroup)
+      : Path (cmonoidhom (f x) (f x)) (Fmor x x (idmonoidhom (x.1, x.2.1.1))) (idmonoidhom ((f x).1, (f x).2.1))
+      = <_> idmonoidhom ((f x).1, (f x).2.1)
+    p (x y z : cgroup) (g : cgrouphom x y) (h : cgrouphom y z) 
+      : Path (cmonoidhom (f x) (f z))
+          (Fmor x z (monoidhomcomp (x.1, x.2.1.1) (y.1, y.2.1.1) (z.1, z.2.1.1) g h))
+          (monoidhomcomp ((f x).1, (f x).2.1) ((f y).1, (f y).2.1) ((f z).1, (f z).2.1)
+            (Fmor x y g) (Fmor y z h))
+      = <_> Fmor x z (monoidhomcomp (x.1, x.2.1.1) (y.1, y.2.1.1) (z.1, z.2.1.1) g h)
+  in (f, Fmor, Fid, p)
+
+Fgrothendieck : functor CMon Ab
+  = let
+    f : cmonoid -> cgroup
+      = grothendieck
+    Fmor (x y : cmonoid) (g : cmonoidhom x y) : (cgrouphom (f x) (f y))
+      = grothendiecklem4 x (f y)
+          (monoidhomcomp (x.1, x.2.1) (y.1, y.2.1) ((f y).1, (f y).2.1.1) g (grothendieckhom y))
+    Fid (x : cmonoid)
+      : Path (cgrouphom (f x) (f x)) (Fmor x x (idmonoidhom (x.1, x.2.1))) (idmonoidhom ((f x).1, (f x).2.1.1))
+      = let
+        i : monoidhom (x.1, x.2.1) (x.1, x.2.1)
+          = idmonoidhom (x.1, x.2.1)
+        a : cmoncgrouphom x (f x)
+          = monoidhomcomp (x.1, x.2.1) (x.1, x.2.1) ((f x).1, (f x).2.1.1) i (grothendieckhom x)
+        g : cgrouphom (f x) (f x)
+          = grothendiecklem4 x (f x) a
+        h : cgrouphom (f x) (f x)
+          = idmonoidhom ((f x).1, (f x).2.1.1)
+        P (z : (f x).1.1) : hProp
+          = ( Path (f x).1.1 (g.1 z) (h.1 z)
+            , (f x).1.2 (g.1 z) (h.1 z) )
+        ps (z : pair x) : Path (f x).1.1 (g.1 (qpr x z)) (qpr x z)
+          = <i> comp (<_> (f x).1.1) (qopeq x (z.1, id x) (id x, z.2) @ i)
+            [ (i = 0) -> <j> comp (<_> (f x).1.1) (qop x (qpr x (z.1, id x)) (qinveq x (z.2, id x) @ -j))
+              [ (j = 0) -> <_> qop x (qpr x (z.1, id x)) (qpr x (id x, z.2))
+              , (j = 1) -> <k> grothendiecklem3 x (f x) a z @ -k ]
+            , (i = 1) -> <j> qpr x ((hid x).2 z.1 @ j, (hid x).1 z.2 @ j) ]
+        p : Path ((f x).1.1 -> (f x).1.1) g.1 h.1
+          = <i> \ (z : (f x).1.1) -> (setquotunivprop (pair x) (peqrel x) P ps z @ i)
+      in lemSig ((f x).1.1 -> (f x).1.1)
+           (ismonoidhom ((f x).1, (f x).2.1.1) ((f x).1, (f x).2.1.1))
+           (propismonoidhom ((f x).1, (f x).2.1.1) ((f x).1, (f x).2.1.1))
+           g h p
+    -- A bit too slow to compile
+    p (x y z : cmonoid) (g : cmonoidhom x y) (h : cmonoidhom y z)
+      : Path (cgrouphom (f x) (f z))
+          (Fmor x z (monoidhomcomp (x.1, x.2.1) (y.1, y.2.1) (z.1, z.2.1) g h))
+          (monoidhomcomp ((f x).1, (f x).2.1.1) ((f y).1, (f y).2.1.1) ((f z).1, (f z).2.1.1)
+            (Fmor x y g) (Fmor y z h))
+      = undefined
+--      = let
+--        a0 : cmonoidhom x z
+--          = monoidhomcomp (x.1, x.2.1) (y.1, y.2.1) (z.1, z.2.1) g h
+--        a1 : cmoncgrouphom x (f z)
+--          = monoidhomcomp (x.1, x.2.1) (z.1, z.2.1) ((f z).1, (f z).2.1.1) a0 (grothendieckhom z)
+--        a2 : cgrouphom (f x) (f z)
+--          = grothendiecklem4 x (f z) a1
+--        b0 : cmoncgrouphom x (f y)
+--          = monoidhomcomp (x.1, x.2.1) (y.1, y.2.1) ((f y).1, (f y).2.1.1) g (grothendieckhom y)
+--        b1 : cgrouphom (f x) (f y)
+--          = grothendiecklem4 x (f y) b0
+--        c0 : cmoncgrouphom y (f z)
+--          = monoidhomcomp (y.1, y.2.1) (z.1, z.2.1) ((f z).1, (f z).2.1.1) h (grothendieckhom z)
+--        c1 : cgrouphom (f y) (f z)
+--          = grothendiecklem4 y (f z) c0
+--        d : cgrouphom (f x) (f z)
+--          = monoidhomcomp ((f x).1, (f x).2.1.1) ((f y).1, (f y).2.1.1) ((f z).1, (f z).2.1.1)
+--              (Fmor x y g) (Fmor y z h)
+--        P (k : (f x).1.1) : hProp
+--          = ( Path (f z).1.1 (a2.1 k) (d.1 k)
+--            , (f z).1.2 (a2.1 k) (d.1 k) )
+--        ps (k : pair x) : (P (qpr x k)).1
+--          = let
+--            q0 : Path (f z).1.1 (a2.1 (qpr x k)) (qpr z (h.1 (g.1 k.1), h.1 (g.1 k.2)))
+--              = <i> comp (<_> (f z).1.1) (qop z (qpr z (h.1 (g.1 k.1), id z)) (qinveq z (h.1 (g.1 k.2), id z) @ i))
+--                [ (i = 0) -> <j> grothendiecklem3 x (f z) a1 k @ -j
+--                , (i = 1) -> <j> comp (<_> (f z).1.1) (qopeq z (h.1 (g.1 k.1), id z) (id z, h.1 (g.1 k.2)) @ j)
+--                  [ (j = 0) -> <_> qop z (qpr z (h.1 (g.1 k.1), id z)) (qpr z (id z, h.1 (g.1 k.2)))
+--                  , (j = 1) -> <l> qpr z ((hid z).2 (h.1 (g.1 k.1)) @ l, (hid z).1 (h.1 (g.1 k.2)) @ l) ]]
+--            q1 : Path (f y).1.1 (b1.1 (qpr x k)) (qpr y (g.1 k.1, g.1 k.2))
+--              = <i> comp (<_> (f y).1.1) (qop y (qpr y (g.1 k.1, id y)) (qinveq y (g.1 k.2, id y) @ i))
+--                [ (i = 0) -> <j> grothendiecklem3 x (f y) b0 k @ -j
+--                , (i = 1) -> <j> comp (<_> (f y).1.1) (qopeq y (g.1 k.1, id y) (id y, g.1 k.2) @ j)
+--                  [ (j = 0) -> <_> qop y (qpr y (g.1 k.1, id y)) (qpr y (id y, g.1 k.2))
+--                  , (j = 1) -> <l> qpr y ((hid y).2 (g.1 k.1) @ l, (hid y).1 (g.1 k.2) @ l) ]]
+--            q2 (k : pair y) : Path (f z).1.1 (c1.1 (qpr y k)) (qpr z (h.1 k.1, h.1 k.2))
+--              = <i> comp (<_> (f z).1.1) (qop z (qpr z (h.1 k.1, id z)) (qinveq z (h.1 k.2, id z) @ i))
+--                [ (i = 0) -> <j> grothendiecklem3 y (f z) c0 k @ -j
+--                , (i = 1) -> <j> comp (<_> (f z).1.1) (qopeq z (h.1 k.1, id z) (id z, h.1 k.2) @ j)
+--                  [ (j = 0) -> <_> qop z (qpr z (h.1 k.1, id z)) (qpr z (id z, h.1 k.2))
+--                  , (j = 1) -> <l> qpr z ((hid z).2 (h.1 k.1) @ l, (hid z).1 (h.1 k.2) @ l) ]]
+--            q3 : Path (f z).1.1 (c1.1 (b1.1 (qpr x k))) (qpr z (h.1 (g.1 k.1), h.1 (g.1 k.2)))
+--              = <i> comp (<_> (f z).1.1) (c1.1 (q1 @ i))
+--                [ (i = 0) -> <_> c1.1 (b1.1 (qpr x k))
+--                , (i = 1) -> q2 (g.1 k.1, g.1 k.2) ]
+--            q4 : Path (f z).1.1 (c1.1 (b1.1 (qpr x k))) (qpr z (h.1 (g.1 k.1), h.1 (g.1 k.2)))
+--              = <i> comp (<_> (f z).1.1) (c1.1 (q1 @ i))
+--                [ (i = 0) -> <_> c1.1 (b1.1 (qpr x k))
+--                , (i = 1) -> q2 (g.1 k.1, g.1 k.2) ]
+--          in <i> comp (<_> (f z).1.1) (q0 @ i)
+--            [ (i = 0) -> <_> a2.1 (qpr x k)
+--            , (i = 1) -> <j> q3 @ -j ]
+--        p : Path ((f x).1.1 -> (f z).1.1) a2.1 d.1
+--          = <i> \ (k : (f x).1.1) -> (setquotprop (pair x) (peqrel x) P ps k @ i)
+--      in lemSig ((f x).1.1 -> (f z).1.1)
+--           (ismonoidhom ((f x).1, (f x).2.1.1) ((f z).1, (f z).2.1.1))
+--           (propismonoidhom ((f x).1, (f x).2.1.1) ((f z).1, (f z).2.1.1))
+--           a2 d p
+  in (f, Fmor, Fid, p)
+
+grothendieck_univarr (x : cA CMon) : univarr CMon Ab x Fforgetful
+  = ( (grothendieck x, grothendieckhom x)
+    , \ (e : cA (cosliceCat CMon Ab x Fforgetful)) -> grothendieckunivprop' x e.1 e.2)
+
+grothendieck_induced_functor : functor CMon Ab
+  = lemma_univarr_induced_functor CMon Ab Fforgetful grothendieck_univarr
+
+grothendieck_induced_functor_eq : Path (functor CMon Ab) grothendieck_induced_functor Fgrothendieck
+  = let
+    f : functor CMon Ab
+      = grothendieck_induced_functor
+    g : functor CMon Ab
+      = Fgrothendieck
+    p0 : Path (cmonoid -> cgroup) f.1 g.1
+      = <_> f.1
+    p1 : PathP (<i> (x y : cmonoid) -> cmonoidhom x y -> cgrouphom ((p0 @ i) x) ((p0 @ i) y)) f.2.1 g.2.1
+      = <_> f.2.1
+  in functorId CMon Ab f g (<i> (p0 @ i, p1 @ i))
+
+opaque grothendieck_induced_functor_eq
+
+grothendieck_adjoint : adjoint Ab CMon Fgrothendieck Fforgetful
+  = transport (<i> adjoint Ab CMon (grothendieck_induced_functor_eq @ i) Fforgetful) (lemma_univarr_adjoint CMon Ab Fforgetful grothendieck_univarr)
+

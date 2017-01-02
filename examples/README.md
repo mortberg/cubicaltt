@@ -4,6 +4,9 @@ Cubical Type Theory: examples
 This folder contains a lot of examples implemented using
 cubicaltt. The files contain:
 
+* **algstruct.ctt** - Defines some standard algebraic structures and
+                      properties.
+
 * **binnat.ctt** - Binary natural numbers and isomorphism to unary
                    numbers. Example of data and program refinement by
                    doing a proof for unary numbers by computation with
@@ -31,6 +34,9 @@ cubicaltt. The files contain:
 
 * **equiv.ctt** - Definition of equivalences and various results on
                   these, including the "graduate lemma".
+
+* **grothendieck.ctt** - This file contains a constuction of the Grothendieck
+                         group and a proof of its universal property.
 
 * **groupoidTrunc.ctt** - The groupoid truncation as a HIT.
 
@@ -105,3 +111,9 @@ cubicaltt. The files contain:
 * **torus.ctt** - Proof that Torus = S1 * S1.
 
 * **univalence.ctt** - Proofs of the univalence axiom.
+
+* **univprop.ctt** - Defines natural transformations, universal arrows, and
+                     adjunctions. Also contains a proof that a family of
+                     universal arrows gives rise to an adjunction. This is
+                     then used to prove that the Grothendieck homomorphism is
+                     left adjoint to the forgetful functor.

@@ -620,65 +620,64 @@ Fgrothendieck : functor CMon Ab
           (Fmor x z (monoidhomcomp (x.1, x.2.1) (y.1, y.2.1) (z.1, z.2.1) g h))
           (monoidhomcomp ((f x).1, (f x).2.1.1) ((f y).1, (f y).2.1.1) ((f z).1, (f z).2.1.1)
             (Fmor x y g) (Fmor y z h))
-      = undefined
---      = let
---        a0 : cmonoidhom x z
---          = monoidhomcomp (x.1, x.2.1) (y.1, y.2.1) (z.1, z.2.1) g h
---        a1 : cmoncgrouphom x (f z)
---          = monoidhomcomp (x.1, x.2.1) (z.1, z.2.1) ((f z).1, (f z).2.1.1) a0 (grothendieckhom z)
---        a2 : cgrouphom (f x) (f z)
---          = grothendiecklem4 x (f z) a1
---        b0 : cmoncgrouphom x (f y)
---          = monoidhomcomp (x.1, x.2.1) (y.1, y.2.1) ((f y).1, (f y).2.1.1) g (grothendieckhom y)
---        b1 : cgrouphom (f x) (f y)
---          = grothendiecklem4 x (f y) b0
---        c0 : cmoncgrouphom y (f z)
---          = monoidhomcomp (y.1, y.2.1) (z.1, z.2.1) ((f z).1, (f z).2.1.1) h (grothendieckhom z)
---        c1 : cgrouphom (f y) (f z)
---          = grothendiecklem4 y (f z) c0
---        d : cgrouphom (f x) (f z)
---          = monoidhomcomp ((f x).1, (f x).2.1.1) ((f y).1, (f y).2.1.1) ((f z).1, (f z).2.1.1)
---              (Fmor x y g) (Fmor y z h)
---        P (k : (f x).1.1) : hProp
---          = ( Path (f z).1.1 (a2.1 k) (d.1 k)
---            , (f z).1.2 (a2.1 k) (d.1 k) )
---        ps (k : pair x) : (P (qpr x k)).1
---          = let
---            q0 : Path (f z).1.1 (a2.1 (qpr x k)) (qpr z (h.1 (g.1 k.1), h.1 (g.1 k.2)))
---              = <i> comp (<_> (f z).1.1) (qop z (qpr z (h.1 (g.1 k.1), id z)) (qinveq z (h.1 (g.1 k.2), id z) @ i))
---                [ (i = 0) -> <j> grothendiecklem3 x (f z) a1 k @ -j
---                , (i = 1) -> <j> comp (<_> (f z).1.1) (qopeq z (h.1 (g.1 k.1), id z) (id z, h.1 (g.1 k.2)) @ j)
---                  [ (j = 0) -> <_> qop z (qpr z (h.1 (g.1 k.1), id z)) (qpr z (id z, h.1 (g.1 k.2)))
---                  , (j = 1) -> <l> qpr z ((hid z).2 (h.1 (g.1 k.1)) @ l, (hid z).1 (h.1 (g.1 k.2)) @ l) ]]
---            q1 : Path (f y).1.1 (b1.1 (qpr x k)) (qpr y (g.1 k.1, g.1 k.2))
---              = <i> comp (<_> (f y).1.1) (qop y (qpr y (g.1 k.1, id y)) (qinveq y (g.1 k.2, id y) @ i))
---                [ (i = 0) -> <j> grothendiecklem3 x (f y) b0 k @ -j
---                , (i = 1) -> <j> comp (<_> (f y).1.1) (qopeq y (g.1 k.1, id y) (id y, g.1 k.2) @ j)
---                  [ (j = 0) -> <_> qop y (qpr y (g.1 k.1, id y)) (qpr y (id y, g.1 k.2))
---                  , (j = 1) -> <l> qpr y ((hid y).2 (g.1 k.1) @ l, (hid y).1 (g.1 k.2) @ l) ]]
---            q2 (k : pair y) : Path (f z).1.1 (c1.1 (qpr y k)) (qpr z (h.1 k.1, h.1 k.2))
---              = <i> comp (<_> (f z).1.1) (qop z (qpr z (h.1 k.1, id z)) (qinveq z (h.1 k.2, id z) @ i))
---                [ (i = 0) -> <j> grothendiecklem3 y (f z) c0 k @ -j
---                , (i = 1) -> <j> comp (<_> (f z).1.1) (qopeq z (h.1 k.1, id z) (id z, h.1 k.2) @ j)
---                  [ (j = 0) -> <_> qop z (qpr z (h.1 k.1, id z)) (qpr z (id z, h.1 k.2))
---                  , (j = 1) -> <l> qpr z ((hid z).2 (h.1 k.1) @ l, (hid z).1 (h.1 k.2) @ l) ]]
---            q3 : Path (f z).1.1 (c1.1 (b1.1 (qpr x k))) (qpr z (h.1 (g.1 k.1), h.1 (g.1 k.2)))
---              = <i> comp (<_> (f z).1.1) (c1.1 (q1 @ i))
---                [ (i = 0) -> <_> c1.1 (b1.1 (qpr x k))
---                , (i = 1) -> q2 (g.1 k.1, g.1 k.2) ]
---            q4 : Path (f z).1.1 (c1.1 (b1.1 (qpr x k))) (qpr z (h.1 (g.1 k.1), h.1 (g.1 k.2)))
---              = <i> comp (<_> (f z).1.1) (c1.1 (q1 @ i))
---                [ (i = 0) -> <_> c1.1 (b1.1 (qpr x k))
---                , (i = 1) -> q2 (g.1 k.1, g.1 k.2) ]
---          in <i> comp (<_> (f z).1.1) (q0 @ i)
---            [ (i = 0) -> <_> a2.1 (qpr x k)
---            , (i = 1) -> <j> q3 @ -j ]
---        p : Path ((f x).1.1 -> (f z).1.1) a2.1 d.1
---          = <i> \ (k : (f x).1.1) -> (setquotprop (pair x) (peqrel x) P ps k @ i)
---      in lemSig ((f x).1.1 -> (f z).1.1)
---           (ismonoidhom ((f x).1, (f x).2.1.1) ((f z).1, (f z).2.1.1))
---           (propismonoidhom ((f x).1, (f x).2.1.1) ((f z).1, (f z).2.1.1))
---           a2 d p
+      = let
+        a0 : cmonoidhom x z
+          = monoidhomcomp (x.1, x.2.1) (y.1, y.2.1) (z.1, z.2.1) g h
+        a1 : cmoncgrouphom x (f z)
+          = monoidhomcomp (x.1, x.2.1) (z.1, z.2.1) ((f z).1, (f z).2.1.1) a0 (grothendieckhom z)
+        a2 : cgrouphom (f x) (f z)
+          = grothendiecklem4 x (f z) a1
+        b0 : cmoncgrouphom x (f y)
+          = monoidhomcomp (x.1, x.2.1) (y.1, y.2.1) ((f y).1, (f y).2.1.1) g (grothendieckhom y)
+        b1 : cgrouphom (f x) (f y)
+          = grothendiecklem4 x (f y) b0
+        c0 : cmoncgrouphom y (f z)
+          = monoidhomcomp (y.1, y.2.1) (z.1, z.2.1) ((f z).1, (f z).2.1.1) h (grothendieckhom z)
+        c1 : cgrouphom (f y) (f z)
+          = grothendiecklem4 y (f z) c0
+        d : cgrouphom (f x) (f z)
+          = monoidhomcomp ((f x).1, (f x).2.1.1) ((f y).1, (f y).2.1.1) ((f z).1, (f z).2.1.1)
+              (Fmor x y g) (Fmor y z h)
+        P (k : (f x).1.1) : hProp
+          = ( Path (f z).1.1 (a2.1 k) (d.1 k)
+            , (f z).1.2 (a2.1 k) (d.1 k) )
+        ps (k : pair x) : (P (qpr x k)).1
+          = let
+            q0 : Path (f z).1.1 (a2.1 (qpr x k)) (qpr z (h.1 (g.1 k.1), h.1 (g.1 k.2)))
+              = <i> comp (<_> (f z).1.1) (qop z (qpr z (h.1 (g.1 k.1), id z)) (qinveq z (h.1 (g.1 k.2), id z) @ i))
+                [ (i = 0) -> <j> grothendiecklem3 x (f z) a1 k @ -j
+                , (i = 1) -> <j> comp (<_> (f z).1.1) (qopeq z (h.1 (g.1 k.1), id z) (id z, h.1 (g.1 k.2)) @ j)
+                  [ (j = 0) -> <_> qop z (qpr z (h.1 (g.1 k.1), id z)) (qpr z (id z, h.1 (g.1 k.2)))
+                  , (j = 1) -> <l> qpr z ((hid z).2 (h.1 (g.1 k.1)) @ l, (hid z).1 (h.1 (g.1 k.2)) @ l) ]]
+            q1 : Path (f y).1.1 (b1.1 (qpr x k)) (qpr y (g.1 k.1, g.1 k.2))
+              = <i> comp (<_> (f y).1.1) (qop y (qpr y (g.1 k.1, id y)) (qinveq y (g.1 k.2, id y) @ i))
+                [ (i = 0) -> <j> grothendiecklem3 x (f y) b0 k @ -j
+                , (i = 1) -> <j> comp (<_> (f y).1.1) (qopeq y (g.1 k.1, id y) (id y, g.1 k.2) @ j)
+                  [ (j = 0) -> <_> qop y (qpr y (g.1 k.1, id y)) (qpr y (id y, g.1 k.2))
+                  , (j = 1) -> <l> qpr y ((hid y).2 (g.1 k.1) @ l, (hid y).1 (g.1 k.2) @ l) ]]
+            q2 (k : pair y) : Path (f z).1.1 (c1.1 (qpr y k)) (qpr z (h.1 k.1, h.1 k.2))
+              = <i> comp (<_> (f z).1.1) (qop z (qpr z (h.1 k.1, id z)) (qinveq z (h.1 k.2, id z) @ i))
+                [ (i = 0) -> <j> grothendiecklem3 y (f z) c0 k @ -j
+                , (i = 1) -> <j> comp (<_> (f z).1.1) (qopeq z (h.1 k.1, id z) (id z, h.1 k.2) @ j)
+                  [ (j = 0) -> <_> qop z (qpr z (h.1 k.1, id z)) (qpr z (id z, h.1 k.2))
+                  , (j = 1) -> <l> qpr z ((hid z).2 (h.1 k.1) @ l, (hid z).1 (h.1 k.2) @ l) ]]
+            q3 : Path (f z).1.1 (c1.1 (b1.1 (qpr x k))) (qpr z (h.1 (g.1 k.1), h.1 (g.1 k.2)))
+              = <i> comp (<_> (f z).1.1) (c1.1 (q1 @ i))
+                [ (i = 0) -> <_> c1.1 (b1.1 (qpr x k))
+                , (i = 1) -> q2 (g.1 k.1, g.1 k.2) ]
+            q4 : Path (f z).1.1 (c1.1 (b1.1 (qpr x k))) (qpr z (h.1 (g.1 k.1), h.1 (g.1 k.2)))
+              = <i> comp (<_> (f z).1.1) (c1.1 (q1 @ i))
+                [ (i = 0) -> <_> c1.1 (b1.1 (qpr x k))
+                , (i = 1) -> q2 (g.1 k.1, g.1 k.2) ]
+          in <i> comp (<_> (f z).1.1) (q0 @ i)
+            [ (i = 0) -> <_> a2.1 (qpr x k)
+            , (i = 1) -> <j> q3 @ -j ]
+        p : Path ((f x).1.1 -> (f z).1.1) a2.1 d.1
+          = <i> \ (k : (f x).1.1) -> (setquotunivprop (pair x) (peqrel x) P ps k @ i)
+      in lemSig ((f x).1.1 -> (f z).1.1)
+           (ismonoidhom ((f x).1, (f x).2.1.1) ((f z).1, (f z).2.1.1))
+           (propismonoidhom ((f x).1, (f x).2.1.1) ((f z).1, (f z).2.1.1))
+           a2 d p
   in (f, Fmor, Fid, p)
 
 grothendieck_univarr (x : cA CMon) : univarr CMon Ab x Fforgetful

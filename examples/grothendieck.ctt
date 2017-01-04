@@ -1,0 +1,626 @@
+-- This file defines the Grothendieck group of a commutative monoid and proves its
+-- universal property.
+
+module grothendieck where
+
+import setquot
+import algstruct
+
+-- Make setquots abstract
+
+opaque setquot
+opaque setquotpr
+opaque setquotl0
+opaque setquotunivprop
+opaque setquotuniv2prop
+opaque setquotuniv3prop
+opaque setsetquot
+opaque iscompsetquotpr
+opaque setquotmap
+opaque setquotmap2
+opaque setquotmapeq
+opaque setquotmapeq2
+
+
+-- (Mere) existance and shorthand for some related properties
+
+exists (A : U) (B : A -> U) : hProp
+  = ishinh ((x : A) * B x)
+
+existspr (A : U) (B : A -> U) (a : A) (b : B a) : (exists A B).1
+  = hinhpr ((x : A) * B x) (a, b)
+
+existsel (A : U) (B : A -> U) (P : hProp) (f : (x : A) -> (B x) -> P.1) (e : (exists A B).1) : P.1
+  = hinhuniv ((x : A) * B x) P (\(z : (x : A) * (B x)) -> f z.1 z.2) e
+
+existsel2 (A : U) (B : A -> U) (C : U) (D : C -> U) (P : hProp) (f : (x : A) (_ : B x) (y : C) (_ : D y) -> P.1)
+    (e0 : (exists A B).1) (e1 : (exists C D).1) : P.1
+  = let
+    T0 : U
+      = (c : C) (d : D c) -> P.1
+    pT0 : prop T0
+      = propPi C (\(c : C) -> (D c) -> P.1)
+          (\(c : C) -> propPi (D c) (\(_ : D c) -> P.1) (\(_ : D c) -> P.2))
+  in existsel C D P (existsel A B (T0, pT0) f e0) e1
+
+
+-- Shorthand for commuative monoids and groups
+
+op (m : cmonoid) : m.1.1 -> m.1.1 -> m.1.1
+  = opCMonoid m
+
+op3 (m : cmonoid) : m.1.1 -> m.1.1 -> m.1.1 -> m.1.1
+  = \ (a b c : m.1.1) -> op m a (op m b c)
+
+asc (m : cmonoid) : isAssociative m.1.1 (op m)
+  = isAssocCMonoid m
+
+id (m : cmonoid) : m.1.1
+  = idCMonoid m
+
+hid (m : cmonoid) : hasIdentity m.1.1 (op m) (id m)
+  = hasIdCMonoid m
+
+cm (m : cmonoid) : isCommutative m.1.1 (op m)
+  = isCommCMonoid m
+
+ac (m : cmonoid) : AscCom
+  = (m.1.1, op m, asc m, cm m)
+
+gac (g : cgroup) : AscCom
+  = (g.1.1, opCGroup g, isAssocCGroup g, isCommCGroup g)
+
+
+-- Direct product of a cancellative monoid with appropriate operators and properties
+
+pair (m : cmonoid) : U
+  = and m.1.1 m.1.1
+
+pset (m : cmonoid) : set (pair m)
+  = setSig m.1.1 (\(_ : m.1.1) -> m.1.1) m.1.2 (\(_ : m.1.1) -> m.1.2)
+
+pop (m : cmonoid) (x y : pair m) : pair m
+  = (op m x.1 y.1, op m x.2 y.2)
+
+pid (m : cmonoid) : pair m
+  = (id m, id m)
+
+phid (m : cmonoid) : hasIdentity (pair m) (pop m) (pid m)
+  = ( \ (x : pair m) -> <i> ((hid m).1 x.1 @ i, (hid m).1 x.2 @ i)
+    , \ (x : pair m) -> <i> ((hid m).2 x.1 @ i, (hid m).2 x.2 @ i) )
+
+pasc (m : cmonoid) : isAssociative (pair m) (pop m)
+  = \ (x0 x1 x2 : pair m) -> <i> (asc m x0.1 x1.1 x2.1 @ i, asc m x0.2 x1.2 x2.2 @ i)
+
+pcm (m : cmonoid) : isCommutative (pair m) (pop m)
+  = \ (x0 x1 : pair m) -> <i> (cm m x0.1 x1.1 @ i, cm m x0.2 x1.2 @ i)
+
+
+-- Equivalence relation on pair
+
+prel (m : cmonoid) (a b : pair m) : hProp
+  = let
+    T (t : m.1.1) : U
+      = Path m.1.1 (op3 m t a.1 b.2) (op3 m t b.1 a.2)
+  in exists m.1.1 T
+
+prelisrefl (m : cmonoid) (a : pair m) : (prel m a a).1 -- exists m.1.1 T pT
+  = let
+    T (k : m.1.1) : U
+      = Path m.1.1 (op3 m k a.1 a.2) (op3 m k a.1 a.2)
+    k : m.1.1
+      = id m
+  in existspr m.1.1 T k (<i> op m (id m) (op m a.1 a.2))
+
+prelissymm (m : cmonoid) (a b : pair m) (p0 : (prel m a b).1) : (prel m b a).1
+  = let
+    T0 (t : m.1.1) : U
+      = Path m.1.1 (op3 m t a.1 b.2) (op3 m t b.1 a.2)
+    T1 (t : m.1.1) : U
+      = Path m.1.1 (op3 m t b.1 a.2) (op3 m t a.1 b.2)
+    f (k : m.1.1) (p : T0 k) : (exists m.1.1 T1).1
+      = existspr m.1.1 T1 k (<i> p @ -i)
+    P : hProp
+      = exists m.1.1 T1
+  in existsel m.1.1 T0 (exists m.1.1 T1) f p0
+
+prelistrans (m : cmonoid) (x y z : pair m) (p0 : (prel m x y).1) (p1 : (prel m y z).1)
+  : (prel m x z).1
+  = let
+    T0 (k : m.1.1) : U
+      = Path m.1.1 (op3 m k x.1 y.2) (op3 m k y.1 x.2)
+    T1 (k : m.1.1) : U
+      = Path m.1.1 (op3 m k y.1 z.2) (op3 m k z.1 y.2)
+    T2 (k : m.1.1) : U
+      = Path m.1.1 (op3 m k x.1 z.2) (op3 m k z.1 x.2)
+    f (k : m.1.1) (p0 : T0 k) (l : m.1.1) (p1 : T1 l) : (exists m.1.1 T2).1
+      = existspr m.1.1 T2 (op m k (op m l y.2))
+          (swptrans (ac m) k l (x.1, x.2) (y.1, y.2) (z.1, z.2) p0 p1)
+  in existsel2 m.1.1 T0 m.1.1 T1 (exists m.1.1 T2) f p0 p1
+
+peqrel (m : cmonoid) : eqrel (pair m)
+  = (prel m, ((prelistrans m, prelisrefl m), prelissymm m))
+
+
+-- The Grothendieck group of a commutative monoid M is constructed by taking
+-- the quotient pair(M) / prel(M)
+
+qgroup (m : cmonoid) : U
+  = setquot (pair m) (prel m)
+
+qpr (m : cmonoid) (x : pair m) : qgroup m
+  = setquotpr (pair m) (peqrel m) x
+
+setqgroup (m : cmonoid) : set (qgroup m)
+  = setsetquot (pair m) (prel m)
+
+opaque setqgroup
+
+
+-- Group structure of the Grothendieck group
+
+qid (m : cmonoid) : qgroup m
+  = qpr m (pid m)
+
+qop' (m : cmonoid) (x0 x1 : pair m) : qgroup m
+  = qpr m (pop m x0 x1)
+
+qop'resprel (m : cmonoid) (x x' y y' : pair m) (p0 : (prel m x x').1)
+    (p1 : (prel m y y').1) : Path (qgroup m) (qop' m x y) (qop' m x' y')
+  = let
+    z0 : pair m
+      = pop m x y
+    z1 : pair m
+      = pop m x' y'
+    T0 (k : m.1.1) : U
+      = Path m.1.1 (op3 m k x.1 x'.2) (op3 m k x'.1 x.2)
+    T1 (k : m.1.1) : U
+      = Path m.1.1 (op3 m k y.1 y'.2) (op3 m k y'.1 y.2)
+    T2 (k : m.1.1) : U
+      = Path m.1.1 (op3 m k z0.1 z1.2) (op3 m k z1.1 z0.2)
+    T3 : U
+      = Path (qgroup m) (qop' m x y) (qop' m x' y')
+    pT3 : prop T3
+      = setqgroup m (qop' m x y) (qop' m x' y')
+    f (k : m.1.1) (p0 : T0 k) (l : m.1.1) (p1 : T1 l) : T3
+      = let
+        n : m.1.1
+          = op m k l
+        p : Path m.1.1 (op3 m n z0.1 z1.2) (op3 m n z1.1 z0.2)
+          = <i> comp (<_> m.1.1) (op m (p0 @ i) (p1 @ i))
+            [ (i = 0) -> <j> comp (<_> m.1.1) (swp8 (ac m) k (op m x.1 x'.2) l (op m y.1 y'.2) @ j)
+              [ (j = 0) -> <_> (op m (op3 m k x.1 x'.2) (op3 m l y.1 y'.2))
+              , (j = 1) -> <h> op m (op m k l) (swp8 (ac m) x.1 x'.2 y.1 y'.2 @ h) ]
+            , (i = 1) -> <j> comp (<_> m.1.1) (swp8 (ac m) k (op m x'.1 x.2) l (op m y'.1 y.2) @ j)
+              [ (j = 0) -> <_> (op m (op3 m k x'.1 x.2) (op3 m l y'.1 y.2))
+              , (j = 1) -> <h> op m (op m k l) (swp8 (ac m) x'.1 x.2 y'.1 y.2 @ h) ]]
+        e : (prel m z0 z1).1
+          = existspr m.1.1 T2 n p
+      in iscompsetquotpr (pair m) (peqrel m) z0 z1 e
+  in existsel2 m.1.1 T0 m.1.1 T1 (T3, pT3) f p0 p1
+
+opaque qop'resprel
+
+qop (m : cmonoid) (q0 q1 : qgroup m) : qgroup m
+  = setquotmap2 (pair m) (pair m) (qgroup m) (setqgroup m) (prel m)
+      (prel m) (qop' m) (qop'resprel m) q0 q1
+
+qopeq (m : cmonoid) (x0 x1 : pair m)
+  : Path (qgroup m) (qop m (qpr m x0) (qpr m x1)) (qop' m x0 x1)
+  = setquotmapeq2 (pair m) (pair m) (qgroup m) (setqgroup m) (peqrel m)
+      (peqrel m) (qop' m) (qop'resprel m) x0 x1
+
+opaque qopeq
+
+qinv' (m : cmonoid) (x0 : pair m) : qgroup m
+  = qpr m (x0.2, x0.1)
+
+qinv'resprel (m : cmonoid) (x y : pair m) (r : (prel m x y).1)
+  : Path (qgroup m) (qinv' m x) (qinv' m y)
+  = let
+    T0 (k : m.1.1) : U
+      = Path m.1.1 (op3 m k x.1 y.2) (op3 m k y.1 x.2)
+    T1 (k : m.1.1) : U
+      = Path m.1.1 (op3 m k x.2 y.1) (op3 m k y.2 x.1)
+    f (k : m.1.1) (p : T0 k) : (exists m.1.1 T1).1
+      = existspr m.1.1 T1 k (<i> comp (<_> m.1.1) (p @ -i)
+        [ (i = 0) -> <j> op m k (cm m y.1 x.2 @ j)
+        , (i = 1) -> <j> op m k (cm m x.1 y.2 @ j) ])
+  in iscompsetquotpr (pair m) (peqrel m) (x.2, x.1) (y.2, y.1)
+       (existsel m.1.1 T0 (exists m.1.1 T1) f r)
+
+opaque qinv'resprel
+
+qinv (m : cmonoid) (q : qgroup m) : qgroup m
+  = setquotmap (pair m) (qgroup m) (setqgroup m) (prel m) (qinv' m)
+      (qinv'resprel m) q
+
+qinveq (m : cmonoid) (x : pair m) : Path (qgroup m) (qinv m (qpr m x)) (qinv' m x)
+  = setquotmapeq (pair m) (qgroup m) (setqgroup m) (peqrel m)
+      (qinv' m) (qinv'resprel m) x
+
+opaque qinveq
+
+qhli (m : cmonoid) : hasLeftInverse (qgroup m) (qop m) (qid m) (qinv m)
+  = \ (q : qgroup m) -> let
+    tP (x : qgroup m) : U
+      = Path (qgroup m) (qop m (qinv m x) x) (qid m)
+    ps (x : pair m) : tP (qpr m x)
+      = let
+        T (k : m.1.1) : U
+          = Path m.1.1 (op m k (op m (op m x.2 x.1) (id m)))
+                     (op m k (op m (id m) (op m x.1 x.2)))
+        p0 : Path (qgroup m) (qop m (qinv m (qpr m x)) (qpr m x)) (qop' m (x.2, x.1) x)
+          = <i> comp (<_> qgroup m) (qop m (qinveq m x @ i) (qpr m x)) 
+            [ (i = 0) -> <_> qop m (qinv m (qpr m x)) (qpr m x)
+            , (i = 1) -> qopeq m (x.2, x.1) x ]
+        p1 : Path m.1.1 (op m (id m) (op m (op m x.2 x.1) (id m)))
+                      (op m (id m) (op m (id m) (op m x.1 x.2)))
+          = <i> op m (id m) (comp (<j> m.1.1) (cm m (op m x.2 x.1) (id m) @ i)
+              [ (i = 0) -> <j> (op m (op m x.2 x.1) (id m))
+              , (i = 1) -> <j> op m (id m) (cm m x.2 x.1 @ j) ])
+        p2 : Path (qgroup m) (qop' m (x.2, x.1) x) (qid m)
+          = iscompsetquotpr (pair m) (peqrel m) (pop m (x.2, x.1) x) (pid m)
+              (existspr m.1.1 T (id m) p1)
+      in <i> comp (<_> qgroup m) (p0 @ i)
+        [ (i = 0) -> <_> p0 @ 0
+        , (i = 1) -> p2 ]
+    pP (x : qgroup m) : prop (tP x)
+      = setqgroup m (qop m (qinv m x) x) (qid m)
+    P (x : qgroup m) : hProp
+      = (tP x, pP x)
+  in setquotunivprop (pair m) (peqrel m) P ps q
+
+qhri (m : cmonoid) : hasRightInverse (qgroup m) (qop m) (qid m) (qinv m)
+  = \ (q : qgroup m) -> let
+    tP (x : qgroup m) : U
+      = Path (qgroup m) (qop m x (qinv m x)) (qid m)
+    ps (x : pair m) : tP (qpr m x)
+      = let
+        T (k : m.1.1) : U
+          = Path m.1.1 (op m k (op m (op m x.1 x.2) (id m)))
+                     (op m k (op m (id m) (op m x.2 x.1)))
+        p0 : Path (qgroup m) (qop m (qpr m x) (qinv m (qpr m x))) (qop' m x (x.2, x.1))
+          = <i> comp (<_> qgroup m) (qop m (qpr m x) (qinveq m x @ i))
+            [ (i = 0) -> <_> qop m (qpr m x) (qinv m (qpr m x))
+            , (i = 1) -> qopeq m x (x.2, x.1) ]
+        p1 : Path m.1.1 (op m (id m) (op m (op m x.1 x.2) (id m)))
+                      (op m (id m) (op m (id m) (op m x.2 x.1)))
+          = <i> op m (id m) (comp (<j> m.1.1) (cm m (op m x.1 x.2) (id m) @ i)
+              [ (i = 0) -> <j> (op m (op m x.1 x.2) (id m))
+              , (i = 1) -> <j> op m (id m) (cm m x.1 x.2 @ j) ])
+        p2 : Path (qgroup m) (qop' m x (x.2, x.1)) (qid m)
+          = iscompsetquotpr (pair m) (peqrel m) (pop m x (x.2, x.1)) (pid m)
+              (existspr m.1.1 T (id m) p1)
+      in <i> comp (<_> qgroup m) (p0 @ i)
+        [ (i = 0) -> <_> p0 @ 0
+        , (i = 1) -> p2 ]
+    pP (x : qgroup m) : prop (tP x)
+      = setqgroup m (qop m x (qinv m x)) (qid m)
+    P (x : qgroup m) : hProp
+      = (tP x, pP x)
+  in setquotunivprop (pair m) (peqrel m) P ps q
+
+qlid (m : cmonoid) : hasLeftIdentity (qgroup m) (qop m) (qid m)
+  = \ (q : qgroup m) -> let
+    tP (x : qgroup m) : U
+      = Path (qgroup m) (qop m (qid m) x) x
+    ps (x : pair m) : tP (qpr m x) 
+      = let
+        p0 : Path (qgroup m) (qop m (qid m) (qpr m x)) (qop' m (pid m) x)
+          = qopeq m (pid m) x
+        p1 : Path (qgroup m) (qop' m (pid m) x) (qpr m x)
+          = <i> qpr m ((phid m).1 x @ i)
+      in <i> comp (<_> qgroup m) (p0 @ i)
+        [ (i = 0) -> <_> p0 @ 0
+        , (i = 1) -> p1 ]
+    pP (x : qgroup m) : prop (tP x)
+      = setqgroup m (qop m (qid m) x) x
+    P (x : qgroup m) : hProp
+      = (tP x, pP x)
+  in setquotunivprop (pair m) (peqrel m) P ps q
+
+qrid (m : cmonoid) : hasRightIdentity (qgroup m) (qop m) (qid m)
+  = \ (q : qgroup m) -> let
+    tP (x : qgroup m) : U
+      = Path (qgroup m) (qop m x (qid m)) x
+    ps (x : pair m) : tP (qpr m x) 
+      = let
+        p0 : Path (qgroup m) (qop m (qpr m x) (qid m)) (qop' m x (pid m))
+          = qopeq m x (pid m)
+        p1 : Path (qgroup m) (qop' m x (pid m)) (qpr m x)
+          = <i> qpr m ((phid m).2 x @ i)
+      in <i> comp (<_> qgroup m) (p0 @ i)
+        [ (i = 0) -> <_> p0 @ 0
+        , (i = 1) -> p1 ]
+    pP (x : qgroup m) : prop (tP x)
+      = setqgroup m (qop m x (qid m)) x
+    P (x : qgroup m) : hProp
+      = (tP x, pP x)
+  in setquotunivprop (pair m) (peqrel m) P ps q
+
+qasc (m : cmonoid) : isAssociative (qgroup m) (qop m)
+  = \ (q0 q1 q2 : qgroup m) -> let
+    tP (x0 x1 x2 : qgroup m) : U
+      = Path (qgroup m) (qop m x0 (qop m x1 x2)) (qop m (qop m x0 x1) x2)
+    ps (x0 x1 x2 : pair m) : tP (qpr m x0) (qpr m x1) (qpr m x2)
+      = let
+        p0 : Path (qgroup m) (qop m (qpr m x0) (qop m (qpr m x1) (qpr m x2)))
+                         (qpr m (pop m x0 (pop m x1 x2)))
+          = <i> comp (<_> qgroup m) (qop m (qpr m x0) (qopeq m x1 x2 @ i))
+            [ (i = 0) -> <_> qop m (qpr m x0) (qop m (qpr m x1) (qpr m x2))
+            , (i = 1) -> qopeq m x0 (pop m x1 x2) ]
+        p1 : Path (qgroup m) (qpr m (pop m x0 (pop m x1 x2)))
+                         (qpr m (pop m (pop m x0 x1) x2))
+          = <i> qpr m (pasc m x0 x1 x2 @ i)
+        p2 : Path (qgroup m) (qop m (qop m (qpr m x0) (qpr m x1)) (qpr m x2))
+                         (qpr m (pop m (pop m x0 x1) x2))
+          = <i> comp (<_> qgroup m) (qop m (qopeq m x0 x1 @ i) (qpr m x2))
+            [ (i = 0) -> <_> qop m (qop m (qpr m x0) (qpr m x1)) (qpr m x2)
+            , (i = 1) -> qopeq m (pop m x0 x1) x2 ]
+      in <i> comp (<_> qgroup m) (p1 @ i)
+        [ (i = 0) -> <j> p0 @ -j
+        , (i = 1) -> <j> p2 @ -j ]
+    pP (x0 x1 x2 : qgroup m) : prop (tP x0 x1 x2)
+      = setqgroup m (qop m x0 (qop m x1 x2)) (qop m (qop m x0 x1) x2)
+    P (x0 x1 x2 : qgroup m) : hProp
+      = (tP x0 x1 x2, pP x0 x1 x2)
+  in setquotuniv3prop (pair m) (peqrel m) P ps q0 q1 q2
+
+qc (m : cmonoid) : isCommutative (qgroup m) (qop m)
+  = \ (q0 q1 : qgroup m) -> let
+    tP (x0 x1 : qgroup m) : U
+      = Path (qgroup m) (qop m x0 x1) (qop m x1 x0)
+    ps (x0 x1 : pair m) : tP (qpr m x0) (qpr m x1)
+      = <i> comp (<_> qgroup m) (qpr m (pcm m x0 x1 @ i))
+        [ (i = 0) -> <j> qopeq m x0 x1 @ -j
+        , (i = 1) -> <j> qopeq m x1 x0 @ -j ]
+    pP (x0 x1 : qgroup m) : prop (tP x0 x1)
+      = setqgroup m (qop m x0 x1) (qop m x1 x0)
+    P (x0 x1 : qgroup m) : hProp
+      = (tP x0 x1, pP x0 x1)
+  in setquotuniv2prop (pair m) (peqrel m) P ps q0 q1
+
+-- The Grothendieck group
+
+grothendieck (m : cmonoid) : cgroup
+  = ( (qgroup m, setqgroup m)
+    , (((qop m, qasc m, qid m, (qlid m , qrid m)), qinv m, (qhli m, qhri m))
+      , qc m))
+
+-- The underlying commutative monoid of a commutative group
+forgetfulAb (g : cgroup) : cmonoid
+  = (g.1, (g.2.1.1,g.2.2))
+
+-- The canonical homomorphism π : m → K₀(M)
+grothendieckhom (m : cmonoid) : cmoncgrouphom m (grothendieck m)
+  = let
+    g : cgroup
+      = grothendieck m
+    f (x : m.1.1) : g.1.1
+      = qpr m (x, id m)
+    pop : preservesOp m.1.1 g.1.1 (op m) (g.2.1.1.1) f
+      = \ (a0 a1 : m.1.1) ->
+        <i> comp (<j> g.1.1) (qopeq m (a0, id m) (a1, id m) @ -i)
+            [ (i = 0) -> <j> qpr m (op m a0 a1, (hid m).1 (id m) @ j)
+            , (i = 1) -> <j> (g.2.1.1.1 (f a0) (f a1)) ]
+    pid : preservesId m.1.1 g.1.1 (id m) (g.2.1.1.2.2.1) f
+      = <i> qpr m (id m, id m)
+  in (f, (pop, pid))
+
+-- a · b = c · d ⇒ a · d⁻¹ = c · b⁻¹
+gswp10 (g : cgroup) (a b c d : g.1.1) (p : Path g.1.1 (g.2.1.1.1 a b) (g.2.1.1.1 c d))
+  : Path g.1.1 (g.2.1.1.1 a (g.2.1.2.1 d)) (g.2.1.1.1 c (g.2.1.2.1 b))
+  = let
+    b' : g.1.1
+      = g.2.1.2.1 b
+    d' : g.1.1
+      = g.2.1.2.1 d
+    p0 : Path g.1.1 (g.2.1.1.1 (g.2.1.1.1 a b) (g.2.1.1.1 b' d'))
+                  (g.2.1.1.1 (g.2.1.1.1 c d) (g.2.1.1.1 b' d'))
+      = <i> g.2.1.1.1 (p @ i) (g.2.1.1.1 b' d')
+    p1 : Path g.1.1 (g.2.1.1.1 (g.2.1.1.1 a b) (g.2.1.1.1 b' d')) (g.2.1.1.1 a d')
+      = <i> comp (<_> g.1.1) (g.2.1.1.1 (g.2.1.1.1 a d') ((g.2.1.2.2).1 b @ i))
+        [ (i = 0) -> <i> swp9 (gac g) a b b' d' @ -i
+        , (i = 1) -> (g.2.1.1.2.2.2).2 (g.2.1.1.1 a d') ]
+    p2 : Path g.1.1 (g.2.1.1.1 (g.2.1.1.1 c d) (g.2.1.1.1 b' d')) (g.2.1.1.1 c b')
+      = <i> comp (<_> g.1.1) (g.2.1.1.1 (g.2.1.1.1 c b') ((g.2.1.2.2).2 d @ i))
+        [ (i = 0) -> <i> swp8 (gac g) c d b' d' @ -i
+        , (i = 1) -> (g.2.1.1.2.2.2).2 (g.2.1.1.1 c b') ]
+  in <i> comp (<_> g.1.1) (p0 @ i)
+    [ (i = 0) -> p1
+    , (i = 1) -> p2 ]
+
+
+-- The universal property of the Grothendieck group
+
+-- g(x) :≡ f(x.1) · f(x.2)⁻¹ 
+grothendiecklem0 (m : cmonoid) (a : cgroup) (f : cmoncgrouphom m a)
+  (x : pair m) : a.1.1
+  = a.2.1.1.1 (f.1 x.1) (a.2.1.2.1 (f.1 x.2))
+
+-- x ~ y ⇒ g(x) = g(y)
+grothendiecklem1 (m : cmonoid) (a : cgroup) (f : cmoncgrouphom m a)
+  : funresprel (pair m) a.1.1 (grothendiecklem0 m a f) (prel m)
+  = \ (x y : pair m) (r : (prel m x y).1) -> let
+    g : pair m -> a.1.1
+      = grothendiecklem0 m a f
+    T0 (k : m.1.1) : U
+      = Path m.1.1 (op3 m k x.1 y.2) (op3 m k y.1 x.2)
+    h (k : m.1.1) (p : T0 k)
+      : Path a.1.1 (g x) (g y)
+      = let
+        p0 : Path a.1.1 (a.2.1.1.1 (f.1 k) (f.1 (op m x.1 y.2))) (a.2.1.1.1 (f.1 k) (f.1 (op m y.1 x.2)))
+          = <i> comp (<_> a.1.1) (f.1 (p @ i))
+            [ (i = 0) -> f.2.1 k (op m x.1 y.2)
+            , (i = 1) -> f.2.1 k (op m y.1 x.2) ]
+        p1 : Path a.1.1 (f.1 (op m x.1 y.2)) (f.1 (op m y.1 x.2))
+          = lem_group_lcancellative (a.1, a.2.1) (f.1 k) (f.1 (op m x.1 y.2)) (f.1 (op m y.1 x.2)) p0
+        p2 : Path a.1.1 (a.2.1.1.1 (f.1 x.1) (f.1 y.2)) (a.2.1.1.1 (f.1 y.1) (f.1 x.2))
+          = <i> comp (<_> a.1.1) (p1 @ i)
+            [ (i = 0) -> f.2.1 x.1 y.2
+            , (i = 1) -> f.2.1 y.1 x.2 ]
+      in gswp10 a (f.1 x.1) (f.1 y.2) (f.1 y.1) (f.1 x.2) p2
+  in existsel m.1.1 T0 (Path a.1.1 (g x) (g y), a.1.2 (g x) (g y)) h r
+
+-- h : K₀(m) → a
+grothendiecklem2 (m : cmonoid) (a : cgroup) (f : cmoncgrouphom m a)
+  : (grothendieck m).1.1 -> a.1.1
+  = setquotmap (pair m) a.1.1 a.1.2 (prel m) (grothendiecklem0 m a f) (grothendiecklem1 m a f)
+
+-- h([x]) → g(x)
+grothendiecklem3 (m : cmonoid) (a : cgroup) (f : cmoncgrouphom m a) (x : pair m)
+  : Path a.1.1 (grothendiecklem2 m a f (qpr m x)) (grothendiecklem0 m a f x)
+  = setquotmapeq (pair m) a.1.1 a.1.2 (peqrel m) (grothendiecklem0 m a f) (grothendiecklem1 m a f) x
+
+-- h is a homomorphism
+grothendiecklem4 (m : cmonoid) (a : cgroup)
+  (f : cmoncgrouphom m a) : cgrouphom (grothendieck m) a
+  = let
+    agop (g : cgroup) : g.1.1 -> g.1.1 -> g.1.1
+      = g.2.1.1.1
+    agop3 (g : cgroup) : g.1.1 -> g.1.1 -> g.1.1 -> g.1.1
+      = \ (a b c : g.1.1) -> agop g a (agop g b c)
+    agid (g : cgroup) : g.1.1
+      = g.2.1.1.2.2.1
+    aginv (g : cgroup) : g.1.1 -> g.1.1
+      = g.2.1.2.1
+    k : cgroup
+      = grothendieck m
+    g' : pair m -> a.1.1
+      = grothendiecklem0 m a f
+    g : k.1.1 -> a.1.1
+      = grothendiecklem2 m a f
+    geq (x : pair m) : Path a.1.1 (g (qpr m x)) (g' x)
+      = grothendiecklem3 m a f x
+    pO : preservesOp k.1.1 a.1.1 (agop k) (agop a) g
+      = \(x0 x1 : k.1.1) -> let
+        P (x0 x1 : k.1.1) : hProp
+          = ( Path a.1.1 (g (agop k x0 x1)) (agop a (g x0) (g x1))
+            , a.1.2 (g (agop k x0 x1)) (agop a (g x0) (g x1)) )
+        ps (a0 a1 : pair m) : (P (qpr m a0) (qpr m a1)).1
+          = let
+            x0 : k.1.1
+              = qpr m a0
+            x1 : k.1.1
+              = qpr m a1
+            b0 : m.1.1
+              = op m a0.1 a1.1
+            b1 : m.1.1
+              = op m a0.2 a1.2
+            p : Path a.1.1 (g (agop k x0 x1)) (agop a (f.1 b0) (aginv a (f.1 b1)))
+              = <i> comp (<_> a.1.1) (g (qopeq m a0 a1 @ i))
+                [ (i = 0) -> <_> g (agop k x0 x1)
+                , (i = 1) -> geq (pop m a0 a1) ]
+            q' : Path a.1.1 (agop a (g' a0) (g' a1))
+                   (agop a (agop a (f.1 a0.1) (f.1 a1.1))
+                     (aginv a (agop a (f.1 a0.2) (f.1 a1.2))))
+               = <i> comp (<_> a.1.1) (swp8 (gac a) (f.1 a0.1)
+                   (aginv a (f.1 a0.2)) (f.1 a1.1) (aginv a (f.1 a1.2)) @ i)
+                 [ (i = 0) -> <j> (agop a (g' a0) (g' a1))
+                 , (i = 1) -> <j> (agop a (agop a (f.1 a0.1) (f.1 a1.1))
+                     (lem_cgroup_inv_dist a (f.1 a0.2) (f.1 a1.2) @ j)) ]
+            q : Path a.1.1 (agop a (g x0) (g x1)) (agop a (f.1 b0) (aginv a (f.1 b1)))
+               = <i> comp (<_> a.1.1) (q' @ i)
+                 [ (i = 0) -> <j> agop a (geq a0 @ -j) (geq a1 @ -j)
+                 , (i = 1) -> <j> agop a (f.2.1 a0.1 a1.1 @ -j) (aginv a (f.2.1 a0.2 a1.2 @ -j)) ]
+          in <i> comp (<_> a.1.1) (p @ i)
+            [ (i = 0) -> <_> g (agop k x0 x1) -- (g (agop k x0 x1))
+            , (i = 1) -> <j> q @ -j ] -- (agop a (f.1 b0) (aginv a (f.1 b1)))
+      in setquotuniv2prop (pair m) (peqrel m) P ps x0 x1
+  in cgrouphom' k a g pO
+
+-- A proof that the following diagram commutes:
+--
+--       π
+--  M --------> K₀(M)
+--   \           |
+--    \          |
+--     -------   | ∃!h
+--        f   \  |
+--             \ v
+--               G
+--
+-- meaning that there is a unique h such that f ≡ h ∘ π
+grothendieckunivprop' (m : cmonoid) (a : cgroup) (f : cmoncgrouphom m a)
+  : isContr( (g : cgrouphom (grothendieck m) a)
+           * Path (cmoncgrouphom m a) f (monoidhomcomp (m.1, m.2.1) ((grothendieck m).1, (grothendieck m).2.1.1)
+               (a.1, a.2.1.1) (grothendieckhom m) g))
+  = let
+    aop (a : cgroup) : a.1.1 -> a.1.1 -> a.1.1
+      = a.2.1.1.1
+    aneg (a : cgroup) : a.1.1 -> a.1.1
+      = a.2.1.2.1
+    aid (a : cgroup) : a.1.1
+      = a.2.1.1.2.2.1
+    groth : cgroup
+      = grothendieck m
+    T0 : U
+      = cgrouphom groth a
+    T1 (g : T0) : U
+      = Path (cmoncgrouphom m a) f (monoidhomcomp (m.1, m.2.1) (groth.1, groth.2.1.1) (a.1, a.2.1.1) (grothendieckhom m) g)
+    pT1 (g : T0) : prop (T1 g)
+      = setmonoidhom (m.1, m.2.1) (a.1, a.2.1.1) f (monoidhomcomp (m.1, m.2.1) (groth.1, groth.2.1.1) (a.1, a.2.1.1) (grothendieckhom m) g)
+    T : U
+      = (g : T0) * T1 g
+    g : cgrouphom groth a
+      = grothendiecklem4 m a f
+    p : T1 g
+      = let
+        p0 : Path (m.1.1 -> a.1.1) f.1 (\ (x : m.1.1) -> grothendiecklem2 m a f (qpr m (x, id m)))
+          = <i> \ (x : m.1.1) -> comp (<_> a.1.1) (aop a (f.1 x) (aneg a (aid a)))
+            [ (i = 0) -> <j> comp (<_> a.1.1) (aop a (f.1 x) (aid a))
+              [ (j = 0) -> <k> aop a (f.1 x) (lemma_cgroup_inv_id a @ -k)
+              , (j = 1) -> a.2.1.1.2.2.2.2 (f.1 x) ]
+            , (i = 1) -> <j> comp (<_> a.1.1) (aop a (f.1 x) (aneg a (f.1 (id m))))
+              [ (j = 0) -> <j> aop a (f.1 x) (aneg a (f.2.2 @ j))
+              , (j = 1) -> <k> grothendiecklem3 m a f (x, id m) @ -k ]]
+      in lemSig (m.1.1 -> a.1.1) (ismonoidhom (m.1, m.2.1) (a.1, a.2.1.1)) (propismonoidhom (m.1, m.2.1) (a.1, a.2.1.1)) f 
+           (monoidhomcomp (m.1, m.2.1) (groth.1, groth.2.1.1) (a.1, a.2.1.1) (grothendieckhom m) g) p0
+    x : T
+      = (g, p)
+    cntr (y : T) : Path T x y
+      = let
+        GH : U
+          = cgrouphom groth a
+        g' : cgrouphom groth a
+          = y.1
+        p' : Path (cmoncgrouphom m a) f
+              (monoidhomcomp (m.1, m.2.1) (groth.1, groth.2.1.1) (a.1, a.2.1.1) (grothendieckhom m) g')
+          = y.2
+        p0 (x : m.1.1) : Path a.1.1 (g.1 (qpr m (x, id m))) (g'.1 (qpr m (x, id m)))
+          = <i> comp (<_> a.1.1) (f.1 x)
+            [ (i = 0) -> <j> (p @ j).1 x
+            , (i = 1) -> <j> (p' @ j).1 x ]
+        P (x : qgroup m) : hProp
+          = (Path a.1.1 (g.1 x) (g'.1 x), a.1.2 (g.1 x) (g'.1 x))
+        p1 (x : pair m) : Path a.1.1 (g.1 (qpr m x)) (g'.1 (qpr m x))
+          = let
+            p1' (g : GH) : Path a.1.1 (g.1 (qpr m x)) (aop a (g.1 (qpr m (x.1, id m))) (aneg a (g.1 (qpr m (x.2, id m)))))
+              = <i> comp (<_> a.1.1) (aop a (g.1 (qpr m (x.1, id m))) (g.1 (qpr m (id m, x.2))))
+                [ (i = 0) -> <j> comp (<_> a.1.1) (g.1 (qop m (qpr m (x.1, id m)) (qpr m (id m, x.2))))
+                  [ (j = 0) -> g.2.1 (qpr m (x.1, id m)) (qpr m (id m, x.2))
+                  , (j = 1) -> <k> g.1 (comp (<_> qgroup m) (qopeq m (x.1, id m) (id m, x.2) @ k)
+                    [ (k = 0) -> <_> (qop m (qpr m (x.1, id m)) (qpr m (id m, x.2)))
+                    , (k = 1) -> <l> qpr m ((hid m).2 x.1 @ l, (hid m).1 x.2 @ l) ])]
+                , (i = 1) -> <j> comp (<_> a.1.1) (aop a (g.1 (qpr m (x.1, id m))) (g.1 (qinv m (qpr m (x.2, id m)))))
+                  [ (j = 0) -> <k> aop a (g.1 (qpr m (x.1, id m))) (g.1 (qinveq m (x.2, id m) @ k))
+                  , (j = 1) -> <k> aop a (g.1 (qpr m (x.1, id m))) (lem_grouphom_inv (groth.1, groth.2.1) (a.1, a.2.1) g (qpr m (x.2, id m)) @ k) ]]
+          in <i> comp (<_> a.1.1) (aop a (p0 x.1 @ i) (aneg a (p0 x.2 @ i)))
+            [ (i = 0) -> <j> p1' g  @ -j
+            , (i = 1) -> <j> p1' g' @ -j ]
+        p2 : Path (qgroup m -> a.1.1) g.1 g'.1
+          = <i> \ (x : qgroup m) -> setquotunivprop (pair m) (peqrel m) P p1 x @ i
+        p3 : Path (cgrouphom groth a) g g'
+          = lemSig (qgroup m -> a.1.1)
+              (ismonoidhom (groth.1, groth.2.1.1) (a.1, a.2.1.1))
+              (propismonoidhom (groth.1, groth.2.1.1) (a.1, a.2.1.1))
+              g g' p2
+      in lemSig T0 T1 pT1 x y p3
+  in (x, cntr)
+
+
+
+
+
+

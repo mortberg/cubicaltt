@@ -26,11 +26,17 @@ substId (A : U) (F : A -> U) (a b : A) (p : Id A a b) (e : F a) : F b =
 substIdRef (A : U) (F : A -> U) (a : A) (e : F a) : F a =
   substId A F a a (refId A a) e
 
-transId (A : U) (a b c : A) (p : Id A a b) (q : Id A b c) : Id A a c =
+transId (A B : U) (p : Id U A B) (a : A) : B =
+  substId U (idfun U) A B p a
+
+transIdRef (A B : U) (p : Id U A B) (a : A) :
+  Id A (transId A A (refId U A) a) a = refId A a
+
+compId (A : U) (a b c : A) (p : Id A a b) (q : Id A b c) : Id A a c =
   substId A (\ (z : A) -> Id A a z) b c q p
 
-transIdRef (A : U) (a b : A) (p : Id A a b): Id A a b =
-  transId A a a b (refId A a) p
+compIdRef (A : U) (a b : A) (p : Id A a b): Id A a b =
+  compId A a a b (refId A a) p
 
 idToPath (A : U) (a b : A) (p : Id A a b) : Path A a b =
   idJ A a (\ (b : A) (p : Id A a b) -> Path A a b)
@@ -93,6 +99,8 @@ isContrId (A : U) : U = (x : A) * ((y : A) -> Id A x y)
 isEquivId (A B : U) (f : A -> B) : U = (y : B) -> isContrId (fiberId A B f y)
 
 equivId (A B : U) : U = (f : A -> B) * isEquivId A B f
+
+invEquivId (A B : U) (w : equivId A B) (b : B) : A = (w.2 b).1.1
 
 fiberToFiberId (A B : U) (f : A -> B) (y : B) :
   Path U (fiber A B f y) (fiberId A B f y) =
@@ -172,6 +180,17 @@ univalenceId (A B : U) : equivId (Id U A B) (equivId A B) =
              (IdUnivalence1 A B) (equivEquivIdU A B)
   rem1 : equiv (Id U A B) (equivId A B) =
     transEquiv' (equivId A B) (Id U A B) rem
+
+
+-- Experiment to define ua and uabeta for Id:
+
+uaId (A B : U) (e : equivId A B) : Id U A B =
+  invEquivId (Id U A B) (equivId A B) (univalenceId A B) e
+
+-- Can we get this to typecheck?
+-- uabetaId (A B : U) (e : equivId A B) (a : A) :
+--   Id B (transId A B (uaId A B e) a) (e.1 a) = 
+--     refId B (e.1 a)
 
 
 --------------------------------------------------------------------------------

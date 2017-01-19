@@ -77,12 +77,17 @@ negBool : bool -> bool = split
 
 -- negBool is involutive:
 negBoolK : (b : bool) -> Path bool (negBool (negBool b)) b = split
-  false -> refl bool false
-  true -> refl bool true
+  false -> <i> false
+  true  -> <i> true
+
+-- negBool is hence and equivalence:
+negBoolEquiv : equiv bool bool =
+  (negBool,gradLemma bool bool negBool negBool negBoolK negBoolK)
 
 -- This defines a non-trivial equality between bool and bool:
 negBoolEq : Path U bool bool =
-  isoPath bool bool negBool negBool negBoolK negBoolK
+  <i> Glue bool [ (i = 0) -> (bool,negBoolEquiv)
+                , (i = 1) -> (bool,idEquiv bool) ]
 
 -- We can transport true along this non-trivial equality:
 testFalse : bool = transport negBoolEq true

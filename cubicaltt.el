@@ -90,6 +90,7 @@
     (modify-syntax-entry ?\}  "){4nb" st)
     (modify-syntax-entry ?-  "_ 123" st)
     (modify-syntax-entry ?\n ">" st)
+    (modify-syntax-entry ?\\ "." st)
     st)
   "The syntax table for cubical, with Haskell-style comments.")
 

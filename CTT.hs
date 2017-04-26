@@ -484,10 +484,7 @@ showVal1 v = case v of
   VVar{}            -> showVal v
   VFst{}            -> showVal v
   VSnd{}            -> showVal v
-  Ter t@Sum{} rho   -> showTer t <+> showEnv False rho
-  Ter t@HSum{} rho  -> showTer t <+> showEnv False rho
-  Ter t@Split{} rho -> showTer t <+> showEnv False rho
-  Ter t rho         -> showTer1 t <+> showEnv True rho
+  Ter t rho | showEnv False rho == PP.empty -> showTer1 t
   _                 -> parens (showVal v)
 
 showVals :: [Val] -> Doc

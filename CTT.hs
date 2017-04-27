@@ -384,8 +384,8 @@ showTer v = case v of
   GlueElem a ts      -> text "glue" <+> showTer1 a <+> text (showSystem ts)
   UnGlueElem a ts    -> text "unglue" <+> showTer1 a <+> text (showSystem ts)
   Id a u v           -> text "Id" <+> showTers [a,u,v]
-  IdPair b ts        -> text "IdC" <+> showTer1 b <+> text (showSystem ts)
-  IdJ a t c d x p    -> text "IdJ" <+> showTers [a,t,c,d,x,p]
+  IdPair b ts        -> text "idC" <+> showTer1 b <+> text (showSystem ts)
+  IdJ a t c d x p    -> text "idJ" <+> showTers [a,t,c,d,x,p]
 
 showTers :: [Ter] -> Doc
 showTers = hsep . map showTer1

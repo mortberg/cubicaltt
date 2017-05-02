@@ -403,7 +403,8 @@ checkPLam v t = do
   vt <- infer t
   case vt of
     VPathP a a0 a1 -> do
-      unlessM (a === v) $ throwError "checkPLam"
+      unlessM (a === v) $ throwError (
+        "checkPLam\n" ++ show v ++ "\n/=\n" ++ show a)
       return (a0,a1)
     _ -> throwError $ show vt ++ " is not a path"
 

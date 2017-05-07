@@ -484,7 +484,7 @@ showVal1 v = case v of
   VVar{}            -> showVal v
   VFst{}            -> showVal v
   VSnd{}            -> showVal v
-  Ter t rho | showEnv False rho == PP.empty -> showTer1 t
+  Ter t rho | isEmpty (showEnv False rho) -> showTer1 t
   _                 -> parens (showVal v)
 
 showVals :: [Val] -> Doc

@@ -1,0 +1,461 @@
+{-
+            Lecture 1 on cubicaltt (Cubical Type Theory)
+--------------------------------------------------------------------------
+                        Anders Mörtberg
+
+This is the first lecture in a series of hands-on lectures about
+cubicaltt given at Inria Sophia Antipolis.
+
+To try the system clone the github repository and follow the
+compilation instructions at:
+
+  https://github.com/mortberg/cubicaltt
+
+The current file is a working cubicaltt file and I assume that it is
+named
+
+  lectures/lecture1.ctt
+
+inside the cubicaltt directory. To load this file either type C-c C-l
+in emacs (assuming that the cubicaltt emacs mode has been configured
+properly), or use the cubical executable in a terminal:
+
+$ cubical lectures/lecture1.ctt
+
+if the system has been installed using cabal, or
+
+$ ./cubical lectures/lecture1.ctt
+
+if the system has been compiled using make. This will start an
+interactive cubical process where one can query the system and see
+error messages, this will be referred to as the REPL
+(read-eval-print-loop) in what follows. To see a list of available
+commands to the executable use the --help flag and to see available
+commands in the REPL write :h. 
+
+
+The basic type system is based on Mini-TT: 
+
+  "A simple type-theoretic language: Mini-TT"
+  Thierry Coquand, Yoshiki Kinoshita, Bengt Nordström and Makoto Takeya
+
+Mini-TT is a variant Martin-Löf type theory with datatypes. cubicaltt
+extends Mini-TT with:
+
+ o  Path types
+ o  Compositions
+ o  Glue types
+ o  Id types
+ o  Some higher inductive types
+
+In the first lecture I will cover the basic type theory and a bit of
+the Path types. The cubical type theory has been written up in:
+
+  "Cubical Type Theory: a constructive interpretation of the
+  univalence axiom" by Cyril Cohen, Thierry Coquand, Simon Huber and
+  Anders Mörtberg.
+  https://arxiv.org/abs/1611.02108
+
+The lectures will follow the structure of the paper rather closely,
+there are some small differences between the implementation and the
+system in the paper and I will try to point these out as I go
+along. The reason for the differences is that the implementation was
+done before the paper was written up, while writing the paper we found
+various simplifications and different ways of organizing
+things. Having a working implementation to experiment while designing
+the type theory was a lot of fun and very useful.
+
+The main goal of Cubical Type Theory is to provide a computational
+justification (or meaning explanations) for notions in Homotopy Type
+Theory and Univalent Foundations, in particular Voevodsky's Univalence
+Axiom. This means that we define a type theory without axioms in which
+Univalence is provable, this has the consequence that we get a type
+theory extending intensional type theory with extensional features
+(functional and propositional extensionality, quotients, etc.). We
+want this type theory to have good properties, so far the cubical type
+theory of the paper has been proved to satisfy canonicity in:
+
+  "Canonicity for Cubical Type Theory" by Simon Huber.
+  https://arxiv.org/abs/1607.04156
+
+It should be possible to extend this to a normalization result and to
+also prove decidability of type checking (the implementation provides
+some empirical evidence for this).
+
+
+The basic type theory on which cubicaltt is based has Pi and Sigma
+types, a universe U, datatypes, recursive definitions, mutually
+recursive definitions (in particular inductive-recursive
+definitions). Note that general datatypes and (mutually recursive)
+definitions are not part of the paper version.
+
+The implementation is kept as small as possible in order to make it
+easier to understand and debug. Because of this there is not
+unification (so no implicit arguments), no termination checker and we
+assume U : U. The implementation is hence inconsistent, but this is
+not a problem as long as one is careful :-)
+
+The implementation is written in Haskell and consists of the following
+files:
+
+- Exp.cf: grammar using the automatically generate lexer and parser
+  using BNFC. The auto-generated datatype for the concrete syntax is
+  in Exp/Abs.hs
+
+- CTT.hs: datatypes representing expressions and values used in the
+  system, this is the internal representation of terms and types. 
+
+- Resolver.hs: preprocessor doing a basic translation from the
+  concrete defined in Exp/Abs.hs to the abstract syntax defined in
+  CTT.hs (i.e. for what the user writes to what the system uses
+  internally). This removes some syntactic sugar (for example lambdas
+  with multiple arguments is turned into multiple single-argument
+  lambdas).
+
+- Connections.hs: datatypes and typeclasses used by the typechecker
+  and evaluator (basic operations on the interval and face lattice,
+  systems, etc...).
+
+- Typechecker.hs: A bi-directional typechecker.
+
+- Eval.hs: Evaluator. This is the main part of the implementation, for
+  example this is where all of the computations of compositions and
+  Kan fillings happen. This also contains the conversion function used
+  in the typechecker.
+
+- Main.hs: The REPL
+
+Note that these constitute around 3200loc which is not too bad keeping
+in mind that the Cubical Type Theory is a fairly complicated type
+theory.
+
+Note also that Connections.hs file defines a typeclass called
+Nominal. This is because of the connection between the original
+cubical set model:
+
+  "A model of type theory in cubical sets" by Marc Bezem, Thierry
+  Coquand and Simon Huber.
+  http://www.cse.chalmers.se/~coquand/mod1.pdf
+
+to nominal sets with 01 substitutions:
+
+  "An Equivalent Presentation of the Bezem-Coquand-Huber Category of
+  Cubical Sets" by Andrew Pitts.
+  https://arxiv.org/abs/1401.7807
+
+Before implementing cubicaltt we implemented cubical in 2013-2014:
+
+  https://github.com/simhu/cubical
+
+based on the ideas from the two above papers. This was a type theory
+with some uninterpreted constants, these then got interpreted in the
+original cubical set model where they had a computational
+meaning. This implementation provided the basis for the cubicaltt
+development which is why some ideas that proved to be very useful for
+the cubical implementation are also in cubicaltt.
+
+
+The concrete syntax of cubicaltt is similar to that of Haskell and
+Agda. For example the syntax for comments is:
+
+-- This is a single line comment
+
+and this whole introduction is a multiline comment.
+
+After this long introduction it is finally time for some cubicaltt
+code!
+
+-}
+
+-- In cubicaltt all files must start with:
+module lecture1 where
+-- However this is just indicating the beginning of the file, there is
+-- no module system.
+
+{-
+
+If one is in the examples/ directory one can import files by writing
+for example:
+
+import nat
+
+However as this lecture will be self-contained no imports are
+necessary. Note that the import mechanism is very simple and recursive
+so that if I import nat then it will automatically import everything
+nat depends on (like prelude).
+
+-}
+
+
+-- The identity function can be written like this:
+idfun : (A : U) (a : A) -> A =
+  \(A : U) (a : A) -> a
+
+-- Or even better like this:
+idfun (A : U) (a : A) : A = a
+
+-- The second idfun shadows the first, so when one uses idfun later
+-- this will refer to the last defined one.
+-- TODO: This is a little dangerous if one have a long development and
+-- we should probably implement some warning when a name gets
+-- shadowed.
+
+{-
+
+There are some special keywords that cannot be used as identifiers:
+
+  module, where, let, in, split, with, mutual, import, data, hdata,
+  undefined, PathP, comp, transport, fill, Glue, glue, unglue, U,
+  opaque, transparent, transparent_all, Id, idC, idJ
+
+TODO: Maybe add special syntax highlighting for all of them?
+
+-}
+
+-- Datatypes can be introduced by:
+data bool = true | false
+
+-- We can now compute things in the REPL:
+-- > idfun bool true
+-- EVAL: true
+
+-- Note that inductive families are not definable directly, however it
+-- should be possible to encode them (using either Path-types or
+-- Id-types).
+
+-- Note: the constructors are not definitions, so typing:
+--
+-- > true
+--
+-- in the REPL fails.
+-- TODO: Maybe this should be changed?
+
+
+-- Functions out of inductive types can be defined by case analysis
+-- using split:
+not : bool -> bool = split
+  true -> false
+  false -> true
+
+-- Local definitions can be made using let-in or where, just like in
+-- Haskell. Note that split can only appear on the top-leve, local
+-- splits can be done by but then one needs to annotate them with the
+-- type using the syntax in the false branch below:
+or : bool -> bool -> bool = split
+  true -> let constTrue (_ : bool) : bool = b
+                where
+                b : bool = true
+          in constTrue
+  false -> split@(bool -> bool) with
+    true -> true
+    false -> false
+
+-- Sigma types are built-in and written as (x : A) * B:
+Sigma (A : U) (B : A -> U) : U =
+  (x : A) * B x
+
+-- First and second projections are given by .1 and .2:
+fst (A : U) (B : A -> U) (p : Sigma A B) : A = p.1
+snd (A : U) (B : A -> U) (p : Sigma A B) : B p.1 = p.2
+
+-- Pairing is written (a,b):
+pair (A : U) (B : A -> U) (a : A) (b : B a) : Sigma A B = (a,b)
+
+-- The reason Sigma is built-in and not defined as a datatype is that
+-- we want surjective pairing. So if we have p : Sigma A B then p is
+-- convertible to (p.1,p.2). We could have achieved this by
+-- implementing eta for single constructor datatypes, but having
+-- built-in Sigma types seemed easier to implement.
+
+-- We have also eta for Pi-types, so given f : (x : A) -> B we get
+-- that f is convertible with \(x : A) -> f x.
+
+
+-- Datatypes can be recursive:
+data nat = zero
+         | suc (n : nat)
+
+-- Definitions can be recursive:
+add (m : nat) : nat -> nat = split
+  zero -> m
+  suc n -> suc (add m n)
+
+-- As there is no termination checker one can incidentally write a
+-- loop (and use this to prove false). So one has to be a bit careful!
+
+-- Definitions can also be mutual:
+mutual
+  even : nat -> bool = split
+    zero -> true
+    suc n -> odd n
+    
+  odd : nat -> bool = split
+    zero -> false
+    suc n -> even n
+
+-- This can be used to do induction-recursion:
+mutual
+  data V = N | pi (a : V) (b : T a -> V)
+
+  T : V -> U = split
+    N -> nat
+    pi a b -> (x : T a) -> T (b x)
+
+
+-- Datatypes with parameters can be defined by:
+data list (A : U) =
+  nil | cons (a : A) (l : list A)
+
+head (A : U) (a : A) : list A -> A = split
+  nil -> a
+  cons x _ -> x
+
+
+-- Time for cubical stuff!
+
+--------------------------------------------------------------------
+-- Path types
+
+{-
+We would like to prove: (b : bool) -> not (not b) = b
+But what is =?
+
+From HoTT we have the intuition that equality corresponds to paths, in
+Cubical Type Theory we take this literally. We assume an abstract
+interval II (this is not a type for deep reasons!) and a path in a
+type A can then be thought of as a function II -> A. As II is not a
+type we introduce a Path-type called PathP together with a binder,
+written <i>, for path-abtraction and a path-application written p @ r
+where r is some element of the interval.
+
+As in the Cubical Type Theory the type PathP (written Path in the
+paper) is heterogeneous. The homogeneous Path type can be defined by:
+-}
+Path (A : U) (a b : A) : U =
+  PathP (<_> A) a b
+
+{-
+
+A term p : Path A a b corresponds to a path in A:
+
+       p
+  a ------> b
+
+So the above goal can now be written: 
+  
+  (b : bool) -> Path bool (not (not b)) b
+
+-}
+
+
+{-
+The simplest path possible is the reflexivity path:
+
+      <i>a
+   a ------> a 
+
+The intuition is that
+
+  <i> u "=" \(i : II) -> u
+
+So <i>a is a function out of II that is constantly a.
+-}
+
+refl (A : U) (a : A) : Path A a a = <i> a
+
+-- A more concrete path:
+truePath : Path bool true true = <i> true
+
+
+-- The interval II has two end-points 0 and 1. By applying a path to 0
+-- or 1 we obtain the end-points of the path:
+face0 (A : U) (a b : A) (p : Path A a b) : A =
+  p @ 0
+
+-- We can now prove: (b : bool)-> Path bool (not (not b)) b.
+-- The proof is done by case analysis on b and in both cases it is
+-- proved by reflexivity.
+notK : (b : bool) -> Path bool (not (not b)) b = split
+  true -> <i> true
+  false -> <i> false
+
+{-
+
+One can write proofs and programs interactively using holes, to try
+this write:
+
+notK : (b : bool) -> Path bool (not (not b)) b = split
+  true -> ?
+  false -> ?
+
+Note that this only works in a position where the typechecker is
+trying to check that a term u has type T, so it doesn't work when the
+typechecker tries to infer some type. If we would have general type
+inference and unification we could do this a lot better like in Agda.
+
+TODO: The pretty-printing is not always very nice. Pull-requests
+improving this would be very appreciated :-)
+
+-}
+
+-- Using Path-types we get a simple proof of cong:
+cong (A B : U) (f : A -> B) (a b : A) (p : Path A a b) :
+     Path B (f a) (f b) = <i> f (p @ i)
+
+-- To see why this makes sense compute this at i=0 and i=1.
+
+-- Exercise: cong for binary functions
+congbin (A B C : U) (f : A -> B -> C) (a a' : A) (b b' : B)
+        (p : Path A a a') (q : Path B b b') :
+        Path C (f a b) (f a' b') = undefined
+
+-- Note that undefined can be used at the top-level to introduce
+-- definitions without bodies, much like axioms in Coq.
+
+-- We get a short proof of function extensionality using Path-types:
+funExt (A B : U) (f g : A -> B)
+       (p : (x : A) -> Path B (f x) (g x)) :
+       Path (A -> B) f g = <i> \(a : A) -> (p a) @ i
+
+{-
+
+To see that this makes sense compute the end-points of the path:
+
+    (<i> \(a : A) -> (p a) @ i) @ 0 = \(a : A) -> (p a) @ 0
+                                    = \(a : A) -> f a
+                                    = f
+
+Note that the last equality follows by eta for Pi.
+
+-}
+
+-- Exercise: dependent function extensionality
+funExt (A : U) (B : A -> U) (f g : (x : A) -> B x)
+       (p : (x : A) -> Path (B x) (f x) (g x)) :
+       Path ((x : A) -> B x) f g = undefined
+
+-- Exercise: function extensionality for binary functions
+funExt2 (A B C : U) (f g : A -> B -> C)
+       (p : (x : A) (y : B) -> Path C (f x y) (g x y)) :
+       Path (A -> B -> C) f g = undefined
+
+
+-- Using function extensionality we can prove: not o not = id
+compf (f g : bool -> bool) : bool -> bool =
+  \(b : bool) -> g (f b)
+
+notK' : Path (bool -> bool) (compf not not) (idfun bool) =
+        <i> \(b : bool) -> notK b @ i
+
+-- Exercise: even n = odd (suc n)
+evenodd : (n : nat) -> Path bool (even n) (odd (suc n)) = undefined
+
+
+{-
+
+That's all for the first lecture. Next time we will look at:
+
+- More things from II: symmetry (-) and connections (/\ and \/)
+- Compositions, transport, fill
+
+-}

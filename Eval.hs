@@ -16,30 +16,30 @@ import CTT
 -- Lookup functions
 
 look :: String -> Env -> Val
-look x (Upd y rho,v:vs,fs,os) | x == y = v
-                              | otherwise = look x (rho,vs,fs,os)
-look x r@(Def _ decls rho,vs,fs,Nameless os) = case lookup x decls of
+look x (Env (Upd y rho,v:vs,fs,os)) | x == y = v
+                                    | otherwise = look x (Env (rho,vs,fs,os))
+look x r@(Env (Def _ decls rho,vs,fs,Nameless os)) = case lookup x decls of
   Just (_,t) -> eval r t
-  Nothing    -> look x (rho,vs,fs,Nameless os)
-look x (Sub _ rho,vs,_:fs,os) = look x (rho,vs,fs,os)
-look x (Empty,_,_,_) = error $ "look: not found " ++ show x
+  Nothing    -> look x (Env (rho,vs,fs,Nameless os))
+look x (Env (Sub _ rho,vs,_:fs,os)) = look x (Env (rho,vs,fs,os))
+look x (Env (Empty,_,_,_)) = error $ "look: not found " ++ show x
 
 lookType :: String -> Env -> Val
-lookType x (Upd y rho,v:vs,fs,os)
-  | x /= y        = lookType x (rho,vs,fs,os)
+lookType x (Env (Upd y rho,v:vs,fs,os))
+  | x /= y        = lookType x (Env (rho,vs,fs,os))
   | VVar _ a <- v = a
   | otherwise     = error ""
-lookType x r@(Def _ decls rho,vs,fs,os) = case lookup x decls of
+lookType x r@(Env (Def _ decls rho,vs,fs,os)) = case lookup x decls of
   Just (a,_) -> eval r a
-  Nothing -> lookType x (rho,vs,fs,os)
-lookType x (Sub _ rho,vs,_:fs,os) = lookType x (rho,vs,fs,os)
-lookType x (Empty,_,_,_)                  = error $ "lookType: not found " ++ show x
+  Nothing -> lookType x (Env (rho,vs,fs,os))
+lookType x (Env (Sub _ rho,vs,_:fs,os)) = lookType x (Env (rho,vs,fs,os))
+lookType x (Env (Empty,_,_,_))          = error $ "lookType: not found " ++ show x
 
 lookName :: Name -> Env -> Formula
-lookName i (Upd _ rho,v:vs,fs,os) = lookName i (rho,vs,fs,os)
-lookName i (Def _ _ rho,vs,fs,os) = lookName i (rho,vs,fs,os)
-lookName i (Sub j rho,vs,phi:fs,os) | i == j    = phi
-                                    | otherwise = lookName i (rho,vs,fs,os)
+lookName i (Env (Upd _ rho,v:vs,fs,os)) = lookName i (Env (rho,vs,fs,os))
+lookName i (Env (Def _ _ rho,vs,fs,os)) = lookName i (Env (rho,vs,fs,os))
+lookName i (Env (Sub j rho,vs,phi:fs,os)) | i == j    = phi
+                                          | otherwise = lookName i (Env (rho,vs,fs,os))
 lookName i _ = error $ "lookName: not found " ++ show i
 
 
@@ -50,6 +50,11 @@ instance Nominal Ctxt where
   support _ = []
   act e _   = e
   swap e _  = e
+
+instance Nominal Env where
+  support (Env (rho,vs,fs,os)) = support (rho,vs,fs,os)
+  act (Env (rho,vs,fs,os)) iphi = Env $ act (rho,vs,fs,os) iphi
+  swap (Env (rho,vs,fs,os)) ij = Env $ swap (rho,vs,fs,os) ij
 
 instance Nominal Val where
   support v = case v of
@@ -157,7 +162,7 @@ instance Nominal Val where
 -- The evaluator
 
 eval :: Env -> Ter -> Val
-eval rho@(_,_,_,Nameless os) v = case v of
+eval rho@(Env (_,_,_,Nameless os)) v = case v of
   U                   -> VU
   App r s             -> app (eval rho r) (eval rho s)
   Var i
@@ -833,6 +838,10 @@ isCompSystem ns ts = and [ conv ns (getFace alpha beta) (getFace beta alpha)
                          | (alpha,beta) <- allCompatible (keys ts) ]
     where getFace a b = face (ts ! a) (b `minus` a)
 
+instance Convertible Env where
+  conv ns (Env (rho1,vs1,fs1,os1)) (Env (rho2,vs2,fs2,os2)) =
+      conv ns (rho1,vs1,fs1,os1) (rho2,vs2,fs2,os2)
+
 instance Convertible Val where
   conv ns u v | u == v    = True
               | otherwise =
@@ -926,6 +935,9 @@ instance Convertible (Nameless a) where
 
 class Normal a where
   normal :: [String] -> a -> a
+
+instance Normal Env where
+  normal ns (Env (rho,vs,fs,os)) = Env (normal ns (rho,vs,fs,os))
 
 instance Normal Val where
   normal ns v = case v of

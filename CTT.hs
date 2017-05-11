@@ -251,28 +251,29 @@ instance Eq Ctxt where
 -- lists. This is more efficient because acting on an environment now
 -- only need to affect the lists and not the whole context.
 -- The last list is the list of opaque names
-type Env = (Ctxt,[Val],[Formula],Nameless (Set Ident))
+newtype Env = Env (Ctxt,[Val],[Formula],Nameless (Set Ident))
+  deriving (Eq)
 
 emptyEnv :: Env
-emptyEnv = (Empty,[],[],Nameless Set.empty)
+emptyEnv = Env (Empty,[],[],Nameless Set.empty)
 
 def :: Decls -> Env -> Env
-def (MutualDecls m ds) (rho,vs,fs,Nameless os) = (Def m ds rho,vs,fs,Nameless (os Set.\\ Set.fromList (declIdents ds)))
-def (OpaqueDecl n) (rho,vs,fs,Nameless os) = (rho,vs,fs,Nameless (Set.insert n os))
-def (TransparentDecl n) (rho,vs,fs,Nameless os) = (rho,vs,fs,Nameless (Set.delete n os))
-def TransparentAllDecl (rho,vs,fs,Nameless os) = (rho,vs,fs,Nameless Set.empty)
+def (MutualDecls m ds) (Env (rho,vs,fs,Nameless os)) = Env (Def m ds rho,vs,fs,Nameless (os Set.\\ Set.fromList (declIdents ds)))
+def (OpaqueDecl n) (Env (rho,vs,fs,Nameless os)) = Env (rho,vs,fs,Nameless (Set.insert n os))
+def (TransparentDecl n) (Env (rho,vs,fs,Nameless os)) = Env (rho,vs,fs,Nameless (Set.delete n os))
+def TransparentAllDecl (Env (rho,vs,fs,Nameless os)) = Env (rho,vs,fs,Nameless Set.empty)
 
 defWhere :: Decls -> Env -> Env
-defWhere (MutualDecls m ds) (rho,vs,fs,Nameless os) = (Def m ds rho,vs,fs,Nameless (os Set.\\ Set.fromList (declIdents ds)))
+defWhere (MutualDecls m ds) (Env (rho,vs,fs,Nameless os)) = Env (Def m ds rho,vs,fs,Nameless (os Set.\\ Set.fromList (declIdents ds)))
 defWhere (OpaqueDecl _) rho = rho
 defWhere (TransparentDecl _) rho = rho
 defWhere TransparentAllDecl rho = rho
 
 sub :: (Name,Formula) -> Env -> Env
-sub (i,phi) (rho,vs,fs,os) = (Sub i rho,vs,phi:fs,os)
+sub (i,phi) (Env (rho,vs,fs,os)) = Env (Sub i rho,vs,phi:fs,os)
 
 upd :: (Ident,Val) -> Env -> Env
-upd (x,v) (rho,vs,fs,Nameless os) = (Upd x rho,v:vs,fs,Nameless (Set.delete x os))
+upd (x,v) (Env (rho,vs,fs,Nameless os)) = Env (Upd x rho,v:vs,fs,Nameless (Set.delete x os))
 
 upds :: [(Ident,Val)] -> Env -> Env
 upds xus rho = foldl (flip upd) rho xus
@@ -284,10 +285,10 @@ subs :: [(Name,Formula)] -> Env -> Env
 subs iphis rho = foldl (flip sub) rho iphis
 
 mapEnv :: (Val -> Val) -> (Formula -> Formula) -> Env -> Env
-mapEnv f g (rho,vs,fs,os) = (rho,map f vs,map g fs,os)
+mapEnv f g (Env (rho,vs,fs,os)) = Env (rho,map f vs,map g fs,os)
 
 valAndFormulaOfEnv :: Env -> ([Val],[Formula])
-valAndFormulaOfEnv (_,vs,fs,_) = (vs,fs)
+valAndFormulaOfEnv (Env (_,vs,fs,_)) = (vs,fs)
 
 valOfEnv :: Env -> [Val]
 valOfEnv = fst . valAndFormulaOfEnv
@@ -296,7 +297,7 @@ formulaOfEnv :: Env -> [Formula]
 formulaOfEnv = snd . valAndFormulaOfEnv
 
 domainEnv :: Env -> [Name]
-domainEnv (rho,_,_,_) = domCtxt rho
+domainEnv (Env (rho,_,_,_)) = domCtxt rho
   where domCtxt rho = case rho of
           Empty      -> []
           Upd _ e    -> domCtxt e
@@ -306,11 +307,11 @@ domainEnv (rho,_,_,_) = domCtxt rho
 -- Extract the context from the environment, used when printing holes
 contextOfEnv :: Env -> [String]
 contextOfEnv rho = case rho of
-  (Empty,_,_,_)               -> []
-  (Upd x e,VVar n t:vs,fs,os) -> (n ++ " : " ++ show t) : contextOfEnv (e,vs,fs,os)
-  (Upd x e,v:vs,fs,os)        -> (x ++ " = " ++ show v) : contextOfEnv (e,vs,fs,os)
-  (Def _ _ e,vs,fs,os)        -> contextOfEnv (e,vs,fs,os)
-  (Sub i e,vs,phi:fs,os)      -> (show i ++ " = " ++ show phi) : contextOfEnv (e,vs,fs,os)
+  Env (Empty,_,_,_)               -> []
+  Env (Upd x e,VVar n t:vs,fs,os) -> (n ++ " : " ++ show t) : contextOfEnv (Env (e,vs,fs,os))
+  Env (Upd x e,v:vs,fs,os)        -> (x ++ " = " ++ show v) : contextOfEnv (Env (e,vs,fs,os))
+  Env (Def _ _ e,vs,fs,os)        -> contextOfEnv (Env (e,vs,fs,os))
+  Env (Sub i e,vs,phi:fs,os)      -> (show i ++ " = " ++ show phi) : contextOfEnv (Env (e,vs,fs,os))
 
 --------------------------------------------------------------------------------
 -- | Pretty printing
@@ -325,19 +326,19 @@ showEnv b e =
       par   x = if b then parens x else x
       com     = if b then comma else PP.empty
       showEnv1 e = case e of
-        (Upd x env,u:us,fs,os)   ->
-          showEnv1 (env,us,fs,os) <+> names x <+> showVal1 u <> com
-        (Sub i env,us,phi:fs,os) ->
-          showEnv1 (env,us,fs,os) <+> names (show i) <+> text (show phi) <> com
-        (Def _ _ env,vs,fs,os)   -> showEnv1 (env,vs,fs,os)
-        _                        -> showEnv b e
+        Env (Upd x env,u:us,fs,os)   ->
+          showEnv1 (Env (env,us,fs,os)) <+> names x <+> showVal1 u <> com
+        Env (Sub i env,us,phi:fs,os) ->
+          showEnv1 (Env (env,us,fs,os)) <+> names (show i) <+> text (show phi) <> com
+        Env (Def _ _ env,vs,fs,os)   -> showEnv1 (Env (env,vs,fs,os))
+        _                            -> showEnv b e
   in case e of
-    (Empty,_,_,_)            -> PP.empty
-    (Def _ _ env,vs,fs,os)   -> showEnv b (env,vs,fs,os)
-    (Upd x env,u:us,fs,os)   ->
-      par $ showEnv1 (env,us,fs,os) <+> names x <+> showVal1 u
-    (Sub i env,us,phi:fs,os) ->
-      par $ showEnv1 (env,us,fs,os) <+> names (show i) <+> text (show phi)
+    Env (Empty,_,_,_)            -> PP.empty
+    Env (Def _ _ env,vs,fs,os)   -> showEnv b (Env (env,vs,fs,os))
+    Env (Upd x env,u:us,fs,os)   ->
+      par $ showEnv1 (Env (env,us,fs,os)) <+> names x <+> showVal1 u
+    Env (Sub i env,us,phi:fs,os) ->
+      par $ showEnv1 (Env (env,us,fs,os)) <+> names (show i) <+> text (show phi)
 
 instance Show Loc where
   show = render . showLoc

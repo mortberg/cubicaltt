@@ -141,7 +141,8 @@ model:
 to nominal sets with 01 substitutions:
 
   "An Equivalent Presentation of the Bezem-Coquand-Huber Category of
-  Cubical Sets" by Andrew Pitts.
+  Cubical Sets"
+  Andrew Pitts
   https://arxiv.org/abs/1401.7807
 
 Before implementing cubicaltt (so in 2013-2014) we implemented a
@@ -197,6 +198,9 @@ idfun : (A : U) (a : A) -> A =
 
 -- Or even better like this:
 idfun (A : U) (a : A) : A = a
+
+-- The syntax for Pi types is like in Agda, so (x : A) -> B
+-- corresponds to Pi (x : A). B or forall (x : A), B.
 
 -- Note that the second idfun shadows the first, so when one uses
 -- idfun later this will refer to the last defined one.
@@ -422,8 +426,8 @@ congbin (A B C : U) (f : A -> B -> C) (a a' : A) (b b' : B)
 -- type. We could have a version of undefined which is annotated with
 -- the type (similar to what we have for split), but this hasn't been
 -- implemented yet. Note that it is often useful to define a local
--- undefined definition using let-in or where and keep the body
--- undefined when trying to prove complicated things.
+-- definition using let-in or where and keep the body of it undefined
+-- when trying to prove complicated things.
 
 -- We get a short proof of function extensionality using Path types:
 funExt (A B : U) (f g : A -> B)
@@ -456,6 +460,9 @@ funExt2 (A B C : U) (f g : A -> B -> C)
 -- Using function extensionality we can prove: not o not = id
 compf (f g : bool -> bool) : bool -> bool =
   \(b : bool) -> g (f b)
+
+-- WARNING: we couldn't have called the above function comp as comp is
+-- a reserved keyword.
 
 notK' : Path (bool -> bool) (compf not not) (idfun bool) =
   <i> \(b : bool) -> notK b @ i

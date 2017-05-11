@@ -59,7 +59,7 @@ instance Arbitrary Dir where
 -- Faces of the form: [(i,0),(j,1),(k,0)]
 type Face = Map Name Dir
 
-instance Arbitrary Face where
+instance {-# OVERLAPPING #-} Arbitrary Face where
   arbitrary = fromList <$> arbitrary
 
 showFace :: Face -> String
@@ -443,7 +443,7 @@ border v = mapWithKey (const . face v)
 shape :: System a -> System ()
 shape = border ()
 
-instance (Nominal a, Arbitrary a) => Arbitrary (System a) where
+instance {-# OVERLAPPING #-} (Nominal a, Arbitrary a) => Arbitrary (System a) where
   arbitrary = do
     a <- arbitrary
     border a <$> arbitraryShape (support a)

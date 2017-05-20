@@ -168,7 +168,7 @@ contrSingl (A : U) (a b : A) (p : Path A a b) :
 
 As we have seen we can do a lot of nice things with Path-types
 already, but we cannot yet compose paths (i.e. we cannot prove
-transitivity). Another thing we cannot do is prove the elimination
+transitivity). Another thing we cannot do yet is prove the elimination
 principle for Path-types.
 
 Recall that equality/identity types are usually introduced as an
@@ -197,7 +197,8 @@ observation:
   J = contractibility of singletons + transport
 
 So in order to prove J is suffices to prove that singletons are
-contractible and that we have an operation:
+contractible (which we already have done) and that we have an
+operation:
 
  transport : Path U A B -> A -> B
 
@@ -240,14 +241,14 @@ trans (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
                    [ (i = 0) -> <j> a
                    , (i = 1) -> q ]
 
--- The first argument to the comp is a path in the universe (i.e. an
+-- The first argument to comp is a path in the universe (i.e. an
 -- equality of types), as all of the paths in the example are in the
 -- same type this path is constantly A. The second argument is the
 -- bottom of the cube we are computing the composition of and the
 -- third argument is a list of the sides of the cube. As we are only
 -- doing a square there are only 2 sides (apart from the bottom). If
 -- it would have been an open box we would have to give 4 sides (that
--- have to be squares), and so on.
+-- all have to be squares) in addition to the bottom, and so on.
 
 -- Note that the direction j is implicit in this operation, so q is
 -- automatically fixed to go in the direction that we are computing

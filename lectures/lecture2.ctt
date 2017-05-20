@@ -116,7 +116,7 @@ interior of the square:
                    <i> a
 
 Here i corresponds to the left-to-right dimension and j corresponds to
-the down-to-up dimension. To compute the left and right endpoints just
+the down-to-up dimension. To compute the left and right sides just
 plug in i=0 and i=1 in the term inside the square:
 
 <j> p @ 0 /\ j = <j> p @ 0 = <j> a   (recall that p is a path from a to b)

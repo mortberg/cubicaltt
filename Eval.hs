@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, TupleSections #-}
 module Eval where
 
 import Data.List
@@ -427,6 +427,42 @@ squeezes i xas e us = comps j xas (e `disj` (i,j)) us'
   where j   = fresh (us,e,Atom i)
         us' = [ (mkSystem [(i ~> 1, u `face` (i ~> 1))],u) | u <- us ]
 
+-- -- For a HIT A, given
+-- -- G, i:II |- A,
+-- -- G |- r : FF, and
+-- -- G |- u : A(i/r),
+-- -- then
+-- -- G |- forwardHIT i A u r : A(i/1)
+-- forwardHIT :: Name -> Val -> Val -> Formula -> Val
+-- forwardHIT i a@(Ter (HSum _ _ nass) env) u r =
+
+-- Given
+-- G, i:II |- A,
+-- G |- r : FF, and
+-- G |- u : A(i/r),
+-- then
+-- G |- forward i A u r : A(i/1)
+forward :: Name -> Val -> Val -> Formula -> Val
+forward i a u r =
+  comp i (a `act` (i, Atom i :\/: r)) u
+    (mkSystem (map (\alpha -> (alpha, u `face` alpha)) (invFormula r One)))
+
+forwards :: Name -> [(Ident,Ter)] -> Env -> [Val] -> Formula -> [Val]
+forwards i xas rho us r =
+  comps i xas (rho `act` (i, Atom i :\/: r)) [ (border u req1,u) | u <- us ]
+  where req1 = mkSystem (map (,()) (invFormula r One))
+
+-- comps :: Name -> [(Ident,Ter)] -> Env -> [(System Val,Val)] -> [Val]
+-- comps i []         _ []         = []
+-- comps i ((x,a):as) e ((ts,u):tsus) =
+--   let v   = fill i (eval e a) u ts
+--       vi1 = comp i (eval e a) u ts
+--       vs  = comps i as (upd (x,v) e) tsus
+--   in vi1 : vs
+-- comps _ _ _ _ = error "comps: different lengths of types and values"
+
+
+
 
 -------------------------------------------------------------------------------
 -- | Id
@@ -461,52 +497,78 @@ compHIT :: Name -> Val -> Val -> System Val -> Val
 compHIT i a u us
   | isNeutral u || isNeutralSystem us =
       VComp (VPLam i a) u (Map.map (VPLam i) us)
-  | otherwise =
-      hComp (a `face` (i ~> 1)) (transpHIT i a u) $
-        mapWithKey (\alpha uAlpha ->
-                     VPLam i $ squeezeHIT i (a `face` alpha) uAlpha) us
+  | otherwise = let j = fresh (Atom i,a,u,us) in
+      hComp (a `face` (i ~> 1)) (forwardHIT i a u (Dir Zero)) $
+        mapWithKey
+          (\alpha uAlpha -> VPLam j $ forwardHIT i (a `face` alpha)
+                              (uAlpha `swap` (i,j)) (Atom j)) us
 
--- Given u of type a(i=0), transpHIT i a u is an element of a(i=1).
-transpHIT :: Name -> Val -> Val -> Val
-transpHIT i a@(Ter (HSum _ _ nass) env) u =
- let j = fresh (a,u)
-     aij = swap a (i,j)
- in
- case u of
-  VCon n us -> case lookupLabel n nass of
-    Just as -> VCon n (transps i as env us)
-    Nothing -> error $ "transpHIT: missing constructor in labelled sum " ++ n
-  VPCon c _ ws0 phis -> case lookupLabel c nass of
-    Just as -> pcon c (a `face` (i ~> 1)) (transps i as env ws0) phis
-    Nothing -> error $ "transpHIT: missing path constructor " ++ c
-  VHComp _ v vs ->
-    hComp (a `face` (i ~> 1)) (transpHIT i a v) $
-      mapWithKey (\alpha vAlpha ->
-                   VPLam j $ transpHIT j (aij `face` alpha) (vAlpha @@ j)) vs
-  _ -> error $ "transpHIT: neutral " ++ show u
+-- For a HIT A, given
+-- G, i:II |- A,
+-- G |- r : FF, and
+-- G |- u : A(i/r),
+-- then
+-- G |- forwardHIT i A u r : A(i/1)
+forwardHIT :: Name -> Val -> Val -> Formula -> Val
+forwardHIT i a@(Ter (HSum _ _ nass) env) u r =
+  let j = fresh (Atom i,a,u)
+      aij = a `swap` (i,j)
+  in case u of
+    VCon c us -> case lookupLabel c nass of
+      Just as -> VCon c (forwards i as env us r)
+      Nothing -> error $ "forwardHIT: missing constructor "
+                   ++ c ++ " in labelled sum"
+    VPCon c _ ws phis -> case lookupLabel c nass of
+      Just as -> pcon c (a `face` (i ~> 1)) (forwards i as env ws r) phis
+      Nothing -> error $ "forwardHIT: missing path constructor "
+                 ++ c ++ " in labelled sum"
+    VHComp _ v vs ->
+      hComp (a `face` (i ~> 1)) (forwardHIT i a v r) $
+        mapWithKey (\alpha vAlpha ->
+                    VPLam j $ forwardHIT j (aij `face` alpha) (vAlpha @@ j) r) vs
+    _ -> error $ "forwardHIT: neutral " ++ show u
 
--- given u(i) of type a(i) "squeezeHIT i a u" connects in the direction i
--- transHIT i a u(i=0) to u(i=1) in a(1)
-squeezeHIT :: Name -> Val -> Val -> Val
-squeezeHIT i a@(Ter (HSum _ _ nass) env) u =
- let j = fresh (a,u)
- in
- case u of
-  VCon n us -> case lookupLabel n nass of
-    Just as -> VCon n (squeezes i as env us)
-    Nothing -> error $ "squeezeHIT: missing constructor in labelled sum " ++ n
-  VPCon c _ ws0 phis -> case lookupLabel c nass of
-    Just as -> pcon c (a `face` (i ~> 1)) (squeezes i as env ws0) phis
-    Nothing -> error $ "squeezeHIT: missing path constructor " ++ c
-  VHComp _ v vs -> hComp (a `face` (i ~> 1)) (squeezeHIT i a v) $
-      mapWithKey
-        (\alpha vAlpha -> case Map.lookup i alpha of
-          Nothing   -> VPLam j $ squeezeHIT i (a `face` alpha) (vAlpha @@ j)
-          Just Zero -> VPLam j $ transpHIT i
-                         (a `face` (Map.delete i alpha)) (vAlpha @@ j)
-          Just One  -> vAlpha)
-        vs
-  _ -> error $ "squeezeHIT: neutral " ++ show u
+-- -- Given u of type a(i=0), transpHIT i a u is an element of a(i=1).
+-- transpHIT :: Name -> Val -> Val -> Val
+-- transpHIT i a@(Ter (HSum _ _ nass) env) u =
+--  let j = fresh (a,u)
+--      aij = swap a (i,j)
+--  in
+--  case u of
+--   VCon n us -> case lookupLabel n nass of
+--     Just as -> VCon n (transps i as env us)
+--     Nothing -> error $ "transpHIT: missing constructor in labelled sum " ++ n
+--   VPCon c _ ws0 phis -> case lookupLabel c nass of
+--     Just as -> pcon c (a `face` (i ~> 1)) (transps i as env ws0) phis
+--     Nothing -> error $ "transpHIT: missing path constructor " ++ c
+--   VHComp _ v vs ->
+--     hComp (a `face` (i ~> 1)) (transpHIT i a v) $
+--       mapWithKey (\alpha vAlpha ->
+--                    VPLam j $ transpHIT j (aij `face` alpha) (vAlpha @@ j)) vs
+--   _ -> error $ "transpHIT: neutral " ++ show u
+
+-- -- given u(i) of type a(i) "squeezeHIT i a u" connects in the direction i
+-- -- transHIT i a u(i=0) to u(i=1) in a(1)
+-- squeezeHIT :: Name -> Val -> Val -> Val
+-- squeezeHIT i a@(Ter (HSum _ _ nass) env) u =
+--  let j = fresh (a,u)
+--  in
+--  case u of
+--   VCon n us -> case lookupLabel n nass of
+--     Just as -> VCon n (squeezes i as env us)
+--     Nothing -> error $ "squeezeHIT: missing constructor in labelled sum " ++ n
+--   VPCon c _ ws0 phis -> case lookupLabel c nass of
+--     Just as -> pcon c (a `face` (i ~> 1)) (squeezes i as env ws0) phis
+--     Nothing -> error $ "squeezeHIT: missing path constructor " ++ c
+--   VHComp _ v vs -> hComp (a `face` (i ~> 1)) (squeezeHIT i a v) $
+--       mapWithKey
+--         (\alpha vAlpha -> case Map.lookup i alpha of
+--           Nothing   -> VPLam j $ squeezeHIT i (a `face` alpha) (vAlpha @@ j)
+--           Just Zero -> VPLam j $ transpHIT i
+--                          (a `face` (Map.delete i alpha)) (vAlpha @@ j)
+--           Just One  -> vAlpha)
+--         vs
+--   _ -> error $ "squeezeHIT: neutral " ++ show u
 
 hComp :: Val -> Val -> System Val -> Val
 hComp a u us | eps `member` us = (us ! eps) @@ One

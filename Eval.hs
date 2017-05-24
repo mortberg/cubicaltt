@@ -12,6 +12,8 @@ import qualified Data.Set as Set
 import Connections
 import CTT
 
+import Debug.Trace
+
 -----------------------------------------------------------------------
 -- Lookup functions
 
@@ -447,6 +449,11 @@ forward i a u r =
   comp i (a `act` (i, Atom i :\/: r)) u
     (mkSystem (map (\alpha -> (alpha, u `face` alpha)) (invFormula r One)))
 
+forwardFill :: Name -> Val -> Val -> Formula -> Val
+forwardFill i a u r =
+  fill i (a `act` (i, Atom i :\/: r)) u
+    (mkSystem (map (\alpha -> (alpha, u `face` alpha)) (invFormula r One)))
+
 forwards :: Name -> [(Ident,Ter)] -> Env -> [Val] -> Formula -> [Val]
 forwards i xas rho us r =
   comps i xas (rho `act` (i, Atom i :\/: r)) [ (border u req1,u) | u <- us ]
@@ -510,7 +517,7 @@ compHIT i a u us
 -- then
 -- G |- forwardHIT i A u r : A(i/1)
 forwardHIT :: Name -> Val -> Val -> Formula -> Val
-forwardHIT i a@(Ter (HSum _ _ nass) env) u r =
+forwardHIT i a@(Ter (HSum loc _ nass) env) u r =
   let j = fresh (Atom i,a,u)
       aij = a `swap` (i,j)
   in case u of
@@ -519,14 +526,31 @@ forwardHIT i a@(Ter (HSum _ _ nass) env) u r =
       Nothing -> error $ "forwardHIT: missing constructor "
                    ++ c ++ " in labelled sum"
     VPCon c _ ws phis -> case lookupLabel c nass of
-      Just as -> pcon c (a `face` (i ~> 1)) (forwards i as env ws r) phis
+      Just as -> pcon c (a `face` (i ~> 1)) (forwardsHIT i loc as env ws r) phis
       Nothing -> error $ "forwardHIT: missing path constructor "
-                 ++ c ++ " in labelled sum"
+                   ++ c ++ " in labelled sum"
     VHComp _ v vs ->
       hComp (a `face` (i ~> 1)) (forwardHIT i a v r) $
         mapWithKey (\alpha vAlpha ->
                     VPLam j $ forwardHIT j (aij `face` alpha) (vAlpha @@ j) r) vs
     _ -> error $ "forwardHIT: neutral " ++ show u
+
+-- This function is a HACK.
+forwardsHIT :: Name
+            -> Loc              -- ^ HIT under consideration
+            -> [(Ident,Ter)] -> Env -> [Val] -> Formula -> [Val]
+forwardsHIT i loc xas rho us r = case (xas,us) of
+  ([],[]) -> []
+  ((x,a):xas, u:us) -> let va = eval rho a in case va of
+    Ter (HSum l _ _) _ | l == loc -> -- found recursive argument
+      trace "recursive argument"
+      forwardHIT i va u r : forwardsHIT i loc xas rho us r  -- HACK? rho not updated
+    _ -> trace ("non-recursive argument"
+      ++ "\n a = " ++ show a ++ "\n loc= " ++ show loc)
+      $
+      let v = forwardFill i (eval rho a) u r
+          vi1 = v `face` (i ~> 1)
+      in vi1 : forwardsHIT i loc xas (upd (x,v) rho) us r
 
 -- -- Given u of type a(i=0), transpHIT i a u is an element of a(i=1).
 -- transpHIT :: Name -> Val -> Val -> Val

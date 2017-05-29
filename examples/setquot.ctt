@@ -408,7 +408,7 @@ iseqclasspair (A B : U) (R0 : hrel A) (R1 : hrel B) (H0 : hsubtypes A)
 
     a : (ishinh (carrier (and A B) H)).1
       = aold (ishinh (carrier (and A B) H))
-             (\(x : (carrier (and A B) H)) -> inc x)
+             (\(x : (carrier (and A B) H)) -> hinhpr (carrier (and A B) H) x)
 
     b (x0 x1 : and A B) (r : (hrelpair A B R0 R1 x0 x1).1) (h0 : (H x0).1) : (H x1).1
       = (E0.1.2 x0.1 x1.1 r.1 h0.1, E1.1.2 x0.2 x1.2 r.2 h0.2)

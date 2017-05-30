@@ -518,7 +518,7 @@ compHIT i a u us
 -- G |- forwardHIT i A u r : A(i/1)
 forwardHIT :: Name -> Val -> Val -> Formula -> Val
 forwardHIT i a@(Ter (HSum loc _ nass) env) u r =
-  let j = fresh (Atom i,a,u)
+  let j = fresh (Atom i,a,u,r)
       aij = a `swap` (i,j)
   in case u of
     VCon c us -> case lookupLabel c nass of

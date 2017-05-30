@@ -40,7 +40,7 @@ ex (A : U) (a b : A) (p : Path A a b) :
 {-
 
 In the above example the k = 0 face of the cube was omitted. The
-reason is because of "uniformity" of compisitions, this means that
+reason is because of "uniformity" of compositions, this means that
 comp has to commute with substitutions (like any other operation in
 type theory).
 
@@ -166,7 +166,7 @@ isProp (A : U) : U = (x y : A) -> Path A x y
 
 
 -- A type of h-level 2 is called a "set" and in such a type all of the
--- equalities between elements are equal. This propoerty is usually
+-- equalities between elements are equal. This property is usually
 -- called UIP, "uniqueness of identity types", and a very important
 -- theorem is Hedberg's theorem which says that types with decidable
 -- equality satisfy UIP (so nat, bool, etc. are all sets).

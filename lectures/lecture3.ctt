@@ -1,0 +1,231 @@
+{-
+            Lecture 3 on cubicaltt (Cubical Type Theory)
+--------------------------------------------------------------------------
+                        Anders Mörtberg
+
+Contents:
+  o Higher dimensional compositions
+  o Transport and J for Path types
+  o Fill
+  o H-levels
+
+-}
+module lecture3 where
+
+import lecture2
+
+--------------------------------------------------------------------------
+-- Higher dimensional compositions
+
+-- Recall: the composition operation takes an open box in a type A and
+-- compute the lid. 
+
+-- Recall: compinv composes p with its inverse:
+-- compinv (A : U) (a b : A) (p : Path A a b) : Path A a a =
+--  <i> comp (<_> A) (p @ i) [ (i = 0) -> <j> a, (i = 1) -> <j> p @ -j ]
+
+-- We can prove that this is equal to reflexivity using a higher
+-- dimensional composition:
+ex (A : U) (a b : A) (p : Path A a b) :
+  Path (Path A a a) (compinv A a b p) (<j> a) =
+  <k j> comp (<_> A) (p @ j /\ -k)
+                     [ (j = 0) -> <i> a
+                     , (j = 1) -> <i> p @ -i /\ -k
+                     , (k = 1) -> <i> a ]
+
+-- To make sense of this draw an open cube with "p @ j /\ -k" as
+-- bottom square. Note that the composition is done in direction i
+-- (going up) while j and k are the two other directions.
+
+{-
+
+In the above example the k = 0 face of the cube was omitted. The
+reason is because of "uniformity" of compisitions, this means that
+comp has to commute with substitutions (like any other operation in
+type theory).
+
+If we substitute k for 0 in ex we get:
+
+  <j> comp (<_> A) (p @ j /\ -0) 
+                   [ (j = 0) -> <i> a
+                   , (j = 1) -> <i> p @ -i /\ -0
+                   , (0 = 1) -> <i> a ]
+
+The face 0=1 is absurd and disappears by the rules of the system. We
+hence get the following after simplifications:
+
+  <j> comp (<_> A) (p @ j) 
+                   [ (j = 0) -> <i> a
+                   , (j = 1) -> <i> p @ -i ]
+
+Which is the same as compinv up to renaming of dimensions.
+
+We could also give the k = 0 side explicitly. Such a square is
+produced by an operation called "fill", this takes the same arguments
+as comp and produces the interior of a cube with comp as its missing
+side.
+
+-}
+
+ex (A : U) (a b : A) (p : Path A a b) :
+  Path (Path A a a) (compinv A a b p) (<j> a) =
+  <k j> comp (<_> A) (p @ j /\ -k)
+                     [ (j = 0) -> <_> a
+                     , (j = 1) -> <i> p @ -i /\ -k
+                     , (k = 0) -> fill (<_> A) (p @ j)
+                                       [ (j = 0) -> <i> a
+                                       , (j = 1) -> <i> p @ -i]
+                     , (k = 1) -> <_> a ]
+
+
+{-
+
+We can also define the type of squares:
+
+             v
+        b0 -----> b1
+        ^         ^
+     r0 |         | r1
+        |         |
+        |         |
+        a0 -----> a1
+             u
+-}
+Square (A : U) (a0 a1 b0 b1 : A) (u : Path A a0 a1) (v : Path A b0 b1)
+               (r0 : Path A a0 b0) (r1 : Path A a1 b1) : U
+  = PathP (<i> (Path A (u @ i) (v @ i))) r0 r1
+
+-- Exercise construct a constant square:
+constSquare (A : U) (a : A) (p : Path A a a) : Square A a a a a p p p p =
+  undefined
+
+-- Exercise (very hard and not solved as far as I know, so let me know
+-- if someone manages to do it): define a cube type and construct a
+-- constant cube.
+
+
+
+--------------------------------------------------------------------------
+-- Transport and J:
+
+{-
+
+Given P : Path U A B we want to define 
+
+  transport P : A -> B
+
+This is like a cast operation (compare with castmx of MathComp).
+
+-}
+
+-- We do this by a comp with an empty list of sides:
+trans (A B : U) (p : Path U A B) (a : A) : B =
+  comp p a []
+
+-- This uses that the composition operations are heterogeneous. So the
+-- lower line of the square can be in type A while the constructed
+-- line is in B. The sides then have to connect elements in A to
+-- elements in B, so we have to use the heterogeneous PathP type:
+gencomp (A B : U) (P : Path U A B) (a b : A) (c d : B)
+        (p : Path A a b) (q : PathP P a c) (r : PathP P b d) : Path B c d =
+  <i> comp P (p @ i) [ (i = 0) -> q, (i = 1) -> r ]
+
+-- We can use transport to define:
+subst (A : U) (P : A -> U) (a b : A)
+      (p : Path A a b) (e : P a) : P b =
+  transport (<i> P (p @ i)) e
+
+-- Note that we are using transport and not trans. The reason is that
+-- we don't have implicit arguments, so we have a built-in transport
+-- function with the first two arguments implicit.
+
+-- Combined with the contractibility of singletons this gives us the J
+-- eliminator:
+J (A : U) (a : A) (P : (b : A) -> Path A a b -> U)
+  (d : P a (refl A a)) (b : A) (p : Path A a b) : P b p =
+  subst B T (a,refl A a) (b,p) (contrSingl A a b p) d
+  where
+  B : U = (b : A) * Path A a b
+  T (y : B) : U = P y.1 y.2
+
+
+--------------------------------------------------------------------------
+-- H-levels
+
+-- In Univalent Foundations/Homotopy Type Theory there is a very
+-- important stratification of types called h-levels
+-- ("homotopy-levels"). This is different from the normal universe
+-- level stratification of types and instead of size the types are
+-- categorized by the complexity of their equality.
+
+-- A type of h-level 1 is called a "proposition" (written "mere
+-- proposition" in the HoTT book or simply "h-proposition"). In such a
+-- type all elements are equal, so the only information that it
+-- carries is whether it is inhabited or not. 
+isProp (A : U) : U = (x y : A) -> Path A x y
+
+
+-- A type of h-level 2 is called a "set" and in such a type all of the
+-- equalities between elements are equal. This propoerty is usually
+-- called UIP, "uniqueness of identity types", and a very important
+-- theorem is Hedberg's theorem which says that types with decidable
+-- equality satisfy UIP (so nat, bool, etc. are all sets).
+isSet (A : U) : U = (x y : A) -> isProp (Path A x y)
+
+
+-- Using function extensionality we can prove that a family of
+-- propositions is a proposition:
+propPi (A : U) (B : A -> U) (h : (x : A) -> isProp (B x)) :
+       isProp ((x : A) -> B x) = rem
+       where
+       rem (f0 f1 : (x : A) -> B x) :
+           Path ((x : A) -> B x) f0 f1 = 
+           <i> \(x : A) -> h x (f0 x) (f1 x) @ i
+
+-- Exercise: Prove that if A is a proposition then it is a set. (hint:
+-- use a composition in a suitable cube)
+propSet (A : U) (h : isProp A) : isSet A = undefined
+
+-- Exercise: Prove that being a proposition is a proposition. (hint:
+-- use propSet and function extensionality for binary functions)
+propIsProp (A : U) : isProp (isProp A) = undefined
+
+
+-- There is a uniform way of defining these h-levels by induction on a
+-- natural number n. This starts by defining "contractible types":
+isContr (A : U) : U = (x : A) * ((y : A) -> Path A x y)
+
+-- So a type is contractible if it is inhabited and all elements are
+-- equal to this element.
+
+-- Exercise: Prove that a type is contractible iff it is inhabited and
+-- a proposition:
+and (A B : U) : U = (_ : A) * B
+
+inhPropToIsContr (A : U) (p : and A (isProp A)) : isContr A = undefined
+isContrToInhProp (A : U) (p : isContr A) : and A (isProp A) = undefined
+
+-- We can now define when a type is of h-level n:
+isofhlevel (A : U) : nat -> U = split
+  zero -> isContr A
+  suc n -> (a b : A) -> isofhlevel (Path A a b) n
+
+-- Exercise: Prove that a type is of h-level 1 iff it is a proposition
+isofhlevel1ToProp (A : U) : isofhlevel A (suc zero) -> isProp A = undefined
+propToIsofhlevel1 (A : U) : isProp A -> isofhlevel A (suc zero) = undefined
+
+-- Exercise: Prove that a type is of h-level 2 iff it is a set
+isofhlevel2ToSet (A : U) : isofhlevel A (suc (suc zero)) -> isSet A = undefined
+setToIsofhlevel2 (A : U) : isSet A -> isofhlevel A (suc (suc zero)) = undefined
+
+-- Exercise: Prove that if a type is contractible then it is a
+-- proposition.
+isContrProp (A : U) (h : isContr A) : isProp A = undefined
+
+-- The first three h-levels are contractible types, propositions and
+-- sets. The next level is called groupoids, we then have 2-groupoids,
+-- 3-groupoids, etc.
+
+-- Remark: Some people (usually homotopy theorists) use the word
+-- "n-type" and start counting from -2. So a -2-type is contractible,
+-- a -1-type is a proposition, a 0-type is a set, etc.

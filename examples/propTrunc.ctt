@@ -1,18 +1,10 @@
--- Propositional truncation as a HIT. (WARNING: not working correctly)
+-- Propositional truncation as a HIT.
 module propTrunc where
 
 import bool
 import sigma
 import pi
 import univalence
-
-{-
-Warning: as of commit ff8a026, recursive HITs with parameters are not
-implemented correctly. Because of that, you may find unexpected results when
-using this module.
-
-See e.g. github issue #35 and pull request #39 for details.
--}
 
 data pTrunc (A : U)
   = inc (a : A)

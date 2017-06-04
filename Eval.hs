@@ -429,15 +429,6 @@ squeezes i xas e us = comps j xas (e `disj` (i,j)) us'
   where j   = fresh (us,e,Atom i)
         us' = [ (mkSystem [(i ~> 1, u `face` (i ~> 1))],u) | u <- us ]
 
--- -- For a HIT A, given
--- -- G, i:II |- A,
--- -- G |- r : FF, and
--- -- G |- u : A(i/r),
--- -- then
--- -- G |- forwardHIT i A u r : A(i/1)
--- forwardHIT :: Name -> Val -> Val -> Formula -> Val
--- forwardHIT i a@(Ter (HSum _ _ nass) env) u r =
-
 -- Given
 -- G, i:II |- A,
 -- G |- r : FF, and
@@ -458,17 +449,6 @@ forwards :: Name -> [(Ident,Ter)] -> Env -> [Val] -> Formula -> [Val]
 forwards i xas rho us r =
   comps i xas (rho `act` (i, Atom i :\/: r)) [ (border u req1,u) | u <- us ]
   where req1 = mkSystem (map (,()) (invFormula r One))
-
--- comps :: Name -> [(Ident,Ter)] -> Env -> [(System Val,Val)] -> [Val]
--- comps i []         _ []         = []
--- comps i ((x,a):as) e ((ts,u):tsus) =
---   let v   = fill i (eval e a) u ts
---       vi1 = comp i (eval e a) u ts
---       vs  = comps i as (upd (x,v) e) tsus
---   in vi1 : vs
--- comps _ _ _ _ = error "comps: different lengths of types and values"
-
-
 
 
 -------------------------------------------------------------------------------
@@ -535,7 +515,11 @@ forwardHIT i a@(Ter (HSum loc _ nass) env) u r =
                     VPLam j $ forwardHIT j (aij `face` alpha) (vAlpha @@ j) r) vs
     _ -> error $ "forwardHIT: neutral " ++ show u
 
--- This function is a HACK.
+-- This function is a HACK. As we have to do something special for
+-- recursive HITs we first check if the a is the same as the HIT we
+-- are composing in. Note that this only works for arguments that are
+-- directly recursive, so it doesn't work when a is a function type
+-- with target the HIT we are composing in.
 forwardsHIT :: Name
             -> Loc              -- ^ HIT under consideration
             -> [(Ident,Ter)] -> Env -> [Val] -> Formula -> [Val]
@@ -543,14 +527,17 @@ forwardsHIT i loc xas rho us r = case (xas,us) of
   ([],[]) -> []
   ((x,a):xas, u:us) -> let va = eval rho a in case va of
     Ter (HSum l _ _) _ | l == loc -> -- found recursive argument
-      trace "recursive argument"
+--      trace "recursive argument"
       forwardHIT i va u r : forwardsHIT i loc xas rho us r  -- HACK? rho not updated
-    _ -> trace ("non-recursive argument"
-      ++ "\n a = " ++ show a ++ "\n loc= " ++ show loc)
-      $
+    _ ->
+--      trace ("non-recursive argument" ++ "\n a = " ++ show a ++ "\n loc= " ++ show loc)
+--      $
       let v = forwardFill i (eval rho a) u r
           vi1 = v `face` (i ~> 1)
       in vi1 : forwardsHIT i loc xas (upd (x,v) rho) us r
+
+
+-- Old code below not using forward:
 
 -- -- Given u of type a(i=0), transpHIT i a u is an element of a(i=1).
 -- transpHIT :: Name -> Val -> Val -> Val

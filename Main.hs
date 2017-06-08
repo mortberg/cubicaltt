@@ -10,7 +10,6 @@ import System.Environment
 import System.Console.GetOpt
 import System.Console.Haskeline
 import System.Console.Haskeline.History
--- import System.IO.Error
 import Text.Printf
 
 import Exp.Lex

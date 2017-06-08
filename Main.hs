@@ -98,18 +98,18 @@ initLoop flags f hist = do
       putStrLn $ "Resolver failed: " ++ err
       runInputT (settings []) (putHistory hist >> loop flags f [] TC.verboseEnv)
     Right (adefs,names) -> do
+      -- After resolivng the file check if some definitions were shadowed:
+      let ns = map fst names
+          uns = nub ns
+          dups = ns \\ uns
+      unless (dups == []) $
+        putStrLn $ "Warning: the following definitions were shadowed [" ++
+                   intercalate ", " dups ++ "]"
       (merr,tenv) <- TC.runDeclss TC.verboseEnv adefs
       case merr of
         Just err -> putStrLn $ "Type checking failed: " ++ shrink err
         Nothing  -> do
           putStrLn "File loaded."
-          -- After loading the file check if some definitions were shadowed:
-          let ns = map fst names
-              uns = nub ns
-              dups = ns \\ uns
-          unless (dups == []) $
-            putStrLn $ "Warning: the following definitions were shadowed [" ++
-                        intercalate ", " dups ++ "]"
       if Batch `elem` flags
         then return ()
         else -- Compute names for auto completion

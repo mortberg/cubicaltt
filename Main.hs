@@ -98,10 +98,18 @@ initLoop flags f hist = do
       putStrLn $ "Resolver failed: " ++ err
       runInputT (settings []) (putHistory hist >> loop flags f [] TC.verboseEnv)
     Right (adefs,names) -> do
+      -- After resolivng the file check if some definitions were shadowed:
+      let ns = map fst names
+          uns = nub ns
+          dups = ns \\ uns
+      unless (dups == []) $
+        putStrLn $ "Warning: the following definitions were shadowed [" ++
+                   intercalate ", " dups ++ "]"
       (merr,tenv) <- TC.runDeclss TC.verboseEnv adefs
       case merr of
         Just err -> putStrLn $ "Type checking failed: " ++ shrink err
-        Nothing  -> putStrLn "File loaded."
+        Nothing  -> do
+          putStrLn "File loaded."
       if Batch `elem` flags
         then return ()
         else -- Compute names for auto completion
@@ -142,7 +150,6 @@ loop flags f names tenv = do
               Right _  -> do
                 start <- liftIO getCurrentTime
                 let e = mod $ E.eval (TC.env tenv) body
-
                 -- Let's not crash if the evaluation raises an error:
                 liftIO $ catch (putStrLn (msg ++ shrink (show e)))
                                -- (writeFile "examples/nunivalence3.ctt" (show e))

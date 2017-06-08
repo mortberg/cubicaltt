@@ -1,0 +1,279 @@
+{-
+            Lecture 4 on cubicaltt (Cubical Type Theory)
+--------------------------------------------------------------------------
+                        Anders Mörtberg
+
+Contents:
+  o Equivalences
+  o Glue types
+  o Univalence
+
+-}
+module lecture4 where
+
+import lecture3
+
+-- The fiber/preimage of a map:
+fiber (A B : U) (f : A -> B) (y : B) : U =
+  (x : A) * Path B y (f x)
+
+-- A map is an equivalence if it has contractible fibers
+isEquiv (A B : U) (f : A -> B) : U = (y : B) -> isContr (fiber A B f y)
+
+-- A and B are equivalent if there is an equivalence between them
+equiv (A B : U) : U = (f : A -> B) * isEquiv A B f
+
+idIsEquiv (A : U) : isEquiv A A (idfun A) =
+  \(a : A) -> ((a, <i> a)
+              ,\(z : fiber A A (idfun A) a) -> contrSingl A a z.1 z.2)
+
+idEquiv (A : U) : equiv A A = (idfun A, idIsEquiv A)
+
+-- inverse of equivalence
+invEquiv (A B : U) (e : equiv A B) (y : B) : A = (e.2 y).1.1
+
+-- exercises
+retEq (A B : U) (e : equiv A B) (y : B) : Path B (e.1 (invEquiv A B e y)) y = undefined
+secEq (A B : U) (e : equiv A B) (x : A) : Path A (invEquiv A B e (e.1 x)) x = undefined
+
+
+-- The grad lemma
+lemIso (A B : U) (f : A -> B) (g : B -> A)
+       (s : (y : B) -> Path B (f (g y)) y)
+       (t : (x : A) -> Path A (g (f x)) x)
+       (y : B) (x0 x1 : A) (p0 : Path B y (f x0)) (p1 : Path B y (f x1)) :
+       Path (fiber A B f y) (x0,p0) (x1,p1) = <i> (p @ i,sq1 @ i)
+  where
+    rem0 : Path A (g y) x0 =
+      <i> comp (<k> A) (g (p0 @ i)) [ (i = 1) -> t x0, (i = 0) -> <k> g y ]
+
+    rem1 : Path A (g y) x1 =
+      <i> comp (<k> A) (g (p1 @ i)) [ (i = 1) -> t x1, (i = 0) -> <k> g y ]
+
+    p : Path A x0 x1 =
+     <i> comp (<k> A) (g y) [ (i = 0) -> rem0
+                            , (i = 1) -> rem1 ]
+
+    fill0 : Square A (g y) (g (f x0)) (g y) x0
+                     (<i> g (p0 @ i)) rem0 (<i> g y) (t x0)  =
+      <i j> comp (<k> A) (g (p0 @ i)) [ (i = 1) -> <k> t x0 @ j /\ k
+                                      , (i = 0) -> <k> g y
+                                      , (j = 0) -> <k> g (p0 @ i) ]
+
+    fill1 : Square A (g y) (g (f x1)) (g y) x1
+                     (<i> g (p1 @ i)) rem1 (<i> g y) (t x1) =
+      <i j> comp (<k> A) (g (p1 @ i)) [ (i = 1) -> <k> t x1 @ j /\ k
+                                      , (i = 0) -> <k> g y
+                                      , (j = 0) -> <k> g (p1 @ i) ]
+
+    fill2 : Square A (g y) (g y) x0 x1
+                     (<k> g y) p rem0 rem1 =
+      <i j> comp (<k> A) (g y) [ (i = 0) -> <k> rem0 @ j /\ k
+                               , (i = 1) -> <k> rem1 @ j /\ k
+                               , (j = 0) -> <k> g y ]
+
+    sq : Square A (g y) (g y) (g (f x0)) (g (f x1))
+                  (<i> g y) (<i> g (f (p @ i)))
+                  (<j> g (p0 @ j)) (<j> g (p1 @ j)) =
+      <i j> comp (<k> A) (fill2 @ i @ j) [ (i = 0) -> <k> fill0 @ j @ -k
+                                         , (i = 1) -> <k> fill1 @ j @ -k
+                                         , (j = 0) -> <k> g y
+                                         , (j = 1) -> <k> t (p @ i) @ -k ]
+
+    sq1 : Square B y y (f x0) (f x1)
+                   (<k>y) (<i> f (p @ i)) p0 p1 =
+      <i j> comp (<k> B) (f (sq @ i @j)) [ (i = 0) -> s (p0 @ j)
+                                         , (i = 1) -> s (p1 @ j)
+                                         , (j = 1) -> s (f (p @ i))
+                                         , (j = 0) -> s y ]
+
+gradLemma (A B : U) (f : A -> B) (g : B -> A)
+       (s : (y : B) -> Path B (f (g y)) y)
+       (t : (x : A) -> Path A (g (f x)) x) : isEquiv A B f =
+  \(y:B) -> ((g y,<i>s y@-i),\ (z:fiber A B f y) ->
+    lemIso A B f g s t y (g y) z.1 (<i>s y@-i) z.2)
+
+
+{-
+                          Glueing
+--------------------------------------------------------------------------
+
+The univalence axiom says that equality of types is equivalent to
+equivalence of types:
+
+       (A = B)  ~  (A ~ B)
+
+Glueing is a weaker form of this for producing non-trivial equalities
+from equivalences. In particular Glueing gives a map from Equiv(A,B)
+to A = B. This weak form of univalence is useful for developing a lot
+of examples. 
+
+Further, the full form of univalence is provable in the system. See
+the file examples/univalence.ctt for a proof of this.
+
+-}
+
+
+      ---------------------------------------------------------
+      -- Example: Non-trivial equality between bool and bool --
+      ---------------------------------------------------------
+
+-- recall not and notK
+
+-- not is hence and equivalence:
+notEquiv : equiv bool bool =
+  (not,gradLemma bool bool not not notK notK)
+
+-- This defines a non-trivial equality between bool and bool:
+notEq : Path U bool bool =
+  <i> Glue bool [ (i = 0) -> (bool,notEquiv)
+                , (i = 1) -> (bool,idEquiv bool) ]
+
+-- We can transport true along this non-trivial equality:
+testFalse : bool = transport notEq true
+
+
+isoPath (A B : U) (f : A -> B) (g : B -> A)
+      (s : (y : B) -> Path B (f (g y)) y)
+      (t : (x : A) -> Path A (g (f x)) x) : Path U A B =
+       <i> Glue B [ (i = 0) -> (A,f,gradLemma A B f g s t)
+                  , (i = 1) -> (B,idEquiv B) ]
+
+
+
+ua (A B : U) (e : equiv A B) : Path U A B =
+  <i> Glue B [ (i = 0) -> (A,e)
+             , (i = 1) -> (B,idEquiv B) ]
+
+
+       ---------------------------------------------------
+       -- Example: Non-trivial equality between Z and Z --
+       ---------------------------------------------------
+
+data or (A B : U) = inl (a : A)
+                  | inr (b : B)
+
+
+Z : U = or nat nat
+
+{- Z represents:
+
+  +2 = inr (suc (suc zero))
+  +1 = inr (suc zero)
+   0 = inr zero
+  -1 = inl zero
+  -2 = inl (suc zero)
+
+-}
+
+zeroZ : Z = inr zero
+
+sucZ : Z -> Z = split
+  inl u -> auxsucZ u
+    where
+    auxsucZ : nat -> Z = split
+      zero  -> inr zero
+      suc n -> inl n
+  inr v -> inr (suc v)
+
+predZ : Z -> Z = split
+  inl u -> inl (suc u)
+  inr v -> auxpredZ v
+    where
+    auxpredZ : nat -> Z = split
+      zero  -> inl zero
+      suc n -> inr n
+
+sucpredZ : (x : Z) -> Path Z (sucZ (predZ x)) x = split
+  inl u -> <i> inl u
+  inr v -> lem v
+   where
+    lem : (u : nat) -> Path Z (sucZ (predZ (inr u))) (inr u) = split
+      zero  -> <i> inr zero
+      suc n -> <i> inr (suc n)
+
+predsucZ : (x : Z) -> Path Z (predZ (sucZ x)) x = split
+  inl u -> lem u
+   where
+    lem : (u : nat) -> Path Z (predZ (sucZ (inl u))) (inl u) = split
+      zero  -> <i> inl zero
+      suc n -> <i> inl (suc n)
+  inr v -> <i> inr v
+
+sucPathZ : Path U Z Z = isoPath Z Z sucZ predZ sucpredZ predsucZ
+
+-- We can transport along the proof forward and backwards:
+testOneZ : Z = transport sucPathZ zeroZ
+testNOneZ : Z = transport (<i> sucPathZ @ - i) zeroZ
+
+
+-- Structure identity principle:
+
+substEquiv (P : U -> U) (A B : U) (e : equiv A B) (h : P A) : P B =
+  subst U P A B (ua A B e) h
+
+data food = cheese | meat | chicken
+
+eat (X : U) : U = list (and food X)
+
+anders : eat bool = cons (cheese,true) (cons (meat,false) (cons (chicken,false) nil))
+
+cyril : eat bool = substEquiv eat bool bool notEquiv anders
+
+-- Can be used for program refinements, see binnat.v
+
+-- The canonical map defined using J
+-- canPathToEquiv (A : U) : (B : U) -> Path U A B -> equiv A B =
+--   J U A (\ (B : U) (_ : Path U A B) -> equiv A B) (idEquiv A)
+
+-- univalenceJ (A B : U) : equiv (Path U A B) (equiv A B) =
+--   (canPathToEquiv A B,thmUniv (\(A X : U) -> canPathToEquiv X A) B A)
+
+-- stdUnivalence (A B : U) : equiv (Path U A B) (equiv A B) = ...
+-- univalenceAlt (B : U) : isContr ((X : U) * equiv X B) = ...
+-- thmUniv (t : (A X : U) -> Path U X A -> equiv X A) (A : U) :  (X : U) -> isEquiv (Path U X A) (equiv X A) (t A X) = ...
+
+-- I know of 4 proofs of univalence:
+-- 1. Direct proof using Glue (by Simon and me)
+-- 2. unglue is an equivalence (Thierry, Simon, Peter Lumsdaine)
+-- 3. ua+uabeta (Dan Licata)
+-- 4. Various simple axioms (Orton, Pitts)
+
+
+
+{- Proof of 3:
+
+retract (A B : U) (f : A -> B) (g : B -> A) : U = (a : A) -> Path A (g (f a)) a
+
+-}
+
+
+
+
+
+
+
+
+
+
+-- test (A B : U) (f : A -> B) (g : B -> A) (hA : isProp A) (hB : isProp B) :
+--   equiv A B = (f,rem)
+--   where
+-- --  rem (y : B) : isContr (fiber A B f y) = undefined
+--   rem (y : B) : isContr ((x : A) * Path B y (f x)) =
+--     let ctr : (x : A) * Path B y (f x) = (g y,hB y (f (g y)))
+--         prf (pt : (x : A) * Path B y (f x)) :
+--             Path ((x : A) * Path B y (f x)) ctr pt =
+--             let h1 : Path A ctr.1 pt.1 = hA ctr.1 pt.1
+--                 temp : Path B y (f pt.1) = pt.2
+--                 temp2 : Path B y (f (g y)) = ctr.2
+--                 testt : PathP ? 
+--             in <i> (h1 @ i,?)
+-- --              <i> (hA (g y) pt.1 @ i,hB y (f (hA (g y) pt.1 @ i)))
+--     in (ctr,prf)
+
+ua (A B : U) (e : equiv A B) : Path U A B =
+  <i> Glue B [ (i = 0) -> (A,e)
+             , (i = 1) -> (B,idEquiv B) ]
+
+uabeta (A B : U) (e : equiv A B) : Path (A -> B) (trans A B (ua A B e)) e.1 = undefined

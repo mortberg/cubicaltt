@@ -98,7 +98,6 @@ initLoop flags f hist = do
       putStrLn $ "Resolver failed: " ++ err
       runInputT (settings []) (putHistory hist >> loop flags f [] TC.verboseEnv)
     Right (adefs,names) -> do
-
       (merr,tenv) <- TC.runDeclss TC.verboseEnv adefs
       case merr of
         Just err -> putStrLn $ "Type checking failed: " ++ shrink err
@@ -151,7 +150,6 @@ loop flags f names tenv = do
               Right _  -> do
                 start <- liftIO getCurrentTime
                 let e = mod $ E.eval (TC.env tenv) body
-
                 -- Let's not crash if the evaluation raises an error:
                 liftIO $ catch (putStrLn (msg ++ shrink (show e)))
                                -- (writeFile "examples/nunivalence3.ctt" (show e))

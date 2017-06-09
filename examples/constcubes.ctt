@@ -1,11 +1,11 @@
 module constcubes where
 
--- The usual identity can be seen a special case of PathP:
 Path (A : U) (a b : A) : U = PathP (<i> A) a b
 
 {-
 
-We can also define the type of squares:
+Constant Squares
+Suggested by Anders Mortberg
 
              v
         b0 -----> b1
@@ -21,32 +21,6 @@ We can also define the type of squares:
 Square (A : U) (a0 a1 b0 b1 : A) (u : Path A a0 a1) (v : Path A b0 b1)
                (r0 : Path A a0 b0) (r1 : Path A a1 b1) : U
   = PathP (<i> (Path A (r0 @ i) (r1 @ i))) u v
-
-
-
--- Bottom square : or 
-sgb (A : U) (a b : A) (p : Path A a b) : Square A a b b b p (<_> b) p (<_> b) =
-   <j i> p @ i \/ j
-
--- (i/j = 0) square : translation 
-sg0 (A : U) (a b : A) (p : Path A a b) : Square A a b a b p p (<_> a) (<_> b) =
-   <_> p
-
--- (i/j = 1) square : and
-sg1 (A : U) (a b : A) (p : Path A a a) : Square A a a a a (<_> a) p (<_> a) p =
-   <j i> p @ i /\ j
-
--- Constant square
-csg (A : U) (a : A) (p : Path A a a) : Square A a a a a p p p p =
-  <j i> comp (<_> A) (sgb A a a p @ i @ j)
-     	 [ (i = 0) -> <k> sg0 A a a p @ k @ j
-	 , (i = 1) -> <k> sg1 A a a p @ k @ j
-	 , (j = 0) -> <k> sg0 A a a p @ k @ i
-	 , (j = 1) -> <k> sg1 A a a p @ k @ i ]
-
-
-
-
 
 -- Bottom square : or 
 sb (A : U) (a : A) (p : Path A a a) : Square A a a a a p (<_> a) p (<_> a) =
@@ -69,7 +43,11 @@ cs (A : U) (a : A) (p : Path A a a) : Square A a a a a p p p p =
 	 , (j = 1) -> <k> s1 A a p @ k @ i ]
 
 
-{-              cd1
+{-       
+
+Constant Cubes
+
+	       cd1
 	  c1 -------> d1
 	  ^^	      ^^
        pc/ |ac1    pd/ |
@@ -81,12 +59,6 @@ cs (A : U) (a : A) (p : Path A a a) : Square A a a a a p p p p =
        | /	   | /
        a0 -------> b0
              ab0
-
-
-
-cube = path on k between 2 squares
-
-
 
 -}
 
@@ -156,7 +128,11 @@ cc (A : U) (a : A) (p : Path A a a) : Cube A a a a a a a a a p p p p p p p p
 	      , (k = 1) -> <l> c1 A a p @ l @ i @ j ]  
 
 
+{-
 
+Constant Tesseract
+
+-}
 
 -- Type for 4D-cubes : tesseract
 Tesseract (A : U) (a0 b0 c0 d0 a1 b1 c1 d1 a2 b2 c2 d2 a3 b3 c3 d3 : A) 
@@ -205,8 +181,6 @@ Tesseract (A : U) (a0 b0 c0 d0 a1 b1 c1 d1 a2 b2 c2 d2 a3 b3 c3 d3 : A)
     (cuac @ i) (cubd @ i))) 
     cu01 cu23 
 
-
-
 -- Test : tesseract with only a everywhere
 Tesseracta (A : U) (a : A) : Tesseract A a a a a a a a a a a a a a a a a
   (<_> a) (<_> a) (<_> a) (<_> a) (<_> a) (<_> a) (<_> a) (<_> a) 
@@ -229,7 +203,7 @@ Tesseracta (A : U) (a : A) : Tesseract A a a a a a a a a a a a a a a a a
 	      , (k = 1) -> <_> a 
 	      , (l = 0) -> <_> a
 	      , (l = 1) -> <_> a ]  
-     
+
 -- Bottom tesseract : or
 tb (A : U) (a : A) (p : Path A a a) : 
      Tesseract A a a a a a a a a a a a a a a a a  
@@ -295,3 +269,194 @@ ct (A : U) (a : A) (p : Path A a a) :
 	      , (l = 0) -> <m> t0 A a p @ m @ i @ j @ k
 	      , (l = 1) -> <m> t1 A a p @ m @ i @ j @ k ]  
 
+
+
+{-
+
+General Constant Square
+
+Suggested by José Grimm
+
+-}
+
+-- Bottom square : or 
+sgb (A : U) (a b : A) (p : Path A a b) : Square A a b b b p (<_> b) p (<_> b) =
+   <j i> p @ i \/ j
+
+-- (i/j = 0) square : translation 
+sg0 (A : U) (a b : A) (p : Path A a b) : Square A a b a b p p (<_> a) (<_> b) =
+   <_> p
+
+-- (i/j = 1) square : and
+sg1 (A : U) (a b : A) (p : Path A a b) : Square A a a a b (<_> a) p (<_> a) p =
+   <j i> p @ i /\ j
+
+-- Constant square
+csg (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : 
+    Square A a b b c p q p q =
+    <j i> comp (<_> A) (sgb A a b p @ i @ j)
+     	 [ (i = 0) -> <k> sg0 A a b p @ k @ j
+	 , (i = 1) -> <k> sg1 A b c q @ k @ j
+	 , (j = 0) -> <k> sg0 A a b p @ k @ i
+	 , (j = 1) -> <k> sg1 A b c q @ k @ i ]
+
+cs2 (A : U) (a : A) (p : Path A a a) : Square A a a a a p p p p = 
+    csg A a a a p p
+
+-- General Constant Cube
+
+-- Bottom cube : or
+cgb (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : 
+     Cube A a b b c b c c c 
+     p q p q 
+     q (<_> c) q (<_> c)
+     (csg A a b c p q) (sgb A b c q)
+     p q q (<_> c)
+     (csg A a b c p q) (sgb A b c q) (csg A a b c p q) (sgb A b c q) = 
+     <k j i> csg A a b c p q @ (i \/ j \/ k) @ ((i \/ j) /\ (i \/ k) /\ (j \/ k))
+
+-- (i/j/k = 0) cube : translation 
+cg0 (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) :
+     Cube A a b b c a b b c 
+     p q p q
+     p q p q
+     (csg A a b c p q) (csg A a b c p q)
+     (<_> a) (<_> b) (<_> b) (<_> c)
+     (sg0 A a b p) (sg0 A b c q) (sg0 A a b p) (sg0 A b c q) = 
+     <_> csg A a b c p q
+
+-- (i/j/k = 1) cube : and
+cg1 (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) :
+     Cube A a b b b a b b c
+     p (<_> b) p (<_> b)
+     p q p q
+     (sgb A a b p) (csg A a b c p q)
+     (<_> a) (<_> b) (<_> b) q
+     (sg0 A a b p) (sg1 A b c q) (sg0 A a b p) (sg1 A b c q) = 
+     <k j i> csg A a b c p q @ (i /\ j /\ k) @ (i \/ j)
+
+-- Constant cube
+ccg (A : U) (a b c d : A) (p : Path A a b) (q : Path A b c) (r : Path A c d) : 
+    Cube A a b b c b c c d p q p q q r q r (csg A a b c p q) (csg A b c d q r) 
+    p q q r (csg A a b c p q) (csg A b c d q r) (csg A a b c p q) (csg A b c d q r) = 
+  <k j i> comp (<_> A) (cgb A a b c p q @ i @ j @ k)
+      	      [ (i = 0) -> <l> cg0 A a b c p q @ l @ j @ k
+	      , (i = 1) -> <l> cg1 A b c d q r @ l @ j @ k
+	      , (j = 0) -> <l> cg0 A a b c p q @ l @ i @ k
+	      , (j = 1) -> <l> cg1 A b c d q r @ l @ i @ k
+	      , (k = 0) -> <l> cg0 A a b c p q @ l @ i @ j
+	      , (k = 1) -> <l> cg1 A b c d q r @ l @ i @ j ] 
+
+cc2 (A : U) (a : A) (p : Path A a a) : Cube A a a a a a a a a p p p p p p p p 
+    (cs A a p) (cs A a p) p p p p (cs A a p) (cs A a p) (cs A a p) (cs A a p) = 
+    ccg A a a a a p p p
+
+
+-- General Constant Tesseract
+
+-- Bottom tesseract : or
+tgb (A : U) (a b c d : A) 
+    (p : Path A a b) (q : Path A b c) (r : Path A c d) : 
+     Tesseract A a b b c b c c d b c c d c d d d  
+     p q p q q r q r (csg A a b c p q) (csg A b c d q r)
+     p q q r 
+     (csg A a b c p q) (csg A b c d q r) (csg A a b c p q) (csg A b c d q r) 
+     (ccg A a b c d p q r)
+     q r q r r (<_> d) r (<_> d) (csg A b c d q r) (sgb A c d r)
+     q r r (<_> d) 
+     (csg A b c d q r) (sgb A c d r) (csg A b c d q r) (sgb A c d r) 
+     (cgb A b c d q r)
+     p q q r q r r (<_> d)
+     (csg A a b c p q) (csg A b c d q r) (csg A a b c p q) (csg A b c d q r) 
+     (csg A b c d q r) (sgb A c d r) (csg A b c d q r) (sgb A c d r) 
+     (csg A a b c p q) (csg A b c d q r) (csg A b c d q r) (sgb A c d r)
+     (ccg A a b c d p q r) (cgb A b c d q r) 
+     (ccg A a b c d p q r) (cgb A b c d q r) 
+     (ccg A a b c d p q r) (cgb A b c d q r) = 
+     <l k j i> ccg A a b c d p q r @ (i \/ j \/ k \/ l) 
+     	@ ((i \/ j \/ k) /\ (i \/ j \/ l) /\ (i \/ k \/ l) /\ (j \/ k \/ l))
+     	@ ((i \/ j) /\ (i \/ k) /\ (i \/ l) /\ (j \/ k) /\ (j \/ l) /\ (k \/ l))
+
+-- (i/j/k = 0) tesseract : translation 
+tg0 (A : U) (a b c d : A) 
+    (p : Path A a b) (q : Path A b c) (r : Path A c d) :
+     Tesseract A a b b c b c c d a b b c b c c d 
+     p q p q q r q r (csg A a b c p q) (csg A b c d q r)
+     p q q r 
+     (csg A a b c p q) (csg A b c d q r) (csg A a b c p q) (csg A b c d q r) 
+     (ccg A a b c d p q r)
+     p q p q q r q r (csg A a b c p q) (csg A b c d q r)
+     p q q r 
+     (csg A a b c p q) (csg A b c d q r) (csg A a b c p q) (csg A b c d q r) 
+     (ccg A a b c d p q r)
+     (<_> a) (<_> b) (<_> b) (<_> c) (<_> b) (<_> c) (<_> c) (<_> d)
+     (sg0 A a b p) (sg0 A b c q) (sg0 A a b p) (sg0 A b c q) 
+     (sg0 A b c q) (sg0 A c d r) (sg0 A b c q) (sg0 A c d r) 
+     (sg0 A a b p) (sg0 A b c q) (sg0 A b c q) (sg0 A c d r) 
+     (cg0 A a b c p q) (cg0 A b c d q r) 
+     (cg0 A a b c p q) (cg0 A b c d q r) 
+     (cg0 A a b c p q) (cg0 A b c d q r) = 
+     <_> ccg A a b c d p q r
+
+-- (i/j/k = 1) tesseract : and
+tg1 (A : U) (a b c d : A) 
+    (p : Path A a b) (q : Path A b c) (r : Path A c d) :
+     Tesseract A a b b c b c c c a b b c b c c d 
+     p q p q q (<_> c) q (<_> c) (csg A a b c p q) (sgb A b c q)
+     p q q (<_> c) 
+     (csg A a b c p q) (sgb A b c q) (csg A a b c p q) (sgb A b c q) 
+     (cgb A a b c p q)
+     p q p q q r q r (csg A a b c p q) (csg A b c d q r)
+     p q q r 
+     (csg A a b c p q) (csg A b c d q r) (csg A a b c p q) (csg A b c d q r) 
+     (ccg A a b c d p q r)
+     (<_> a) (<_> b) (<_> b) (<_> c) (<_> b) (<_> c) (<_> c) r
+     (sg0 A a b p) (sg0 A b c q) (sg0 A a b p) (sg0 A b c q) 
+     (sg0 A b c q) (sg1 A c d r) (sg0 A b c q) (sg1 A c d r) 
+     (sg0 A a b p) (sg0 A b c q) (sg0 A b c q) (sg1 A c d r)
+     (cg0 A a b c p q) (cg1 A b c d q r) 
+     (cg0 A a b c p q) (cg1 A b c d q r) 
+     (cg0 A a b c p q) (cg1 A b c d q r) =  
+     <l k j i> ccg A a b c d p q r @ (i /\ j /\ k /\ l) @ (i \/ j \/ k) 
+       	      	 @ ((i \/ j) /\ (i \/ k) /\ (j \/ k))
+
+-- Constant tesseract
+ctg (A : U) (a b c d e : A) 
+    (p : Path A a b) (q : Path A b c) (r : Path A c d) (s : Path A d e) : 
+     Tesseract A a b b c b c c d b c c d c d d e
+     p q p q q r q r (csg A a b c p q) (csg A b c d q r)
+     p q q r 
+     (csg A a b c p q) (csg A b c d q r) (csg A a b c p q) (csg A b c d q r) 
+     (ccg A a b c d p q r)
+     q r q r r s r s (csg A b c d q r) (csg A c d e r s)
+     q r r s 
+     (csg A b c d q r) (csg A c d e r s) (csg A b c d q r) (csg A c d e r s) 
+     (ccg A b c d e q r s)
+     p q q r q r r s 
+     (csg A a b c p q) (csg A b c d q r) (csg A a b c p q) (csg A b c d q r) 
+     (csg A b c d q r) (csg A c d e r s) (csg A b c d q r) (csg A c d e r s) 
+     (csg A a b c p q) (csg A b c d q r) (csg A b c d q r) (csg A c d e r s)
+     (ccg A a b c d p q r) (ccg A b c d e q r s) 
+     (ccg A a b c d p q r) (ccg A b c d e q r s) 
+     (ccg A a b c d p q r) (ccg A b c d e q r s) = 
+     <l k j i> comp (<_> A) (tgb A a b c d p q r @ i @ j @ k @ l)
+      	      [ (i = 0) -> <m> tg0 A a b c d p q r @ m @ j @ k @ l
+	      , (i = 1) -> <m> tg1 A b c d e q r s @ m @ j @ k @ l
+	      , (j = 0) -> <m> tg0 A a b c d p q r @ m @ i @ k @ l
+	      , (j = 1) -> <m> tg1 A b c d e q r s @ m @ i @ k @ l
+	      , (k = 0) -> <m> tg0 A a b c d p q r @ m @ i @ j @ l
+	      , (k = 1) -> <m> tg1 A b c d e q r s @ m @ i @ j @ l 
+	      , (l = 0) -> <m> tg0 A a b c d p q r @ m @ i @ j @ k
+	      , (l = 1) -> <m> tg1 A b c d e q r s @ m @ i @ j @ k ] 
+
+ct2 (A : U) (a : A) (p : Path A a a) : 
+   Tesseract A a a a a a a a a a a a a a a a a
+     p p p p p p p p (cs A a p) (cs A a p)
+     p p p p (cs A a p) (cs A a p) (cs A a p) (cs A a p) (cc A a p)
+     p p p p p p p p (cs A a p) (cs A a p)
+     p p p p (cs A a p) (cs A a p) (cs A a p) (cs A a p) (cc A a p)
+     p p p p p p p p 
+     (cs A a p) (cs A a p) (cs A a p) (cs A a p) (cs A a p) (cs A a p) 
+     (cs A a p) (cs A a p) (cs A a p) (cs A a p) (cs A a p) (cs A a p)
+     (cc A a p) (cc A a p) (cc A a p) (cc A a p) (cc A a p) (cc A a p) = 
+     ctg A a a a a a p p p p

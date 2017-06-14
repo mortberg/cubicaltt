@@ -43,7 +43,7 @@ idEquiv (A : U) : equiv A A = (idfun A,idIsEquiv A)
 invEquiv (A B : U) (e : equiv A B) (y : B) : A =
   (e.2 y).1.1
 
--- Exercises (easy); the inverse is really the inverse
+-- Exercises (easy): the inverse is really the inverse
 retEq (A B : U) (e : equiv A B) (y : B) : Path B (e.1 (invEquiv A B e y)) y = undefined
 secEq (A B : U) (e : equiv A B) (x : A) : Path A (invEquiv A B e (e.1 x)) x = undefined
 
@@ -52,7 +52,7 @@ secEq (A B : U) (e : equiv A B) (x : A) : Path A (invEquiv A B e (e.1 x)) x = un
 isPropIsContr (A : U) : isProp (isContr A) = undefined
 
 -- Being an equivalence is hence a proposition. Note that propositions
--- in HoTT is different from Prop of Coeq as we cannot erase them. If
+-- in HoTT is different from Prop of Coq as we cannot erase them. If
 -- we erase the proof that a map is an equivalence we cannot invert
 -- it!
 isPropIsEquiv (A B : U) (f : A -> B) : isProp (isEquiv A B f) =
@@ -129,9 +129,9 @@ equivalence of types:
        (A = B)  ~  (A ~ B)
 
 Glueing is a weaker form of this for producing non-trivial equalities
-from equivalences. In particular Glueing gives a map from Equiv(A,B)
-to A = B. This weak form of univalence is useful for developing a lot
-of examples.
+from equivalences. In particular Glueing gives a map from equiv A B to
+A = B. This weak form of univalence is useful for developing a lot of
+examples.
 
 If e : equiv A B then we can get a path between A and B by
 
@@ -174,7 +174,7 @@ notEq : Path U bool bool =
   <i> Glue bool [ (i = 0) -> (bool,notEquiv)
                 , (i = 1) -> (bool,idEquiv bool) ]
 
--- Transpo
+-- Transporting true along this equality gives false
 testFalse : bool = transport notEq true
 
 
@@ -251,14 +251,15 @@ substEquiv (P : U -> U) (A B : U) (e : equiv A B) (h : P A) : P B =
 
 -- substEquiv Monoid nat binnat nat_equiv_binnat monoid_nat : Monoid binnat
 
--- We can use this to do some generic programming:
+-- We can use this to do generic programming:
 data food = cheese | beef | chicken
 
 -- Predicate encoding which food someone eats
 eats (X : U) : U = list (and food X)
 
-anders : eats bool = cons (cheese,true) (cons (beef,false)
-                          (cons (chicken,false) nil))
+anders : eats bool = cons (cheese,true)
+                    (cons (beef,false)
+                    (cons (chicken,false) nil))
 
 -- Cyril eats the complement of Anders
 cyril : eats bool = substEquiv eats bool bool notEquiv anders
@@ -278,11 +279,15 @@ cyril : eats bool = substEquiv eats bool bool notEquiv anders
 --   https://groups.google.com/forum/#!topic/homotopytypetheory/j2KBIvDw53s
 
 -- The idea is to reduce univalence to two simple axioms:
--- ua (A B : U) (e : equiv A B) : Path U A B =
+--
+--   ua (A B : U) (e : equiv A B) : Path U A B
+--
 -- and
--- uabeta (A B : U) (e : equiv A B) : Path (A -> B) (trans A B (ua A B e)) e.1 =
+--
+--   uabeta (A B : U) (e : equiv A B) : Path (A -> B) (trans A B (ua A B e)) e.1
 
--- Exercise: prove the computation rule for ua (hint: use fill with the empty system)
+-- Exercise: prove the computation rule for ua
+-- (hint: use fill with the empty system)
 uabeta (A B : U) (e : equiv A B) : Path (A -> B) (trans A B (ua A B e)) e.1 = undefined
 
 -- One would expect this computation rule to hold judgmentally, but it
@@ -290,11 +295,10 @@ uabeta (A B : U) (e : equiv A B) : Path (A -> B) (trans A B (ua A B e)) e.1 = un
 -- compositions with the empty system.
 -- Open problem: construct a type theory where this holds judgmentally.
 
--- A further reduction of these to even simpler axioms have recently
--- been found by Ian Orton and Andrew Pitts:
+-- A further reduction of these axioms to even simpler axioms have
+-- recently been found by Ian Orton and Andrew Pitts:
 --
 -- http://types2017.elte.hu/proc.pdf#page=93
-
 
 data Unit = tt
 
@@ -316,6 +320,29 @@ unitbeta (A : U) (a : A) :
 flipbeta (A B : U) (C : A -> B -> U) (a : A) (b : B) (c : C a b) :
   Path ((b : B) * (a : A) * C a b)
        (transport (flip A B C) (a,b,c)) (b,a,c) = undefined
+
+
+
+--------------------------------------------------------------------------
+{-
+
+What I didn't talk about:
+
+  o Id types: we can define a type from Path for which the
+    computation rule for J holds judgmentally. See
+    examples/idtypes.ctt
+
+  o Higher inductive types: we can define some higher inductive types
+    directly in the system. Non-recursive HITs like the circle or the
+    spheres work correctly, but for more complicated HITs like
+    propositional truncations or pushouts the composition operation
+    doesn't work properly. We are currently working on fixing these
+    issues.
+
+  o The model in cubical sets with connections. For details see the
+    paper.
+
+-}
 
 
                                --------------

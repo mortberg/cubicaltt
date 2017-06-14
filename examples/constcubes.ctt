@@ -1,3 +1,6 @@
+-- This file contains types for 2D, 3D and 4D cubes, with examples of constant
+-- cubes (the same value everywhere or the same path on each 2D edge) and a
+-- small generalisation with different end points
 module constcubes where
 
 Path (A : U) (a b : A) : U = PathP (<i> A) a b
@@ -72,6 +75,56 @@ Cube (A : U) (a0 b0 c0 d0 a1 b1 c1 d1 : A)
       (sac : Square A a0 c0 a1 c1 ac0 ac1 pa pc) (sbd : Square A b0 d0 b1 d1 bd0 bd1 pb pd) : U = 
         PathP (<i> (Square A (pa @ i) (pb @ i) (pc @ i) (pd @ i) 
  	(sab @ i) (scd @ i) (sac @ i) (sbd @ i))) s0 s1
+
+Fd (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) :
+	   Square A a b b c p q p q = 
+	   <j i> comp (<_> A) (p @ i \/ j)
+	      [ (i = 0) -> <k> p @ j
+	      , (i = 1) -> <k> q @ k /\ j
+	      , (j = 0) -> <k> p @ i
+	      , (j = 1) -> <k> q @ k /\ i ]
+
+
+B (A : U) (a b c d : A) (p : Path A a b) (q : Path A b c) (r : Path A c d) : 
+       	    Cube A b b b b b c c d 
+	    (<_> b) (<_> b) (<_> b) (<_> b) q r q r
+	    (<_> <_> b) (Fd A b c d q r)
+	    (<_> b) q q (<i> (Fd A b c d q r @ i @ i)) 
+	    (<i j> q @ i /\ j) (<i j> ((Fd A b c d q r) @ i @ j /\ i)) 
+	    (<i j> q @ i /\ j) (<i j> ((Fd A b c d q r) @ i @ j /\ i)) = 
+	    <k j i> (Fd A b c d q r) @ (i /\ j /\ k) @ (k /\ (i \/ j))
+
+Bla (A : U) (a b c d : A) (p : Path A a b) (q : Path A b c) (r : Path A c d) :
+    Cube A a b b c b c c d
+    p q p q q r q r 
+    (Fd A a b c p q) (Fd A b c d q r)
+    p q q r 
+    (Fd A a b c p q) (Fd A b c d q r)
+    (Fd A a b c p q) (Fd A b c d q r) =
+    let Ab : Cube A a b b b a b b c
+    	    p (<_> b) p (<_> b) p q p q
+	    (<i j> p @ i \/ j) (Fd A a b c p q)
+	    (<_> a) (<_> b) (<_> b) q
+	    (<_> p) (<i j> q @ i /\ j)
+	    (<_> p) (<i j> q @ i /\ j) = 
+	    <k j i> (Fd A a b c p q) @ (i /\ j /\ k) @ (i \/ j)
+
+
+
+    in <i j k> comp (<_> A) (p @ i \/ j \/ k)
+       [ (k = 0) -> <l> Ab @ l @ i @ j
+       , (k = 1) -> <l> (Fd A b c d q r @ i /\ j /\ l @ l /\ (i \/ j))
+       , (j = 0) -> <l> Ab @ l @ i @ k
+       , (j = 1) -> <l> (Fd A b c d q r @ i /\ k /\ l @ l /\ (i \/ k))
+       , (i = 0) -> <l> Ab @ l @ j @ k
+       , (i = 1) -> <l> (Fd A b c d q r @ k /\ j /\ l @ l /\ (k \/ j))]
+
+    
+
+
+
+
+
 
 -- Test : cube with only a everywhere
 Cubea (A : U) (a : A) : Cube A a a a a a a a a 
@@ -271,9 +324,24 @@ ct (A : U) (a : A) (p : Path A a a) :
 
 
 
+
+
+
+
+
+
 {-
 
-General Constant Square
+General Constant Squares
+
+        q
+    b -----> c
+    ^        ^
+    |	     |
+  p |	     | q
+    |	     |
+    a -----> b
+        p
 
 Suggested by José Grimm
 

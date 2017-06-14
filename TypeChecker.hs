@@ -516,6 +516,20 @@ infer e = case e of
     check (VId va vu vx) p
     vp <- evalTyping p
     return (app (app vc vx) vp)
+  IdComp a u v w p q -> do
+    check VU a
+    va <- evalTyping a
+    check va u
+    vu <- evalTyping u
+    check va v
+    vv <- evalTyping v
+    check va w
+    vw <- evalTyping w
+    let vIduv = VId va vu vv
+    let vIdvw = VId va vv vw
+    check vIduv p
+    check vIdvw q
+    return (VId va vu vw)
   _ -> throwError ("infer " ++ show e)
 
 -- Not used since we have U : U

@@ -85,6 +85,7 @@ instance Nominal Val where
     VIdPair u us            -> support (u,us)
     VId a u v               -> support (a,u,v)
     VIdJ a u c d x p        -> support [a,u,c,d,x,p]
+    VIdComp a u v w p q     -> support [a,u,v,w,p,q]
 
   act u (i, phi) | i `notElem` support u = u
                  | otherwise =
@@ -123,6 +124,8 @@ instance Nominal Val where
          VId a u v               -> VId (acti a) (acti u) (acti v)
          VIdJ a u c d x p        ->
            idJ (acti a) (acti u) (acti c) (acti d) (acti x) (acti p)
+         VIdComp a u v w p q     ->
+           idComp (acti a) (acti u) (acti v) (acti w) (acti p) (acti q)
 
   -- This increases efficiency as it won't trigger computation.
   swap u ij@(i,j) =
@@ -157,6 +160,8 @@ instance Nominal Val where
          VId a u v               -> VId (sw a) (sw u) (sw v)
          VIdJ a u c d x p        ->
            VIdJ (sw a) (sw u) (sw c) (sw d) (sw x) (sw p)
+         VIdComp a u v w p q     ->
+           VIdComp (sw a) (sw u) (sw v) (sw w) (sw p) (sw q)
 
 -----------------------------------------------------------------------
 -- The evaluator
@@ -198,6 +203,8 @@ eval rho@(Env (_,_,_,Nameless os)) v = case v of
   IdPair b ts         -> VIdPair (eval rho b) (evalSystem rho ts)
   IdJ a t c d x p     -> idJ (eval rho a) (eval rho t) (eval rho c)
                              (eval rho d) (eval rho x) (eval rho p)
+  IdComp a u v w p q  -> idComp (eval rho a) (eval rho u) (eval rho v)
+                                (eval rho w) (eval rho p) (eval rho q)
   _                   -> error $ "Cannot evaluate " ++ show v
 
 evals :: Env -> [(Ident,Ter)] -> [(Ident,Val)]
@@ -286,6 +293,7 @@ inferType v = case v of
 --  VUnGlueElem _ b _  -> b   -- This is wrong! Store the type??
   VUnGlueElemU _ b _ -> b
   VIdJ _ _ c _ x p -> app (app c x) p
+  VIdComp a u _ w _ _ -> VId a u w
   _ -> error $ "inferType: not neutral " ++ show v
 
 (@@) :: ToFormula a => Val -> a -> Val
@@ -443,6 +451,22 @@ idJ a v c d x p = case p of
 isIdPair :: Val -> Bool
 isIdPair VIdPair{} = True
 isIdPair _         = False
+
+idComp :: Val -> Val -> Val -> Val -> Val -> Val -> Val
+idComp a u v w pId qId = case (pId, qId) of
+  (VIdPair p ps, qId) | eps `member` ps -> qId
+  (pId, VIdPair q qs) | eps `member` qs -> pId
+  (VIdPair p ps, VIdPair q qs)          ->
+    let i:j:_ = freshs [a,u,v,w,pId,qId] in
+    let
+      rs = unionSystem
+        (unionSystem
+          (border (q @@ (Atom i :/\: Atom j)) ps)
+          (border (p @@ (Atom i :/\: NegAtom j)) qs))
+        (mkSystem [((i ~> 0), p @@ NegAtom j), ((i ~> 1), q @@ Atom j)])
+    in
+    VIdPair (VPLam i (comp j a v rs)) (joinSystem (border ps qs))
+  _ -> VIdComp a u v w pId qId
 
 
 -------------------------------------------------------------------------------
@@ -897,6 +921,8 @@ instance Convertible Val where
       (VId a u v,VId a' u' v')               -> conv ns (a,u,v) (a',u',v')
       (VIdJ a u c d x p,VIdJ a' u' c' d' x' p') ->
         conv ns [a,u,c,d,x,p] [a',u',c',d',x',p']
+      (VIdComp a u b w p q,VIdComp a' u' b' w' p' q') ->
+        conv ns [a,u,b,w,p,q] [a',u',b',w',p',q']
       _                                      -> False
 
 instance Convertible Ctxt where

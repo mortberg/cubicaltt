@@ -1,0 +1,253 @@
+module idcomp where
+
+import prelude
+import idtypes
+
+-- Built in composition for Id
+
+-- Cubicaltt now includes a primitive composition operation for Id types
+-- Recall that the identity type is modelled by pairs:
+--
+--     G |- (p,s) : Id A u v
+--
+-- where:
+--
+--     G |- p : Path A u v,   G |- s : F   and   G,s |- p = refl
+--
+-- Here F is the face lattice. We can define composition as follows, given:
+--
+--     (p,s) : Id A u v
+--     (q,t) : Id A v w
+--
+-- Define:
+--
+--     r = <i> comp (<_> A) v
+--              [ s \/ (i=1)  ->  q @ (i /\  j)
+--              , t \/ (i=0)  ->  p @ (i \/ -j) ]
+--
+-- It can be checked that (r , s /\ t) : Id A u w and that when p = refl then
+-- r = q and when q = refl then r = p.
+--
+-- Since we can't manipluate face formulae in cubicaltt we cannot define this
+-- operation and so it has been added as a primitive.
+
+--------------------------------------------------------------------------------
+-- Left and right unit laws
+
+-- Using the primative composition we have the left and right
+-- unit laws both proved with refl:
+compReflL (A : U) (u v : A) (p : Id A u v)
+  : Id (Id A u v) p (idComp A u u v (refId A u) p) = refId (Id A u v) p
+
+compReflR (A : U) (u v : A) (p : Id A u v)
+  : Id (Id A u v) p (idComp A u v v p (refId A v)) = refId (Id A u v) p
+
+-- This is not the case with the defined composition.
+-- Here the left unit law requires using J
+compReflL' (A : U) (u v : A) (p : Id A u v)
+  : Id (Id A u v) p (compId A u u v (refId A u) p) =
+    -- Does not typecheck: refId (Id A u v) p
+    idJ A u
+      (\(v : A)(p : Id A u v) -> Id (Id A u v) p (compId A u u v (refId A u) p))
+      (refId (Id A u u) (refId A u)) v p
+
+-- Whereas the right unit rule is still proved with refl
+compReflR' (A : U) (u v : A) (p : Id A u v)
+  : Id (Id A u v) p (compId A u v v p (refId A v)) = refId (Id A u v) p
+
+-- We could have also defined compId to have the left unit law be refl,
+-- or to have neither, but not to have both. These different definitions
+-- correspond to the three different definitions of p.q discussed after
+-- Lemma 2.1.2 in the HoTT book. Using pattern matching the three
+-- possible definitions are:
+--
+--     compId refl  q   = q
+--     compId  p   refl = p     -- The definition given in idtypes.ctt
+--     compId refl refl = refl
+--
+
+--------------------------------------------------------------------------------
+-- Inverting distributes over composition
+
+-- Given p : a = b and q : b = c we can show:
+--
+--     (p . q)^-1  =  q^-1 . p^-1
+--
+-- This proof is easier if we use the primitive version of composition
+-- since if we use idJ to reduce q to refl then we get:
+--
+--     (p . refl)^-1  =  refl^-1 . p^-1
+--
+-- Since refl^-1 = refl definitionally the goal reduces to:
+--
+--     (p . refl)^-1  =  refl . p^-1
+--
+-- Using the primitive composition both p . refl and refl . p^-1 will
+-- reduce and leave the goal as:
+--
+--     p^-1  =  p^-1
+--
+-- which is easily proved by refl. However, using the defined
+-- composition only one side will reduce and we will need to perform
+-- another application of idJ on p. The situation where we first
+-- induct on p is symmetric.
+
+-- The lemma we want to show
+InvComp (A : U) (a b : A) (p : Id A a b) (c : A) (q : Id A b c) : U =
+  Id (Id A c a)
+    (symId A a c (idComp A a b c p q))
+    (idComp A c b a (symId A b c q) (symId A a b p))
+
+-- Proved using a single application of idJ
+invComp (A : U) (a b c : A) (p : Id A a b) (q : Id A b c) : InvComp A a b p c q =
+  idJ A b (InvComp A a b p) (refId (Id A b a) (symId A a b p)) c q
+
+-- The lemma using compId
+InvComp' (A : U) (a b : A) (p : Id A a b) (c : A) (q : Id A b c) : U =
+  Id (Id A c a)
+    (symId A a c (compId A a b c p q))
+    (compId A c b a (symId A b c q) (symId A a b p))
+
+-- Now requires two applications of idJ
+invComp' (A : U) (a b c : A) (p : Id A a b) (q : Id A b c) : InvComp' A a b p c q =
+  idJ A b (InvComp' A a b p)
+    (idJ A a
+      (\(b : A)(p : Id A a b) -> InvComp' A a b p b (refId A b))
+        (refId (Id A a a) (refId A a)) b p) c q
+
+
+--------------------------------------------------------------------------------
+-- More examples/experiements
+
+-- Weak refl
+wrefId (A : U)(a : A) : Id A a a = idC (<_> a) []
+
+s2w (A : U)(a : A) : Path (Id A a a) (refId A a) (wrefId A a)  =
+  <i> idC (<_> a) [(i=0) -> a]
+
+w2s (A : U)(a : A) : Path (Id A a a) (wrefId A a) (refId A a)  =
+  <i> idC (<_> a) [(i=1) -> a]
+
+-- We now have the following two squares:
+--   (The lines in the x-direction are regular paths,
+--    and the lines in the y-direction are Id paths)
+--
+--                 refl
+--             a -------> a
+--             |          |
+--       refId |          | wrefId
+--             v   refl   v
+--             a -------> a
+--             |          |
+--      wrefId |          | refId
+--             v   refl   v
+--             a -------> a
+--
+-- We can now compose in the vertical direction to get a square:
+--
+--                 refl
+--             a -------> a
+--  refId      |          | wrefId
+--   . wrefId  |          |   . refId
+--             v   refl   v
+--             a -------> a
+--
+-- where p . q is the composition of p followed by q.
+
+-- If . is the built-in composition then both sides are wrefId
+-- and we get the following:
+
+square (A : U)(a : A) : Path (Id A a a) (wrefId A a) (wrefId A a) =
+  <i> idComp A a a a (s2w A a @ i) (w2s A a @ i)
+
+-- Gives:
+--         <i> idC (<j> comp (<_> A) a
+--               [ (i = 0) -> <_> a
+--               , (i = 1) -> <_> a
+-- 		 , (j = 0) -> <_> a
+-- 		 , (j = 1) -> <_> a ]) []
+
+-- Using the defined composition the left hand side of the square
+-- is not definitionally equal to wref and so results in a path with
+-- a starting point containing a trvial comp.
+
+wrefCompId (A : U)(a : A) : Id A a a =
+  idC (<i> comp (<_> A) a [(i=0) -> <_> a, (i=1) -> <_> a]) []
+
+square' (A : U)(a : A) : Path (Id A a a) (wrefCompId A a) (wrefId A a) =
+  <i> compId A a a a (s2w A a @ i) (w2s A a @ i)
+
+-- Gives:
+--         <i> idC (<j> comp (<_> A) a
+--               [ (i = 1) -> <_> a
+--               , (j = 0) -> <_> a
+--               , (j = 1) -> <_> a ]) []
+--
+-- Note that here we only have 3 out of 4 edges defined, as opposed to
+-- having all 4 defined previously.
+
+
+-- Consider the following type:
+data IdCompTest = a | b
+  | sq1 <i j> [ (i=0) -> a, (i=1) -> a, (j=0) -> a, (j=1) -> a ]
+  | sq2 <i j> [ (j=0) -> a, (j=1) -> b ]
+
+-- We can visualise sq1 and sq2 as two squares with a common
+-- face, like so:
+--
+--                 refl
+--             a -------> a
+--             |          |
+--       refl  |          | refl
+--             v   refl   v
+--             a -------> a
+--             |          |
+--             |          |
+--             v   refl   v
+--             b -------> b
+--
+-- Encode the top square as p1:
+
+p1 : Path (Id IdCompTest a a) (refId IdCompTest a) (refId IdCompTest a) =
+  <i> idC (<j> sq1 {IdCompTest} @ i @ j) [ (i=0) -> a, (i=1) -> a ]
+
+-- And the left and right sides of the bottom square as:
+
+id1 : Id IdCompTest a b = idC (<j> sq2 {IdCompTest} @ 0 @ j) []
+id2 : Id IdCompTest a b = idC (<j> sq2 {IdCompTest} @ 1 @ j) []
+
+-- The bottom square:
+
+p2 : Path (Id IdCompTest a b) id1 id2 =
+  <i> idC (<j> sq2 {IdCompTest} @ i @ j) []
+
+-- We can now compose in the vertical direction to get a square:
+--
+--                 refl
+--             a -------> a
+--   refId     |          |  refId
+--    . id1    |          |    . id2
+--             v   refl   v
+--             b -------> b
+--
+-- where p . q is the composition of p followed by q.
+--
+-- This is nicely handled by the primitive composition:
+
+p3 : Path (Id IdCompTest a b) id1 id2 =
+  <i> idComp IdCompTest a a b (p1 @ i) (p2 @ i)
+
+-- However, the defined composiiton of refId and id1/id2
+-- doesn't reduce definitionally and so we get a more complicated
+-- type for the composite squre p3'
+
+id1' : Id IdCompTest a b = compId IdCompTest a a b (wrefId IdCompTest a) id1
+id2' : Id IdCompTest a b = compId IdCompTest a a b (wrefId IdCompTest a) id2
+
+p3' : Path (Id IdCompTest a b) id1' id2' =
+  <i> compId IdCompTest a a b (p1 @ i) (p2 @ i)
+
+-- N.B. this fails because of the way that we defined compId, we
+-- could have defined compId to reduce on refId and p, but then
+-- we could construct a symmetric problem. The key thing is that
+-- the primitive composition will reduce on both sides.

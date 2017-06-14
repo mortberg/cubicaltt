@@ -10,21 +10,21 @@ assumed.
 
 The contents of the lectures are:
 
-1. **lecture1.ctt**
+###  lecture1.ctt
 * Basic features of the base type theory
 * A little bit of Path types (Path abstraction and application)
 
-2. **lecture2.ctt**
+### lecture2.ctt
 * More on Path types (symmetry and connections)
 * Compositions
 
-3. **lecture3.ctt**
+### lecture3.ctt
 * Higher dimensional compositions
 * Transport and J for Path types
 * Fill
 * H-levels (contractible types, propositions, sets, groupoids...)
 
-4. **lecture4.ctt**
+### lecture4.ctt
 * Equivalences
 * Glue types
 * Proofs of the univalence axiom

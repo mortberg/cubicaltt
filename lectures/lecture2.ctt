@@ -275,10 +275,10 @@ compinv (A : U) (a b : A) (p : Path A a b) : Path A a a =
 ex (A : U) (a b : A) (p : Path A a b) :
   Path (Path A a a) (compinv A a b p) (<j> a) = undefined
 
--- Hint: construct a cube with a square with these as sides as its
--- missing top and compute it as a composition (the exercise about
--- which squares one can make using /\, \/ and - will be very useful
--- for this).
+-- Hint: draw a cube with a square with these as sides as its missing
+-- top and compute it as a composition (the exercise about which
+-- squares one can make using /\, \/ and - will be very useful for
+-- this).
 
 
 -- We can use Path types and compositions to prove basic results about

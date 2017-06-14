@@ -13,37 +13,65 @@ module lecture4 where
 
 import lecture3
 
+--------------------------------------------------------------------------
+-- Equivalences
+
+-- For more results about equivalences see chapter 4 of the HoTT book.
+
 -- The fiber/preimage of a map:
 fiber (A B : U) (f : A -> B) (y : B) : U =
   (x : A) * Path B y (f x)
 
--- A map is an equivalence if it has contractible fibers
-isEquiv (A B : U) (f : A -> B) : U = (y : B) -> isContr (fiber A B f y)
+-- A map is an equivalence
+isEquiv (A B : U) (f : A -> B) : U =
+  (y : B) -> isContr (fiber A B f y)
 
--- A and B are equivalent if there is an equivalence between them
 equiv (A B : U) : U = (f : A -> B) * isEquiv A B f
 
+-- Recall:
+-- contrSingl (A : U) (a b : A) (p : Path A a b) :
+--            Path (singl A a) (a,<i> a) (b,p) =
+
+-- The identity function is an equivalence
 idIsEquiv (A : U) : isEquiv A A (idfun A) =
-  \(a : A) -> ((a, <i> a)
-              ,\(z : fiber A A (idfun A) a) -> contrSingl A a z.1 z.2)
+  \(a : A) -> ((a,<i> a),
+         \(z : fiber A A (idfun A) a) -> contrSingl A a z.1 z.2)
 
-idEquiv (A : U) : equiv A A = (idfun A, idIsEquiv A)
+idEquiv (A : U) : equiv A A = (idfun A,idIsEquiv A)
 
--- inverse of equivalence
-invEquiv (A B : U) (e : equiv A B) (y : B) : A = (e.2 y).1.1
+-- Compute the inverse of an equivalence
+invEquiv (A B : U) (e : equiv A B) (y : B) : A =
+  (e.2 y).1.1
 
--- exercises
+-- Exercises (easy); the inverse is really the inverse
 retEq (A B : U) (e : equiv A B) (y : B) : Path B (e.1 (invEquiv A B e y)) y = undefined
 secEq (A B : U) (e : equiv A B) (x : A) : Path A (invEquiv A B e (e.1 x)) x = undefined
 
+-- Exercise (hard): prove that being contractible is a proposition.
+-- (hint: use a composition)
+isPropIsContr (A : U) : isProp (isContr A) = undefined
 
--- The grad lemma
-lemIso (A B : U) (f : A -> B) (g : B -> A)
+-- Being an equivalence is hence a proposition. Note that propositions
+-- in HoTT is different from Prop of Coeq as we cannot erase them. If
+-- we erase the proof that a map is an equivalence we cannot invert
+-- it!
+isPropIsEquiv (A B : U) (f : A -> B) : isProp (isEquiv A B f) =
+  \(u0 u1 : isEquiv A B f) ->
+  <i> \(y : B) -> isPropIsContr (fiber A B f y) (u0 y) (u1 y) @ i
+
+-- The "grad lemma": any isomorphism is an equivalence
+gradLemma (A B : U) (f : A -> B) (g : B -> A)
+       (s : (y : B) -> Path B (f (g y)) y)
+       (t : (x : A) -> Path A (g (f x)) x) : isEquiv A B f =
+  \(y:B) -> ((g y,<i>s y@-i),\ (z:fiber A B f y) ->
+    lemIso A B f g s t y (g y) z.1 (<i>s y@-i) z.2)
+  where
+  lemIso (A B : U) (f : A -> B) (g : B -> A)
        (s : (y : B) -> Path B (f (g y)) y)
        (t : (x : A) -> Path A (g (f x)) x)
        (y : B) (x0 x1 : A) (p0 : Path B y (f x0)) (p1 : Path B y (f x1)) :
        Path (fiber A B f y) (x0,p0) (x1,p1) = <i> (p @ i,sq1 @ i)
-  where
+    where
     rem0 : Path A (g y) x0 =
       <i> comp (<k> A) (g (p0 @ i)) [ (i = 1) -> t x0, (i = 0) -> <k> g y ]
 
@@ -87,11 +115,8 @@ lemIso (A B : U) (f : A -> B) (g : B -> A)
                                          , (j = 1) -> s (f (p @ i))
                                          , (j = 0) -> s y ]
 
-gradLemma (A B : U) (f : A -> B) (g : B -> A)
-       (s : (y : B) -> Path B (f (g y)) y)
-       (t : (x : A) -> Path A (g (f x)) x) : isEquiv A B f =
-  \(y:B) -> ((g y,<i>s y@-i),\ (z:fiber A B f y) ->
-    lemIso A B f g s t y (g y) z.1 (<i>s y@-i) z.2)
+
+
 
 
 {-
@@ -106,44 +131,51 @@ equivalence of types:
 Glueing is a weaker form of this for producing non-trivial equalities
 from equivalences. In particular Glueing gives a map from Equiv(A,B)
 to A = B. This weak form of univalence is useful for developing a lot
-of examples. 
+of examples.
 
-Further, the full form of univalence is provable in the system. See
-the file examples/univalence.ctt for a proof of this.
+If e : equiv A B then we can get a path between A and B by
+
+G := <i> Glue B [ (i = 0) -> (A,e), (i = 1) -> (B,idEquiv B) ]
+
+This can be illustrated as:
+
+              G
+        A - - - - > B
+        |           |
+       e|           | idEquiv B
+        |           |
+        V           V
+        B --------> B
+              B
+
+The sides of this square are equivalence while the bottom and top are
+lines in direction i.
+
+The Glue type allows us to do two very hard things: prove that the
+universe is fibrant (i.e. define composition for U) and prove the
+univalence axiom.
 
 -}
 
+ua (A B : U) (e : equiv A B) : Path U A B =
+  <i> Glue B [ (i = 0) -> (A,e), (i = 1) -> (B,idEquiv B) ]
 
       ---------------------------------------------------------
       -- Example: Non-trivial equality between bool and bool --
       ---------------------------------------------------------
 
--- recall not and notK
+-- recall: notK : (b : bool) -> Path bool (not (not b)) b = ...
 
--- not is hence and equivalence:
 notEquiv : equiv bool bool =
   (not,gradLemma bool bool not not notK notK)
 
--- This defines a non-trivial equality between bool and bool:
+-- Construct an equality in the universe using Glue
 notEq : Path U bool bool =
   <i> Glue bool [ (i = 0) -> (bool,notEquiv)
                 , (i = 1) -> (bool,idEquiv bool) ]
 
--- We can transport true along this non-trivial equality:
+-- Transpo
 testFalse : bool = transport notEq true
-
-
-isoPath (A B : U) (f : A -> B) (g : B -> A)
-      (s : (y : B) -> Path B (f (g y)) y)
-      (t : (x : A) -> Path A (g (f x)) x) : Path U A B =
-       <i> Glue B [ (i = 0) -> (A,f,gradLemma A B f g s t)
-                  , (i = 1) -> (B,idEquiv B) ]
-
-
-
-ua (A B : U) (e : equiv A B) : Path U A B =
-  <i> Glue B [ (i = 0) -> (A,e)
-             , (i = 1) -> (B,idEquiv B) ]
 
 
        ---------------------------------------------------
@@ -156,15 +188,13 @@ data or (A B : U) = inl (a : A)
 
 Z : U = or nat nat
 
-{- Z represents:
+-- Z represents:
 
-  +2 = inr (suc (suc zero))
-  +1 = inr (suc zero)
-   0 = inr zero
-  -1 = inl zero
-  -2 = inl (suc zero)
-
--}
+--  +2 = inr (suc (suc zero))
+--  +1 = inr (suc zero)
+--   0 = inr zero
+--  -1 = inl zero
+--  -2 = inl (suc zero)
 
 zeroZ : Z = inr zero
 
@@ -200,80 +230,94 @@ predsucZ : (x : Z) -> Path Z (predZ (sucZ x)) x = split
       suc n -> <i> inl (suc n)
   inr v -> <i> inr v
 
-sucPathZ : Path U Z Z = isoPath Z Z sucZ predZ sucpredZ predsucZ
+sucPathZ : Path U Z Z =
+   <i> Glue Z [ (i = 0) -> (Z,sucZ,gradLemma Z Z sucZ predZ sucpredZ predsucZ)
+              , (i = 1) -> (Z,idEquiv Z) ]
 
 -- We can transport along the proof forward and backwards:
 testOneZ : Z = transport sucPathZ zeroZ
+sucPathZ2 : Path U Z Z =
+  <i> comp (<_> U) (sucPathZ @ i) [ (i = 0) -> <j> Z, (i = 1) -> sucPathZ ]
+testTwoZ : Z = transport sucPathZ2 zeroZ
 testNOneZ : Z = transport (<i> sucPathZ @ - i) zeroZ
 
 
--- Structure identity principle:
+
+-- Structure identity principle: any structure on a type A can be
+-- transported to an equivalent type B.
 
 substEquiv (P : U -> U) (A B : U) (e : equiv A B) (h : P A) : P B =
   subst U P A B (ua A B e) h
 
-data food = cheese | meat | chicken
+-- substEquiv Monoid nat binnat nat_equiv_binnat monoid_nat : Monoid binnat
 
-eat (X : U) : U = list (and food X)
+-- We can use this to do some generic programming:
+data food = cheese | beef | chicken
 
-anders : eat bool = cons (cheese,true) (cons (meat,false) (cons (chicken,false) nil))
+-- Predicate encoding which food someone eats
+eats (X : U) : U = list (and food X)
 
-cyril : eat bool = substEquiv eat bool bool notEquiv anders
+anders : eats bool = cons (cheese,true) (cons (beef,false)
+                          (cons (chicken,false) nil))
 
--- Can be used for program refinements, see binnat.v
-
--- The canonical map defined using J
--- canPathToEquiv (A : U) : (B : U) -> Path U A B -> equiv A B =
---   J U A (\ (B : U) (_ : Path U A B) -> equiv A B) (idEquiv A)
-
--- univalenceJ (A B : U) : equiv (Path U A B) (equiv A B) =
---   (canPathToEquiv A B,thmUniv (\(A X : U) -> canPathToEquiv X A) B A)
-
--- stdUnivalence (A B : U) : equiv (Path U A B) (equiv A B) = ...
--- univalenceAlt (B : U) : isContr ((X : U) * equiv X B) = ...
--- thmUniv (t : (A X : U) -> Path U X A -> equiv X A) (A : U) :  (X : U) -> isEquiv (Path U X A) (equiv X A) (t A X) = ...
-
--- I know of 4 proofs of univalence:
--- 1. Direct proof using Glue (by Simon and me)
--- 2. unglue is an equivalence (Thierry, Simon, Peter Lumsdaine)
--- 3. ua+uabeta (Dan Licata)
--- 4. Various simple axioms (Orton, Pitts)
+-- Cyril eats the complement of Anders
+cyril : eats bool = substEquiv eats bool bool notEquiv anders
 
 
-
-{- Proof of 3:
-
-retract (A B : U) (f : A -> B) (g : B -> A) : U = (a : A) -> Path A (g (f a)) a
-
--}
+-- This can also be used to do program and data refinements, see
+-- examples/binnat.ctt where some property for unary numbers is proved
+-- by computing with binary numbers.
 
 
+--------------------------------------------------------------------------
+-- Univalence
 
+-- The file examples/univalence.ctt contains 3 proofs of univalence.
+-- The simplest one is based on an idea of Dan Licata:
+--
+--   https://groups.google.com/forum/#!topic/homotopytypetheory/j2KBIvDw53s
 
+-- The idea is to reduce univalence to two simple axioms:
+-- ua (A B : U) (e : equiv A B) : Path U A B =
+-- and
+-- uabeta (A B : U) (e : equiv A B) : Path (A -> B) (trans A B (ua A B e)) e.1 =
 
-
-
-
-
-
--- test (A B : U) (f : A -> B) (g : B -> A) (hA : isProp A) (hB : isProp B) :
---   equiv A B = (f,rem)
---   where
--- --  rem (y : B) : isContr (fiber A B f y) = undefined
---   rem (y : B) : isContr ((x : A) * Path B y (f x)) =
---     let ctr : (x : A) * Path B y (f x) = (g y,hB y (f (g y)))
---         prf (pt : (x : A) * Path B y (f x)) :
---             Path ((x : A) * Path B y (f x)) ctr pt =
---             let h1 : Path A ctr.1 pt.1 = hA ctr.1 pt.1
---                 temp : Path B y (f pt.1) = pt.2
---                 temp2 : Path B y (f (g y)) = ctr.2
---                 testt : PathP ? 
---             in <i> (h1 @ i,?)
--- --              <i> (hA (g y) pt.1 @ i,hB y (f (hA (g y) pt.1 @ i)))
---     in (ctr,prf)
-
-ua (A B : U) (e : equiv A B) : Path U A B =
-  <i> Glue B [ (i = 0) -> (A,e)
-             , (i = 1) -> (B,idEquiv B) ]
-
+-- Exercise: prove the computation rule for ua (hint: use fill with the empty system)
 uabeta (A B : U) (e : equiv A B) : Path (A -> B) (trans A B (ua A B e)) e.1 = undefined
+
+-- One would expect this computation rule to hold judgmentally, but it
+-- doesn't as the algorithm for computation in the universe adds some
+-- compositions with the empty system.
+-- Open problem: construct a type theory where this holds judgmentally.
+
+-- A further reduction of these to even simpler axioms have recently
+-- been found by Ian Orton and Andrew Pitts:
+--
+-- http://types2017.elte.hu/proc.pdf#page=93
+
+
+data Unit = tt
+
+-- Exercises: prove these 3 axioms (hint: Glue might be useful)
+
+unit (A : U) : Path U A ((a : A) * Unit) = undefined
+
+flip (A B : U) (C : A -> B -> U) :
+  Path U ((a : A) * (b : B) * C a b)
+         ((b : B) * (a : A) * C a b) = undefined
+
+contract (A : U) : isContr A -> Path U A Unit = undefined
+
+-- Exercises: prove these 2 computation rules for the above axioms
+
+unitbeta (A : U) (a : A) :
+  Path ((a : A) * Unit) (transport (unit A) a) (a,tt) = undefined
+
+flipbeta (A B : U) (C : A -> B -> U) (a : A) (b : B) (c : C a b) :
+  Path ((b : B) * (a : A) * C a b)
+       (transport (flip A B C) (a,b,c)) (b,a,c) = undefined
+
+
+                               --------------
+                               -- The end! --
+                               --------------

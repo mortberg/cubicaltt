@@ -454,18 +454,18 @@ isIdPair _         = False
 
 idComp :: Val -> Val -> Val -> Val -> Val -> Val -> Val
 idComp a u v w pId qId = case (pId, qId) of
-  (VIdPair p ps, qId) | eps `member` ps -> qId
-  (pId, VIdPair q qs) | eps `member` qs -> pId
   (VIdPair p ps, VIdPair q qs)          ->
     let i:j:_ = freshs [a,u,v,w,pId,qId] in
     let
       rs = unionSystem
         (unionSystem
           (border (q @@ (Atom i :/\: Atom j)) ps)
-          (border (p @@ (Atom i :/\: NegAtom j)) qs))
+          (border (p @@ (Atom i :\/: NegAtom j)) qs))
         (mkSystem [((i ~> 0), p @@ NegAtom j), ((i ~> 1), q @@ Atom j)])
     in
     VIdPair (VPLam i (comp j a v rs)) (joinSystem (border ps qs))
+  (VIdPair p ps, qId) | eps `member` ps -> qId
+  (pId, VIdPair q qs) | eps `member` qs -> pId
   _ -> VIdComp a u v w pId qId
 
 

@@ -164,8 +164,8 @@ square (A : U)(a : A) : Path (Id A a a) (wrefId A a) (wrefId A a) =
 --         <i> idC (<j> comp (<_> A) a
 --               [ (i = 0) -> <_> a
 --               , (i = 1) -> <_> a
--- 		 , (j = 0) -> <_> a
--- 		 , (j = 1) -> <_> a ]) []
+--               , (j = 0) -> <_> a
+--               , (j = 1) -> <_> a ]) []
 
 -- Using the defined composition the left hand side of the square
 -- is not definitionally equal to wref and so results in a path with
@@ -226,7 +226,7 @@ p2 : Path (Id IdCompTest a b) id1 id2 =
 --                 refl
 --             a -------> a
 --   refId     |          |  refId
---    . id1    |          |    . id2
+--     . id1   |          |    . id2
 --             v   refl   v
 --             b -------> b
 --

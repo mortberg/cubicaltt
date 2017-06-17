@@ -82,7 +82,7 @@ do *not* hold (unless r is 0 or 1). This means that a De Morgan
 algebra is *not* a Boolean algebra. The intuition for why this has to
 be the case is that II should model the real interval [0,1] and there
 we of course cannot have min(1-r,r) = 0 or max(1-r,r) = 1 for a point
-r in [0,1].
+r in [0,1] (unless r is 0 or 1).
 
 To test if two elements r and s in II are equal we first push the
 negations to the atoms and then compare their disjunctive normal forms
@@ -221,6 +221,7 @@ define transport and do a lot of other things.
 Given p : Path A a b and q : Path A b c the composite of the two paths
 is obtained from a composition of this open square:
 
+i : II |-
 
           a - - - - - - - - > c
           ^                   ^
@@ -233,7 +234,13 @@ is obtained from a composition of this open square:
           a ----------------> b
                  p @ i
 
-The composition computes the dashed line at the top of the square.
+
+The composition is the dashed line at the top of the square. The
+direction i goes left-to-right and j goes down-to-up. As we are
+constructing a Path from a to c we have i : II in the context already
+which is why we have to put p @ i as bottom (this is achieved by
+writing the comp under a <i> binder). The direction j that we are
+doing the composition in is implicit, more about this below.
 
 -}
 trans (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =

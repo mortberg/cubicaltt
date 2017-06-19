@@ -506,7 +506,7 @@ forwardHIT i a@(Ter (HSum loc _ nass) env) u r =
       Nothing -> error $ "forwardHIT: missing constructor "
                    ++ c ++ " in labelled sum"
     VPCon c _ ws phis -> case lookupLabel c nass of
-      Just as -> pcon c (a `face` (i ~> 1)) (forwardsHIT i loc as env ws r) phis
+      Just as -> pcon c (a `face` (i ~> 1)) (forwards i as env ws r) phis
       Nothing -> error $ "forwardHIT: missing path constructor "
                    ++ c ++ " in labelled sum"
     VHComp _ v vs ->
@@ -514,28 +514,6 @@ forwardHIT i a@(Ter (HSum loc _ nass) env) u r =
         mapWithKey (\alpha vAlpha ->
                     VPLam j $ forwardHIT j (aij `face` alpha) (vAlpha @@ j) r) vs
     _ -> error $ "forwardHIT: neutral " ++ show u
-
--- This function is a HACK. As we have to do something special for
--- recursive HITs we first check if the a is the same as the HIT we
--- are composing in. Note that this only works for arguments that are
--- directly recursive, so it doesn't work when a is a function type
--- with target the HIT we are composing in.
-forwardsHIT :: Name
-            -> Loc              -- ^ HIT under consideration
-            -> [(Ident,Ter)] -> Env -> [Val] -> Formula -> [Val]
-forwardsHIT i loc xas rho us r = case (xas,us) of
-  ([],[]) -> []
-  ((x,a):xas, u:us) -> let va = eval rho a in case va of
-    Ter (HSum l _ _) _ | l == loc -> -- found recursive argument
---      trace "recursive argument"
-      forwardHIT i va u r : forwardsHIT i loc xas rho us r  -- HACK? rho not updated
-    _ ->
---      trace ("non-recursive argument" ++ "\n a = " ++ show a ++ "\n loc= " ++ show loc)
---      $
-      let v = forwardFill i (eval rho a) u r
-          vi1 = v `face` (i ~> 1)
-      in vi1 : forwardsHIT i loc xas (upd (x,v) rho) us r
-
 
 -- Old code below not using forward:
 

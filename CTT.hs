@@ -249,8 +249,8 @@ instance Eq Ctxt where
 
 -- The Idents and Names in the Ctxt refer to the elements in the two
 -- lists. This is more efficient because acting on an environment now
--- only need to affect the lists and not the whole context.
--- The last list is the list of opaque names
+-- only needs to affect the lists and not the whole context.
+-- The last list is the list of opaque names.
 newtype Env = Env (Ctxt,[Val],[Formula],Nameless (Set Ident))
   deriving (Eq)
 

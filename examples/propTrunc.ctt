@@ -1,15 +1,10 @@
--- Propositional truncation as a HIT. (WARNING: not working correctly)
+-- Propositional truncation as a HIT.
 module propTrunc where
 
-import prelude
-
-{-
-Warning: as of commit ff8a026, recursive HITs with parameters are not
-implemented correctly. Because of that, you may find unexpected results when
-using this module.
-
-See e.g. github issue #35 and pull request #39 for details.
--}
+import bool
+import sigma
+import pi
+import univalence
 
 data pTrunc (A : U)
   = inc (a : A)
@@ -33,3 +28,41 @@ pTruncElim (A : U) (B : (pTrunc A) -> U)
       (pTruncElim A B pP f x)
       (pTruncElim A B pP f y)
     @ i
+
+
+-- test with truncation of unit
+
+tU : U = pTrunc Unit
+
+test : prop Unit = split@((x y : Unit) -> Path Unit x y) with
+    tt -> split@((y : Unit) -> Path Unit tt y) with
+      tt -> <i> tt
+
+f1 : tU -> Unit = split
+  inc a -> a
+  inh x y @ i -> propUnit (f1 x) (f1 y) @ i
+
+f2 : Unit -> tU = \(x : Unit) -> inc x
+
+-- TODO: upstream the following 3 things
+hProp : U = (X : U) * prop X
+
+subtypeEquality (A : U) (B : A -> U) (pB : (x : A) -> prop (B x))
+                (s t : (x : A) * B x) : Path A s.1 t.1 -> Path (Sigma A B) s t =
+  trans (Path A s.1 t.1) (Path (Sigma A B) s t) rem
+    where
+    rem : Path U (Path A s.1 t.1) (Path (Sigma A B) s t) =
+      <i> lemSigProp A B pB s t @ -i
+
+uahp (P P' : hProp) (f : P.1 -> P'.1) (g : P'.1 -> P.1) : Path hProp P P' =
+  subtypeEquality U prop propIsProp P P' rem
+  where
+  rem : Path U P.1 P'.1 = isoPath P.1 P'.1 f g s t
+    where s (y : P'.1) : Path P'.1 (f (g y)) y = P'.2 (f (g y)) y
+          t (x : P.1) : Path P.1 (g (f x)) x = P.2 (g (f x)) x
+
+foo : Path U tU Unit =
+  <i> (uahp (tU,pTruncIsProp Unit) (Unit,propUnit) f1 f2 @ i).1
+
+test1 : Unit = transport foo (inc tt)
+test2 : tU = transport (<i> foo @ -i) tt

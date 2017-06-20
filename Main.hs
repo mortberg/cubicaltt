@@ -1,8 +1,7 @@
 module Main where
 
 import Control.Monad.Reader
-import Control.Monad.Except
-import Control.Exception (try)
+import qualified Control.Exception as E
 import Data.List
 import Data.Time
 import System.Directory
@@ -90,7 +89,10 @@ shrink s = s -- if length s > 1000 then take 1000 s ++ "..." else s
 initLoop :: [Flag] -> FilePath -> History -> IO ()
 initLoop flags f hist = do
   -- Parse and type check files
-  (_,_,mods) <- imports True ([],[],[]) f
+  (_,_,mods) <- E.catch (imports True ([],[],[]) f)
+                        (\e -> do putStrLn ("Exception: " ++ takeWhile (/='\n')
+                                           (show (e :: SomeException)))
+                                  return ([],[],[]))
   -- Translate to TT
   let res = runResolver $ resolveModules mods
   case res of
@@ -108,8 +110,7 @@ initLoop flags f hist = do
       (merr,tenv) <- TC.runDeclss TC.verboseEnv adefs
       case merr of
         Just err -> putStrLn $ "Type checking failed: " ++ shrink err
-        Nothing  -> do
-          putStrLn "File loaded."
+        Nothing  -> unless (mods == []) $ putStrLn "File loaded."
       if Batch `elem` flags
         then return ()
         else -- Compute names for auto completion
@@ -174,29 +175,24 @@ loop flags f names tenv = do
 imports :: Bool -> ([String],[String],[Module]) -> String ->
            IO ([String],[String],[Module])
 imports v st@(notok,loaded,mods) f
-  | f `elem` notok  = putStrLn ("Looping imports in " ++ f) >> return ([],[],[])
+  | f `elem` notok  = error ("Looping imports in " ++ f)
   | f `elem` loaded = return st
   | otherwise       = do
     b <- doesFileExist f
+    when (not b) $ error (f ++ " does not exist")
     let prefix = dropFileName f
-    if not b
-      then putStrLn (f ++ " does not exist") >> return ([],[],[])
-      else do
-        s <- readFile f
-        let ts = lexer s
-        case pModule ts of
-          Bad s  -> do
-            putStrLn $ "Parse failed in " ++ show f ++ "\n" ++ show s
-            return ([],[],[])
-          Ok mod@(Module (AIdent (_,name)) imp decls) ->
-            let imp_ctt = [prefix ++ i ++ ".ctt" | Import (AIdent (_,i)) <- imp]
-            in do
-              when (name /= dropExtension (takeFileName f)) $
-                error $ "Module name mismatch " ++ show (f,name)
-              (notok1,loaded1,mods1) <-
-                foldM (imports v) (f:notok,loaded,mods) imp_ctt
-              when v $ putStrLn $ "Parsed " ++ show f ++ " successfully!"
-              return (notok,f:loaded1,mods1 ++ [mod])
+    s <- readFile f
+    let ts = lexer s
+    case pModule ts of
+      Bad s -> error ("Parse failed in " ++ show f ++ "\n" ++ show s)
+      Ok mod@(Module (AIdent (_,name)) imp decls) -> do
+        let imp_ctt = [prefix ++ i ++ ".ctt" | Import (AIdent (_,i)) <- imp]
+        when (name /= dropExtension (takeFileName f)) $
+          error ("Module name mismatch in " ++ show f ++ " with wrong name " ++ name)
+        (notok1,loaded1,mods1) <-
+          foldM (imports v) (f:notok,loaded,mods) imp_ctt
+        when v $ putStrLn $ "Parsed " ++ show f ++ " successfully!"
+        return (notok,f:loaded1,mods1 ++ [mod])
 
 help :: String
 help = "\nAvailable commands:\n" ++

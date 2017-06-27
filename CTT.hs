@@ -112,7 +112,13 @@ data Ter = Pi Ter
          | PathP Ter Ter Ter
          | PLam Name Ter
          | AppFormula Ter Formula
-           -- Kan composition and filling
+           -- Homogeneous Kan composition and filling
+         | HComp Ter Ter (System Ter)
+         -- TODO?: HFill Ter Ter (System Ter)
+           -- Generalized transports
+         | Trans Ter Formula Ter
+         -- TODO?: TransFill Ter Formula Ter
+           -- Heterogeneous Kan composition and filling
          | Comp Ter Ter (System Ter)
          | Fill Ter Ter (System Ter)
            -- Glue
@@ -154,18 +160,20 @@ data Val = VU
            -- Path values
          | VPathP Val Val Val
          | VPLam Name Val
-         | VComp Val Val (System Val)
 
            -- Glue values
          | VGlue Val (System Val)
          | VGlueElem Val (System Val)
          | VUnGlueElem Val (System Val)
 
-           -- Composition in the universe
-         | VCompU Val (System Val)
+         --   -- Composition in the universe
+         -- | VCompU Val (System Val)
 
-           -- Composition for HITs; the type is constant
+           -- Composition; the type is constant
          | VHComp Val Val (System Val)
+
+           -- Generalized transport
+         | VTrans Val Formula Val
 
            -- Id
          | VId Val Val Val
@@ -190,7 +198,9 @@ isNeutral v = case v of
   Ter Hole{} _   -> True
   VVar{}         -> True
   VOpaque{}      -> True
-  VComp{}        -> True
+-- TODO: neutrality test has to be adapted; depends on how hcomp/trans
+-- in VU is handled
+--  VComp{}        -> True
   VFst{}         -> True
   VSnd{}         -> True
   VSplit{}       -> True
@@ -379,6 +389,10 @@ showTer v = case v of
   PathP e0 e1 e2     -> text "PathP" <+> showTers [e0,e1,e2]
   PLam i e           -> char '<' <> text (show i) <> char '>' <+> showTer e
   AppFormula e phi   -> showTer1 e <+> char '@' <+> showFormula phi
+  HComp a t ts       -> text "hComp" <+> showTers [a,t] <+> text (showSystem ts)
+  -- HFill a t ts       -> text "hFill" <+> showTers [a,t] <+> text (showSystem ts)
+  Trans e phi t0     -> text "transport" <+> showTer1 e <+> showFormula phi
+                        <+> showTer1 t0
   Comp e t ts        -> text "comp" <+> showTers [e,t] <+> text (showSystem ts)
   Fill e t ts        -> text "fill" <+> showTers [e,t] <+> text (showSystem ts)
   Glue a ts          -> text "Glue" <+> showTer1 a <+> text (showSystem ts)
@@ -427,6 +441,8 @@ showVal v = case v of
   VPCon c a us phis -> text c <+> braces (showVal a) <+> showVals us
                        <+> hsep (map ((char '@' <+>) . showFormula) phis)
   VHComp v0 v1 vs   -> text "hComp" <+> showVals [v0,v1] <+> text (showSystem vs)
+  VTrans u phi v0   -> text "transport" <+> showVal1 e <+> showFormula phi
+                       <+> showVal1 v0
   VPi a l@(VLam x t b)
     | "_" `isPrefixOf` x -> showVal1 a <+> text "->" <+> showVal1 b
     | otherwise          -> char '(' <> showLam v
@@ -450,7 +466,7 @@ showVal v = case v of
   VUnGlueElem a ts  -> text "unglue" <+> showVal1 a <+> text (showSystem ts)
   VUnGlueElemU v b es -> text "unglue U" <+> showVals [v,b]
                          <+> text (showSystem es)
-  VCompU a ts       -> text "comp (<_> U)" <+> showVal1 a <+> text (showSystem ts)
+  -- VCompU a ts       -> text "comp (<_> U)" <+> showVal1 a <+> text (showSystem ts)
   VId a u v           -> text "Id" <+> showVals [a,u,v]
   VIdPair b ts        -> text "idC" <+> showVal1 b <+> text (showSystem ts)
   VIdJ a t c d x p    -> text "idJ" <+> showVals [a,t,c,d,x,p]

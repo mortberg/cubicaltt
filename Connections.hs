@@ -408,6 +408,9 @@ joinSystem tss = mkSystem $
   [ (alpha `meet` beta,t) | (alpha,ts) <- assocs tss, (beta,t) <- assocs ts ]
 
 
+allSystem :: Name -> System a -> System a
+allSystem i = filterWithKey (\alpha _ -> i `notMember` alpha)
+
 -- TODO: add some checks
 transposeSystemAndList :: System [a] -> [b] -> [(System a,b)]
 transposeSystemAndList _  []      = []

@@ -246,14 +246,20 @@ app u v = case (u,v) of
                in comp j (app f (fill j a w wsj)) w' ws'
     _ -> error $ "app: Split annotation not a Pi type " ++ show u
   (Ter Split{} _,_) | isNeutral v         -> VSplit u v
-  (VComp (VPLam i (VPi a f)) li0 ts,vi1) ->
-    let j       = fresh (u,vi1)
-        (aj,fj) = (a,f) `swap` (i,j)
-        tsj     = Map.map (@@ j) ts
-        v       = transFillNeg j aj vi1
-        vi0     = transNeg j aj vi1
-    in comp j (app fj v) (app li0 vi0)
-              (intersectionWith app tsj (border v tsj))
+  (VTrans (VPLam i (VPLam a f)) phi u0, v) ->
+    let j = fresh (u,v)
+        (aij,fij) = (a,f) `swap` (i,j)
+        w = transFillNeg j aij phi v
+        w0 = transNeg j aij phi v
+    in trans j (app fij w) phi (app u0 w0)
+  -- (VComp (VPLam i (VPi a f)) li0 ts,vi1) ->
+  --   let j       = fresh (u,vi1)
+  --       (aj,fj) = (a,f) `swap` (i,j)
+  --       tsj     = Map.map (@@ j) ts
+  --       v       = transFillNeg j aj vi1
+  --       vi0     = transNeg j aj vi1
+  --   in comp j (app fj v) (app li0 vi0)
+  --             (intersectionWith app tsj (border v tsj))
   _ | isNeutral u       -> VApp u v
   _                     -> error $ "app \n  " ++ show u ++ "\n  " ++ show v
 
@@ -316,9 +322,25 @@ v @@@ j           = VAppFormula v (toFormula j)
 -------------------------------------------------------------------------------
 -- Composition and filling
 
-hcomp :: Name -> Val -> Val -> System Val -> Val
-hcomp i a u ts | eps `member` ts = (ts ! eps) `face` (i ~> 1)
-hcomp i a u ts = undefined
+hCompLine :: Val -> Val -> System Val -> Val
+hCompLine a u us = hComp a u (Map.map (@@ i) us)
+  where i = fresh (a,u,us)
+
+hComp :: Name -> Val -> Val -> System Val -> Val
+hComp i a u us | eps `member` us = (us ! eps) `face` (i ~> 1)
+hComp i a u us = case a of
+  VPathP p v0 v1 -> let j = fresh (Atom i,a,u,us) in
+    VPLam j $ hComp i a (u @@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
+                                   (Map.map (@@ j) us))
+  VId b v0 v1 -> undefined
+  VSigma a f -> undefined
+  VPi{} -> VHComp a u (Map.map (VPLam i) us)
+  VU -> undefined
+  VGlue b equivs | not (isNetralGlueHComp b equivs u us) -> undefined
+  Ter (Sum _ _ nass) env -> undefind
+  Ter (HSum _ _ _) _ -> VHComp a u (Map.map (VPLam i) us)
+  _ -> VHComp a u (Map.map (VPLam i) us)
+
 
 
 -- For i:II |- a, phi # i, u : a (i/phi) we get fwd i a phi u : a(i/1)
@@ -327,8 +349,8 @@ fwd :: Name -> Val -> Formula -> Val -> Val
 fwd i a phi u = trans i (a `act` (i,phi :\/: i)) phi u
 
 comp :: Name -> Val -> Val -> System Val -> Val
-comp i a u ts = hcomp i (a `face` (i ~> 1)) (fwd i a (Dir Zero) u) fwdits
-  where fwdits = mapWithKey (\al tal -> fwd i (a `face` al) (Atom i) tal) ts
+comp i a u us = hcomp i (a `face` (i ~> 1)) (fwd i a (Dir Zero) u) fwdius
+  where fwdius = mapWithKey (\al ual -> fwd i (a `face` al) (Atom i) ual) us
 
 -- comp :: Name -> Val -> Val -> System Val -> Val
 -- comp i a u ts | eps `member` ts = (ts ! eps) `face` (i ~> 1)
@@ -430,18 +452,23 @@ trans i a phi u = case a of
           u1f     = transFill i a phi u1
   VPi{} -> VTrans (VPLam i a) phi u
   VU -> undefined
+  VGlue b equivs | not (isNeutralGlueTrans i equivs phi u) -> transGlue i b equivs phi u
 --  VGlue b equivs | not (isNeutralGlue i equivs u ts) -> compGlue i b equivs u ts
   Ter (Sum _ _ nass) env -> case u of
     VCon n us -> case lookupLabel n nass of
       Just as -> VCon n (transps i as env us)
-      Nothing -> error $ "trans: missing constructor in labelled sum " ++ n
+      Nothing -> error $ "trans: missing constructor in sum " ++ n
     _ -> VTrans (VPLam i a) phi u
-  Ter (Sum _ _ nass) env -> case u of
+  Ter (HSum _ _ nass) env -> case u of
     VCon n us -> case lookupLabel n nass of
-      Just as -> VCon n (transps i as env us)
-      Nothing -> error $ "trans: missing constructor in labelled sum " ++ n
-    _ -> VTrans (VPLam i a) phi u
-  Ter (HSum _ _ nass) env -> undefined
+      Just as -> VCon n (transps i as env phi us)
+      Nothing -> error $ "trans: missing constructor in hsum " ++ n
+    VPCon n _ us psis -> case lookupPLabel n nass of
+      Just (as,is,es) -> -- TODO: do correction as for pushouts
+        VPCon n (a `face` (i ~> 1)) (transps i as env phi us) psis
+      Nothing -> error $ "trans: missing path constructor in hsum " ++ n
+    VHComp _ v vs -> hCompLine (a `face` (i ~> 1)) (trans i a phi v) $
+                       mapWithKey (\al val -> )
   _ -> VTrans (VPLam i a) phi u
 
 
@@ -455,7 +482,7 @@ transNeg i a phi u = trans i (a `sym` i) phi u
 transFillNeg :: Name -> Val -> Formula -> Val -> Val
 transFillNeg i a phi u = (transFill i (a `sym` i) phi u) `sym` i
 
-transps :: Name -> [(Ident,Ter)] -> Env -> [Val] -> Formula -> [Val]
+transps :: Name -> [(Ident,Ter)] -> Env -> Formula -> [Val] -> [Val]
 transps i []         _ phi []     = []
 transps i ((x,a):as) e phi (u:us) =
   let v   = transFill i (eval e a) phi u
@@ -638,6 +665,9 @@ isNeutralGlue i equivs u0 ts = (eps `notMember` equivsi0 && isNeutral u0) ||
            eps `notMember` (equivs `face` alpha) && isNeutral talpha)
     (assocs ts)
   where equivsi0 = equivs `face` (i ~> 0)
+
+isNeutralGlueTrans :: Name -> System Val -> Formula -> Val -> Bool
+isNeutralGlueTrans i equivs phi u = undefined
 
 -- this is exactly the same as isNeutralGlue?
 isNeutralU :: Name -> System Val -> Val -> System Val -> Bool

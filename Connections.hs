@@ -6,7 +6,7 @@ import Control.Applicative
 import Data.List
 import Data.Map (Map,(!),keys,fromList,toList,mapKeys,elems,intersectionWith
                 ,unionWith,singleton,foldWithKey,assocs,mapWithKey
-                ,filterWithKey,member)
+                ,filterWithKey,member,notMember)
 import Data.Set (Set,isProperSubsetOf)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -407,6 +407,9 @@ joinSystem :: System (System a) -> System a
 joinSystem tss = mkSystem $
   [ (alpha `meet` beta,t) | (alpha,ts) <- assocs tss, (beta,t) <- assocs ts ]
 
+-- Calculates shape corresponding to (phi=dir)
+invSystem :: Formula -> Dir -> System ()
+invSystem phi dir = mkSystem $ map (,()) $ invFormula phi dir
 
 allSystem :: Name -> System a -> System a
 allSystem i = filterWithKey (\alpha _ -> i `notMember` alpha)

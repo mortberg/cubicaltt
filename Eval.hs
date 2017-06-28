@@ -43,7 +43,7 @@ lookName i (Env (Sub j rho,vs,phi:fs,os)) | i == j    = phi
 lookName i _ = error $ "lookName: not found " ++ show i
 
 
-  -----------------------------------------------------------------------
+-----------------------------------------------------------------------
 -- Nominal instances
 
 instance Nominal Ctxt where
@@ -230,7 +230,7 @@ evalSystem rho ts =
 
 app :: Val -> Val -> Val
 app u v = case (u,v) of
-  (Ter (Lam x _ t) e,_)               -> eval (upd (x,v) e) t
+  (Ter (Lam x _ t) e,_) -> eval (upd (x,v) e) t
   (Ter (Split _ _ _ nvs) e,VCon c vs) -> case lookupBranch c nvs of
     Just (OBranch _ xs t) -> eval (upds (zip xs vs) e) t
     _     -> error $ "app: missing case in split for " ++ c
@@ -245,21 +245,17 @@ app u v = case (u,v) of
                    -- a should be constant
                in comp j (app f (fill j a w wsj)) w' ws'
     _ -> error $ "app: Split annotation not a Pi type " ++ show u
-  (Ter Split{} _,_) | isNeutral v         -> VSplit u v
+  (Ter Split{} _,_) | isNeutral v -> VSplit u v
   (VTrans (VPLam i (VPLam a f)) phi u0, v) ->
     let j = fresh (u,v)
         (aij,fij) = (a,f) `swap` (i,j)
         w = transFillNeg j aij phi v
         w0 = transNeg j aij phi v
     in trans j (app fij w) phi (app u0 w0)
-  -- (VComp (VPLam i (VPi a f)) li0 ts,vi1) ->
-  --   let j       = fresh (u,vi1)
-  --       (aj,fj) = (a,f) `swap` (i,j)
-  --       tsj     = Map.map (@@ j) ts
-  --       v       = transFillNeg j aj vi1
-  --       vi0     = transNeg j aj vi1
-  --   in comp j (app fj v) (app li0 vi0)
-  --             (intersectionWith app tsj (border v tsj))
+  (VHComp (VPi a f) u0 us, v) ->
+    let i = fresh (u,v)
+    in hComp i (app f v) (app u0 v)
+         (intersectionWith (app . (@@ i)) us (border v us))
   _ | isNeutral u       -> VApp u v
   _                     -> error $ "app \n  " ++ show u ++ "\n  " ++ show v
 
@@ -326,6 +322,10 @@ hCompLine :: Val -> Val -> System Val -> Val
 hCompLine a u us = hComp a u (Map.map (@@ i) us)
   where i = fresh (a,u,us)
 
+hFill :: Name -> Val -> Val -> System Val -> Val
+hFill i a u us = hFill j a u (insertSystem (i ~> 0) u $ us `conj` (i,j))
+  where j = fresh (Atom i,a,u,us)
+
 hComp :: Name -> Val -> Val -> System Val -> Val
 hComp i a u us | eps `member` us = (us ! eps) `face` (i ~> 1)
 hComp i a u us = case a of
@@ -333,10 +333,25 @@ hComp i a u us = case a of
     VPLam j $ hComp i a (u @@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
                                    (Map.map (@@ j) us))
   VId b v0 v1 -> undefined
-  VSigma a f -> undefined
+  VSigma a f -> VPair u1comp (hComp i (app f u1fill) u02 us2)
+    where (us1, us2) = (Map.map fstVal us, Map.map sndVal us)
+          (u01, u02) = (fstVal us, sndVal us)
+          u1fill = hFill i a u01 us1
+          u1comp = hComp i a u01 us1
   VPi{} -> VHComp a u (Map.map (VPLam i) us)
   VU -> undefined
-  VGlue b equivs | not (isNetralGlueHComp b equivs u us) -> undefined
+  VGlue b equivs | not (isNetralGlueHComp b equivs u us) ->
+    let wts = mapWithKey
+                (\al wal ->
+                   app wal (hFill i (equivDom wal) (u `face` al) (us `face` al)))
+                equivs
+        t1s = mapWithKey (\al wal ->
+                hComp i (equivDom wal) (u `face` al) (us `face` al)) equivs
+        v0 = unGlue u0 b equivs
+        vs = mapWithKey (\al ual -> unGlue ual (b `face` al) (equivs `face` al))
+               us
+        v1 = hComp i v0 (vs `unionSystem` wt)
+    in glueElem v1 t1s
   Ter (Sum _ _ nass) env -> undefind
   Ter (HSum _ _ _) _ -> VHComp a u (Map.map (VPLam i) us)
   _ -> VHComp a u (Map.map (VPLam i) us)

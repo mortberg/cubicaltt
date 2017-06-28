@@ -211,10 +211,10 @@ check a t = case (a,t) of
     check va u
     vu <- evalTyping u
     checkGlueElem vu ts us
-  (VCompU va ves,GlueElem u us) -> do
-    check va u
-    vu <- evalTyping u
-    checkGlueElemU vu ves us
+  -- (VCompU va ves,GlueElem u us) -> do
+  --   check va u
+  --   vu <- evalTyping u
+  --   checkGlueElemU vu ves us
   (VU,Id a a0 a1) -> do
     check VU a
     va <- evalTyping a
@@ -299,19 +299,19 @@ checkGlueElem vu ts us = do
   checkCompSystem vus
 
 -- Check a glueElem against VComp _ ves
-checkGlueElemU :: Val -> System Val -> System Ter -> Typing ()
-checkGlueElemU vu ves us = do
-  unless (keys ves == keys us)
-    (throwError ("Keys don't match in " ++ show ves ++ " and " ++ show us))
-  rho <- asks env
-  checkSystemsWith ves us
-    (\alpha ve u -> local (faceEnv alpha) $ check (ve @@ One) u)
-  let vus = evalSystem rho us
-  checkSystemsWith ves vus (\alpha ve vAlpha ->
-    unlessM (eqFun ve vAlpha === (vu `face` alpha)) $
-      throwError $ "Transport of glueElem (for compU) component " ++ show vAlpha ++
-                   " doesn't match " ++ show vu)
-  checkCompSystem vus
+-- checkGlueElemU :: Val -> System Val -> System Ter -> Typing ()
+-- checkGlueElemU vu ves us = do
+--   unless (keys ves == keys us)
+--     (throwError ("Keys don't match in " ++ show ves ++ " and " ++ show us))
+--   rho <- asks env
+--   checkSystemsWith ves us
+--     (\alpha ve u -> local (faceEnv alpha) $ check (ve @@ One) u)
+--   let vus = evalSystem rho us
+--   checkSystemsWith ves vus (\alpha ve vAlpha ->
+--     unlessM (eqFun ve vAlpha === (vu `face` alpha)) $
+--       throwError $ "Transport of glueElem (for compU) component " ++ show vAlpha ++
+--                    " doesn't match " ++ show vu)
+--   checkCompSystem vus
 
 checkGlue :: Val -> System Ter -> Typing ()
 checkGlue va ts = do
@@ -477,6 +477,27 @@ infer e = case e of
     case t of
       VPathP a _ _ -> return $ a @@ phi
       _ -> throwError (show e ++ " is not a path")
+  HComp a u0 us -> do
+    check VU a
+    va <- evalTyping a
+    check va u0
+    checkPLamSystem u0 va us
+    return va
+  Trans a phi u0 -> do
+    (va0, va1) <- checkPLam (constPath VU) a
+    va <- evalTyping a
+    checkFormula phi
+    let phisys = invFormula phi One
+    -- Check that va is independent of i on each of the maximal faces of phi=1
+    mapM_ (\alpha ->
+              local (faceEnv alpha) $ do
+                let x1 = va `face` alpha
+                let x2 = va0 `face` alpha
+                unlessM (x1 === x2) $
+                  throwError "trans ..." -- TODO: better error message
+          ) phisys
+    check va0 u0
+    return va1
   Comp a t0 ps -> do
     (va0, va1) <- checkPLam (constPath VU) a
     va <- evalTyping a

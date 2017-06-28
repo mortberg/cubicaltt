@@ -333,7 +333,7 @@ hComp i a u us = case a of
     VPLam j $ hComp i a (u @@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
                                    (Map.map (@@ j) us))
   VId b v0 v1 -> undefined
-  VSigma a f -> VPair u1comp (hComp i (app f u1fill) u02 us2)
+  VSigma a f -> VPair u1comp (comp i (app f u1fill) u02 us2)
     where (us1, us2) = (Map.map fstVal us, Map.map sndVal us)
           (u01, u02) = (fstVal us, sndVal us)
           u1fill = hFill i a u01 us1

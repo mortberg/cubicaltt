@@ -340,9 +340,9 @@ hComp i a u us = case a of
           u1comp = hComp i a u1 us1
   VU -> undefined -- hCompu
   VGlue b equivs | not (isNeutralGlueHComp equivs u us) ->
-    let wts = mapWithKey
-                (\al wal ->
-                   app wal (hFill i (equivDom wal) (u `face` al) (us `face` al)))
+    let wts = mapWithKey (\al wal ->
+                  app (equivFun wal)
+                    (hFill i (equivDom wal) (u `face` al) (us `face` al)))
                 equivs
         t1s = mapWithKey (\al wal ->
                 hComp i (equivDom wal) (u `face` al) (us `face` al)) equivs
@@ -729,7 +729,7 @@ transGlue i a equivs psi u0 = glueElem v1' t1s'
     t1s = mapWithKey (\al wal -> trans i (equivDom wal) psi (u0 `face` al))
             alliequivs
     wts = mapWithKey (\al wal ->
-              app wal (transFill i (equivDom wal) psi (u0 `face` al)))
+              app (equivFun wal) (transFill i (equivDom wal) psi (u0 `face` al)))
             alliequivs
     v1 = comp i a v0 (border v0 psisys `unionSystem` wts)
 

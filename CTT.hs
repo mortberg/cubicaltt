@@ -188,7 +188,7 @@ data Val = VU
          | VApp Val Val
          | VAppFormula Val Formula
          | VLam Ident Val Val
-         | VUnGlueElemU Val Val (System Val)
+         -- | VUnGlueElemU Val Val (System Val)
          | VIdJ Val Val Val Val Val Val
   deriving Eq
 
@@ -206,7 +206,7 @@ isNeutral v = case v of
   VSplit{}       -> True
   VApp{}         -> True
   VAppFormula{}  -> True
-  VUnGlueElemU{} -> True
+  -- VUnGlueElemU{} -> True
   VUnGlueElem{}  -> True
   VIdJ{}         -> True
   _              -> False
@@ -441,7 +441,7 @@ showVal v = case v of
   VPCon c a us phis -> text c <+> braces (showVal a) <+> showVals us
                        <+> hsep (map ((char '@' <+>) . showFormula) phis)
   VHComp v0 v1 vs   -> text "hComp" <+> showVals [v0,v1] <+> text (showSystem vs)
-  VTrans u phi v0   -> text "transport" <+> showVal1 e <+> showFormula phi
+  VTrans u phi v0   -> text "transport" <+> showVal1 u <+> showFormula phi
                        <+> showVal1 v0
   VPi a l@(VLam x t b)
     | "_" `isPrefixOf` x -> showVal1 a <+> text "->" <+> showVal1 b
@@ -459,13 +459,11 @@ showVal v = case v of
   VSnd u            -> showVal1 u <> text ".2"
   VPathP v0 v1 v2   -> text "PathP" <+> showVals [v0,v1,v2]
   VAppFormula v phi -> showVal v <+> char '@' <+> showFormula phi
-  VComp v0 v1 vs    ->
-    text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)
   VGlue a ts        -> text "Glue" <+> showVal1 a <+> text (showSystem ts)
   VGlueElem a ts    -> text "glue" <+> showVal1 a <+> text (showSystem ts)
   VUnGlueElem a ts  -> text "unglue" <+> showVal1 a <+> text (showSystem ts)
-  VUnGlueElemU v b es -> text "unglue U" <+> showVals [v,b]
-                         <+> text (showSystem es)
+  -- VUnGlueElemU v b es -> text "unglue U" <+> showVals [v,b]
+  --                        <+> text (showSystem es)
   -- VCompU a ts       -> text "comp (<_> U)" <+> showVal1 a <+> text (showSystem ts)
   VId a u v           -> text "Id" <+> showVals [a,u,v]
   VIdPair b ts        -> text "idC" <+> showVal1 b <+> text (showSystem ts)

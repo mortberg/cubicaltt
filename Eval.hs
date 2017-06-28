@@ -350,7 +350,7 @@ hComp i a u us = case a of
         v0 = unGlue u0 b equivs
         vs = mapWithKey (\al ual -> unGlue ual (b `face` al) (equivs `face` al))
                us
-        v1 = hComp i v0 (vs `unionSystem` wt)
+        v1 = hComp i b v0 (vs `unionSystem` wt)
     in glueElem v1 t1s
   Ter (Sum _ _ nass) env -> undefind
   Ter (HSum _ _ _) _ -> VHComp a u (Map.map (VPLam i) us)

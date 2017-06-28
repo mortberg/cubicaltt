@@ -389,7 +389,7 @@ showTer v = case v of
   PathP e0 e1 e2     -> text "PathP" <+> showTers [e0,e1,e2]
   PLam i e           -> char '<' <> text (show i) <> char '>' <+> showTer e
   AppFormula e phi   -> showTer1 e <+> char '@' <+> showFormula phi
-  HComp a t ts       -> text "hComp" <+> showTers [a,t] <+> text (showSystem ts)
+  HComp a t ts       -> text "hcomp" <+> showTers [a,t] <+> text (showSystem ts)
   -- HFill a t ts       -> text "hFill" <+> showTers [a,t] <+> text (showSystem ts)
   Trans e phi t0     -> text "transport" <+> showTer1 e <+> showFormula phi
                         <+> showTer1 t0
@@ -440,7 +440,7 @@ showVal v = case v of
   VCon c us         -> text c <+> showVals us
   VPCon c a us phis -> text c <+> braces (showVal a) <+> showVals us
                        <+> hsep (map ((char '@' <+>) . showFormula) phis)
-  VHComp v0 v1 vs   -> text "hComp" <+> showVals [v0,v1] <+> text (showSystem vs)
+  VHComp v0 v1 vs   -> text "hcomp" <+> showVals [v0,v1] <+> text (showSystem vs)
   VTrans u phi v0   -> text "transport" <+> showVal1 u <+> showFormula phi
                        <+> showVal1 v0
   VPi a l@(VLam x t b)

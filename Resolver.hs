@@ -213,9 +213,11 @@ resolveExp e = case e of
                               <*> mapM resolveFormula phis
       _ -> CTT.AppFormula <$> resolveExp t <*> resolveFormula phi
   PathP a u v   -> CTT.PathP <$> resolveExp a <*> resolveExp u <*> resolveExp v
+  HComp u v ts  -> CTT.HComp <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
   Comp u v ts   -> CTT.Comp <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
   Fill u v ts   -> CTT.Fill <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
-  Trans u v     -> CTT.Comp <$> resolveExp u <*> resolveExp v <*> pure Map.empty
+  Transport u v -> CTT.Comp <$> resolveExp u <*> resolveExp v <*> pure Map.empty
+  Trans u phi v -> CTT.Trans <$> resolveExp u <*> resolveFormula phi <*> resolveExp v
   Glue u ts     -> CTT.Glue <$> resolveExp u <*> resolveSystem ts
   GlueElem u ts -> CTT.GlueElem <$> resolveExp u <*> resolveSystem ts
   UnGlueElem u ts -> CTT.UnGlueElem <$> resolveExp u <*> resolveSystem ts

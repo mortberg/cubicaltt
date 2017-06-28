@@ -391,8 +391,8 @@ showTer v = case v of
   AppFormula e phi   -> showTer1 e <+> char '@' <+> showFormula phi
   HComp a t ts       -> text "hcomp" <+> showTers [a,t] <+> text (showSystem ts)
   -- HFill a t ts       -> text "hFill" <+> showTers [a,t] <+> text (showSystem ts)
-  Trans e phi t0     -> text "transport" <+> showTer1 e <+> showFormula phi
-                        <+> showTer1 t0
+  Trans e phi t0     -> text "trans" <+> showTer1 e <+> showFormula phi
+                                     <+> showTer1 t0
   Comp e t ts        -> text "comp" <+> showTers [e,t] <+> text (showSystem ts)
   Fill e t ts        -> text "fill" <+> showTers [e,t] <+> text (showSystem ts)
   Glue a ts          -> text "Glue" <+> showTer1 a <+> text (showSystem ts)

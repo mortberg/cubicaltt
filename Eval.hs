@@ -340,7 +340,7 @@ hComp i a u us = case a of
           u1comp = hComp i a u01 us1
   VPi{} -> VHComp a u (Map.map (VPLam i) us)
   VU -> undefined
-  VGlue b equivs | not (isNetralGlueHComp b equivs u us) ->
+  VGlue b equivs | not (isNeutralGlueHComp equivs u us) ->
     let wts = mapWithKey
                 (\al wal ->
                    app wal (hFill i (equivDom wal) (u `face` al) (us `face` al)))
@@ -683,6 +683,12 @@ isNeutralGlue i equivs u0 ts = (eps `notMember` equivsi0 && isNeutral u0) ||
 
 isNeutralGlueTrans :: Name -> System Val -> Formula -> Val -> Bool
 isNeutralGlueTrans i equivs phi u = undefined
+
+isNeutralGlueHComp :: System Val -> Val -> System Val -> Bool
+isNeutralGlueHComp equivs u us =
+  (eps `notMember` equivs && isNeutral u0) ||
+  any (\(alpha,uAlpha) -> eps `notMember` (equivs `face` alpha)
+        && isNeutral uAlpha) (assocs us)
 
 -- this is exactly the same as isNeutralGlue?
 isNeutralU :: Name -> System Val -> Val -> System Val -> Bool

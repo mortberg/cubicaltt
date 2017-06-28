@@ -338,7 +338,6 @@ hComp i a u us = case a of
           (u01, u02) = (fstVal us, sndVal us)
           u1fill = hFill i a u01 us1
           u1comp = hComp i a u01 us1
-  VPi{} -> VHComp a u (Map.map (VPLam i) us)
   VU -> undefined
   VGlue b equivs | not (isNeutralGlueHComp equivs u us) ->
     let wts = mapWithKey
@@ -352,10 +351,26 @@ hComp i a u us = case a of
                us
         v1 = hComp i b v0 (vs `unionSystem` wt)
     in glueElem v1 t1s
-  Ter (Sum _ _ nass) env -> undefind
+  Ter (Sum _ _ nass) env | VCon n vs <- u, all isCon (elem us) ->
+    case lookupLabel n nass of
+      Just as -> let usvs = transposeSystemAndList (Map.map unCon us) vs
+                     -- TODO: it is not really much of an improvement
+                     -- to use hComps here; directly use comps?
+                 in VCon n $ hComps i as env usvs
+      Nothing -> error $ "hComp: missing constructor in sum " ++ n
   Ter (HSum _ _ _) _ -> VHComp a u (Map.map (VPLam i) us)
+  VPi{} -> VHComp a u (Map.map (VPLam i) us)
   _ -> VHComp a u (Map.map (VPLam i) us)
 
+-- TODO: has to use comps after the second component anyway... remove?
+hComps :: Name -> [(Ident,Ter)] -> Env -> [(System Val,Val)] -> [Val]
+hComps i []         _ []            = []
+hComps i ((x,a):as) e ((ts,u):tsus) =
+  let v   = hFill i (eval e a) u ts
+      vi1 = hComp i (eval e a) u ts
+      vs  = comps i as (upd (x,v) e) tsus -- NB: not hComps
+  in vi1 : vs
+hComps _ _ _ _ = error "hComps: different lengths of types and values"
 
 
 -- For i:II |- a, phi # i, u : a (i/phi) we get fwd i a phi u : a(i/1)
@@ -467,8 +482,8 @@ trans i a phi u = case a of
           u1f     = transFill i a phi u1
   VPi{} -> VTrans (VPLam i a) phi u
   VU -> undefined
-  VGlue b equivs | not (isNeutralGlueTrans i equivs phi u) -> transGlue i b equivs phi u
---  VGlue b equivs | not (isNeutralGlue i equivs u ts) -> compGlue i b equivs u ts
+  VGlue b equivs | not (eps `notMember` equivs && isNeutral u) ->
+    transGlue i b equivs phi u
   Ter (Sum _ _ nass) env -> case u of
     VCon n us -> case lookupLabel n nass of
       Just as -> VCon n (transps i as env us)
@@ -674,15 +689,12 @@ unGlue w b equivs | eps `member` equivs = app (equivFun (equivs ! eps)) w
                                             VGlueElem v us -> v
                                             _ -> error ("unglue: neutral" ++ show w)
 
-isNeutralGlue :: Name -> System Val -> Val -> System Val -> Bool
-isNeutralGlue i equivs u0 ts = (eps `notMember` equivsi0 && isNeutral u0) ||
-  any (\(alpha,talpha) ->
-           eps `notMember` (equivs `face` alpha) && isNeutral talpha)
-    (assocs ts)
-  where equivsi0 = equivs `face` (i ~> 0)
-
-isNeutralGlueTrans :: Name -> System Val -> Formula -> Val -> Bool
-isNeutralGlueTrans i equivs phi u = undefined
+-- isNeutralGlue :: Name -> System Val -> Val -> System Val -> Bool
+-- isNeutralGlue i equivs u0 ts = (eps `notMember` equivsi0 && isNeutral u0) ||
+--   any (\(alpha,talpha) ->
+--            eps `notMember` (equivs `face` alpha) && isNeutral talpha)
+--     (assocs ts)
+--   where equivsi0 = equivs `face` (i ~> 0)
 
 isNeutralGlueHComp :: System Val -> Val -> System Val -> Bool
 isNeutralGlueHComp equivs u us =
@@ -705,56 +717,86 @@ extend b q ts = comp i b (fstVal q) ts'
         ts' = mapWithKey
                 (\alpha tAlpha -> app ((sndVal q) `face` alpha) tAlpha @@ i) ts
 
--- psi/b corresponds to ws
--- b0    corresponds to wi0
--- a0    corresponds to vi0
--- psi/a corresponds to vs
--- a1'   corresponds to vi1'
--- equivs' corresponds to delta
--- ti1'  corresponds to usi1'
-compGlue :: Name -> Val -> System Val -> Val -> System Val -> Val
-compGlue i a equivs wi0 ws = glueElem vi1 usi1
-  where ai1 = a `face` (i ~> 1)
-        vs  = mapWithKey
-                (\alpha wAlpha ->
-                  unGlue wAlpha (a `face` alpha) (equivs `face` alpha)) ws
+transGlue :: Name -> Val -> System Val -> Formula -> Val -> Val
+transGlue i a equivs psi u0 = glueElem v1' t1s'
+  where
+    v0 = unGlue u0 (a `face` (i ~> 0)) (equivs `face` (i ~> 0))
+    ai1 = a `face` (i ~> 1)
+    alliequivs = allSystem i equivs
+    psisys = invSystem psi One -- (psi = 1) : FF
+    t1s = mapWithKey (\al wal -> transp i (equivDom wal) psi (u0 `face` al))
+            alliequivs
+    wts = mapWithKey (\al wal ->
+              app wal (transpFill i (equivDom wal) psi (u0 `face` al)))
+            alliequivs
+    v1 = comp i a v0 (border a0 psisys `unionSystem` wts)
 
-        vsi1 = vs `face` (i ~> 1) -- same as: border vi1 vs
-        vi0  = unGlue wi0 (a `face` (i ~> 0)) (equivs `face` (i ~> 0)) -- in a(i0)
+    fibersys = mapWithKey
+                 (\al x -> VPair x (constPath (v1 `face` al)))
+                 (border u0 psisys `unionSystem` t1s)
 
-        vi1'  = comp i a vi0 vs           -- in a(i1)
+    fibersys' = mapWithKey
+                  (\al wal ->
+                     extend (mkFiberType ai1 (vi1 `face` al) wal)
+                       (app (equivContr wal) (vi1 `face` al))
+                       (sys `face` al))
+                  (equivs `face` (i ~> 1))
 
-        equivsI1 = equivs `face` (i ~> 1)
-        equivs'  = filterWithKey (\alpha _ -> i `notMember` alpha) equivs
+    t1s' = Map.map fstVal fibersys'
+    -- no need for a fresh name; take i
+    v1' = hComp i ai1 v1 (Map.map (@@ i . sndVal) fibersys' `unionSystem`
+                           border a1 psisys)
 
-        us'    = mapWithKey (\gamma equivG ->
-                   fill i (equivDom equivG) (wi0 `face` gamma) (ws `face` gamma))
-                 equivs'
-        usi1'  = mapWithKey (\gamma equivG ->
-                   comp i (equivDom equivG) (wi0 `face` gamma) (ws `face` gamma))
-                 equivs'
+-- -- psi/b corresponds to ws
+-- -- b0    corresponds to wi0
+-- -- a0    corresponds to vi0
+-- -- psi/a corresponds to vs
+-- -- a1'   corresponds to vi1'
+-- -- equivs' corresponds to delta
+-- -- ti1'  corresponds to usi1'
+-- compGlue :: Name -> Val -> System Val -> Val -> System Val -> Val
+-- compGlue i a equivs wi0 ws = glueElem vi1 usi1
+--   where ai1 = a `face` (i ~> 1)
+--         vs  = mapWithKey
+--                 (\alpha wAlpha ->
+--                   unGlue wAlpha (a `face` alpha) (equivs `face` alpha)) ws
 
-        -- path in ai1 between vi1 and f(i1) usi1' on equivs'
-        ls'    = mapWithKey (\gamma equivG ->
-                   pathComp i (a `face` gamma) (vi0 `face` gamma)
-                     (equivFun equivG `app` (us' ! gamma)) (vs `face` gamma))
-                 equivs'
+--         vsi1 = vs `face` (i ~> 1) -- same as: border vi1 vs
+--         vi0  = unGlue wi0 (a `face` (i ~> 0)) (equivs `face` (i ~> 0)) -- in a(i0)
 
-        fibersys = intersectionWith VPair usi1' ls' -- on equivs'
+--         vi1'  = comp i a vi0 vs           -- in a(i1)
 
-        wsi1 = ws `face` (i ~> 1)
-        fibersys' = mapWithKey
-          (\gamma equivG ->
-            let fibsgamma = intersectionWith (\ x y -> VPair x (constPath y))
-                              (wsi1 `face` gamma) (vsi1 `face` gamma)
-            in extend (mkFiberType (ai1 `face` gamma) (vi1' `face` gamma) equivG)
-                 (app (equivContr equivG) (vi1' `face` gamma))
-                 (fibsgamma `unionSystem` (fibersys `face` gamma))) equivsI1
+--         equivsI1 = equivs `face` (i ~> 1)
+--         equivs'  = filterWithKey (\alpha _ -> i `notMember` alpha) equivs
 
-        vi1 = compConstLine ai1 vi1'
-                (Map.map sndVal fibersys' `unionSystem` Map.map constPath vsi1)
+--         us'    = mapWithKey (\gamma equivG ->
+--                    fill i (equivDom equivG) (wi0 `face` gamma) (ws `face` gamma))
+--                  equivs'
+--         usi1'  = mapWithKey (\gamma equivG ->
+--                    comp i (equivDom equivG) (wi0 `face` gamma) (ws `face` gamma))
+--                  equivs'
 
-        usi1 = Map.map fstVal fibersys'
+--         -- path in ai1 between vi1 and f(i1) usi1' on equivs'
+--         ls'    = mapWithKey (\gamma equivG ->
+--                    pathComp i (a `face` gamma) (vi0 `face` gamma)
+--                      (equivFun equivG `app` (us' ! gamma)) (vs `face` gamma))
+--                  equivs'
+
+--         fibersys = intersectionWith VPair usi1' ls' -- on equivs'
+
+--         wsi1 = ws `face` (i ~> 1)
+--         fibersys' = mapWithKey
+--           (\gamma equivG ->
+--             let fibsgamma = intersectionWith (\ x y -> VPair x (constPath y))
+--                               (wsi1 `face` gamma) (vsi1 `face` gamma)
+--             in extend (mkFiberType (ai1 `face` gamma) (vi1' `face` gamma) equivG)
+--                  (app (equivContr equivG) (vi1' `face` gamma))
+--                  (fibsgamma `unionSystem` (fibersys `face` gamma))) equivsI1
+
+--         vi1 = compConstLine ai1 vi1'
+--                 (Map.map sndVal fibersys' `unionSystem` Map.map constPath vsi1)
+
+--         usi1 = Map.map fstVal fibersys'
 
 mkFiberType :: Val -> Val -> Val -> Val
 mkFiberType a x equiv = eval rho $

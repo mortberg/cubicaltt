@@ -389,8 +389,8 @@ showTer v = case v of
   AppFormula e phi   -> showTer1 e <+> char '@' <+> showFormula phi
   HComp a t ts       -> text "hcomp" <+> showTers [a,t] <+> text (showSystem ts)
   -- HFill a t ts       -> text "hFill" <+> showTers [a,t] <+> text (showSystem ts)
-  Trans e phi t0     -> text "trans" <+> showTer1 e <+> showFormula phi
-                                     <+> showTer1 t0
+  Trans e phi t0     -> text "transGen" <+> showTer1 e <+> showFormula phi
+                        <+> showTer1 t0
   Comp e t ts        -> text "comp" <+> showTers [e,t] <+> text (showSystem ts)
   Fill e t ts        -> text "fill" <+> showTers [e,t] <+> text (showSystem ts)
   Glue a ts          -> text "Glue" <+> showTer1 a <+> text (showSystem ts)
@@ -439,7 +439,7 @@ showVal v = case v of
   VPCon c a us phis -> text c <+> braces (showVal a) <+> showVals us
                        <+> hsep (map ((char '@' <+>) . showFormula) phis)
   VHComp v0 v1 vs   -> text "hcomp" <+> showVals [v0,v1] <+> text (showSystem vs)
-  VTrans u phi v0   -> text "transport" <+> showVal1 u <+> showFormula phi
+  VTrans u phi v0   -> text "transGen" <+> showVal1 u <+> showFormula phi
                        <+> showVal1 v0
   VPi a l@(VLam x t b)
     | "_" `isPrefixOf` x -> showVal1 a <+> text "->" <+> showVal1 b

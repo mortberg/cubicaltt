@@ -499,9 +499,10 @@ trans i a phi u = case a of
     VPLam j $ comp i (p @@ j) (u @@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
                                          (border (u @@ j) (invSystem phi One)))
   VId b v0 v1 -> undefined
-  VSigma a f -> VPair (trans i a phi u1) (trans i (app f u1f) phi u2)
-    where (u1,u2) = (fstVal u, sndVal u)
-          u1f     = transFill i a phi u1
+  VSigma a f ->
+    let (u1,u2) = (fstVal u, sndVal u)
+        u1f     = transFill i a phi u1
+    in VPair (trans i a phi u1) (trans i (app f u1f) phi u2)
   VPi{} -> VTrans (VPLam i a) phi u
   VU -> u
   -- TODO: neutrality tests in the next two cases could be removed

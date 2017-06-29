@@ -330,8 +330,8 @@ hComp :: Name -> Val -> Val -> System Val -> Val
 hComp i a u us | eps `member` us = (us ! eps) `face` (i ~> 1)
 hComp i a u us = case a of
   VPathP p v0 v1 -> let j = fresh (Atom i,a,u,us) in
-    VPLam j $ hComp i a (u @@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
-                                   (Map.map (@@ j) us))
+    VPLam j $ hComp i (p @@ j) (u @@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
+                                         (Map.map (@@ j) us))
   VId b v0 v1 -> undefined
   VSigma a f -> VPair u1comp (comp i (app f u1fill) u2 us2)
     where (us1, us2) = (Map.map fstVal us, Map.map sndVal us)

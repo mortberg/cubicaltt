@@ -397,8 +397,7 @@ fwd i a phi u = trans i (a `act` (i,phi `orFormula` Atom i)) phi u
 comp :: Name -> Val -> Val -> System Val -> Val
 comp i a u us = hComp i (a `face` (i ~> 1)) (fwd i a (Dir Zero) u) fwdius
  where fwdius = mapWithKey (\al ual -> fwd i (a `face` al) (Atom i) ual) us
--- TODO: why does this not work?
--- comp i a u us = hComp i (a `face` (i ~> 1)) (fwd i a (Dir Zero) u) fwdius
+-- comp i a u us = hComp j (a `face` (i ~> 1)) (fwd i a (Dir Zero) u) fwdius
 --   where j = fresh (Atom i,a,u,us)
 --         fwdius = mapWithKey (\al ual -> fwd i (a `face` al) (Atom j) (ual  `swap` (i,j))) us
 

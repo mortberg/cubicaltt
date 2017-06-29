@@ -751,10 +751,12 @@ transGlue i a equivs psi u0 = glueElem v1' t1s'
     ai1 = a `face` (i ~> 1)
     alliequivs = allSystem i equivs
     psisys = invSystem psi One -- (psi = 1) : FF
-    t1s = mapWithKey (\al wal -> trans i (equivDom wal) psi (u0 `face` al))
+    t1s = mapWithKey
+            (\al wal -> trans i (equivDom wal) (psi `face` al) (u0 `face` al))
             alliequivs
     wts = mapWithKey (\al wal ->
-              app (equivFun wal) (transFill i (equivDom wal) psi (u0 `face` al)))
+              app (equivFun wal)
+                (transFill i (equivDom wal) (psi `face` al) (u0 `face` al)))
             alliequivs
     v1 = comp i a v0 (border v0 psisys `unionSystem` wts)
 
@@ -863,10 +865,12 @@ transHCompU i a es psi u0 = glueElem v1' t1s'
     ai1 = a `face` (i ~> 1)
     allies = allSystem i es
     psisys = invSystem psi One -- (psi = 1) : FF
-    t1s = mapWithKey (\al eal -> trans i (eal @@ One) psi (u0 `face` al))
+    t1s = mapWithKey
+            (\al eal -> trans i (eal @@ One) (psi `face` al) (u0 `face` al))
             allies
     wts = mapWithKey (\al eal ->
-              eqFun eal (transFill i (eal @@ One) psi (u0 `face` al)))
+              eqFun eal
+                (transFill i (eal @@ One) (psi `face` al) (u0 `face` al)))
             allies
     v1 = comp i a v0 (border v0 psisys `unionSystem` wts)
 

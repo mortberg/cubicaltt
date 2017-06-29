@@ -221,7 +221,8 @@ resolveExp e = case e of
   Trans u phi v -> CTT.Trans <$> resolveExp u <*> resolveFormula phi <*> resolveExp v
   Glue u ts     -> CTT.Glue <$> resolveExp u <*> resolveSystem ts
   GlueElem u ts -> CTT.GlueElem <$> resolveExp u <*> resolveSystem ts
-  UnGlueElem u ts -> CTT.UnGlueElem <$> resolveExp u <*> resolveSystem ts
+  UnGlueElem u v ts ->
+    CTT.UnGlueElem <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
   Id a u v      -> CTT.Id <$> resolveExp a <*> resolveExp u <*> resolveExp v
   IdPair u ts   -> CTT.IdPair <$> resolveExp u <*> resolveSystem ts
   IdJ a t c d x p -> CTT.IdJ <$> resolveExp a <*> resolveExp t <*> resolveExp c

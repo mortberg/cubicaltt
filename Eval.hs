@@ -80,7 +80,7 @@ instance Nominal Val where
     VSplit u v              -> support (u,v)
     VGlue a ts              -> support (a,ts)
     VGlueElem a ts          -> support (a,ts)
-    VUnGlueElem a ts        -> support (a,ts)
+    VUnGlueElem a b ts      -> support (a,b,ts)
     VHCompU a ts            -> support (a,ts)
     VUnGlueElemU a b es     -> support (a,b,es)
     VIdPair u us            -> support (u,us)
@@ -118,7 +118,7 @@ instance Nominal Val where
          VSplit u v              -> app (acti u) (acti v)
          VGlue a ts              -> glue (acti a) (acti ts)
          VGlueElem a ts          -> glueElem (acti a) (acti ts)
-         VUnGlueElem a ts        -> unglueElem (acti a) (acti ts)
+         VUnGlueElem a b ts      -> unGlue (acti a) (acti b) (acti ts)
          VUnGlueElemU a b es     -> unGlueU (acti a) (acti b) (acti es)
          VHCompU a ts            -> hCompUniv (acti a) (acti ts)
          VIdPair u us            -> VIdPair (acti u) (acti us)
@@ -153,7 +153,7 @@ instance Nominal Val where
          VSplit u v              -> VSplit (sw u) (sw v)
          VGlue a ts              -> VGlue (sw a) (sw ts)
          VGlueElem a ts          -> VGlueElem (sw a) (sw ts)
-         VUnGlueElem a ts        -> VUnGlueElem (sw a) (sw ts)
+         VUnGlueElem a b ts      -> VUnGlueElem (sw a) (sw b) (sw ts)
          VUnGlueElemU a b es     -> VUnGlueElemU (sw a) (sw b) (sw es)
          VHCompU a ts            -> VHCompU (sw a) (sw ts)
          VIdPair u us            -> VIdPair (sw u) (sw us)
@@ -202,7 +202,7 @@ eval rho@(Env (_,_,_,Nameless os)) v = case v of
     fillLine (eval rho a) (eval rho t0) (evalSystem rho ts)
   Glue a ts           -> glue (eval rho a) (evalSystem rho ts)
   GlueElem a ts       -> glueElem (eval rho a) (evalSystem rho ts)
-  UnGlueElem a ts     -> unglueElem (eval rho a) (evalSystem rho ts)
+  UnGlueElem v a ts   -> unGlue (eval rho v) (eval rho a) (evalSystem rho ts)
   Id a r s            -> VId (eval rho a) (eval rho r) (eval rho s)
   IdPair b ts         -> VIdPair (eval rho b) (evalSystem rho ts)
   IdJ a t c d x p     -> idJ (eval rho a) (eval rho t) (eval rho c)
@@ -295,8 +295,8 @@ inferType v = case v of
                   ++ ", got " ++ show ty
   VHComp a _ _ -> a
   VTrans a _ _ -> a @@ One
---  VUnGlueElem _ b _  -> b   -- This is wrong! Store the type??
-  -- VUnGlueElemU _ b _ -> b
+  VUnGlueElem _ b _  -> b
+  VUnGlueElemU _ b _ -> b
   VIdJ _ _ c _ x p -> app (app c x) p
   _ -> error $ "inferType: not neutral " ++ show v
 
@@ -693,21 +693,15 @@ glue b ts | eps `member` ts = equivDom (ts ! eps)
           | otherwise       = VGlue b ts
 
 glueElem :: Val -> System Val -> Val
-glueElem (VUnGlueElem u _) _ = u
+glueElem (VUnGlueElem u _ _) _ = u
 glueElem v us | eps `member` us = us ! eps
               | otherwise       = VGlueElem v us
 
-unglueElem :: Val -> System Val -> Val
-unglueElem w isos | eps `member` isos = app (equivFun (isos ! eps)) w
-                  | otherwise         = case w of
-                                          VGlueElem v us -> v
-                                          _ -> VUnGlueElem w isos
-
 unGlue :: Val -> Val -> System Val -> Val
-unGlue w b equivs | eps `member` equivs = app (equivFun (equivs ! eps)) w
+unGlue w a equivs | eps `member` equivs = app (equivFun (equivs ! eps)) w
                   | otherwise           = case w of
                                             VGlueElem v us -> v
-                                            _ -> error ("unglue: neutral" ++ show w)
+                                            _ -> VUnGlueElem w a equivs
 
 -- isNeutralGlue :: Name -> System Val -> Val -> System Val -> Bool
 -- isNeutralGlue i equivs u0 ts = (eps `notMember` equivsi0 && isNeutral u0) ||
@@ -722,13 +716,13 @@ isNeutralGlueHComp equivs u us =
   any (\(alpha,uAlpha) -> eps `notMember` (equivs `face` alpha)
         && isNeutral uAlpha) (assocs us)
 
--- this is exactly the same as isNeutralGlue?
-isNeutralU :: Name -> System Val -> Val -> System Val -> Bool
-isNeutralU i eqs u0 ts = (eps `notMember` eqsi0 && isNeutral u0) ||
-  any (\(alpha,talpha) ->
-           eps `notMember` (eqs `face` alpha) && isNeutral talpha)
-    (assocs ts)
-  where eqsi0 = eqs `face` (i ~> 0)
+-- -- this is exactly the same as isNeutralGlue?
+-- isNeutralU :: Name -> System Val -> Val -> System Val -> Bool
+-- isNeutralU i eqs u0 ts = (eps `notMember` eqsi0 && isNeutral u0) ||
+--   any (\(alpha,talpha) ->
+--            eps `notMember` (eqs `face` alpha) && isNeutral talpha)
+--     (assocs ts)
+--   where eqsi0 = eqs `face` (i ~> 0)
 
 -- Extend the system ts to a total element in b given q : isContr b
 extend :: Val -> Val -> System Val -> Val
@@ -1037,7 +1031,7 @@ instance Convertible Val where
       (VGlue v equivs,VGlue v' equivs')   -> conv ns (v,equivs) (v',equivs')
       (VGlueElem u us,VGlueElem u' us')   -> conv ns (u,us) (u',us')
       (VUnGlueElemU u _ _,VUnGlueElemU u' _ _) -> conv ns u u'
-      (VUnGlueElem u ts,VUnGlueElem u' ts')    -> conv ns (u,ts) (u',ts')
+      (VUnGlueElem u a ts,VUnGlueElem u' a' ts') -> conv ns (u,a,ts) (u',a',ts')
       (VHCompU u es,VHCompU u' es')            -> conv ns (u,es) (u',es')
       (VIdPair v vs,VIdPair v' vs')          -> conv ns (v,vs) (v',vs')
       (VId a u v,VId a' u' v')               -> conv ns (a,u,v) (a',u',v')
@@ -1104,7 +1098,7 @@ instance Normal Val where
     VHComp u v vs       -> VHComp (normal ns u) (normal ns v) (normal ns vs)
     VGlue u equivs      -> VGlue (normal ns u) (normal ns equivs)
     VGlueElem u us      -> VGlueElem (normal ns u) (normal ns us)
-    VUnGlueElem u us    -> VUnGlueElem (normal ns u) (normal ns us)
+    VUnGlueElem v u us  -> VUnGlueElem (normal ns v) (normal ns u) (normal ns us)
     VUnGlueElemU e u us -> VUnGlueElemU (normal ns e) (normal ns u) (normal ns us)
     VHCompU a ts        -> VHCompU (normal ns a) (normal ns ts)
     VVar x t            -> VVar x (normal ns t)

@@ -124,7 +124,7 @@ data Ter = Pi Ter
            -- Glue
          | Glue Ter (System Ter)
          | GlueElem Ter (System Ter)
-         | UnGlueElem Ter (System Ter)
+         | UnGlueElem Ter Ter (System Ter)
            -- Id
          | Id Ter Ter Ter
          | IdPair Ter (System Ter)
@@ -164,7 +164,7 @@ data Val = VU
            -- Glue values
          | VGlue Val (System Val)
          | VGlueElem Val (System Val)
-         | VUnGlueElem Val (System Val)
+         | VUnGlueElem Val Val (System Val)
 
            -- Composition in the universe
          | VHCompU Val (System Val)
@@ -395,7 +395,7 @@ showTer v = case v of
   Fill e t ts        -> text "fill" <+> showTers [e,t] <+> text (showSystem ts)
   Glue a ts          -> text "Glue" <+> showTer1 a <+> text (showSystem ts)
   GlueElem a ts      -> text "glue" <+> showTer1 a <+> text (showSystem ts)
-  UnGlueElem a ts    -> text "unglue" <+> showTer1 a <+> text (showSystem ts)
+  UnGlueElem a b ts  -> text "unglue" <+> showTers [a,b] <+> text (showSystem ts)
   Id a u v           -> text "Id" <+> showTers [a,u,v]
   IdPair b ts        -> text "idC" <+> showTer1 b <+> text (showSystem ts)
   IdJ a t c d x p    -> text "idJ" <+> showTers [a,t,c,d,x,p]
@@ -459,7 +459,7 @@ showVal v = case v of
   VAppFormula v phi -> showVal v <+> char '@' <+> showFormula phi
   VGlue a ts        -> text "Glue" <+> showVal1 a <+> text (showSystem ts)
   VGlueElem a ts    -> text "glue" <+> showVal1 a <+> text (showSystem ts)
-  VUnGlueElem a ts  -> text "unglue" <+> showVal1 a <+> text (showSystem ts)
+  VUnGlueElem v a ts  -> text "unglue" <+> showVals [v,a] <+> text (showSystem ts)
   VUnGlueElemU v b es -> text "unglue U" <+> showVals [v,b]
                          <+> text (showSystem es)
   VHCompU a ts        -> text "hComp U" <+> showVal1 a <+> text (showSystem ts)

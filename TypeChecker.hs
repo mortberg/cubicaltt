@@ -466,11 +466,12 @@ infer e = case e of
   Where t d -> do
     checkDecls d
     local (addDecls d) $ infer t
-  UnGlueElem e _ -> do
-    t <- infer e
-    case t of
-     VGlue a _ -> return a
-     _ -> throwError (show t ++ " is not a Glue")
+  UnGlueElem e a ts -> do
+    check VU (Glue a ts)
+    vgl <- evalTyping (Glue a ts)
+    check vgl e
+    va <- evalTyping a
+    return va
   AppFormula e phi -> do
     checkFormula phi
     t <- infer e

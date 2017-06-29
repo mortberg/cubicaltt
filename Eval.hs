@@ -1035,7 +1035,7 @@ instance Convertible Val where
       (VGlue v equivs,VGlue v' equivs')   -> conv ns (v,equivs) (v',equivs')
       (VGlueElem u us,VGlueElem u' us')   -> conv ns (u,us) (u',us')
       (VUnGlueElemU u _ _,VUnGlueElemU u' _ _) -> conv ns u u'
-      (VUnGlueElem u a ts,VUnGlueElem u' a' ts') -> conv ns (u,a,ts) (u',a',ts')
+      (VUnGlueElem u _ _,VUnGlueElem u' _ _) -> conv ns u u'
       (VHCompU u es,VHCompU u' es')            -> conv ns (u,es) (u',es')
       (VIdPair v vs,VIdPair v' vs')          -> conv ns (v,vs) (v',vs')
       (VId a u v,VId a' u' v')               -> conv ns (a,u,v) (a',u',v')

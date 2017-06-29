@@ -491,9 +491,9 @@ infer e = case e of
     -- Check that va is constant on phi=1
     mapM_ (\alpha ->
               local (faceEnv alpha) $ do
-                unlessM (va `face` alpha === constPath $ va0 `face` alpha) $
+                unlessM (va `face` alpha === constPath (va0 `face` alpha)) $
                   throwError $ show va ++ " not constant on "
-                               ++ show phi ++ "for trans")
+                               ++ show phi ++ " for trans")
       phisys
     check va0 u0
     return va1

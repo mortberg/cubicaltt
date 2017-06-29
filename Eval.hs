@@ -534,7 +534,7 @@ transFillNeg i a phi u = (transFill i (a `sym` i) phi u) `sym` i
 
 transNegLine :: Val -> Formula -> Val -> Val
 transNegLine u phi v = transNeg i (u @@ i) phi v
-  where i = fresh (u,v)
+  where i = fresh (u,phi,v)
 
 transps :: Name -> [(Ident,Ter)] -> Env -> Formula -> [Val] -> [Val]
 transps i []         _ phi []     = []

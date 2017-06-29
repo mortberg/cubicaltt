@@ -339,6 +339,8 @@ hComp i a u us = case a of
           u1fill = hFill i a u1 us1
           u1comp = hComp i a u1 us1
   VU -> hCompUniv u (Map.map (VPLam i) us)
+  -- TODO: neutrality tests in the next two cases could be removed
+  -- since there are neutral values for unglue and unglueU
   VGlue b equivs | not (isNeutralGlueHComp equivs u us) ->
     let wts = mapWithKey (\al wal ->
                   app (equivFun wal)
@@ -494,6 +496,8 @@ trans i a phi u = case a of
           u1f     = transFill i a phi u1
   VPi{} -> VTrans (VPLam i a) phi u
   VU -> u
+  -- TODO: neutrality tests in the next two cases could be removed
+  -- since there are neutral values for unglue and unglueU
   VGlue b equivs | not (eps `notMember` equivs && isNeutral u) ->
     transGlue i b equivs phi u
   VHCompU b es | not (eps `notMember` es && isNeutral u) ->

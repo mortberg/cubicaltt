@@ -12,6 +12,8 @@ import qualified Data.Set as Set
 import Connections
 import CTT
 
+
+
 -----------------------------------------------------------------------
 -- Lookup functions
 
@@ -390,11 +392,16 @@ hComps _ _ _ _ = error "hComps: different lengths of types and values"
 -- For i:II |- a, phi # i, u : a (i/phi) we get fwd i a phi u : a(i/1)
 -- such that fwd i a 1 u = u.   Note that i gets bound.
 fwd :: Name -> Val -> Formula -> Val -> Val
-fwd i a phi u = trans i (a `act` (i,phi :\/: Atom i)) phi u
+fwd i a phi u = trans i (a `act` (i,phi `orFormula` Atom i)) phi u
 
 comp :: Name -> Val -> Val -> System Val -> Val
 comp i a u us = hComp i (a `face` (i ~> 1)) (fwd i a (Dir Zero) u) fwdius
-  where fwdius = mapWithKey (\al ual -> fwd i (a `face` al) (Atom i) ual) us
+ where fwdius = mapWithKey (\al ual -> fwd i (a `face` al) (Atom i) ual) us
+-- TODO: why does this not work?
+-- comp i a u us = hComp i (a `face` (i ~> 1)) (fwd i a (Dir Zero) u) fwdius
+--   where j = fresh (Atom i,a,u,us)
+--         fwdius = mapWithKey (\al ual -> fwd i (a `face` al) (Atom j) (ual  `swap` (i,j))) us
+
 
 -- comp :: Name -> Val -> Val -> System Val -> Val
 -- comp i a u ts | eps `member` ts = (ts ! eps) `face` (i ~> 1)
@@ -489,7 +496,8 @@ trans :: Name -> Val -> Formula -> Val -> Val
 trans i a (Dir One) u = u
 trans i a phi u = case a of
   VPathP p v0 v1 -> let j = fresh (Atom i,a,phi,u) in
-    VPLam j $ comp i (p @@ j) (u @@ j) (mkSystem [(j ~> 0,v0),(j ~> 1,v1)])
+    VPLam j $ comp i (p @@ j) (u @@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
+                                         (border (u @@ j) (invSystem phi One)))
   VId b v0 v1 -> undefined
   VSigma a f -> VPair (trans i a phi u1) (trans i (app f u1f) phi u2)
     where (u1,u2) = (fstVal u, sndVal u)
@@ -523,7 +531,7 @@ trans i a phi u = case a of
 
 
 transFill :: Name -> Val -> Formula -> Val -> Val
-transFill i a phi u = trans j (a `conj` (i,j)) (phi :\/: NegAtom i) u
+transFill i a phi u = trans j (a `conj` (i,j)) (phi `orFormula` NegAtom i) u
   where j = fresh (Atom i,a,phi,u)
 
 transNeg :: Name -> Val -> Formula -> Val -> Val

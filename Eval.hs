@@ -335,11 +335,11 @@ hComp i a u us = case a of
     VPLam j $ hComp i (p @@ j) (u @@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
                                          (Map.map (@@ j) us))
   VId b v0 v1 -> undefined
-  VSigma a f -> VPair u1comp (comp i (app f u1fill) u2 us2)
-    where (us1, us2) = (Map.map fstVal us, Map.map sndVal us)
-          (u1, u2) = (fstVal u, sndVal u)
-          u1fill = hFill i a u1 us1
-          u1comp = hComp i a u1 us1
+  VSigma a f -> let (us1, us2) = (Map.map fstVal us, Map.map sndVal us)
+                    (u1, u2) = (fstVal u, sndVal u)
+                    u1fill = hFill i a u1 us1
+                    u1comp = hComp i a u1 us1
+                in VPair u1comp (comp i (app f u1fill) u2 us2)
   VU -> hCompUniv u (Map.map (VPLam i) us)
   -- TODO: neutrality tests in the next two cases could be removed
   -- since there are neutral values for unglue and unglueU

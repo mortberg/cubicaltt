@@ -481,21 +481,20 @@ infer e = case e of
     check VU a
     va <- evalTyping a
     check va u0
-    checkPLamSystem u0 va us
+    checkPLamSystem u0 (constPath va) us
     return va
   Trans a phi u0 -> do
     (va0, va1) <- checkPLam (constPath VU) a
     va <- evalTyping a
     checkFormula phi
     let phisys = invFormula phi One
-    -- Check that va is independent of i on each of the maximal faces of phi=1
+    -- Check that va is constant on phi=1
     mapM_ (\alpha ->
               local (faceEnv alpha) $ do
-                let x1 = va `face` alpha
-                let x2 = va0 `face` alpha
-                unlessM (x1 === x2) $
-                  throwError "trans ..." -- TODO: better error message
-          ) phisys
+                unlessM (va `face` alpha === constPath $ va0 `face` alpha) $
+                  throwError $ show va ++ " not constant on "
+                               ++ show phi ++ "for trans")
+      phisys
     check va0 u0
     return va1
   Comp a t0 ps -> do

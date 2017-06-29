@@ -88,8 +88,8 @@ univalenceAlt (B : U) : isContr ((X : U) * equiv X B) =
  ,\(w : (X : U) * equiv X B)
     -> <i> let GlueB : U = Glue B [(i=0) -> (B,idEquiv B), (i=1) -> w]
                unglueB (g : GlueB) : B =
-                 unglue g [(i=0) -> (B,idEquiv B)
-                          ,(i=1) -> w]
+                 unglue g B [(i=0) -> (B,idEquiv B)
+                            ,(i=1) -> w]
            in (GlueB
               ,unglueB
               ,\(b : B)

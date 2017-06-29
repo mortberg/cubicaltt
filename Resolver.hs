@@ -216,7 +216,8 @@ resolveExp e = case e of
   HComp u v ts  -> CTT.HComp <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
   Comp u v ts   -> CTT.Comp <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
   Fill u v ts   -> CTT.Fill <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
-  Transport u v -> CTT.Trans <$> resolveExp u <*> pure (C.Dir C.Zero) <*> resolveExp v
+  -- Transport u v -> CTT.Trans <$> resolveExp u <*> pure (C.Dir C.Zero) <*> resolveExp v
+  Transport u v -> CTT.Trans <$> resolveExp u <*> resolveExp v <*> pure Map.empty
   Trans u phi v -> CTT.Trans <$> resolveExp u <*> resolveFormula phi <*> resolveExp v
   Glue u ts     -> CTT.Glue <$> resolveExp u <*> resolveSystem ts
   GlueElem u ts -> CTT.GlueElem <$> resolveExp u <*> resolveSystem ts

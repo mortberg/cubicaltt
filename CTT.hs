@@ -166,8 +166,8 @@ data Val = VU
          | VGlueElem Val (System Val)
          | VUnGlueElem Val (System Val)
 
-         --   -- Composition in the universe
-         -- | VCompU Val (System Val)
+           -- Composition in the universe
+         | VHCompU Val (System Val)
 
            -- Composition; the type is constant
          | VHComp Val Val (System Val)
@@ -188,7 +188,7 @@ data Val = VU
          | VApp Val Val
          | VAppFormula Val Formula
          | VLam Ident Val Val
-         -- | VUnGlueElemU Val Val (System Val)
+         | VUnGlueElemU Val Val (System Val)
          | VIdJ Val Val Val Val Val Val
   deriving Eq
 
@@ -198,15 +198,13 @@ isNeutral v = case v of
   Ter Hole{} _   -> True
   VVar{}         -> True
   VOpaque{}      -> True
--- TODO: neutrality test has to be adapted; depends on how hcomp/trans
--- in VU is handled
---  VComp{}        -> True
+  VHComp{}        -> True
   VFst{}         -> True
   VSnd{}         -> True
   VSplit{}       -> True
   VApp{}         -> True
   VAppFormula{}  -> True
-  -- VUnGlueElemU{} -> True
+  VUnGlueElemU{} -> True
   VUnGlueElem{}  -> True
   VIdJ{}         -> True
   _              -> False
@@ -462,9 +460,9 @@ showVal v = case v of
   VGlue a ts        -> text "Glue" <+> showVal1 a <+> text (showSystem ts)
   VGlueElem a ts    -> text "glue" <+> showVal1 a <+> text (showSystem ts)
   VUnGlueElem a ts  -> text "unglue" <+> showVal1 a <+> text (showSystem ts)
-  -- VUnGlueElemU v b es -> text "unglue U" <+> showVals [v,b]
-  --                        <+> text (showSystem es)
-  -- VCompU a ts       -> text "comp (<_> U)" <+> showVal1 a <+> text (showSystem ts)
+  VUnGlueElemU v b es -> text "unglue U" <+> showVals [v,b]
+                         <+> text (showSystem es)
+  VHCompU a ts        -> text "hComp U" <+> showVal1 a <+> text (showSystem ts)
   VId a u v           -> text "Id" <+> showVals [a,u,v]
   VIdPair b ts        -> text "idC" <+> showVal1 b <+> text (showSystem ts)
   VIdJ a t c d x p    -> text "idJ" <+> showVals [a,t,c,d,x,p]

@@ -114,7 +114,7 @@ data Ter = Pi Ter
          | AppFormula Ter Formula
            -- Homogeneous Kan composition and filling
          | HComp Ter Ter (System Ter)
-         -- TODO?: HFill Ter Ter (System Ter)
+         | HFill Ter Ter (System Ter)
            -- Generalized transports
          | Trans Ter Formula Ter
          -- TODO?: TransFill Ter Formula Ter
@@ -388,7 +388,7 @@ showTer v = case v of
   PLam i e           -> char '<' <> text (show i) <> char '>' <+> showTer e
   AppFormula e phi   -> showTer1 e <+> char '@' <+> showFormula phi
   HComp a t ts       -> text "hcomp" <+> showTers [a,t] <+> text (showSystem ts)
-  -- HFill a t ts       -> text "hFill" <+> showTers [a,t] <+> text (showSystem ts)
+  HFill a t ts       -> text "hfill" <+> showTers [a,t] <+> text (showSystem ts)
   Trans e phi t0     -> text "transGen" <+> showTer1 e <+> showFormula phi
                         <+> showTer1 t0
   Comp e t ts        -> text "comp" <+> showTers [e,t] <+> text (showSystem ts)

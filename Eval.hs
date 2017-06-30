@@ -194,8 +194,8 @@ eval rho@(Env (_,_,_,Nameless os)) v = case v of
   AppFormula e phi    -> eval rho e @@ evalFormula rho phi
   HComp a t0 ts       ->
     hCompLine (eval rho a) (eval rho t0) (evalSystem rho ts)
-  -- HFill a t0 ts       ->
-  --   hFillLine (eval rho a) (eval rho t0) (evalSystem rho ts)
+  HFill a t0 ts       ->
+    hFillLine (eval rho a) (eval rho t0) (evalSystem rho ts)
   Trans a phi t       ->
     transLine (eval rho a) (evalFormula rho phi) (eval rho t)
   Comp a t0 ts        ->
@@ -327,6 +327,10 @@ hCompLine a u us = hComp i a u (Map.map (@@ i) us)
 hFill :: Name -> Val -> Val -> System Val -> Val
 hFill i a u us = hComp j a u (insertSystem (i ~> 0) u $ us `conj` (i,j))
   where j = fresh (Atom i,a,u,us)
+
+hFillLine :: Val -> Val -> System Val -> Val
+hFillLine a u us = VPLam i $ hFill i a u (Map.map (@@ i) us)
+  where i = fresh (a,u,us)
 
 hComp :: Name -> Val -> Val -> System Val -> Val
 hComp i a u us | eps `member` us = (us ! eps) `face` (i ~> 1)

@@ -1065,7 +1065,10 @@ instance Convertible Val where
       (VPLam i a,p')             -> conv ns (a `swap` (i,j)) (p' @@ j)
       (p,VPLam i' a')            -> conv ns (p @@ j) (a' `swap` (i',j))
       (VAppFormula u x,VAppFormula u' x') -> conv ns (u,x) (u',x')
-      (VTrans a phi u,VTrans a' phi' u')  -> conv ns (a,phi,u) (a',phi',u')
+      (VTrans a phi u,VTrans a' phi' u')  ->
+        -- TODO: Maybe identify via (- = 1)?  Or change argument to a system..
+        -- conv ns (a,invSystem phi One,u) (a',invSystem phi' One,u')
+        conv ns (a,phi,u) (a',phi',u')
       (VHComp a u ts,VHComp a' u' ts')    -> conv ns (a,u,ts) (a',u',ts')
       (VGlue v equivs,VGlue v' equivs')   -> conv ns (v,equivs) (v',equivs')
       (VGlueElem u us,VGlueElem u' us')   -> conv ns (u,us) (u',us')

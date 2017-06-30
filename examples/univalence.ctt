@@ -208,12 +208,7 @@ ua (A B : U) (e : equiv A B) : Path U A B =
 -- would be definitional) this proof would be trivial.
 uabeta (A B : U) (e : equiv A B) : Path (A -> B) (trans A B (ua A B e)) e.1 =
   <i> \(a : A) ->
-      let b : B = trans B B (<_> B) (e.1 a)
-          rem1 : Path B b (e.1 a) = <i> fill (<_> B) (e.1 a) [] @ -i
-          rem2 : Path B (trans B B (<_> B) b) b = <i> fill (<_> B) b [] @ -i
-          goal : Path B (trans B B (<_> B) b) (e.1 a) =
-            compPath B (trans B B (<_> B) b) b (e.1 a) rem2 rem1
-      in goal @ i
+      hfill B (hfill B (fill (<_> B) (e.1 a) [] @ -i) [] @ -i) [] @ -i
 
 -- uabeta implies that equiv A B is a retract of Path U A B
 uaret (A B : U) : retract (equiv A B) (Path U A B) (ua A B) (transEquivDirect A B) =

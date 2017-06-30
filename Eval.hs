@@ -516,18 +516,25 @@ trans i a phi u = case a of
     transHCompU i b es phi u
   Ter (Sum _ _ nass) env -> case u of
     VCon n us -> case lookupLabel n nass of
-      Just as -> VCon n (transps i as env phi us)
+      Just tele -> VCon n (transps i tele env phi us)
       Nothing -> error $ "trans: missing constructor in sum " ++ n
     _ -> VTrans (VPLam i a) phi u
   Ter (HSum _ _ nass) env -> case u of
     VCon n us -> case lookupLabel n nass of
-      Just as -> VCon n (transps i as env phi us)
+      Just tele -> VCon n (transps i tele env phi us)
       Nothing -> error $ "trans: missing constructor in hsum " ++ n
     VPCon n _ us psis -> case lookupPLabel n nass of
-      Just (as,is,es) -> -- TODO: do correction as for pushouts
-        VPCon n (a `face` (i ~> 1)) (transps i as env phi us) psis
+      Just (tele,is,es) ->
+        let ai1  = a `face` (i ~> 1)
+            vs   = transFills i tele env phi us
+            env' = subs (zip is psis) (updsTele tele vs env)
+            ves  = evalSystem env' es
+            ves' = mapWithKey
+                   (\al veal -> squeeze i (a `face` al) (phi `face` al) veal)
+                   ves
+        in hComp i ai1 (VPCon n ai1 (transps i tele env phi us) psis)
+             (ves' `sym` i)
       Nothing -> error $ "trans: missing path constructor in hsum " ++ n
-    -- TODO: double check
     VHComp _ v vs -> hCompLine (a `face` (i ~> 1)) (trans i a phi v) $
                        mapWithKey (\al val ->
                            trans i (a `face` al) (phi `face` al) val) vs
@@ -537,6 +544,11 @@ trans i a phi u = case a of
 transFill :: Name -> Val -> Formula -> Val -> Val
 transFill i a phi u = trans j (a `conj` (i,j)) (phi `orFormula` NegAtom i) u
   where j = fresh (Atom i,a,phi,u)
+
+transFills :: Name ->  [(Ident,Ter)] -> Env -> Formula -> [Val] -> [Val]
+transFills i xas rho phi us = transps j xas (rho `conj` (i,j)) (phi `orFormula` NegAtom i) us
+  where j = fresh (Atom i,rho,phi,us)
+
 
 transNeg :: Name -> Val -> Formula -> Val -> Val
 transNeg i a phi u = trans i (a `sym` i) phi u
@@ -556,6 +568,13 @@ transps i ((x,a):as) e phi (u:us) =
       vs  = transps i as (upd (x,v) e) phi us
   in vi1 : vs
 transps _ _ _ _ _ = error "transps: different lengths of types and values"
+
+-- Takes a type i : II |- a and i:II |- u : a, both constant on
+-- (phi=1) and returns a path in direction i connecting transp i a phi
+-- u(i/0) to u(i/1).
+squeeze :: Name -> Val -> Formula -> Val -> Val
+squeeze i a phi u = trans j (a `conj` (i,j)) (phi `orFormula` Atom i) u
+  where j = fresh (Atom i,a,phi,u)
 
 
 -- trans :: Name -> Val -> Val -> Val

@@ -325,7 +325,7 @@ hCompLine a u us = hComp i a u (Map.map (@@ i) us)
   where i = fresh (a,u,us)
 
 hFill :: Name -> Val -> Val -> System Val -> Val
-hFill i a u us = hFill j a u (insertSystem (i ~> 0) u $ us `conj` (i,j))
+hFill i a u us = hComp j a u (insertSystem (i ~> 0) u $ us `conj` (i,j))
   where j = fresh (Atom i,a,u,us)
 
 hComp :: Name -> Val -> Val -> System Val -> Val

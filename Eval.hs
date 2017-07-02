@@ -242,7 +242,7 @@ app u v = case (u,v) of
                    w'  = app u w
                    ws' = mapWithKey (\alpha -> app (u `face` alpha)) wsj
                    -- a should be constant
-               in comp j (app f (fill j a w wsj)) w' ws'
+               in comp j (app f (hFill j a w wsj)) w' ws'
     _ -> error $ "app: Split annotation not a Pi type " ++ show u
   (Ter Split{} _,_) | isNeutral v -> VSplit u v
   (VTrans (VPLam i (VPi a f)) phi u0, v) ->

@@ -485,6 +485,7 @@ trans i a phi u = case a of
     VHComp _ v vs -> hCompLine (a `face` (i ~> 1)) (trans i a phi v) $
                        mapWithKey (\al val ->
                            trans i (a `face` al) (phi `face` al) val) vs
+    _ -> VTrans (VPLam i a) phi u
   _ -> VTrans (VPLam i a) phi u
 
 

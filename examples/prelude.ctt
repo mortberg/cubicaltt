@@ -74,7 +74,7 @@ JEq (A : U) (a : A) (C : (x : A) -> Path A a x -> U) (d : C a (refl A a))
 inv (A : U) (a b : A) (p : Path A a b) : Path A b a = <i> p @ -i
 
 compPath (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
-  <i> comp (<j>A) (p @ i) [ (i = 1) -> q, (i=0) -> <j> a ]
+  <i> hcomp A (p @ i) [ (i = 1) -> q, (i=0) -> <j> a ]
 
 compPath' (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
   subst A (Path A a) b c q p
@@ -85,7 +85,7 @@ compPath'' (A : U) (a b : A) (p : Path A a b) : (c : A) -> (q : Path A b c) -> P
 
 compUp (A : U) (a a' b b' : A)
        (p : Path A a a') (q : Path A b b') (r : Path A a b) : Path A a' b' =
-  <i> comp (<j>A) (r @ i) [(i = 0) -> p, (i = 1) -> q]
+  <i> hcomp A (r @ i) [(i = 0) -> p, (i = 1) -> q]
 
 compDown (A : U) (a a' b b' : A)
          (p : Path A a a') (q: Path A b b') : Path A a' b' -> Path A a b =
@@ -93,17 +93,17 @@ compDown (A : U) (a a' b b' : A)
 
 lemCompInv (A:U) (a b c:A) (p:Path A a b) (q:Path A b c)
   : Path (Path A a b) (compPath A a c b (compPath A a b c p q) (inv A b c q)) p =
-  <j i> comp (<k>A)
-          ((fill (<k>A) (p @ i) [(i=0) -> <k>a, (i=1) -> q]) @ -j)
+  <j i> hcomp A
+          ((hfill A (p @ i) [(i=0) -> <k>a, (i=1) -> q]) @ -j)
           [ (i=0) -> <k> a
           , (i=1) -> <k> q @ - (j \/  k)
-          , (j=0) -> fill (<k>A) ((compPath A a b c p q @ i))
+          , (j=0) -> hfill A ((compPath A a b c p q @ i))
                        [(i=0) -> <k>a, (i=1) -> <k> q @ -k ]
           , (j=1) -> <k> p @ i
           ]
 
 lemInv (A:U) (a b:A) (p:Path A a b) : Path (Path A b b) (compPath A b a b (inv A a b p) p)  (refl A b) =
-   <j i> comp (<k>A) (p @ (-i \/ j)) [(i=0) -> <l>b, (j=1) -> <l>b, (i=1) -> <k> p @ (j \/ k)]
+   <j i> hcomp A (p @ (-i \/ j)) [(i=0) -> <l>b, (j=1) -> <l>b, (i=1) -> <k> p @ (j \/ k)]
 
 test0 (A : U) (a b : A) (p : Path A a b) : Path A a a = refl A (p @ 0)
 test1 (A : U) (a b : A) (p : Path A a b) : Path A b b = refl A (p @ 1)
@@ -113,17 +113,17 @@ test1 (A : U) (a b : A) (p : Path A a b) : Path A b b = refl A (p @ 1)
 
 kan (A : U) (a b c d : A) (p : Path A a b) (q : Path A a c)
                           (r : Path A b d) : Path A c d =
-  <i> comp (<j>A) (p @ i) [ (i = 0) -> q, (i = 1) -> r ]
+  <i> hcomp A (p @ i) [ (i = 0) -> q, (i = 1) -> r ]
 
 lemSimpl (A : U) (a b c : A) (p : Path A a b) (q q' : Path A b c)
   (s : Path (Path A a c) (compPath A a b c p q) (compPath A a b c p q')) :
   Path (Path A b c) q q' =
-   <j k> comp (<i> A) a
-           [ (j = 0) -> <i> comp (<l> A) (p @ i)
+   <j k> hcomp A a
+           [ (j = 0) -> <i> hcomp A (p @ i)
                               [ (k = 0) -> <l> p @ i
                               , (i = 0) -> <l> a
                               , (i = 1) -> <l> q @ k /\ l]
-           , (j = 1) -> <i> comp (<l> A) (p @ i)
+           , (j = 1) -> <i> hcomp A (p @ i)
                               [ (k = 0) -> <l> p @ i
                               , (i = 0) -> <l> a
                               , (i = 1) -> <l> q' @ k /\ l]
@@ -131,8 +131,8 @@ lemSimpl (A : U) (a b c : A) (p : Path A a b) (q q' : Path A b c)
            , (k = 1)  -> s @ j ]
 
 PathPathTest1 (A : U) (a b : A) (p : Path A a b) :
-  Path (Path A a b) p (<i> comp (<j> A) (p @ i) [(i=0) -> <j> a,(i=1) -> <j> b]) =
-  <j i> fill (<k> A) (p @ i) [(i=0) -> <k> a,(i=1) -> <k> b] @ j
+  Path (Path A a b) p (<i> hcomp A (p @ i) [(i=0) -> <j> a,(i=1) -> <j> b]) =
+  <j i> hfill A (p @ i) [(i=0) -> <k> a,(i=1) -> <k> b] @ j
 
 idfun (A : U) (a : A) : A = a
 
@@ -150,7 +150,7 @@ Square (A : U) (a0 a1 b0 b1 : A)
   = PathP (<i> (PathP (<j> A) (u @ i) (v @ i))) r0 r1
 
 constSquare (A : U) (a : A) (p : Path A a a) : Square A a a a a p p p p =
-  <i j> comp (<k>A) a
+  <i j> hcomp A a
      [(i = 0) -> <k> p @ (j \/ - k),
       (i = 1) -> <k> p @ (j /\ k),
       (j = 0) -> <k> p @ (i \/ - k),
@@ -165,7 +165,7 @@ SET : U = (X:U) * set X
 
 propSet (A : U) (h : prop A) : set A =
  \(a b : A) (p q : Path A a b) ->
-   <j i> comp (<k>A) a [ (i=0) -> h a a
+   <j i> hcomp A a [ (i=0) -> h a a
                        , (i=1) -> h a b
                        , (j=0) -> h a (p @ i)
                        , (j=1) -> h a (q @ i)]
@@ -225,7 +225,7 @@ propIsContr (A : U) : prop (isContr A) = lemProp (isContr A) rem
           propPi A (\ (y : A) -> Path A x y) (propSet A pA x)
 
 isContrProp (A : U) (h : isContr A) : prop A =
-  \(a b : A) -> <i> comp (<_> A) h.1 [ (i = 0) -> h.2 a, (i = 1) -> h.2 b ]
+  \(a b : A) -> <i> hcomp A h.1 [ (i = 0) -> h.2 a, (i = 1) -> h.2 b ]
 
 
 -- Alternative proof:

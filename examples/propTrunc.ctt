@@ -57,7 +57,7 @@ hProp : U = (X : U) * prop X
 
 subtypeEquality (A : U) (B : A -> U) (pB : (x : A) -> prop (B x))
                 (s t : (x : A) * B x) : Path A s.1 t.1 -> Path (Sigma A B) s t =
-  trans (Path A s.1 t.1) (Path (Sigma A B) s t) rem
+  \(x : Path A s.1 t.1) -> transGen rem 0 x
     where
     rem : Path U (Path A s.1 t.1) (Path (Sigma A B) s t) =
       <i> lemSigProp A B pB s t @ -i

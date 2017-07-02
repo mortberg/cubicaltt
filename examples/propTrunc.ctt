@@ -1,10 +1,7 @@
 -- Propositional truncation as a HIT. (WARNING: not working correctly)
 module propTrunc where
 
-import bool
 import sigma
-import pi
-import univalence
 
 {-
 Warning: as of commit ff8a026, recursive HITs with parameters are not

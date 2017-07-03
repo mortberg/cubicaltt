@@ -494,9 +494,10 @@ transFill i a phi u = trans j (a `conj` (i,j)) (phi `orFormula` NegAtom i) u
   where j = fresh (Atom i,a,phi,u)
 
 transFills :: Name ->  [(Ident,Ter)] -> Env -> Formula -> [Val] -> [Val]
-transFills i xas rho phi us = transps j xas (rho `conj` (i,j)) (phi `orFormula` NegAtom i) us
-  where j = fresh (Atom i,rho,phi,us)
-
+transFills i []         _ phi []     = []
+transFills i ((x,a):as) e phi (u:us) =
+  let v = transFill i (eval e a) phi u
+  in v : transFills i as (upd (x,v) e) phi us
 
 transNeg :: Name -> Val -> Formula -> Val -> Val
 transNeg i a phi u = trans i (a `sym` i) phi u

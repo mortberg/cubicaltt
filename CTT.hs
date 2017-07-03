@@ -198,7 +198,8 @@ isNeutral v = case v of
   Ter Hole{} _   -> True
   VVar{}         -> True
   VOpaque{}      -> True
-  VHComp{}        -> True
+  VHComp{}       -> True
+  VTrans{}       -> True
   VFst{}         -> True
   VSnd{}         -> True
   VSplit{}       -> True

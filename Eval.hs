@@ -625,7 +625,7 @@ transGlue i a equivs psi u0 = glueElem v1' t1s'
 
     fibersys' = mapWithKey
                   (\al wal ->
-                     extend (mkFiberType ai1 (v1 `face` al) wal)
+                     extend (mkFiberType (ai1 `face` al) (v1 `face` al) wal)
                        (app (equivContr wal) (v1 `face` al))
                        (fibersys `face` al))
                   (equivs `face` (i ~> 1))

@@ -463,7 +463,7 @@ showVal v = case v of
   VUnGlueElem v a ts  -> text "unglue" <+> showVals [v,a] <+> text (showSystem ts)
   VUnGlueElemU v b es -> text "unglue U" <+> showVals [v,b]
                          <+> text (showSystem es)
-  VHCompU a ts        -> text "hComp U" <+> showVal1 a <+> text (showSystem ts)
+  VHCompU a ts        -> text "hcomp U" <+> showVal1 a <+> text (showSystem ts)
   VId a u v           -> text "Id" <+> showVals [a,u,v]
   VIdPair b ts        -> text "idC" <+> showVal1 b <+> text (showSystem ts)
   VIdJ a t c d x p    -> text "idJ" <+> showVals [a,t,c,d,x,p]

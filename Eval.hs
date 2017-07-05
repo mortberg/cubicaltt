@@ -482,7 +482,7 @@ trans i a phi u = case a of
             pc = VPCon n ai1 (transps i tele env phi us) psis
             -- NB: restricted to phi=1, u = pc; so we could also take pc instead
             uphi = border u (invSystem phi One)
-        in hComp i ai1 pc ((ves' `sym` i) `unionSystem` uphi)
+        in pc -- hComp i ai1 pc ((ves' `sym` i) `unionSystem` uphi)
       Nothing -> error $ "trans: missing path constructor in hsum " ++ n
     VHComp _ v vs -> hCompLine (a `face` (i ~> 1)) (trans i a phi v) $
                        mapWithKey (\al val ->

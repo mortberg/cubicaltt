@@ -479,8 +479,11 @@ trans i a phi u = case a of
             ves' = mapWithKey
                    (\al veal -> squeeze i (a `face` al) (phi `face` al) veal)
                    ves
-        in hComp i ai1 (VPCon n ai1 (transps i tele env phi us) psis)
-             (ves' `sym` i)
+        in -- TODO: the commented code doesn't seem correct (if
+           -- phi=1..); maybe fix with the system..
+           -- hComp i ai1
+             (VPCon n ai1 (transps i tele env phi us) psis)
+             -- (ves' `sym` i)
       Nothing -> error $ "trans: missing path constructor in hsum " ++ n
     VHComp _ v vs -> hCompLine (a `face` (i ~> 1)) (trans i a phi v) $
                        mapWithKey (\al val ->

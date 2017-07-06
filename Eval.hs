@@ -524,7 +524,7 @@ transps _ _ _ _ _ = error "transps: different lengths of types and values"
 -- (phi=1) and returns a path in direction i connecting transp i a phi
 -- u(i/0) to u(i/1).
 squeeze :: Name -> Val -> Formula -> Val -> Val
-squeeze i a phi u = trans j (a `conj` (i,j)) (phi `orFormula` Atom i) u
+squeeze i a phi u = trans j (a `disj` (i,j)) (phi `orFormula` Atom i) u
   where j = fresh (Atom i,a,phi,u)
 
 

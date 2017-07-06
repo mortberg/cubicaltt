@@ -484,9 +484,10 @@ trans i a phi u = case a of
             uphi = border u (invSystem phi One)
         in pc -- hComp i ai1 pc ((ves' `sym` i) `unionSystem` uphi)
       Nothing -> error $ "trans: missing path constructor in hsum " ++ n
-    VHComp _ v vs -> hCompLine (a `face` (i ~> 1)) (trans i a phi v) $
-                       mapWithKey (\al val ->
-                           trans i (a `face` al) (phi `face` al) val) vs
+    VHComp _ v vs -> let j = fresh (Atom i,a,phi,u) in
+      hCompLine (a `face` (i ~> 1)) (trans i a phi v)
+        (mapWithKey (\al val -> VPLam j $
+                      trans i (a `face` al) (phi `face` al) (val @@ j)) vs)
     _ -> VTrans (VPLam i a) phi u
   _ -> VTrans (VPLam i a) phi u
 

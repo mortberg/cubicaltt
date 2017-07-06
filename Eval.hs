@@ -249,12 +249,12 @@ app u v = case (u,v) of
     let j = fresh (u,v)
         (aij,fij) = (a,f) `swap` (i,j)
         w = transFillNeg j aij phi v
-        w0 = transNeg j aij phi v
+        w0 = transNeg j aij phi v  -- w0 = w `face` (j ~> 0)
     in trans j (app fij w) phi (app u0 w0)
   (VHComp (VPi a f) u0 us, v) ->
     let i = fresh (u,v)
     in hComp i (app f v) (app u0 v)
-         (intersectionWith (app . (@@ i)) us (border v us))
+          (mapWithKey (\al ual -> app (ual @@ i) (v `face` al)) us)
   _ | isNeutral u       -> VApp u v
   _                     -> error $ "app \n  " ++ show u ++ "\n  " ++ show v
 
@@ -637,57 +637,6 @@ transGlue i a equivs psi u0 = glueElem v1' t1s'
     v1' = hComp i ai1 v1 (Map.map (\om -> (sndVal om) @@ i) fibersys'
                            `unionSystem` border v1 psisys)
 
--- -- psi/b corresponds to ws
--- -- b0    corresponds to wi0
--- -- a0    corresponds to vi0
--- -- psi/a corresponds to vs
--- -- a1'   corresponds to vi1'
--- -- equivs' corresponds to delta
--- -- ti1'  corresponds to usi1'
--- compGlue :: Name -> Val -> System Val -> Val -> System Val -> Val
--- compGlue i a equivs wi0 ws = glueElem vi1 usi1
---   where ai1 = a `face` (i ~> 1)
---         vs  = mapWithKey
---                 (\alpha wAlpha ->
---                   unGlue wAlpha (a `face` alpha) (equivs `face` alpha)) ws
-
---         vsi1 = vs `face` (i ~> 1) -- same as: border vi1 vs
---         vi0  = unGlue wi0 (a `face` (i ~> 0)) (equivs `face` (i ~> 0)) -- in a(i0)
-
---         vi1'  = comp i a vi0 vs           -- in a(i1)
-
---         equivsI1 = equivs `face` (i ~> 1)
---         equivs'  = filterWithKey (\alpha _ -> i `notMember` alpha) equivs
-
---         us'    = mapWithKey (\gamma equivG ->
---                    fill i (equivDom equivG) (wi0 `face` gamma) (ws `face` gamma))
---                  equivs'
---         usi1'  = mapWithKey (\gamma equivG ->
---                    comp i (equivDom equivG) (wi0 `face` gamma) (ws `face` gamma))
---                  equivs'
-
---         -- path in ai1 between vi1 and f(i1) usi1' on equivs'
---         ls'    = mapWithKey (\gamma equivG ->
---                    pathComp i (a `face` gamma) (vi0 `face` gamma)
---                      (equivFun equivG `app` (us' ! gamma)) (vs `face` gamma))
---                  equivs'
-
---         fibersys = intersectionWith VPair usi1' ls' -- on equivs'
-
---         wsi1 = ws `face` (i ~> 1)
---         fibersys' = mapWithKey
---           (\gamma equivG ->
---             let fibsgamma = intersectionWith (\ x y -> VPair x (constPath y))
---                               (wsi1 `face` gamma) (vsi1 `face` gamma)
---             in extend (mkFiberType (ai1 `face` gamma) (vi1' `face` gamma) equivG)
---                  (app (equivContr equivG) (vi1' `face` gamma))
---                  (fibsgamma `unionSystem` (fibersys `face` gamma))) equivsI1
-
---         vi1 = compConstLine ai1 vi1'
---                 (Map.map sndVal fibersys' `unionSystem` Map.map constPath vsi1)
-
---         usi1 = Map.map fstVal fibersys'
-
 mkFiberType :: Val -> Val -> Val -> Val
 mkFiberType a x equiv = eval rho $
   Sigma $ Lam "y" tt (PathP (PLam (Name "_") ta) tx (App tf ty))
@@ -775,74 +724,6 @@ lemEq eq b aps = (a,VPLam i (compNeg j (eq @@ j) p1 thetas'))
                [ (i ~> 0,transFill j (eq @@ j) (Dir Zero) b)
                , (i ~> 1,transFillNeg j (eq @@ j) (Dir Zero) a)]
                thetas
-
-
--- compU :: Name -> Val -> System Val -> Val -> System Val -> Val
--- compU i a eqs wi0 ws = glueElem vi1 usi1
---   where ai1 = a `face` (i ~> 1)
---         vs  = mapWithKey
---                 (\alpha wAlpha ->
---                   unGlueU wAlpha (a `face` alpha) (eqs `face` alpha)) ws
-
---         vsi1 = vs `face` (i ~> 1) -- same as: border vi1 vs
---         vi0  = unGlueU wi0 (a `face` (i ~> 0)) (eqs `face` (i ~> 0)) -- in a(i0)
-
---         vi1'  = comp i a vi0 vs           -- in a(i1)
-
---         eqsI1 = eqs `face` (i ~> 1)
---         eqs'  = filterWithKey (\alpha _ -> i `notMember` alpha) eqs
-
---         us'    = mapWithKey (\gamma eqG ->
---                    fill i (eqG @@ One) (wi0 `face` gamma) (ws `face` gamma))
---                  eqs'
---         usi1'  = mapWithKey (\gamma eqG ->
---                    comp i (eqG @@ One) (wi0 `face` gamma) (ws `face` gamma))
---                  eqs'
-
---         -- path in ai1 between vi1 and f(i1) usi1' on eqs'
---         ls'    = mapWithKey (\gamma eqG ->
---                    pathComp i (a `face` gamma) (vi0 `face` gamma)
---                      (eqFun eqG (us' ! gamma)) (vs `face` gamma))
---                  eqs'
-
---         fibersys = intersectionWith (\ x y -> (x,y)) usi1' ls' -- on eqs'
-
---         wsi1 = ws `face` (i ~> 1)
---         fibersys' = mapWithKey
---           (\gamma eqG ->
---             let fibsgamma = intersectionWith (\ x y -> (x,constPath y))
---                               (wsi1 `face` gamma) (vsi1 `face` gamma)
---             in lemEq eqG (vi1' `face` gamma)
---                      (fibsgamma `unionSystem` (fibersys `face` gamma))) eqsI1
-
---         vi1 = compConstLine ai1 vi1'
---                 (Map.map snd fibersys' `unionSystem` Map.map constPath vsi1)
-
---         usi1 = Map.map fst fibersys'
-
--- lemEq :: Val -> Val -> System (Val,Val) -> (Val,Val)
--- lemEq eq b aps = (a,VPLam i (compNeg j (eq @@ j) p1 thetas'))
---  where
---    i:j:_ = freshs (eq,b,aps)
---    ta = eq @@ One
---    p1s = mapWithKey (\alpha (aa,pa) ->
---               let eqaj = (eq `face` alpha) @@ j
---                   ba = b `face` alpha
---               in comp j eqaj (pa @@ i)
---                    (mkSystem [ (i~>0,transFill j eqaj ba)
---                              , (i~>1,transFillNeg j eqaj aa)])) aps
---    thetas = mapWithKey (\alpha (aa,pa) ->
---               let eqaj = (eq `face` alpha) @@ j
---                   ba = b `face` alpha
---               in fill j eqaj (pa @@ i)
---                    (mkSystem [ (i~>0,transFill j eqaj ba)
---                              , (i~>1,transFillNeg j eqaj aa)])) aps
-
---    a  = comp i ta (trans i (eq @@ i) b) p1s
---    p1 = fill i ta (trans i (eq @@ i) b) p1s
-
---    thetas' = insertsSystem [ (i ~> 0,transFill j (eq @@ j) b)
---                            , (i ~> 1,transFillNeg j (eq @@ j) a)] thetas
 
 
 -------------------------------------------------------------------------------

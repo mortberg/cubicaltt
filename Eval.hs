@@ -438,7 +438,7 @@ transLine :: Val -> Formula -> Val -> Val
 transLine a phi u = trans i (a @@ i) phi u
   where i = fresh (a,phi,u)
 
--- For i:II |- a, phi
+-- For i:II |- a, phi # i,
 --     i:II, phi=1 |- a = a(i/0)
 -- and u : a(i/0) gives trans i a phi u : a(i/1) such that
 -- trans i a 1 u = u : a(i/1) (= a(i/0)).
@@ -486,8 +486,8 @@ trans i a phi u = case a of
            hComp i ai1 pc ((ves' `sym` i) `unionSystem` uphi)
       Nothing -> error $ "trans: missing path constructor in hsum " ++ n
     VHComp _ v vs -> let j = fresh (Atom i,a,phi,u) in
-      hCompLine (a `face` (i ~> 1)) (trans i a phi v)
-        (mapWithKey (\al val -> VPLam j $
+      hComp j (a `face` (i ~> 1)) (trans i a phi v)
+        (mapWithKey (\al val ->
                       trans i (a `face` al) (phi `face` al) (val @@ j)) vs)
     _ -> VTrans (VPLam i a) phi u
   _ -> VTrans (VPLam i a) phi u

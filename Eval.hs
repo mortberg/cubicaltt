@@ -344,7 +344,7 @@ hComp i a u us = case a of
   VU -> hCompUniv u (Map.map (VPLam i) us)
   -- TODO: neutrality tests in the next two cases could be removed
   -- since there are neutral values for unglue and unglueU
-  VGlue b equivs -> -- | not (isNeutralGlueHComp equivs u us) ->
+  VGlue b equivs | not (isNeutralGlueHComp equivs u us) ->
     let wts = mapWithKey (\al wal ->
                   app (equivFun wal)
                     (hFill i (equivDom wal) (u `face` al) (us `face` al)))
@@ -356,7 +356,7 @@ hComp i a u us = case a of
                us
         v1 = hComp i b v (vs `unionSystem` wts)
     in glueElem v1 t1s
-  VHCompU b es -> -- | not (isNeutralGlueHComp es u us) ->
+  VHCompU b es | not (isNeutralGlueHComp es u us) ->
     let wts = mapWithKey (\al eal ->
                   eqFun eal
                     (hFill i (eal @@ One) (u `face` al) (us `face` al)))
@@ -457,9 +457,9 @@ trans i a phi u = case a of
   VU -> u
   -- TODO: neutrality tests in the next two cases could be removed
   -- since there are neutral values for unglue and unglueU
-  VGlue b equivs -> -- | not (eps `notMember` equivs && isNeutral u) ->
+  VGlue b equivs | not (eps `notMember` (equivs `face` (i ~> 0)) && isNeutral u) ->
     transGlue i b equivs phi u
-  VHCompU b es -> -- | not (eps `notMember` es && isNeutral u) ->
+  VHCompU b es | not (eps `notMember` (es `face` (i ~> 0)) && isNeutral u) ->
     transHCompU i b es phi u
   Ter (Sum _ _ nass) env -> case u of
     VCon n us -> case lookupLabel n nass of

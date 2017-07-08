@@ -1,0 +1,251 @@
+module brunerie where
+
+data bool = false | true
+data nat = zero | suc (n : nat)
+
+{- Z represents:
+
+  +2 = inr (suc (suc zero))
+  +1 = inr (suc zero)
+   0 = inr zero
+  -1 = inl zero
+  -2 = inl (suc zero)
+
+-}
+data Z = pos (n : nat) | neg (n : nat)
+
+twoZ : Z = pos (suc (suc zero))
+oneZ : Z = pos (suc zero)
+zeroZ : Z = pos zero
+moneZ : Z = neg zero
+mtwoZ : Z = neg (suc zero)
+
+Path (A : U) (a0 a1 : A) : U = PathP (<i> A) a0 a1
+
+compPath (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
+  <i> hcomp A (p @ i) [ (i =0) -> <j> a, (i = 1) -> q ]
+
+-- p ; p^-1 = 1
+compPathInv (A : U) (a b : A) (p : Path A a b) :
+  Path (Path A a a) (compPath A a b a p (<i> p @ -i)) (<_> a) =
+    <k j> hcomp A (p @ j /\ -k)
+                  [ (j = 0) -> <_> a
+                  , (j = 1) -> <i> p @ -i /\ -k
+                  , (k = 1) -> <_> a ]
+
+-- p^-1 ; p = 1
+-- compInvPath (A : U) (a b : A) (p : Path A a b) :
+--   Path (Path A b b) (compPath A b a b (<i> p @ -i) p)  (<_> b) =
+--    <j i> hcomp A (p @ -i \/ j)
+--                  [ (i = 0) -> <_> b
+--                  , (j = 1) -> <_> b
+--                  , (i = 1) -> <k> p @ j \/ k ]
+
+
+--------------------------------------------------------------------------------
+-- B.3 Suspension and spheres
+
+-- The circle
+data S1 = base
+        | loop <i> [ (i=0) -> base
+                   , (i=1) -> base]
+
+loopS1 : U = Path S1 base base
+loopP : loopS1 = <i> loop{S1} @ i
+invLoop : loopS1 = <i> loopP @ -i
+compS1 : loopS1 -> loopS1 -> loopS1 = compPath S1 base base base
+
+triv : loopS1 = <i> base
+oneTurn (l : loopS1) : loopS1 = compS1 l loopP
+backTurn (l : loopS1) : loopS1 = compS1 l invLoop
+
+itLoop : nat -> loopS1 = split
+ zero -> triv
+ suc n -> oneTurn (itLoop n)
+
+itLoopNeg : nat -> loopS1 = split
+ zero -> invLoop
+ suc n -> backTurn (itLoopNeg n)
+
+loopIt : Z -> loopS1 = split
+ pos n -> itLoop n
+ neg n -> itLoopNeg n
+
+-- Suspension
+data susp (A : U) = north
+                  | south
+                  | merid (a : A) <i> [ (i=0) -> north
+                                      , (i=1) -> south ]
+
+meridP (A : U) (a : A) : Path (susp A) north south =
+  <i> merid{susp A} a @ i
+
+
+-- The 2 and 3 spheres. Maybe define directly instead?
+S2 : U = susp S1
+S3 : U = susp S2
+
+
+--------------------------------------------------------------------------------
+-- B.4 Pointed types, pointed maps and loop spaces
+
+-- Pointed types
+ptType : U = (A : U) * A
+pt (A : ptType) : A.1 = A.2
+
+boolpt : ptType = (bool,true)
+susppt (A : U) : ptType = (susp A,north)
+S1pt : ptType = (S1,base)
+S2pt : ptType = susppt S1
+S3pt : ptType = susppt S2
+
+ptMap (A B : ptType) : U = (f : A.1 -> B.1) * (Path B.1 (f (pt A)) (pt B))
+
+-- The first 3 loop spaces of a pointed type.
+-- TODO: Maybe defined these by induction on n as in experiments/pointed.ctt?
+Omega (A : ptType) : ptType = (Path A.1 (pt A) (pt A),<_> pt A)
+Omega2 (A : ptType) : ptType = Omega (Omega A)
+Omega3 (A : ptType) : ptType = Omega2 (Omega A)
+
+kanOp (A : U) (a : A) (p : Path A a a) (b : A) (q : Path A a b) : Path A b b = 
+ <i> hcomp A (p @ i) [ (i = 0) -> q, (i = 1) -> q ]
+
+-- TODO: prove and turn it around
+kanOpRefl (A : U) (a b : A) (q : Path A a b) :
+  Path (Path A b b) (<_> b) (kanOp A a (<i> a) b q) = undefined
+-- Why is this not working?
+-- <i j> hcomp A (hcomp A a [(j=0) -> <k>q@(i/\k),(j=1)-> <k>q@(i/\k)]) 
+--                          [(j=0)-> <k>q@(i\/k),(j=1)-><k>q@(i\/k), (i=0) -> q]
+
+mapOmega (A B : ptType) (f : ptMap A B) : ptMap (Omega A) (Omega B) = (g,pg)
+  where
+  g (p : (Omega A).1) : (Omega B).1 = 
+   kanOp B.1 (f.1 (pt A)) (<i>f.1 (p@i)) (pt B) f.2
+  pg : Path (Omega B).1 (g (pt (Omega A))) (pt (Omega B)) =
+    <i> kanOpRefl B.1 (f.1 (pt A)) (pt B) f.2 @ -i
+
+-- Simplified mapOmega when the function is pointed by reflexivity
+mapOmegaRefl (A : ptType) (B : U) (h : A.1 -> B) (p : (Omega A).1) :
+  (Omega (B, h (pt A))).1 = <i> h (p @ i)
+
+mapOmega2 (A B : ptType) (f : ptMap A B) : ptMap (Omega2 A) (Omega2 B) =
+  mapOmega (Omega A) (Omega B) (mapOmega A B f)
+  
+mapOmega3 (A B : ptType) (f : ptMap A B) : ptMap (Omega3 A) (Omega3 B) =
+  mapOmega (Omega2 A) (Omega2 B) (mapOmega2 A B f)
+
+
+--------------------------------------------------------------------------------
+-- B.5 Loop space of a suspension
+
+phi (A : ptType) : ptMap A (Omega (susppt A.1)) = (g,pg)
+  where
+  g (a : A.1) : (Omega (susppt A.1)).1 =
+    let p1 : Path (susp A.1) north south = meridP A.1 a
+        p2 : Path (susp A.1) south north = <i> meridP A.1 (pt A) @ -i
+    in compPath (susp A.1) north south north p1 p2
+  pg : Path (Omega (susppt A.1)).1 (g (pt A)) (pt (Omega (susppt A.1))) =
+    let p : Path (Path (susp A.1) north north) (g (pt A)) (<_> north) =
+            compPathInv (susp A.1) north south (meridP A.1 (pt A))
+    in p
+
+
+--------------------------------------------------------------------------------
+-- B.6 The 3-sphere and the join of two circles
+
+data join (A B : U) = inl (a : A)
+                    | inr (b : B)
+                    | push (a : A) (b : B) <i> [ (i = 0) -> inl a
+                                               , (i = 1) -> inr b ]
+
+pushP (A B : U) (a : A) (b : B) : Path (join A B) (inl a) (inr b) =
+  <i> push {join A B} a b @ i
+
+joinpt (A : ptType) (B : U) : ptType = (join A.1 B,inl (pt A))
+
+
+-- B.6.1 Join and associativity
+
+joinassoc1 (A B C : U) : join A (join B C) -> join (join A B) C = undefined
+
+joinassoc2 (A B C : U) : join (join A B) C -> join A (join B C) = undefined
+
+mapJoin (A A' B B' : U) (f : A -> A') (g : B -> B') : join A B -> join A' B' = split
+  inl a -> inl (f a)
+  inr b -> inr (g b)
+  push a b @ i -> pushP A' B' (f a) (g b) @ i
+
+-- TODO: mapJoin is pointed as soon as f is
+mapJoinPt (A A' : ptType) (B B' : U) (f : ptMap A A') (g : B -> B') :
+  ptMap (joinpt A B) (joinpt A' B') = undefined
+
+
+-- B.6.2 Suspension and join with the booleans
+
+psi (A : U) : ptMap (susppt A) (joinpt boolpt A) = undefined
+
+-- psiinv (A : U) : join bool A -> susp A = undefined
+
+c : ptMap (joinpt boolpt bool) S1pt = undefined
+
+-- cinv : S1 -> join bool bool = undefined
+
+
+-- B.6.3 Equivalence between S3 and join S1 S1
+
+-- TODO: I don't this is needed to be a composition of pointed maps, I
+-- think we can point it with refl
+e : ptMap S3pt (joinpt S1pt S1) = undefined
+
+-- einv : join S1 S1 -> S3 = undefined
+
+
+--------------------------------------------------------------------------------
+-- B.7 The main map
+
+-- TODO: can this be pointed by refl?
+alpha : ptMap (joinpt S1pt S1) S2pt = undefined
+
+
+--------------------------------------------------------------------------------
+-- B.8 The map defining pi3(S2)
+
+-- B.8.1 The Hopf fibration
+
+-- B.8.2 Looping a fibration
+
+-- B.8.3 Looping the Hopf fibration
+
+h : ptMap (Omega3 S2pt) (Omega3 (joinpt S1pt S1)) = undefined
+
+
+
+
+
+--------------------------------------------------------------------------------
+-- B.2 The definition
+
+f0 : Z -> loopS1 = loopIt
+
+f1 : loopS1 -> (Omega2 S2pt).1 = (mapOmega S1pt (Omega S2pt) (phi S1pt)).1
+
+f2 : (Omega2 S2pt).1 -> (Omega3 S3pt).1 = (mapOmega2 S2pt (Omega S3pt) (phi S2pt)).1
+
+f3 : (Omega3 S3pt).1 -> (Omega3 (joinpt S1pt S1)).1 =
+  (mapOmega3 S3pt (joinpt S1pt S1) e).1
+--= itMapOmegaRefl three ptS3 (join S1 S1) s3ToS1JoinS1
+
+f4 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S2pt).1 =
+  (mapOmega3 (joinpt S1pt S1) S2pt alpha).1
+-- = itMapOmegaRefl three (ptJoin ptS1 S1) S2 ptAlpha.1
+
+
+-- WORKS
+test0To1 : (Omega2 S2pt).1 = f1 (f0 oneZ)
+
+-- WORKS
+test0To2 : (Omega3 S3pt).1 = f2 test0To1
+
+test0To3 : (Omega3 (joinpt S1pt S1)).1 = f3 test0To2
+
+test0To4 : (Omega3 S2pt).1 = f4 test0To3

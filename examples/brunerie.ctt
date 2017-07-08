@@ -328,8 +328,18 @@ e (x : S3) : join S1 S1 =
 --------------------------------------------------------------------------------
 -- B.7 The main map
 
--- TODO: can this be pointed by refl?
-alpha : ptMap (joinpt S1pt S1) S2pt = undefined
+-- A modified version of the main map alpha from 8, which is equal to the
+-- other one (to be checked) but pointed by reflexivity
+prealpha : join S1 S1 -> S2 = split
+  inl x -> north
+  inr y -> north
+  push x y @ i ->
+    -- A: I think there must be a bug in the other version when
+    -- typechecking path constructors
+    compPath S2 north south north (meridP S1 x) (<i> meridP S1 y @ -i) @ i
+
+alpha : ptMap (joinpt S1pt S1) S2pt = (prealpha, <_> north)
+
 
 
 --------------------------------------------------------------------------------
@@ -358,10 +368,9 @@ f2 : (Omega2 S2pt).1 -> (Omega3 S3pt).1 = (mapOmega2 S2pt (Omega S3pt) (phi S2pt
 
 f3 : (Omega3 S3pt).1 -> (Omega3 (joinpt S1pt S1)).1 = mapOmegaRefl3 S3pt (join S1 S1) e
 
-
 f4 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S2pt).1 =
-  (mapOmega3 (joinpt S1pt S1) S2pt alpha).1
--- = itMapOmegaRefl three (ptJoin ptS1 S1) S2 ptAlpha.1
+  -- (mapOmega3 (joinpt S1pt S1) S2pt alpha).1
+  mapOmegaRefl3 (joinpt S1pt S1) S2 alpha.1
 
 
 -- WORKS

@@ -326,14 +326,14 @@ e (x : S3) : join S1 S1 =
 --------------------------------------------------------------------------------
 -- B.7 The main map
 
--- A modified version of the main map alpha from 8, which is equal to the
+-- A modified version of the main map alpha, which is equal to the
 -- other one (to be checked) but pointed by reflexivity
 prealpha : join S1 S1 -> S2 = split
   inl x -> north
   inr y -> north
   push x y @ i ->
-    -- A: I think there must be a bug in the other version when
-    -- typechecking path constructors
+    -- A: I think there must be a bug in the old version when
+    -- typechecking path constructors (we use merid{S2} there...)
     compPath S2 north south north (meridP S1 x) (<i> meridP S1 y @ -i) @ i
 
 alpha : ptMap (joinpt S1pt S1) S2pt = (prealpha, <_> north)

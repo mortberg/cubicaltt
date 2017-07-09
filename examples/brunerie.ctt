@@ -139,13 +139,13 @@ mapOmega3 (A B : ptType) (f : ptMap A B) : ptMap (Omega3 A) (Omega3 B) =
 mapOmegaRefl (A : ptType) (B : U) (h : A.1 -> B) (p : (Omega A).1) :
   (Omega (B, h (pt A))).1 = <i> h (p @ i)
 
-mapOmegaRefl2 (A : ptType) (B : U) (h : A.1 -> B) :
-  (Omega2 A).1 -> (Omega2 (B, h (pt A))).1 =
-    mapOmegaRefl (Omega A) (Omega (B,h (pt A))).1 (mapOmegaRefl A B h)
+mapOmegaRefl2 (A : ptType) (B : U) (h : A.1 -> B) (p : (Omega2 A).1) :
+  (Omega2 (B, h (pt A))).1 = <i j> h (p @ i @ j)
+  -- mapOmegaRefl (Omega A) (Omega (B,h (pt A))).1 (mapOmegaRefl A B h) p
 
-mapOmegaRefl3 (A : ptType) (B : U) (h : A.1 -> B) :
-  (Omega3 A).1 -> (Omega3 (B, h (pt A))).1 =
-    mapOmegaRefl2 (Omega A) (Omega (B,h (pt A))).1 (mapOmegaRefl A B h)
+mapOmegaRefl3 (A : ptType) (B : U) (h : A.1 -> B) (p : (Omega3 A).1) :
+  (Omega3 (B, h (pt A))).1 = <i j k> h (p @ i @ j @ k)
+  -- mapOmegaRefl2 (Omega A) (Omega (B,h (pt A))).1 (mapOmegaRefl A B h)
     
 --------------------------------------------------------------------------------
 -- B.5 Loop space of a suspension

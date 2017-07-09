@@ -370,6 +370,21 @@ f2 : (Omega2 S2pt).1 -> (Omega3 S3pt).1 = (mapOmega2 S2pt (Omega S3pt) (phi S2pt
 
 f3 : (Omega3 S3pt).1 -> (Omega3 (joinpt S1pt S1)).1 = mapOmegaRefl3 S3pt (join S1 S1) e
 
+-- Decompose f3 and test the 3 first submaps separately:
+f31 : (Omega3 S3pt).1 -> (Omega3 (joinpt boolpt S2)).1 =
+  mapOmegaRefl3 S3pt (join bool S2) (psi S2)
+
+f32 : (Omega3 S3pt).1 -> (Omega3 (joinpt boolpt (join bool S1))).1 =
+  mapOmegaRefl3 S3pt (join bool (join bool S1))
+  (\(x : S3) -> mapJoin bool bool S2 (join bool S1) (idfun bool) (psi S1)
+               (psi S2 x))
+
+f33 : (Omega3 S3pt).1 -> (Omega3 (joinpt (joinpt boolpt bool) S1)).1 =
+  mapOmegaRefl3 S3pt (join (join bool bool) S1)
+  (\(x : S3) -> joinassoc1 bool bool S1
+               (mapJoin bool bool S2 (join bool S1) (idfun bool) (psi S1)
+               (psi S2 x)))
+
 f4 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S2pt).1 =
   -- (mapOmega3 (joinpt S1pt S1) S2pt alpha).1
   mapOmegaRefl3 (joinpt S1pt S1) S2 alpha.1
@@ -381,8 +396,17 @@ test0To1 : (Omega2 S2pt).1 = f1 (f0 oneZ)
 -- WORKS
 test0To2 : (Omega3 S3pt).1 = f2 test0To1
 
--- ?
+-- WORKS
+test0To31 : (Omega3 (joinpt boolpt S2)).1 = f31 test0To2
+
+-- WORKS: but HUGE
+test0To32 : (Omega3 (joinpt boolpt (join bool S1))).1 = f32 test0To2
+
+-- ? (out of memory)
+test0To33 : (Omega3 (joinpt (joinpt boolpt bool) S1)).1 = f33 test0To2
+
+-- ? (out of memory)
 test0To3 : (Omega3 (joinpt S1pt S1)).1 = f3 test0To2
 
--- ?
+-- ? (out of memory)
 test0To4 : (Omega3 S2pt).1 = f4 test0To3

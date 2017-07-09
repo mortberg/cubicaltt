@@ -1,0 +1,412 @@
+module brunerie where
+
+data bool = false | true
+data nat = zero | suc (n : nat)
+
+idfun (A : U) (a : A) : A = a
+
+{- Z is represented as:
+
+  +2 = pos (suc (suc zero))
+  +1 = pos (suc zero)
+   0 = pos zero
+  -1 = neg zero
+  -2 = neg (suc zero)
+
+-}
+data Z = pos (n : nat) | neg (n : nat)
+
+twoZ : Z = pos (suc (suc zero))
+oneZ : Z = pos (suc zero)
+zeroZ : Z = pos zero
+moneZ : Z = neg zero
+mtwoZ : Z = neg (suc zero)
+
+Path (A : U) (a0 a1 : A) : U = PathP (<i> A) a0 a1
+
+Square (A : U) (a0 a1 b0 b1 : A)
+               (u : Path A a0 a1) (v : Path A b0 b1)
+               (r0 : Path A a0 b0) (r1 : Path A a1 b1) : U
+  = PathP (<i> (PathP (<j> A) (u @ i) (v @ i))) r0 r1
+
+compPath (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
+  <i> comp (<_> A) (p @ i) [ (i =0) -> <j> a, (i = 1) -> q ]
+
+-- p ; p^-1 = 1
+compPathInv (A : U) (a b : A) (p : Path A a b) :
+  Path (Path A a a) (compPath A a b a p (<i> p @ -i)) (<_> a) =
+    <k j> comp (<_> A) (p @ j /\ -k)
+                  [ (j = 0) -> <_> a
+                  , (j = 1) -> <i> p @ -i /\ -k
+                  , (k = 1) -> <_> a ]
+
+-- p^-1 ; p = 1
+compInvPath (A : U) (a b : A) (p : Path A a b) :
+  Path (Path A b b) (compPath A b a b (<i> p @ -i) p)  (<_> b) =
+   <j i> comp (<_> A) (p @ -i \/ j)
+                 [ (i = 0) -> <_> b
+                 , (j = 1) -> <_> b
+                 , (i = 1) -> <k> p @ j \/ k ]
+
+
+--------------------------------------------------------------------------------
+-- B.3 Suspension and spheres
+
+-- The circle
+data S1 = base
+        | loop <i> [ (i=0) -> base
+                   , (i=1) -> base]
+
+loopS1 : U = Path S1 base base
+loopP : loopS1 = <i> loop{S1} @ i
+invLoop : loopS1 = <i> loopP @ -i
+compS1 : loopS1 -> loopS1 -> loopS1 = compPath S1 base base base
+
+triv : loopS1 = <i> base
+oneTurn (l : loopS1) : loopS1 = compS1 l loopP
+backTurn (l : loopS1) : loopS1 = compS1 l invLoop
+
+itLoop : nat -> loopS1 = split
+ zero -> triv
+ suc n -> oneTurn (itLoop n)
+
+itLoopNeg : nat -> loopS1 = split
+ zero -> invLoop
+ suc n -> backTurn (itLoopNeg n)
+
+loopIt : Z -> loopS1 = split
+ pos n -> itLoop n
+ neg n -> itLoopNeg n
+
+-- Suspension
+data susp (A : U) = north
+                  | south
+                  | merid (a : A) <i> [ (i=0) -> north
+                                      , (i=1) -> south ]
+
+meridP (A : U) (a : A) : Path (susp A) north south =
+  <i> merid{susp A} a @ i
+
+
+-- The 2 and 3 spheres. Maybe define directly instead?
+S2 : U = susp S1
+S3 : U = susp S2
+
+
+--------------------------------------------------------------------------------
+-- B.4 Pointed types, pointed maps and loop spaces
+
+-- Pointed types
+ptType : U = (A : U) * A
+pt (A : ptType) : A.1 = A.2
+
+boolpt : ptType = (bool,true)
+susppt (A : U) : ptType = (susp A,north)
+S1pt : ptType = (S1,base)
+S2pt : ptType = susppt S1
+S3pt : ptType = susppt S2
+
+ptMap (A B : ptType) : U = (f : A.1 -> B.1) * (Path B.1 (f (pt A)) (pt B))
+
+-- The first 3 loop spaces of a pointed type.
+-- TODO: Maybe defined these by induction on n as in experiments/pointed.ctt?
+Omega (A : ptType) : ptType = (Path A.1 (pt A) (pt A),<_> pt A)
+Omega2 (A : ptType) : ptType = Omega (Omega A)
+Omega3 (A : ptType) : ptType = Omega2 (Omega A)
+
+kanOp (A : U) (a : A) (p : Path A a a) (b : A) (q : Path A a b) : Path A b b =
+ <i> comp (<_> A) (p @ i) [ (i = 0) -> q, (i = 1) -> q ]
+
+kanOpRefl (A : U) (a b : A) (q : Path A a b) :
+  Path (Path A b b) (kanOp A a (<i> a) b q) (<_> b) =
+    <j i> comp (<_> A) (q @ j) [ (i = 0) -> <k> q @ j \/ k
+                          , (i = 1) -> <k> q @ j \/ k
+                          , (j = 1) -> <k> b ]
+
+mapOmega (A B : ptType) (f : ptMap A B) : ptMap (Omega A) (Omega B) = (g,pg)
+  where
+  g (p : (Omega A).1) : (Omega B).1 =
+   kanOp B.1 (f.1 (pt A)) (<i>f.1 (p@i)) (pt B) f.2
+  pg : Path (Omega B).1 (g (pt (Omega A))) (pt (Omega B)) =
+    kanOpRefl B.1 (f.1 (pt A)) (pt B) f.2
+
+mapOmega2 (A B : ptType) (f : ptMap A B) : ptMap (Omega2 A) (Omega2 B) =
+  mapOmega (Omega A) (Omega B) (mapOmega A B f)
+
+mapOmega3 (A B : ptType) (f : ptMap A B) : ptMap (Omega3 A) (Omega3 B) =
+  mapOmega (Omega2 A) (Omega2 B) (mapOmega2 A B f)
+
+-- Simplified mapOmega when the function is pointed by reflexivity
+mapOmegaRefl (A : ptType) (B : U) (h : A.1 -> B) (p : (Omega A).1) :
+  (Omega (B, h (pt A))).1 = <i> h (p @ i)
+
+mapOmegaRefl2 (A : ptType) (B : U) (h : A.1 -> B) (p : (Omega2 A).1) :
+  (Omega2 (B, h (pt A))).1 = <i j> h (p @ i @ j)
+  -- mapOmegaRefl (Omega A) (Omega (B,h (pt A))).1 (mapOmegaRefl A B h) p
+
+mapOmegaRefl3 (A : ptType) (B : U) (h : A.1 -> B) (p : (Omega3 A).1) :
+  (Omega3 (B, h (pt A))).1 = <i j k> h (p @ i @ j @ k)
+  -- mapOmegaRefl2 (Omega A) (Omega (B,h (pt A))).1 (mapOmegaRefl A B h)
+    
+--------------------------------------------------------------------------------
+-- B.5 Loop space of a suspension
+
+phi (A : ptType) : ptMap A (Omega (susppt A.1)) = (g,pg)
+  where
+  g (a : A.1) : (Omega (susppt A.1)).1 =
+    let p1 : Path (susp A.1) north south = meridP A.1 a
+        p2 : Path (susp A.1) south north = <i> meridP A.1 (pt A) @ -i
+    in compPath (susp A.1) north south north p1 p2
+  pg : Path (Omega (susppt A.1)).1 (g (pt A)) (pt (Omega (susppt A.1))) =
+    let p : Path (Path (susp A.1) north north) (g (pt A)) (<_> north) =
+            compPathInv (susp A.1) north south (meridP A.1 (pt A))
+    in p
+
+
+--------------------------------------------------------------------------------
+-- B.6 The 3-sphere and the join of two circles
+
+data join (A B : U) = inl (a : A)
+                    | inr (b : B)
+                    | push (a : A) (b : B) <i> [ (i = 0) -> inl a
+                                               , (i = 1) -> inr b ]
+
+pushP (A B : U) (a : A) (b : B) : Path (join A B) (inl a) (inr b) =
+  <i> push {join A B} a b @ i
+
+joinpt (A : ptType) (B : U) : ptType = (join A.1 B,inl (pt A))
+
+
+-- B.6.1 Join and associativity
+
+r2lInr (A B C : U) : join B C -> join (join A B) C = split
+  inl b -> inl (inr b)
+  inr c -> inr c
+  push b c @ i -> pushP (join A B) C (inr b) c @ i
+
+r2lPushInl (A B C : U) (a : A) (b : B) :
+  Path (join (join A B) C) (inl (inl a)) (inl (inr b)) = <i> inl (pushP A B a b @ i)
+
+r2lSquare (A B C : U) (a : A) (b : B) (c : C) :
+        PathP (<i> Path (join (join A B) C) (inl (pushP A B a b @ i)) (inr c))
+            (pushP (join A B) C (inl a) c) (pushP (join A B) C (inr b) c)
+ = <i j> pushP (join A B) C (pushP A B a b @ i) c @ j
+
+opr2l (A : U) (a b c : A) (p : Path A a c) (q : Path A a b) (r : Path A b c)
+      (sq : Square A a b c c q (<_> c) p r) :
+      Square A a a b c (<_> a) r q p =
+         <i j> comp (<_> A) (p @ i) [ (i = 0) -> <k> q @ j /\ k
+                               , (i = 1) -> <k> p @ j \/ -k
+                               , (j = 0) -> <k> p @ i /\ -k
+                               , (j = 1) -> <k> sq @ k @ i ]
+
+r2lPushPush (A B C : U) (a : A) (b : B) (c : C) :
+  Square (join (join A B) C) (inl (inl a)) (inl (inl a)) (inl (inr b)) (inr c)
+         (<_> inl (inl a)) (pushP (join A B) C (inr b) c)
+         (r2lPushInl A B C a b) (pushP (join A B) C (inl a) c) =
+  opr2l (join (join A B) C) (inl (inl a)) (inl (inr b)) (inr c)
+        (pushP (join A B) C (inl a) c) (r2lPushInl A B C a b)
+        (pushP (join A B) C (inr b) c) (r2lSquare A B C a b c)
+
+r2lPush (A B C : U) (a : A) :
+  (bc : join B C) -> Path (join (join A B) C) (inl (inl a)) (r2lInr A B C bc) = split
+    inl b -> r2lPushInl A B C a b
+    inr c -> pushP (join A B) C (inl a) c
+    push b c @ i -> r2lPushPush A B C a b c @ i
+
+joinassoc1 (A B C : U) : join A (join B C) -> join (join A B) C = split
+  inl a  -> inl (inl a)
+  inr bc -> r2lInr A B C bc
+  push a bc @ i -> r2lPush A B C a bc @ i
+
+
+-- Map from [join (join A B) C] to [join A (join B C)]
+
+-- l2rInl (A B C : U) : join A B -> join A (join B C) = split
+--   inl a    -> inl a
+--   inr b    -> inr (inl b)
+--   push a b @ i -> pushP A (join B C) a (inl b) @ i
+
+-- l2rPushInr (A B C : U) (b : B) (c : C) :
+--   Path (join A (join B C)) (inr (inl b)) (inr (inr c)) = <i>inr (pushP B C b c@i)
+
+-- l2rSquare (A B C : U) (a : A) (b : B) (c : C) :
+--        PathP (<i> Path (join A (join B C)) (inl a) (inr (pushP B C b c@i)))
+--            (<i>pushP A (join B C) a (inl b)@i) (<i>pushP A (join B C) a (inr c)@i) =
+--  <i j>pushP A (join B C) a (pushP B C b c@i)@j
+
+-- opl2r (A : U) (a b c : A) (p : Path A a c) (q : Path A a b) (r : Path A b c)
+--      (sq : Square A a a b c (<_> a) r q p) : Square A a b c c q (<_> c) p r = undefined
+--       -- <i j>comp A (sq@j@i) [(i=0) -> <k>p@(j/\k),(j=1) -> <k>p@(i\/k)]
+
+-- l2rPushPush (A B C : U) (a : A) (b : B) (c : C) :
+--   Square (join A (join B C)) (inl a) (inr (inl b)) (inr (inr c)) (inr (inr c))
+--          (pushP A (join B C) a (inl b)) (<_> inr (inr c))
+--          (pushP A (join B C) a (inr c)) (l2rPushInr A B C b c) =
+--   opl2r (join A (join B C)) (inl a) (inr (inl b)) (inr (inr c))
+--         (pushP A (join B C) a (inr c)) (pushP A (join B C) a (inl b)) (l2rPushInr A B C b c)
+--         (l2rSquare A B C a b c)
+
+-- l2rPush (A B C : U) (c : C) : (u : join A B) ->
+--             Path (join A (join B C)) (l2rInl A B C u) (inr (inr c)) = split
+--   inl a -> pushP A (join B C) a (inr c)
+--   inr b -> l2rPushInr A B C b c
+--   push a b @ i -> l2rPushPush A B C a b c @ i
+
+-- joinassoc2 (A B C : U) : join (join A B) C -> join A (join B C) = split
+--   inl jab -> l2rInl A B C jab
+--   inr c   -> inr (inr c)
+--   push p q @ i -> l2rPush A B C q p @ i
+
+
+mapJoin (A A' B B' : U) (f : A -> A') (g : B -> B') : join A B -> join A' B' = split
+  inl a -> inl (f a)
+  inr b -> inr (g b)
+  push a b @ i -> pushP A' B' (f a) (g b) @ i
+
+-- TODO: mapJoin is pointed as soon as f is
+-- mapJoinPt (A A' : ptType) (B B' : U) (f : ptMap A A') (g : B -> B') :
+--   ptMap (joinpt A B) (joinpt A' B') = undefined
+
+
+-- B.6.2 Suspension and join with the booleans
+-- It is not necessary that the maps here are pointed yet, we fix it
+-- in the end after composing them
+
+psi (A : U) : susp A -> join bool A = split
+  north -> inl true
+  south -> inl false
+  merid a @ i -> compPath (join bool A) (inl true) (inr a) (inl false)
+                          (pushP bool A true a) (<i> pushP bool A false a @ -i) @ i
+
+psiinv (A : U) : join bool A -> susp A = split
+  inl b ->
+    let case : (b : bool) -> susp A = split
+          false -> south
+          true  -> north
+    in case b
+  inr a -> south
+  push b a @ i ->
+    let case (a : A) : (b : bool) -> Path (susp A) (psiinv A (inl b)) south = split
+          false -> <_> south
+          true  -> meridP A a
+    in case a b @ i
+   
+-- I define c by going via susp bool
+-- TODO: maybe do it directly?
+
+suspBoolToS1 : susp bool -> S1 = split
+  north   -> base
+  south   -> base
+  merid b @ i ->
+    let case : bool -> Path S1 base base = split
+          false -> loopP
+          true  -> <_> base
+    in case b @ i
+
+s1ToSuspBool : S1 -> susp bool = split
+  base -> north
+  loop @ i -> compPath (susp bool) north south north
+                       (meridP bool false) (<i> meridP bool true @ -i) @ i
+
+c (x : join bool bool) : S1 = suspBoolToS1 (psiinv bool x)
+
+cinv (x : S1) : join bool bool = psi bool (s1ToSuspBool x)
+
+-- B.6.3 Equivalence between S3 and join S1 S1
+
+-- The map e
+e (x : S3) : join S1 S1 =
+  let x1 : join bool S2 = psi S2 x
+      x2 : join bool (join bool S1) =
+        mapJoin bool bool S2 (join bool S1) (idfun bool) (psi S1) x1
+      x3 : join (join bool bool) S1 = joinassoc1 bool bool S1 x2
+      res : join S1 S1 = mapJoin (join bool bool) S1 S1 S1 c (idfun S1) x3
+  in res
+
+-- einv : join S1 S1 -> S3 = undefined
+
+
+--------------------------------------------------------------------------------
+-- B.7 The main map
+
+-- A modified version of the main map alpha, which is equal to the
+-- other one (to be checked) but pointed by reflexivity
+prealpha : join S1 S1 -> S2 = split
+  inl x -> north
+  inr y -> north
+  push x y @ i ->
+    -- A: I think there must be a bug in the old version when
+    -- typechecking path constructors (we use merid{S2} there...)
+    compPath S2 north south north (meridP S1 x) (<i> meridP S1 y @ -i) @ i
+
+alpha : ptMap (joinpt S1pt S1) S2pt = (prealpha, <_> north)
+
+
+
+--------------------------------------------------------------------------------
+-- B.8 The map defining pi3(S2)
+
+-- B.8.1 The Hopf fibration
+
+-- B.8.2 Looping a fibration
+
+-- B.8.3 Looping the Hopf fibration
+
+h : ptMap (Omega3 S2pt) (Omega3 (joinpt S1pt S1)) = undefined
+
+
+
+
+
+--------------------------------------------------------------------------------
+-- B.2 The definition
+
+f0 : Z -> loopS1 = loopIt
+
+f1 : loopS1 -> (Omega2 S2pt).1 = (mapOmega S1pt (Omega S2pt) (phi S1pt)).1
+
+f2 : (Omega2 S2pt).1 -> (Omega3 S3pt).1 = (mapOmega2 S2pt (Omega S3pt) (phi S2pt)).1
+
+f3 : (Omega3 S3pt).1 -> (Omega3 (joinpt S1pt S1)).1 = mapOmegaRefl3 S3pt (join S1 S1) e
+
+-- Decompose f3 and test the 3 first submaps separately:
+f31 : (Omega3 S3pt).1 -> (Omega3 (joinpt boolpt S2)).1 =
+  mapOmegaRefl3 S3pt (join bool S2) (psi S2)
+
+f32 : (Omega3 S3pt).1 -> (Omega3 (joinpt boolpt (join bool S1))).1 =
+  mapOmegaRefl3 S3pt (join bool (join bool S1))
+  (\(x : S3) -> mapJoin bool bool S2 (join bool S1) (idfun bool) (psi S1)
+               (psi S2 x))
+
+f33 : (Omega3 S3pt).1 -> (Omega3 (joinpt (joinpt boolpt bool) S1)).1 =
+  mapOmegaRefl3 S3pt (join (join bool bool) S1)
+  (\(x : S3) -> joinassoc1 bool bool S1
+               (mapJoin bool bool S2 (join bool S1) (idfun bool) (psi S1)
+               (psi S2 x)))
+
+f4 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S2pt).1 =
+  -- (mapOmega3 (joinpt S1pt S1) S2pt alpha).1
+  mapOmegaRefl3 (joinpt S1pt S1) S2 alpha.1
+
+
+-- WORKS
+test0To1 : (Omega2 S2pt).1 = f1 (f0 oneZ)
+
+-- WORKS
+test0To2 : (Omega3 S3pt).1 = f2 test0To1
+
+-- WORKS
+test0To31 : (Omega3 (joinpt boolpt S2)).1 = f31 test0To2
+
+-- WORKS
+test0To32 : (Omega3 (joinpt boolpt (join bool S1))).1 = f32 test0To2
+
+-- WORKS
+test0To33 : (Omega3 (joinpt (joinpt boolpt bool) S1)).1 = f33 test0To2
+
+-- WORKS (~2min)
+test0To3 : (Omega3 (joinpt S1pt S1)).1 = f3 test0To2
+
+-- WORKS (2m54s)
+test0To4 : (Omega3 S2pt).1 = f4 test0To3

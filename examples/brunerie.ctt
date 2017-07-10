@@ -359,6 +359,8 @@ alpha : ptMap (joinpt S1pt S1) S2pt = (prealpha, <_> north)
 isContr (A : U) : U = (x : A) * ((y : A) -> Path A x y)
 
 prop (A : U) : U = (a b : A) -> Path A a b
+set (A : U) : U = (a b : A) -> prop (Path A a b)
+groupoid (A : U) : U = (a b : A) -> set (Path A a b)
 
 fiber (A B : U) (f : A -> B) (y : B) : U =
   (x : A) * Path B y (f x)
@@ -426,19 +428,139 @@ mu : S1 -> equiv S1 S1 = split
           equivEq S1 S1 (idEquiv S1) (idEquiv S1) (<j> \(x : S1) -> f x @ j)
     in goal @ i
 
-hopf : S2 -> U = split
- north -> S1
- south -> S1
- merid x @ i -> ua S1 S1 (mu x) @ i
+Hopf : S2 -> U = split
+  north -> S1
+  south -> S1
+  merid x @ i -> ua S1 S1 (mu x) @ i
 
+-- Define the t map, this needs cleaning!
+
+-- subst (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
+--   transport (<i> P (p @ i)) e
+
+-- J (A : U) (a : A) (C : (x : A) -> Path A a x -> U)
+--   (d : C a (<_> a)) (x : A) (p : Path A a x) : C x p =
+--     subst ((x : A) * Path A a x) T (a,<_> a) (x, p) (contrSingl A a x p) d
+--       where T (z : (x : A) * Path A a x) : U = C (z.1) (z.2)
+
+PathS (A : U) (P : A -> U) (a0 a1 : A) (p : Path A a0 a1) (u0 : P a0) (u1 : P a1) : U =
+  PathP (<i> P (p @ i)) u0 u1
+
+-- funExt1 (C B : U) (F : C -> U) (a :C) : (b : C) (p : Path C a b)
+--           (f : F a -> B) (g : F b -> B)
+-- 	    (h : (x : F a) -> Path B (f x) (g (subst C F a b p x)))
+--           -> PathS C (\ (z:C) -> F z -> B) a b p f g = undefined
+--  --  J C a (\ (b:C) (p:Path C a b) -> (f : F a -> B) (g : F b -> B)
+--  --             (h : (x : F a) -> Path B (f x) (g (subst C F a b p x)))
+--  --               -> PathS C (\ (z:C) -> F z -> B) a b p f g) rem
+--  -- where rem (f g : F a -> B) (h : (x : F a) -> Path B (f x) (g x)) : Path (F a -> B) f g = 
+--  --         <i>\(x:F a) -> h x @ i
+
+-- Old version
+-- t : (x : S2) -> Hopf x -> join S1 S1 = split
+--   north -> \(x : S1) -> inl x
+--   south -> \(x : S1) -> inr x
+--   merid x @ i -> funExt1 S2 (join S1 S1) Hopf north south (<j> meridP x @ j)
+--                          (\(y : S1) -> inl y) (\(y : S1) -> inr y)
+--                          (\(y : S1) -> <j> pushP y ( @ j) @ i
+
+t : (x : S2) -> (Hopf x -> join S1 S1) = undefined -- split
+  -- north -> \(x : S1) -> inl x
+  -- south -> \(x : S1) -> inr x
+  -- merid x @ i ->
+  -- let moo : Path ((y : S1 ) -> join S1 S1)
+  --                  (\(y : S1) -> inl y) (\(y : S1) -> inr y) = undefined
+  --   in moo @ i
+
+t' (xy : (x : S2) * Hopf x) : join S1 S1 = t xy.1 xy.2
+    
 -- B.8.2 Looping a fibration
+
+fibOmega (B : ptType) (P : B.1 -> U) (f : P (pt B)) (p : (Omega B).1) : U =
+  PathS B.1 P (pt B) (pt B) p f f
+
+itOmega : nat -> ptType -> ptType = split
+  zero  -> \ (A:ptType) -> A
+  suc n -> \(A:ptType) -> itOmega n (Omega A)
+
+itFibOmega : (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B)) -> (itOmega n B).1 -> U
+ = split
+  zero  -> \ (B : ptType) (P : B.1 -> U) (f : P (pt B)) -> P
+  suc n -> \ (B : ptType) (P : B.1 -> U) (f : P (pt B)) -> itFibOmega n (Omega B) (fibOmega B P f) (<_> f)
+
+itMapOmega : (n : nat) (A B : ptType) (h : ptMap A B) -> ptMap (itOmega n A) (itOmega n B) = split
+  zero  -> \ (A B : ptType) (h : ptMap A B) -> h
+  suc n -> \ (A B : ptType) (h : ptMap A B) -> itMapOmega n (Omega A) (Omega B) (mapOmega A B h)
+
+
+
+Sigma (A : U) (B : A -> U) : U = (x : A) * B x
+refl (A : U) (a : A) : Path A a a = <i> a
+
+totalFibOmega (B : ptType) (P : B.1 -> U) (f : P (pt B)) 
+  (p : Sigma (Omega B).1 (fibOmega B P f)) : (Omega (Sigma B.1 P, (pt B, f))).1
+ = <i>(p.1@i,p.2@i) -- pairPath B.1 P (pt B) (pt B) f f p.1 p.2
+   
+itTotalFibOmega : (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B)) (x:Sigma (itOmega n B).1 (itFibOmega n B P f)) 
+   -> (itOmega n (Sigma B.1 P, (pt B, f))).1
+ = split
+  zero  -> \ (B : ptType) (P : B.1 -> U) (f : P (pt B)) (x:Sigma B.1 P) -> x
+  suc n -> \ (B : ptType) (P : B.1 -> U) (f : P (pt B))
+             (x:Sigma (itOmega n (Omega B)).1 (itFibOmega n (Omega B) (fibOmega B P f) (refl (P (pt B)) f))) -> 
+   let
+    BOm : ptType =  Omega B
+    POm : BOm.1 -> U = fibOmega B P f
+    fOm : Path (P (pt B)) f f = refl (P (pt B)) f
+    ih : (Sigma (itOmega n BOm).1 (itFibOmega n BOm POm fOm)) ->
+         (itOmega n (Sigma BOm.1 POm, (pt BOm, fOm))).1
+      = itTotalFibOmega n (Omega B) (fibOmega B P f) (refl (P (pt B)) f)
+   in (itMapOmega n (Sigma BOm.1 POm, (pt BOm, fOm))
+                     (Omega (Sigma B.1 P, (pt B, f)))
+                     (totalFibOmega B P f,
+                       refl (Omega (Sigma B.1 P, (pt B, f))).1
+                         (refl (Sigma B.1 P) (pt B, f)))).1
+                  (ih x)
+
+fibOmega1 (B : ptType) (P : B.1 -> U) (f : P (pt B)) (p : (Omega B).1) : U =
+  fibOmega B P f p
+  -- PathP (<i> P (p @ i)) f f
+
+-- TODO: define all of these directly?
 
 -- B.8.3 Looping the Hopf fibration
 
-h : ptMap (Omega3 S2pt) (Omega3 (joinpt S1pt S1)) = undefined
+
+one : nat = suc zero
+two : nat = suc one
+three : nat = suc two
+
+HopfOne : (itOmega one S2pt).1 -> U = itFibOmega one S2pt Hopf base
+
+HopfTwo : (itOmega two S2pt).1 -> U = itFibOmega two S2pt Hopf base
+
+HopfThree : (itOmega three S2pt).1 -> U = itFibOmega three S2pt Hopf base
 
 
+inhOrTrunc (A:U) : nat -> U = split
+  zero  -> A
+  suc n -> (x y : A) -> inhOrTrunc (Path A x y) n
 
+truncFibOmega (B : ptType) (P : B.1 -> U) (f : P (pt B)) (n : nat) 
+  (tr:inhOrTrunc (P (pt B)) (suc n)) (p : (Omega B).1) : inhOrTrunc (fibOmega B P f p) n =
+    undefined
+
+isGroupoidS1 : groupoid S1 = undefined
+
+fibContrHopfThree (p : (itOmega three S2pt).1) : HopfThree p = 
+  truncFibOmega (itOmega two S2pt) HopfTwo (<_ _> base) zero
+    (truncFibOmega (Omega S2pt) HopfOne (<_> base) one
+          (truncFibOmega S2pt Hopf base two isGroupoidS1 (<_> north))
+        (<_> pt (Omega S2pt))) p
+ 
+-- The map h from 9.3
+HopfLoop (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 = undefined
+  -- mapOmegaRefl3 (Sigma S2 Hopf, (north,base)) (join S1 S1) t'
+  --   (itTotalFibOmega three S2pt Hopf base (p, fibContrHopfThree p))
 
 
 --------------------------------------------------------------------------------
@@ -471,6 +593,8 @@ f4 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S2pt).1 =
   -- (mapOmega3 (joinpt S1pt S1) S2pt alpha).1
   mapOmegaRefl3 (joinpt S1pt S1) S2 alpha.1
 
+f5 : (Omega3 S2pt).1 -> (Omega3 (joinpt S1pt S1)).1 = HopfLoop
+
 
 -- WORKS
 test0To1 : (Omega2 S2pt).1 = f1 (f0 oneZ)
@@ -494,3 +618,6 @@ test0To3 : (Omega3 (joinpt S1pt S1)).1 = f3 test0To2
 -- ? (out of memory)
 -- WORKS without endpoint correction (~2s)
 test0To4 : (Omega3 S2pt).1 = f4 test0To3
+
+-- ? (not finished)
+test0To5 : (Omega3 (joinpt S1pt S1)).1 = f5 test0To4

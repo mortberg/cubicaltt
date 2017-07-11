@@ -421,14 +421,13 @@ ua (A B : U) (e : equiv A B) : Path U A B =
              , (i = 1) -> (B,idEquiv B) ]
 
 -- End of basics
-f : (x : S1) -> Path S1 x x = split
-  base -> loopP
-  loop @ i -> constSquare S1 base loopP @ i
-          
+
 mu : S1 -> equiv S1 S1 = split
   base -> idEquiv S1
   loop @ i ->
-    let 
+    let f : (x : S1) -> Path S1 x x = split
+          base -> loopP
+          loop @ i -> constSquare S1 base loopP @ i
         goal : Path (equiv S1 S1) (idEquiv S1) (idEquiv S1) =
           equivEq S1 S1 (idEquiv S1) (idEquiv S1) (<j> \(x : S1) -> f x @ j)
     in goal @ i
@@ -441,25 +440,47 @@ Hopf : S2 -> U = split
 -- Define the t map, this needs cleaning!
 
 subst (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
-  transport (<i> P (p @ i)) e
+  transGen (<i> P (p @ i)) 0 e
 
--- J (A : U) (a : A) (C : (x : A) -> Path A a x -> U)
---   (d : C a (<_> a)) (x : A) (p : Path A a x) : C x p =
---     subst ((x : A) * Path A a x) T (a,<_> a) (x, p) (contrSingl A a x p) d
---       where T (z : (x : A) * Path A a x) : U = C (z.1) (z.2)
+J (A : U) (a : A) (C : (x : A) -> Path A a x -> U)
+  (d : C a (<_> a)) (x : A) (p : Path A a x) : C x p =
+    subst ((x : A) * Path A a x) T (a,<_> a) (x, p) (contrSingl A a x p) d
+      where T (z : (x : A) * Path A a x) : U = C (z.1) (z.2)
 
 PathS (A : U) (P : A -> U) (a0 a1 : A) (p : Path A a0 a1) (u0 : P a0) (u1 : P a1) : U =
   PathP (<i> P (p @ i)) u0 u1
 
+-- CLEAN THIS MESS!
+-- TODO: is there a direct proof not involving J?
 funExt1 (C B : U) (F : C -> U) (a : C) : (b : C) (p : Path C a b)
-          (f : F a -> B) (g : F b -> B)
-	    (h : (x : F a) -> Path B (f x) (g (subst C F a b p x)))
-          -> PathS C (\ (z:C) -> F z -> B) a b p f g = undefined
- --  J C a (\ (b:C) (p:Path C a b) -> (f : F a -> B) (g : F b -> B)
- --             (h : (x : F a) -> Path B (f x) (g (subst C F a b p x)))
- --               -> PathS C (\ (z:C) -> F z -> B) a b p f g) rem
- -- where rem (f g : F a -> B) (h : (x : F a) -> Path B (f x) (g x)) : Path (F a -> B) f g = 
- --         <i>\(x:F a) -> h x @ i
+        (f : F a -> B) (g : F b -> B)
+        (h : (x : F a) -> Path B (f x) (g (subst C F a b p x))) ->
+        PathP (<i> F (p @ i) -> B) f g =
+        let 
+            rem (f g : F a -> B) (h : (x : F a) -> Path B (f x) (g x)) : Path (F a -> B) f g =
+              <i>\(x:F a) -> h x @ i
+            P : (b:C) (p:Path C a b) -> U = \(b:C) (p:Path C a b) -> (f : F a -> B) (g : F b -> B)
+                                            (h : (x : F a) -> Path B (f x) (g (subst C F a b p x)))
+                                            -> PathP (<i> F (p @ i) -> B) f g
+            rem1 (f g : F a -> B)
+                 (h : (x : F a) -> Path B (f x) (g (transGen (<_> F a) 0 x)))
+                 : Path (F a -> B) f g =
+                     let 
+                         moo : Path (F a -> B) f (\(x : F a) -> g (transGen (<_> F a) 0 x)) =
+                           <i> \(x : F a) -> h x @ i
+                         boo' (x : F a) : Path (F a) x (hcomp (F a) (transGen (<_> F a) 0 x) []) =
+                           fill (<_> F a) x []
+                         boo'' (x : F a) : Path (F a) (transGen (<_> F a) 0 x) (hcomp (F a) (transGen (<_> F a) 0 x) []) = hfill (F a) (transGen (<_> F a) 0 x) []
+                         boo''' (x : F a) : Path (F a) x (transGen (<_> F a) 0 x) =
+                           compPath (F a) x (hcomp (F a) (transGen (<_> F a) 0 x) []) (transGen (<_> F a) 0 x) (boo' x) (<i> boo'' x @ -i)
+                         boo (x : F a) : Path B (g x) (g (transGen (<_> F a) 0 x)) =
+                           <i> g (boo''' x @ i)
+                         boof : Path (F a -> B) (\(x : F a) -> g (transGen (<_> F a) 0 x)) g =
+                           <i> \(x : F a) -> boo x @ -i
+                     in compPath (F a -> B) f (\(x : F a) -> g (transGen (<_> F a) 0 x)) g moo boof
+        in J C a (\ (b:C) (p:Path C a b) -> (f : F a -> B) (g : F b -> B)
+            (h : (x : F a) -> Path B (f x) (g (subst C F a b p x)))
+              -> PathP (<i> F (p @ i) -> B) f g) rem1
 
 opaque funExt1
 
@@ -473,7 +494,7 @@ t : (x : S2) -> (Hopf x -> join S1 S1) = split
                   (\(y : S1) -> inl y) (\(y : S1) -> inr y) eq @ i
 
 t' (xy : (x : S2) * Hopf x) : join S1 S1 = t xy.1 xy.2
-    
+
 -- B.8.2 Looping a fibration
 
 fibOmega (B : ptType) (P : B.1 -> U) (f : P (pt B)) (p : (Omega B).1) : U =
@@ -493,16 +514,16 @@ itMapOmega : (n : nat) (A B : ptType) (h : ptMap A B) -> ptMap (itOmega n A) (it
   zero  -> \(A B : ptType) (h : ptMap A B) -> h
   suc n -> \(A B : ptType) (h : ptMap A B) -> itMapOmega n (Omega A) (Omega B) (mapOmega A B h)
 
-totalFibOmega (B : ptType) (P : B.1 -> U) (f : P (pt B)) 
+totalFibOmega (B : ptType) (P : B.1 -> U) (f : P (pt B))
   (p : Sigma (Omega B).1 (fibOmega B P f)) : (Omega (Sigma B.1 P, (pt B, f))).1 =
   <i> (p.1 @ i,p.2 @ i)
-   
+
 itTotalFibOmega : (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B))
   (x:Sigma (itOmega n B).1 (itFibOmega n B P f)) -> (itOmega n (Sigma B.1 P, (pt B, f))).1
  = split
   zero  -> \(B : ptType) (P : B.1 -> U) (f : P (pt B)) (x : Sigma B.1 P) -> x
   suc n -> \(B : ptType) (P : B.1 -> U) (f : P (pt B))
-            (x : Sigma (itOmega n (Omega B)).1 (itFibOmega n (Omega B) (fibOmega B P f) (<_> f))) -> 
+            (x : Sigma (itOmega n (Omega B)).1 (itFibOmega n (Omega B) (fibOmega B P f) (<_> f))) ->
    let
     BOm : ptType = Omega B
     POm : BOm.1 -> U = fibOmega B P f
@@ -532,35 +553,83 @@ HopfThree : (Omega3 S2pt).1 -> U = itFibOmega three S2pt Hopf base
 inhOrTrunc (A : U) : nat -> U = split
   zero  -> A
   suc n -> (x y : A) -> inhOrTrunc (Path A x y) n
- 
+
+-- TODO: change to transGen
+subst' (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
+  transport (<i> P (p @ i)) e
+  
 funDepTr (A : U) (P : A -> U) (a0 a1 : A) (p : Path A a0 a1) (u0 : P a0) (u1 : P a1) :
          Path U (PathP (<i> P (p @ i)) u0 u1)
-                (Path (P a1) (subst A P a0 a1 p u0) u1) =
- <j>PathP (<i>P (p@j\/i)) (comp (<i>P (p@j/\i)) u0 [(j=0)-><_>u0]) u1
+                (Path (P a1) (subst' A P a0 a1 p u0) u1) =
+  <j> PathP (<i> P (p @ j \/ i)) (comp (<i> P (p @ j /\ i)) u0 [ (j=0) -> <_> u0 ]) u1
 
-truncFibOmega (B : ptType) (P : B.1 -> U) (f : P (pt B)) (n : nat) 
+truncFibOmega (B : ptType) (P : B.1 -> U) (f : P (pt B)) (n : nat)
   (tr : inhOrTrunc (P (pt B)) (suc n)) (p : (Omega B).1) : inhOrTrunc (fibOmega B P f p) n =
-  let trf : inhOrTrunc (Path (P B.2) (subst B.1 P (pt B) (pt B) p f) f) n =
-        tr (subst B.1 P (pt B) (pt B) p f) f
-      eq : Path U (Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f)
+  let trf : inhOrTrunc (Path (P B.2) (subst' B.1 P (pt B) (pt B) p f) f) n =
+        tr (subst' B.1 P (pt B) (pt B) p f) f
+      eq : Path U (Path (P (pt B)) (subst' B.1 P (pt B) (pt B) p f) f)
                   (PathP (<i> P (p @ i)) f f) =
                     <i> funDepTr B.1 P (pt B) (pt B) p f f @ -i
   in subst U (\(X : U) -> inhOrTrunc X n)
-             (Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f)
+             (Path (P (pt B)) (subst' B.1 P (pt B) (pt B) p f) f)
              (PathP (<i> P (p @ i)) f f)
              eq trf
 
+
+-------
+-- S1 is a groupoid
 -- this should be provable, but is it crucial for the computation?
-isGroupoidS1 : groupoid S1 = undefined
 
-opaque isGroupoidS1
+propSet (A : U) (h : prop A) : set A =
+ \(a b : A) (p q : Path A a b) ->
+   <j i> hcomp A a [ (i=0) -> h a a
+                       , (i=1) -> h a b
+                       , (j=0) -> h a (p @ i)
+                       , (j=1) -> h a (q @ i)]
 
-fibContrHopfThree (p : (Omega3 S2pt).1) : HopfThree p = 
+propIsProp (A : U) : prop (prop A) =
+  \(f g : prop A) -> <i> \(a b : A) ->
+    propSet A f a b (f a b) (g a b) @ i
+
+setIsProp (A : U) : prop (set A) =
+ \(f g : set A) -> <i> \(a b :A) ->
+   propIsProp (Path A a b) (f a b) (g a b) @ i
+
+propPi (A : U) (B : A -> U) (h : (x : A) -> prop (B x))
+       (f0 f1 : (x : A) -> B x) : Path ((x : A) -> B x) f0 f1
+  = <i> \ (x:A) -> (h x (f0 x) (f1 x)) @ i
+
+lemPropFib (P : S1 -> U) (pP : (x : S1) -> prop (P x)) (bP : P base) : (x : S1) -> P x = split
+ base -> bP
+ loop @ i -> lemPropF S1 P pP base base loopP bP bP @ i
+
+loopS1equalsZ : Path U loopS1 Z = undefined
+--  isoPath loopS1 Z (encode base) (decode base) decodeEncodeBase (encodeDecode base)
+
+ZSet : set Z = undefined
+
+setLoop : set loopS1 = undefined -- subst U set loopS1 Z (<i> loopS1equalsZ @ -i) ZSet
+
+isGroupoidS1 : groupoid S1 = lem
+ where
+  lem2 : (y : S1) -> set (Path S1 base y)
+    = lemPropFib (\ (y:S1) -> set (Path S1 base y)) (\ (y:S1) -> setIsProp (Path S1 base y)) setLoop
+
+  lem : (x y : S1) -> set (Path S1 x y)
+   = lemPropFib (\ (x:S1) -> (y : S1) -> set (Path S1 x y)) pP lem2
+     where
+       pP (x:S1) : prop ((y:S1) -> set (Path S1 x y)) =
+        propPi S1 (\ (y:S1) -> set (Path S1 x y)) (\ (y:S1) -> setIsProp (Path S1 x y))
+
+-- opaque isGroupoidS1
+-----
+
+fibContrHopfThree (p : (Omega3 S2pt).1) : HopfThree p =
   truncFibOmega (Omega2 S2pt) HopfTwo (<_ _> base) zero
     (truncFibOmega (Omega S2pt) HopfOne (<_> base) one
        (truncFibOmega S2pt Hopf base two isGroupoidS1 (<_> north))
        (<_> pt (Omega S2pt))) p
- 
+
 -- The map h from 9.3
 HopfLoop (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 =
   mapOmegaRefl3 (Sigma S2 Hopf, (north,base)) (join S1 S1) t'

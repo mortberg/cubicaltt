@@ -606,9 +606,160 @@ lemPropFib (P : S1 -> U) (pP : (x : S1) -> prop (P x)) (bP : P base) : (x : S1) 
 loopS1equalsZ : Path U loopS1 Z = undefined
 --  isoPath loopS1 Z (encode base) (decode base) decodeEncodeBase (encodeDecode base)
 
-ZSet : set Z = undefined
+-- Z is a set
+data N0 =
 
-setLoop : set loopS1 = undefined -- subst U set loopS1 Z (<i> loopS1equalsZ @ -i) ZSet
+efq (A : U) : N0 -> A = split {}
+neg (A : U) : U = A -> N0
+
+data or (A B : U) = inl (a : A)
+                  | inr (b : B)
+
+data Unit = tt
+
+-- propUnit : prop Unit = split
+--  tt -> split@((x:Unit) -> Path Unit tt x) with
+--   tt -> <i> tt
+
+-- setUnit : set Unit = propSet Unit propUnit
+
+stable (A:U) : U = neg (neg A) -> A
+const (A : U) (f : A -> A) : U = (x y : A) -> Path A (f x) (f y)
+
+exConst (A : U) : U = (f:A -> A) * const A f
+propN0 : prop N0 = \ (x y:N0) -> efq (Path N0 x y) x
+
+propNeg (A:U) : prop (neg A) = \ (f g:neg A) -> <i>\(x:A) -> (propN0 (f x) (g x))@i
+
+dNeg (A:U) (a:A) : neg (neg A) = \ (h : neg A) -> h a
+
+stableConst (A : U) (sA: stable A) : exConst A =
+ (\ (x:A) -> sA (dNeg A x),\ (x y:A) -> <i>sA (propNeg (neg A) (dNeg A x) (dNeg A y) @ i))
+
+dec (A : U) : U = or A (neg A)
+
+decEqCong (A B : U) (f : A -> B) (g : B -> A) : dec A -> dec B = split
+  inl a -> inl (f a)
+  inr h -> inr (\ (b:B) -> h (g b))
+
+decStable (A:U) : dec A -> stable A = split
+ inl a -> \ (h :neg (neg A)) -> a
+ inr b -> \ (h :neg (neg A)) -> efq A (h b)
+
+discrete (A : U) : U = (a b : A) -> dec (Path A a b)
+
+hedbergLemma (A: U) (a b:A) (f : (x : A) -> Path A a x -> Path A a x) (p : Path A a b) :
+            Square A a a a b (refl A a) p (f a (refl A a)) (f b p) = 
+ comp (<i> Square A a a a (p @ i) (<_> a) (<j> p @ i /\ j)
+                 (f a (<_> a)) (f (p @ i) (<j> p @ i /\ j)))
+      (<i> f a (<_> a)) []
+
+hedbergStable (A : U) (a b : A) (h : (x : A) -> stable (Path A a x))
+        (p q : Path A a b) : Path (Path A a b) p q =
+ <j i> comp (<_> A) a [ (j = 0) -> rem2 @ i
+                      , (j = 1) -> rem3 @ i
+                      , (i = 0) -> r
+                      , (i = 1) -> rem4 @ j]
+ where 
+   ra : Path A a a = <_> a 
+   rem1 (x : A) : exConst (Path A a x) = stableConst (Path A a x) (h x)
+   f (x : A) : Path A a x -> Path A a x  = (rem1 x).1
+   fIsConst (x : A) : const (Path A a x) (f x) = (rem1 x).2
+   rem4 : Square A a a b b ra (refl A b) (f b p) (f b q)  = fIsConst b p q
+   r : Path A a a = f a ra
+   rem2 : Square A a a a b ra p r (f b p) = hedbergLemma A a b f p
+   rem3 : Square A a a a b ra q r (f b q) = hedbergLemma A a b f q
+
+hedbergS (A:U) (h : (a x:A) -> stable (Path A a x)) : set A =
+ \(a b : A) -> hedbergStable A a b (h a)
+
+hedberg (A : U) (h : discrete A) : set A =
+ \(a b : A) -> hedbergStable A a b (\(b : A) -> decStable (Path A a b) (h a b))
+
+
+inlNotinr (A B:U) (a:A) (b:B) (h: Path (or A B) (inl a) (inr b)) : N0 = 
+ subst (or A B) T (inl a) (inr b) h tt
+ where
+  T : or A B -> U = split
+       inl _ -> Unit
+       inr _ -> N0
+
+inrNotinl (A B:U) (a:A) (b:B) (h : Path (or A B) (inr b) (inl a)) : N0 = 
+ subst (or A B) T (inr b) (inl a) h tt
+ where
+  T : or A B -> U = split
+       inl _ -> N0
+       inr _ -> Unit
+
+injInl (A B :U) (x0 x1:A) (h : Path (or A B) (inl x0) (inl x1)) : Path A x0 x1 = 
+ subst (or A B) T (inl x0) (inl x1) h (refl A x0)
+ where
+   T : or A B -> U = split
+         inl x -> Path A x0 x
+         inr _ -> N0
+
+injInr (A B :U) (x0 x1:B) (h: Path (or A B) (inr x0) (inr x1)) : Path B x0 x1 = 
+ subst (or A B) T (inr x0) (inr x1) h (refl B x0)
+ where
+   T : or A B -> U = split
+         inl _ -> N0
+         inr x -> Path B x0 x
+
+-- If A and B are discrete then "A or B" is discrete
+orDisc (A B : U) (dA : discrete A) (dB : discrete B) :
+  (z z1 : or A B) -> dec (Path (or A B) z z1) = split
+  inl a -> rem1
+    where rem1 : (z1:or A B) -> dec (Path (or A B) (inl a) z1) = split
+            inl a1 -> rem (dA a a1)
+               where rem : dec (Path A a a1) -> dec (Path (or A B) (inl a) (inl a1)) = split
+                            inl p -> inl (<i> inl (p @ i))
+                            inr h -> inr (\ (p:Path (or A B) (inl a) (inl a1)) -> h (injInl A B a a1 p))
+            inr b -> inr (inlNotinr A B a b)
+  inr b -> rem1
+   where rem1 : (z1:or A B) -> dec (Path (or A B) (inr b) z1) = split
+            inl a -> inr (inrNotinl A B a b)
+            inr b1 -> rem (dB b b1)
+               where rem : dec (Path B b b1) -> dec (Path (or A B) (inr b) (inr b1)) = split
+                            inl p -> inl (<i> inr (p @ i))
+                            inr h -> inr (\ (p:Path (or A B) (inr b) (inr b1)) -> h (injInr A B b b1 p))
+
+caseNat (A : U) (a0 aS : A) : nat -> A = split
+ zero -> a0
+ suc n -> aS
+
+caseDNat (P:nat -> U) (a0 :P zero) (aS : (n:nat) -> P (suc n))
+            : (n:nat) -> P n = split
+ zero -> a0
+ suc n -> aS n
+
+znots (n : nat) : neg (Path nat zero (suc n)) =
+ \ (h:Path nat zero (suc n)) -> subst nat (caseNat U nat N0) zero (suc n) h zero
+
+snotz (n : nat) : neg (Path nat (suc n) zero) =
+ \ (h:Path nat (suc n) zero) -> znots n (<i> h @ -i)
+
+pred : nat -> nat = split
+  zero -> zero
+  suc n -> n
+
+sucInj (n m : nat) (p : Path nat (suc n) (suc m)) : Path nat n m =
+ <i> pred (p @ i)
+
+natDec : (n m:nat) -> dec (Path nat n m) = split
+ zero -> caseDNat (\ (m:nat) -> dec (Path nat zero m)) (inl (refl nat zero)) (\ (m:nat) -> inr (znots m))
+ suc n -> caseDNat (\ (m:nat) -> dec (Path nat (suc n) m)) (inr (snotz n))
+   (\ (m:nat) -> decEqCong (Path nat n m) (Path nat (suc n) (suc m)) (\ (p:Path nat n m) -> <i> suc (p @ i))
+                 (sucInj n m) (natDec n m))
+
+-- natSet : set nat = hedberg nat natDec
+-- ZSet : set Z = hedberg Z (orDisc nat nat natDec natDec)
+-- Z is not or anymore...
+
+
+ZSet : set Z = undefined
+--
+
+setLoop : set loopS1 = subst U set Z loopS1 (<i> loopS1equalsZ @ -i) ZSet
 
 isGroupoidS1 : groupoid S1 = lem
  where

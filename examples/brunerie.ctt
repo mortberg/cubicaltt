@@ -24,6 +24,9 @@ mtwoZ : Z = neg (suc zero)
 
 Path (A : U) (a0 a1 : A) : U = PathP (<i> A) a0 a1
 
+Sigma (A : U) (B : A -> U) : U = (x : A) * B x
+refl (A : U) (a : A) : Path A a a = <i> a
+
 Square (A : U) (a0 a1 b0 b1 : A)
                (u : Path A a0 a1) (v : Path A b0 b1)
                (r0 : Path A a0 b0) (r1 : Path A a1 b1) : U
@@ -373,16 +376,17 @@ equiv (A B : U) : U = (f : A -> B) * isEquiv A B f
 propIsContr (A:U) (z0 z1:isContr A) : Path (isContr A) z0 z1 =
  <j> (p0 a1 @ j
      ,\(x : A) -> <i> hcomp A (lem1 x@i@j)
-                               [ (i=0) -> <k> p0 a1 @ j
-                               , (i=1) -> <k> p0 x @ j \/ k
-                               , (j=0) -> <k> p0 x @ i/\ k
-                               , (j=1) -> <k> p1 x @ i ])
+                              [ (i=0) -> <k> p0 a1 @ j
+                              , (i=1) -> <k> p0 x @ j \/ k
+                              , (j=0) -> <k> p0 x @ i/\ k
+                              , (j=1) -> <k> p1 x @ i ])
  where
   a0 : A = z0.1
-  p0 : (x:A) -> Path A a0 x = z0.2
+  p0 : (x : A) -> Path A a0 x = z0.2
   a1 : A = z1.1
-  p1 : (x:A) -> Path A a1 x = z1.2
-  lem1 (x:A) : PathP (<i>Path A a0 (p1 x@i)) (p0 a1) (p0 x) = <i j> p0 (p1 x@i) @ j
+  p1 : (x : A) -> Path A a1 x = z1.2
+  lem1 (x : A) : PathP (<i> Path A a0 (p1 x @ i)) (p0 a1) (p0 x) =
+    <i j> p0 (p1 x @ i) @ j
 
 propIsEquiv (A B : U) (f : A -> B) : prop (isEquiv A B f) =
   \(u0 u1 : isEquiv A B f) -> <i> \(y : B) -> propIsContr (fiber A B f y) (u0 y) (u1 y) @ i
@@ -417,13 +421,14 @@ ua (A B : U) (e : equiv A B) : Path U A B =
              , (i = 1) -> (B,idEquiv B) ]
 
 -- End of basics
-
+f : (x : S1) -> Path S1 x x = split
+  base -> loopP
+  loop @ i -> constSquare S1 base loopP @ i
+          
 mu : S1 -> equiv S1 S1 = split
   base -> idEquiv S1
   loop @ i ->
-    let f : (x : S1) -> Path S1 x x = split
-          base -> loopP
-          loop @ i -> constSquare S1 base loopP @ i
+    let 
         goal : Path (equiv S1 S1) (idEquiv S1) (idEquiv S1) =
           equivEq S1 S1 (idEquiv S1) (idEquiv S1) (<j> \(x : S1) -> f x @ j)
     in goal @ i
@@ -435,8 +440,8 @@ Hopf : S2 -> U = split
 
 -- Define the t map, this needs cleaning!
 
--- subst (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
---   transport (<i> P (p @ i)) e
+subst (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
+  transport (<i> P (p @ i)) e
 
 -- J (A : U) (a : A) (C : (x : A) -> Path A a x -> U)
 --   (d : C a (<_> a)) (x : A) (p : Path A a x) : C x p =
@@ -446,31 +451,26 @@ Hopf : S2 -> U = split
 PathS (A : U) (P : A -> U) (a0 a1 : A) (p : Path A a0 a1) (u0 : P a0) (u1 : P a1) : U =
   PathP (<i> P (p @ i)) u0 u1
 
--- funExt1 (C B : U) (F : C -> U) (a :C) : (b : C) (p : Path C a b)
---           (f : F a -> B) (g : F b -> B)
--- 	    (h : (x : F a) -> Path B (f x) (g (subst C F a b p x)))
---           -> PathS C (\ (z:C) -> F z -> B) a b p f g = undefined
---  --  J C a (\ (b:C) (p:Path C a b) -> (f : F a -> B) (g : F b -> B)
---  --             (h : (x : F a) -> Path B (f x) (g (subst C F a b p x)))
---  --               -> PathS C (\ (z:C) -> F z -> B) a b p f g) rem
---  -- where rem (f g : F a -> B) (h : (x : F a) -> Path B (f x) (g x)) : Path (F a -> B) f g = 
---  --         <i>\(x:F a) -> h x @ i
+funExt1 (C B : U) (F : C -> U) (a : C) : (b : C) (p : Path C a b)
+          (f : F a -> B) (g : F b -> B)
+	    (h : (x : F a) -> Path B (f x) (g (subst C F a b p x)))
+          -> PathS C (\ (z:C) -> F z -> B) a b p f g = undefined
+ --  J C a (\ (b:C) (p:Path C a b) -> (f : F a -> B) (g : F b -> B)
+ --             (h : (x : F a) -> Path B (f x) (g (subst C F a b p x)))
+ --               -> PathS C (\ (z:C) -> F z -> B) a b p f g) rem
+ -- where rem (f g : F a -> B) (h : (x : F a) -> Path B (f x) (g x)) : Path (F a -> B) f g = 
+ --         <i>\(x:F a) -> h x @ i
 
--- Old version
--- t : (x : S2) -> Hopf x -> join S1 S1 = split
---   north -> \(x : S1) -> inl x
---   south -> \(x : S1) -> inr x
---   merid x @ i -> funExt1 S2 (join S1 S1) Hopf north south (<j> meridP x @ j)
---                          (\(y : S1) -> inl y) (\(y : S1) -> inr y)
---                          (\(y : S1) -> <j> pushP y ( @ j) @ i
+opaque funExt1
 
-t : (x : S2) -> (Hopf x -> join S1 S1) = undefined -- split
-  -- north -> \(x : S1) -> inl x
-  -- south -> \(x : S1) -> inr x
-  -- merid x @ i ->
-  -- let moo : Path ((y : S1 ) -> join S1 S1)
-  --                  (\(y : S1) -> inl y) (\(y : S1) -> inr y) = undefined
-  --   in moo @ i
+t : (x : S2) -> (Hopf x -> join S1 S1) = split
+  north -> \(x : S1) -> inl x
+  south -> \(x : S1) -> inr x
+  merid x @ i ->
+    let eq (y : S1) : Path (join S1 S1) (inl y) (inr (subst S2 Hopf north south (meridP S1 x) y)) =
+          pushP S1 S1 y (subst S2 Hopf north south (meridP S1 x) y)
+    in funExt1 S2 (join S1 S1) Hopf north south (meridP S1 x)
+                  (\(y : S1) -> inl y) (\(y : S1) -> inr y) eq @ i
 
 t' (xy : (x : S2) * Hopf x) : join S1 S1 = t xy.1 xy.2
     
@@ -480,87 +480,91 @@ fibOmega (B : ptType) (P : B.1 -> U) (f : P (pt B)) (p : (Omega B).1) : U =
   PathS B.1 P (pt B) (pt B) p f f
 
 itOmega : nat -> ptType -> ptType = split
-  zero  -> \ (A:ptType) -> A
-  suc n -> \(A:ptType) -> itOmega n (Omega A)
+  zero  -> \(A : ptType) -> A
+  suc n -> \(A : ptType) -> itOmega n (Omega A)
 
 itFibOmega : (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B)) -> (itOmega n B).1 -> U
  = split
-  zero  -> \ (B : ptType) (P : B.1 -> U) (f : P (pt B)) -> P
-  suc n -> \ (B : ptType) (P : B.1 -> U) (f : P (pt B)) -> itFibOmega n (Omega B) (fibOmega B P f) (<_> f)
+  zero  -> \(B : ptType) (P : B.1 -> U) (f : P (pt B)) -> P
+  suc n -> \(B : ptType) (P : B.1 -> U) (f : P (pt B)) ->
+    itFibOmega n (Omega B) (fibOmega B P f) (<_> f)
 
 itMapOmega : (n : nat) (A B : ptType) (h : ptMap A B) -> ptMap (itOmega n A) (itOmega n B) = split
-  zero  -> \ (A B : ptType) (h : ptMap A B) -> h
-  suc n -> \ (A B : ptType) (h : ptMap A B) -> itMapOmega n (Omega A) (Omega B) (mapOmega A B h)
-
-
-
-Sigma (A : U) (B : A -> U) : U = (x : A) * B x
-refl (A : U) (a : A) : Path A a a = <i> a
+  zero  -> \(A B : ptType) (h : ptMap A B) -> h
+  suc n -> \(A B : ptType) (h : ptMap A B) -> itMapOmega n (Omega A) (Omega B) (mapOmega A B h)
 
 totalFibOmega (B : ptType) (P : B.1 -> U) (f : P (pt B)) 
-  (p : Sigma (Omega B).1 (fibOmega B P f)) : (Omega (Sigma B.1 P, (pt B, f))).1
- = <i>(p.1@i,p.2@i) -- pairPath B.1 P (pt B) (pt B) f f p.1 p.2
+  (p : Sigma (Omega B).1 (fibOmega B P f)) : (Omega (Sigma B.1 P, (pt B, f))).1 =
+  <i> (p.1 @ i,p.2 @ i)
    
-itTotalFibOmega : (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B)) (x:Sigma (itOmega n B).1 (itFibOmega n B P f)) 
-   -> (itOmega n (Sigma B.1 P, (pt B, f))).1
+itTotalFibOmega : (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B))
+  (x:Sigma (itOmega n B).1 (itFibOmega n B P f)) -> (itOmega n (Sigma B.1 P, (pt B, f))).1
  = split
-  zero  -> \ (B : ptType) (P : B.1 -> U) (f : P (pt B)) (x:Sigma B.1 P) -> x
-  suc n -> \ (B : ptType) (P : B.1 -> U) (f : P (pt B))
-             (x:Sigma (itOmega n (Omega B)).1 (itFibOmega n (Omega B) (fibOmega B P f) (refl (P (pt B)) f))) -> 
+  zero  -> \(B : ptType) (P : B.1 -> U) (f : P (pt B)) (x : Sigma B.1 P) -> x
+  suc n -> \(B : ptType) (P : B.1 -> U) (f : P (pt B))
+            (x : Sigma (itOmega n (Omega B)).1 (itFibOmega n (Omega B) (fibOmega B P f) (<_> f))) -> 
    let
-    BOm : ptType =  Omega B
+    BOm : ptType = Omega B
     POm : BOm.1 -> U = fibOmega B P f
-    fOm : Path (P (pt B)) f f = refl (P (pt B)) f
+    fOm : Path (P (pt B)) f f = <_> f
     ih : (Sigma (itOmega n BOm).1 (itFibOmega n BOm POm fOm)) ->
          (itOmega n (Sigma BOm.1 POm, (pt BOm, fOm))).1
-      = itTotalFibOmega n (Omega B) (fibOmega B P f) (refl (P (pt B)) f)
+      = itTotalFibOmega n (Omega B) (fibOmega B P f) fOm
    in (itMapOmega n (Sigma BOm.1 POm, (pt BOm, fOm))
-                     (Omega (Sigma B.1 P, (pt B, f)))
-                     (totalFibOmega B P f,
-                       refl (Omega (Sigma B.1 P, (pt B, f))).1
-                         (refl (Sigma B.1 P) (pt B, f)))).1
-                  (ih x)
+                    (Omega (Sigma B.1 P, (pt B, f)))
+                    (totalFibOmega B P f,<_ _> (pt B, f))).1
+                    (ih x)
 
-fibOmega1 (B : ptType) (P : B.1 -> U) (f : P (pt B)) (p : (Omega B).1) : U =
-  fibOmega B P f p
-  -- PathP (<i> P (p @ i)) f f
 
 -- TODO: define all of these directly?
 
 -- B.8.3 Looping the Hopf fibration
-
-
 one : nat = suc zero
 two : nat = suc one
 three : nat = suc two
 
-HopfOne : (itOmega one S2pt).1 -> U = itFibOmega one S2pt Hopf base
+HopfOne : (Omega S2pt).1 -> U = itFibOmega one S2pt Hopf base
 
-HopfTwo : (itOmega two S2pt).1 -> U = itFibOmega two S2pt Hopf base
+HopfTwo : (Omega2 S2pt).1 -> U = itFibOmega two S2pt Hopf base
 
-HopfThree : (itOmega three S2pt).1 -> U = itFibOmega three S2pt Hopf base
+HopfThree : (Omega3 S2pt).1 -> U = itFibOmega three S2pt Hopf base
 
-
-inhOrTrunc (A:U) : nat -> U = split
+inhOrTrunc (A : U) : nat -> U = split
   zero  -> A
   suc n -> (x y : A) -> inhOrTrunc (Path A x y) n
+ 
+funDepTr (A : U) (P : A -> U) (a0 a1 : A) (p : Path A a0 a1) (u0 : P a0) (u1 : P a1) :
+         Path U (PathP (<i> P (p @ i)) u0 u1)
+                (Path (P a1) (subst A P a0 a1 p u0) u1) =
+ <j>PathP (<i>P (p@j\/i)) (comp (<i>P (p@j/\i)) u0 [(j=0)-><_>u0]) u1
 
 truncFibOmega (B : ptType) (P : B.1 -> U) (f : P (pt B)) (n : nat) 
-  (tr:inhOrTrunc (P (pt B)) (suc n)) (p : (Omega B).1) : inhOrTrunc (fibOmega B P f p) n =
-    undefined
+  (tr : inhOrTrunc (P (pt B)) (suc n)) (p : (Omega B).1) : inhOrTrunc (fibOmega B P f p) n =
+  let trf : inhOrTrunc (Path (P B.2) (subst B.1 P (pt B) (pt B) p f) f) n =
+        tr (subst B.1 P (pt B) (pt B) p f) f
+      eq : Path U (Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f)
+                  (PathP (<i> P (p @ i)) f f) =
+                    <i> funDepTr B.1 P (pt B) (pt B) p f f @ -i
+  in subst U (\(X : U) -> inhOrTrunc X n)
+             (Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f)
+             (PathP (<i> P (p @ i)) f f)
+             eq trf
 
+-- this should be provable, but is it crucial for the computation?
 isGroupoidS1 : groupoid S1 = undefined
 
-fibContrHopfThree (p : (itOmega three S2pt).1) : HopfThree p = 
-  truncFibOmega (itOmega two S2pt) HopfTwo (<_ _> base) zero
+opaque isGroupoidS1
+
+fibContrHopfThree (p : (Omega3 S2pt).1) : HopfThree p = 
+  truncFibOmega (Omega2 S2pt) HopfTwo (<_ _> base) zero
     (truncFibOmega (Omega S2pt) HopfOne (<_> base) one
-          (truncFibOmega S2pt Hopf base two isGroupoidS1 (<_> north))
-        (<_> pt (Omega S2pt))) p
+       (truncFibOmega S2pt Hopf base two isGroupoidS1 (<_> north))
+       (<_> pt (Omega S2pt))) p
  
 -- The map h from 9.3
-HopfLoop (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 = undefined
-  -- mapOmegaRefl3 (Sigma S2 Hopf, (north,base)) (join S1 S1) t'
-  --   (itTotalFibOmega three S2pt Hopf base (p, fibContrHopfThree p))
+HopfLoop (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 =
+  mapOmegaRefl3 (Sigma S2 Hopf, (north,base)) (join S1 S1) t'
+    (itTotalFibOmega three S2pt Hopf base (p, fibContrHopfThree p))
 
 
 --------------------------------------------------------------------------------
@@ -606,9 +610,11 @@ test0To2 : (Omega3 S3pt).1 = f2 test0To1
 test0To31 : (Omega3 (joinpt boolpt S2)).1 = f31 test0To2
 
 -- WORKS: but HUGE
+-- WORKS (without endpoint correction)
 test0To32 : (Omega3 (joinpt boolpt (join bool S1))).1 = f32 test0To2
 
 -- ? (out of memory)
+-- WORKS (without endpoint correction)
 test0To33 : (Omega3 (joinpt (joinpt boolpt bool) S1)).1 = f33 test0To2
 
 -- ? (out of memory)

@@ -273,7 +273,7 @@ mapJoin (A A' B B' : U) (f : A -> A') (g : B -> B') : join A B -> join A' B' = s
   inr b -> inr (g b)
   push a b @ i -> pushP A' B' (f a) (g b) @ i
 
--- TODO: mapJoin is pointed as soon as f is
+-- TODO: mapJoin is pointed as soon as f is (this is not needed I think)
 -- mapJoinPt (A A' : ptType) (B B' : U) (f : ptMap A A') (g : B -> B') :
 --   ptMap (joinpt A B) (joinpt A' B') = undefined
 
@@ -356,9 +356,12 @@ alpha : ptMap (joinpt S1pt S1) S2pt = (prealpha, <_> north)
 --------------------------------------------------------------------------------
 -- B.8 The map defining pi3(S2)
 
--- B.8.1 The Hopf fibration
+-- This is where things get complicated and slow. This is also the place where
+-- univalence is first needed.
 
--- Basic results:
+
+-- Basic results about equivalences and lower h-levels:
+
 isContr (A : U) : U = (x : A) * ((y : A) -> Path A x y)
 
 prop (A : U) : U = (a b : A) -> Path A a b
@@ -373,7 +376,7 @@ isEquiv (A B : U) (f : A -> B) : U = (y : B) -> isContr (fiber A B f y)
 equiv (A B : U) : U = (f : A -> B) * isEquiv A B f
 
 -- This can be proved in many ways, not sure which is the most efficient
-propIsContr (A:U) (z0 z1:isContr A) : Path (isContr A) z0 z1 =
+propIsContr (A : U) (z0 z1 : isContr A) : Path (isContr A) z0 z1 =
  <j> (p0 a1 @ j
      ,\(x : A) -> <i> hcomp A (lem1 x@i@j)
                               [ (i=0) -> <k> p0 a1 @ j
@@ -388,10 +391,29 @@ propIsContr (A:U) (z0 z1:isContr A) : Path (isContr A) z0 z1 =
   lem1 (x : A) : PathP (<i> Path A a0 (p1 x @ i)) (p0 a1) (p0 x) =
     <i j> p0 (p1 x @ i) @ j
 
+propSet (A : U) (h : prop A) : set A =
+ \(a b : A) (p q : Path A a b) ->
+   <j i> hcomp A a [ (i=0) -> h a a
+                       , (i=1) -> h a b
+                       , (j=0) -> h a (p @ i)
+                       , (j=1) -> h a (q @ i)]
+
+propIsProp (A : U) : prop (prop A) =
+  \(f g : prop A) -> <i> \(a b : A) ->
+    propSet A f a b (f a b) (g a b) @ i
+
+setIsProp (A : U) : prop (set A) =
+ \(f g : set A) -> <i> \(a b :A) ->
+   propIsProp (Path A a b) (f a b) (g a b) @ i
+
+propPi (A : U) (B : A -> U) (h : (x : A) -> prop (B x))
+       (f0 f1 : (x : A) -> B x) : Path ((x : A) -> B x) f0 f1
+  = <i> \ (x:A) -> (h x (f0 x) (f1 x)) @ i
+
 propIsEquiv (A B : U) (f : A -> B) : prop (isEquiv A B f) =
   \(u0 u1 : isEquiv A B f) -> <i> \(y : B) -> propIsContr (fiber A B f y) (u0 y) (u1 y) @ i
 
--- this makes typechecking mu below a lot faster, not sure if it breaks computation
+-- This opaque makes typechecking mu below faster, not sure if it breaks computation
 opaque propIsEquiv
 
 lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a0 a1 :A)
@@ -420,7 +442,11 @@ ua (A B : U) (e : equiv A B) : Path U A B =
   <i> Glue B [ (i = 0) -> (A,e)
              , (i = 1) -> (B,idEquiv B) ]
 
+-- opaque ua
+
 -- End of basics
+
+-- B.8.1 The Hopf fibration
 
 mu : S1 -> equiv S1 S1 = split
   base -> idEquiv S1
@@ -437,7 +463,7 @@ Hopf : S2 -> U = split
   south -> S1
   merid x @ i -> ua S1 S1 (mu x) @ i
 
--- Define the t map, this needs cleaning!
+-- Definition of the t map, this needs cleaning!
 
 subst (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
   transGen (<i> P (p @ i)) 0 e
@@ -456,7 +482,7 @@ funExt1 (C B : U) (F : C -> U) (a : C) : (b : C) (p : Path C a b)
         (f : F a -> B) (g : F b -> B)
         (h : (x : F a) -> Path B (f x) (g (subst C F a b p x))) ->
         PathP (<i> F (p @ i) -> B) f g =
-        let 
+        let
             rem (f g : F a -> B) (h : (x : F a) -> Path B (f x) (g x)) : Path (F a -> B) f g =
               <i>\(x:F a) -> h x @ i
             P : (b:C) (p:Path C a b) -> U = \(b:C) (p:Path C a b) -> (f : F a -> B) (g : F b -> B)
@@ -465,7 +491,7 @@ funExt1 (C B : U) (F : C -> U) (a : C) : (b : C) (p : Path C a b)
             rem1 (f g : F a -> B)
                  (h : (x : F a) -> Path B (f x) (g (transGen (<_> F a) 0 x)))
                  : Path (F a -> B) f g =
-                     let 
+                     let
                          moo : Path (F a -> B) f (\(x : F a) -> g (transGen (<_> F a) 0 x)) =
                            <i> \(x : F a) -> h x @ i
                          boo' (x : F a) : Path (F a) x (hcomp (F a) (transGen (<_> F a) 0 x) []) =
@@ -482,7 +508,7 @@ funExt1 (C B : U) (F : C -> U) (a : C) : (b : C) (p : Path C a b)
             (h : (x : F a) -> Path B (f x) (g (subst C F a b p x)))
               -> PathP (<i> F (p @ i) -> B) f g) rem1
 
-opaque funExt1
+-- opaque funExt1
 
 t : (x : S2) -> (Hopf x -> join S1 S1) = split
   north -> \(x : S1) -> inl x
@@ -497,6 +523,7 @@ t' (xy : (x : S2) * Hopf x) : join S1 S1 = t xy.1 xy.2
 
 -- B.8.2 Looping a fibration
 
+-- TODO: define all of these directly? (like for Omega2, Omega3..)
 fibOmega (B : ptType) (P : B.1 -> U) (f : P (pt B)) (p : (Omega B).1) : U =
   PathS B.1 P (pt B) (pt B) p f f
 
@@ -504,8 +531,7 @@ itOmega : nat -> ptType -> ptType = split
   zero  -> \(A : ptType) -> A
   suc n -> \(A : ptType) -> itOmega n (Omega A)
 
-itFibOmega : (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B)) -> (itOmega n B).1 -> U
- = split
+itFibOmega : (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B)) -> (itOmega n B).1 -> U = split
   zero  -> \(B : ptType) (P : B.1 -> U) (f : P (pt B)) -> P
   suc n -> \(B : ptType) (P : B.1 -> U) (f : P (pt B)) ->
     itFibOmega n (Omega B) (fibOmega B P f) (<_> f)
@@ -519,25 +545,21 @@ totalFibOmega (B : ptType) (P : B.1 -> U) (f : P (pt B))
   <i> (p.1 @ i,p.2 @ i)
 
 itTotalFibOmega : (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B))
-  (x:Sigma (itOmega n B).1 (itFibOmega n B P f)) -> (itOmega n (Sigma B.1 P, (pt B, f))).1
- = split
-  zero  -> \(B : ptType) (P : B.1 -> U) (f : P (pt B)) (x : Sigma B.1 P) -> x
-  suc n -> \(B : ptType) (P : B.1 -> U) (f : P (pt B))
-            (x : Sigma (itOmega n (Omega B)).1 (itFibOmega n (Omega B) (fibOmega B P f) (<_> f))) ->
-   let
-    BOm : ptType = Omega B
-    POm : BOm.1 -> U = fibOmega B P f
-    fOm : Path (P (pt B)) f f = <_> f
-    ih : (Sigma (itOmega n BOm).1 (itFibOmega n BOm POm fOm)) ->
-         (itOmega n (Sigma BOm.1 POm, (pt BOm, fOm))).1
-      = itTotalFibOmega n (Omega B) (fibOmega B P f) fOm
-   in (itMapOmega n (Sigma BOm.1 POm, (pt BOm, fOm))
-                    (Omega (Sigma B.1 P, (pt B, f)))
-                    (totalFibOmega B P f,<_ _> (pt B, f))).1
-                    (ih x)
+  (x : Sigma (itOmega n B).1 (itFibOmega n B P f)) -> (itOmega n (Sigma B.1 P, (pt B, f))).1 = split
+    zero  -> \(B : ptType) (P : B.1 -> U) (f : P (pt B)) (x : Sigma B.1 P) -> x
+    suc n -> \(B : ptType) (P : B.1 -> U) (f : P (pt B))
+              (x : Sigma (itOmega n (Omega B)).1 (itFibOmega n (Omega B) (fibOmega B P f) (<_> f))) ->
+       let BOm : ptType = Omega B
+           POm : BOm.1 -> U = fibOmega B P f
+           fOm : Path (P (pt B)) f f = <_> f
+           ih : (Sigma (itOmega n BOm).1 (itFibOmega n BOm POm fOm)) ->
+                (itOmega n (Sigma BOm.1 POm, (pt BOm, fOm))).1 =
+                  itTotalFibOmega n (Omega B) (fibOmega B P f) fOm
+       in (itMapOmega n (Sigma BOm.1 POm, (pt BOm, fOm))
+            (Omega (Sigma B.1 P, (pt B, f)))
+            (totalFibOmega B P f,<_ _> (pt B, f))).1 (ih x)
 
 
--- TODO: define all of these directly?
 
 -- B.8.3 Looping the Hopf fibration
 one : nat = suc zero
@@ -557,7 +579,7 @@ inhOrTrunc (A : U) : nat -> U = split
 -- TODO: change to transGen
 subst' (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
   transport (<i> P (p @ i)) e
-  
+
 funDepTr (A : U) (P : A -> U) (a0 a1 : A) (p : Path A a0 a1) (u0 : P a0) (u1 : P a1) :
          Path U (PathP (<i> P (p @ i)) u0 u1)
                 (Path (P a1) (subst' A P a0 a1 p u0) u1) =
@@ -577,79 +599,99 @@ truncFibOmega (B : ptType) (P : B.1 -> U) (f : P (pt B)) (n : nat)
 
 
 -------
--- S1 is a groupoid
--- this should be provable, but is it crucial for the computation?
+-- We now need that S1 is a groupoid
 
-propSet (A : U) (h : prop A) : set A =
- \(a b : A) (p q : Path A a b) ->
-   <j i> hcomp A a [ (i=0) -> h a a
-                       , (i=1) -> h a b
-                       , (j=0) -> h a (p @ i)
-                       , (j=1) -> h a (q @ i)]
+-- I now do this by proving that loopS1 is a retract of Z, as Z is a
+-- set this is also set. Previously the proof transported the proof
+-- that Z is a set to loopS1 along the equivalence loopS1 ~= Z,
+-- hopefully this proof will compute faster.
 
-propIsProp (A : U) : prop (prop A) =
-  \(f g : prop A) -> <i> \(a b : A) ->
-    propSet A f a b (f a b) (g a b) @ i
+-- Q: Is this crucial for the computation?
 
-setIsProp (A : U) : prop (set A) =
- \(f g : set A) -> <i> \(a b :A) ->
-   propIsProp (Path A a b) (f a b) (g a b) @ i
 
-propPi (A : U) (B : A -> U) (h : (x : A) -> prop (B x))
-       (f0 f1 : (x : A) -> B x) : Path ((x : A) -> B x) f0 f1
-  = <i> \ (x:A) -> (h x (f0 x) (f1 x)) @ i
 
-lemPropFib (P : S1 -> U) (pP : (x : S1) -> prop (P x)) (bP : P base) : (x : S1) -> P x = split
- base -> bP
- loop @ i -> lemPropF S1 P pP base base loopP bP bP @ i
+retract (A B : U) (f : A -> B) (g : B -> A) : U =
+  (a : A) -> Path A (g (f a)) a
 
-loopS1equalsZ : Path U loopS1 Z = undefined
---  isoPath loopS1 Z (encode base) (decode base) decodeEncodeBase (encodeDecode base)
+compUp (A : U) (a a' b b' : A) (p : Path A a a') (q : Path A b b')
+  (r : Path A a b) : Path A a' b' =
+    <i> hcomp A (r @ i) [(i = 0) -> p, (i = 1) -> q]
+
+lemRetract (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g)
+  (x y : A) : Path A (g (f x)) (g (f y)) -> Path A x y =
+    compUp A (g (f x)) x (g (f y)) y (rfg x) (rfg y)
+
+retractProp (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g)
+  (pB : prop B) (x y : A) : Path A x y =
+    lemRetract A B f g rfg x y (<i> g (pB (f x) (f y) @ i))
+
+retractInv (A B : U)  (f : A -> B) (g : B -> A) (rfg : retract A B f g)
+  (x y : A) (q : Path B (f x) (f y)) : Path A x y =
+    compUp A (g (f x)) x (g (f y)) y (rfg x) (rfg y) (<i> (g (q @ i)))
+
+lemRSquare (A B : U)  (f : A -> B) (g : B -> A) (rfg: retract A B f g)(x y:A) (p : Path A x y) :
+  Square A (g (f x)) (g (f y)) x y
+           (<i> g (f (p @ i))) (retractInv A B f g rfg x y (<i> f (p @ i)))
+           (rfg x) (rfg y) = undefined
+-- This probably fails due to lack of regularity:           
+--    <j i> comp A (g (f (p @ j))) [(j=0) -> <l> (rfg x) @ (i/\l), (j=1) -> <l> (rfg y) @ (i/\l)]
+
+retractPath (A B : U)(f : A -> B) (g : B -> A) (rfg : retract A B f g) (x y :A) (p:Path A x y) :
+  Path (Path A x y) (retractInv A B f g rfg x y (<i> f (p@ i))) p =
+    <i j> hcomp A (g (f (p @ j)))
+                  [ (j=0) -> rfg x
+                  , (j=1) -> rfg y
+                  , (i=0) -> lemRSquare A B f g rfg x y p @ j
+                  , (i=1) -> rfg (p @ j) ]
+
+
+retractSet (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g)
+           (sB : set B) (x y : A) : prop (Path A x y) =
+  retractProp (Path A x y) (Path B (f x) (f y)) (\(p : Path A x y) -> <i> f (p @ i))
+              (retractInv A B f g rfg x y) (retractPath A B f g rfg x y) (sB (f x) (f y))
+
+-- This not needed!
+-- loopS1equalsZ : Path U loopS1 Z =
+--   isoPath loopS1 Z (encode base) (decode base) decodeEncodeBase (encodeDecode base)
 
 -- Z is a set
 data N0 =
 
 efq (A : U) : N0 -> A = split {}
-neg (A : U) : U = A -> N0
+not (A : U) : U = A -> N0
 
 data or (A B : U) = inl (a : A)
                   | inr (b : B)
 
 data Unit = tt
 
--- propUnit : prop Unit = split
---  tt -> split@((x:Unit) -> Path Unit tt x) with
---   tt -> <i> tt
-
--- setUnit : set Unit = propSet Unit propUnit
-
-stable (A:U) : U = neg (neg A) -> A
+stable (A : U) : U = not (not A) -> A
 const (A : U) (f : A -> A) : U = (x y : A) -> Path A (f x) (f y)
 
 exConst (A : U) : U = (f:A -> A) * const A f
 propN0 : prop N0 = \ (x y:N0) -> efq (Path N0 x y) x
 
-propNeg (A:U) : prop (neg A) = \ (f g:neg A) -> <i>\(x:A) -> (propN0 (f x) (g x))@i
+propNot (A : U) : prop (not A) = \ (f g:not A) -> <i>\(x:A) -> (propN0 (f x) (g x))@i
 
-dNeg (A:U) (a:A) : neg (neg A) = \ (h : neg A) -> h a
+dNot (A : U) (a : A) : not (not A) = \ (h : not A) -> h a
 
-stableConst (A : U) (sA: stable A) : exConst A =
- (\ (x:A) -> sA (dNeg A x),\ (x y:A) -> <i>sA (propNeg (neg A) (dNeg A x) (dNeg A y) @ i))
+stableConst (A : U) (sA : stable A) : exConst A =
+ (\ (x:A) -> sA (dNot A x),\ (x y:A) -> <i>sA (propNot (not A) (dNot A x) (dNot A y) @ i))
 
-dec (A : U) : U = or A (neg A)
+dec (A : U) : U = or A (not A)
 
 decEqCong (A B : U) (f : A -> B) (g : B -> A) : dec A -> dec B = split
   inl a -> inl (f a)
   inr h -> inr (\ (b:B) -> h (g b))
 
-decStable (A:U) : dec A -> stable A = split
- inl a -> \ (h :neg (neg A)) -> a
- inr b -> \ (h :neg (neg A)) -> efq A (h b)
+decStable (A : U) : dec A -> stable A = split
+ inl a -> \ (h :not (not A)) -> a
+ inr b -> \ (h :not (not A)) -> efq A (h b)
 
 discrete (A : U) : U = (a b : A) -> dec (Path A a b)
 
 hedbergLemma (A: U) (a b:A) (f : (x : A) -> Path A a x -> Path A a x) (p : Path A a b) :
-            Square A a a a b (refl A a) p (f a (refl A a)) (f b p) = 
+            Square A a a a b (<_> a) p (f a (<_> a)) (f b p) =
  comp (<i> Square A a a a (p @ i) (<_> a) (<j> p @ i /\ j)
                  (f a (<_> a)) (f (p @ i) (<j> p @ i /\ j)))
       (<i> f a (<_> a)) []
@@ -660,68 +702,20 @@ hedbergStable (A : U) (a b : A) (h : (x : A) -> stable (Path A a x))
                       , (j = 1) -> rem3 @ i
                       , (i = 0) -> r
                       , (i = 1) -> rem4 @ j]
- where 
-   ra : Path A a a = <_> a 
+ where
    rem1 (x : A) : exConst (Path A a x) = stableConst (Path A a x) (h x)
    f (x : A) : Path A a x -> Path A a x  = (rem1 x).1
    fIsConst (x : A) : const (Path A a x) (f x) = (rem1 x).2
-   rem4 : Square A a a b b ra (refl A b) (f b p) (f b q)  = fIsConst b p q
-   r : Path A a a = f a ra
-   rem2 : Square A a a a b ra p r (f b p) = hedbergLemma A a b f p
-   rem3 : Square A a a a b ra q r (f b q) = hedbergLemma A a b f q
+   rem4 : Square A a a b b (<_> a) (<_> b) (f b p) (f b q)  = fIsConst b p q
+   r : Path A a a = f a (<_> a)
+   rem2 : Square A a a a b (<_> a) p r (f b p) = hedbergLemma A a b f p
+   rem3 : Square A a a a b (<_> a) q r (f b q) = hedbergLemma A a b f q
 
-hedbergS (A:U) (h : (a x:A) -> stable (Path A a x)) : set A =
+hedbergS (A : U) (h : (a x : A) -> stable (Path A a x)) : set A =
  \(a b : A) -> hedbergStable A a b (h a)
 
 hedberg (A : U) (h : discrete A) : set A =
  \(a b : A) -> hedbergStable A a b (\(b : A) -> decStable (Path A a b) (h a b))
-
-
-inlNotinr (A B:U) (a:A) (b:B) (h: Path (or A B) (inl a) (inr b)) : N0 = 
- subst (or A B) T (inl a) (inr b) h tt
- where
-  T : or A B -> U = split
-       inl _ -> Unit
-       inr _ -> N0
-
-inrNotinl (A B:U) (a:A) (b:B) (h : Path (or A B) (inr b) (inl a)) : N0 = 
- subst (or A B) T (inr b) (inl a) h tt
- where
-  T : or A B -> U = split
-       inl _ -> N0
-       inr _ -> Unit
-
-injInl (A B :U) (x0 x1:A) (h : Path (or A B) (inl x0) (inl x1)) : Path A x0 x1 = 
- subst (or A B) T (inl x0) (inl x1) h (refl A x0)
- where
-   T : or A B -> U = split
-         inl x -> Path A x0 x
-         inr _ -> N0
-
-injInr (A B :U) (x0 x1:B) (h: Path (or A B) (inr x0) (inr x1)) : Path B x0 x1 = 
- subst (or A B) T (inr x0) (inr x1) h (refl B x0)
- where
-   T : or A B -> U = split
-         inl _ -> N0
-         inr x -> Path B x0 x
-
--- If A and B are discrete then "A or B" is discrete
-orDisc (A B : U) (dA : discrete A) (dB : discrete B) :
-  (z z1 : or A B) -> dec (Path (or A B) z z1) = split
-  inl a -> rem1
-    where rem1 : (z1:or A B) -> dec (Path (or A B) (inl a) z1) = split
-            inl a1 -> rem (dA a a1)
-               where rem : dec (Path A a a1) -> dec (Path (or A B) (inl a) (inl a1)) = split
-                            inl p -> inl (<i> inl (p @ i))
-                            inr h -> inr (\ (p:Path (or A B) (inl a) (inl a1)) -> h (injInl A B a a1 p))
-            inr b -> inr (inlNotinr A B a b)
-  inr b -> rem1
-   where rem1 : (z1:or A B) -> dec (Path (or A B) (inr b) z1) = split
-            inl a -> inr (inrNotinl A B a b)
-            inr b1 -> rem (dB b b1)
-               where rem : dec (Path B b b1) -> dec (Path (or A B) (inr b) (inr b1)) = split
-                            inl p -> inl (<i> inr (p @ i))
-                            inr h -> inr (\ (p:Path (or A B) (inr b) (inr b1)) -> h (injInr A B b b1 p))
 
 caseNat (A : U) (a0 aS : A) : nat -> A = split
  zero -> a0
@@ -732,11 +726,11 @@ caseDNat (P:nat -> U) (a0 :P zero) (aS : (n:nat) -> P (suc n))
  zero -> a0
  suc n -> aS n
 
-znots (n : nat) : neg (Path nat zero (suc n)) =
- \ (h:Path nat zero (suc n)) -> subst nat (caseNat U nat N0) zero (suc n) h zero
+znots (n : nat) : not (Path nat zero (suc n)) =
+  \(h : Path nat zero (suc n)) -> subst nat (caseNat U nat N0) zero (suc n) h zero
 
-snotz (n : nat) : neg (Path nat (suc n) zero) =
- \ (h:Path nat (suc n) zero) -> znots n (<i> h @ -i)
+snotz (n : nat) : not (Path nat (suc n) zero) =
+  \(h : Path nat (suc n) zero) -> znots n (<i> h @ -i)
 
 pred : nat -> nat = split
   zero -> zero
@@ -745,32 +739,228 @@ pred : nat -> nat = split
 sucInj (n m : nat) (p : Path nat (suc n) (suc m)) : Path nat n m =
  <i> pred (p @ i)
 
-natDec : (n m:nat) -> dec (Path nat n m) = split
- zero -> caseDNat (\ (m:nat) -> dec (Path nat zero m)) (inl (refl nat zero)) (\ (m:nat) -> inr (znots m))
- suc n -> caseDNat (\ (m:nat) -> dec (Path nat (suc n) m)) (inr (snotz n))
-   (\ (m:nat) -> decEqCong (Path nat n m) (Path nat (suc n) (suc m)) (\ (p:Path nat n m) -> <i> suc (p @ i))
-                 (sucInj n m) (natDec n m))
+discreteNat : discrete nat = split
+ zero -> caseDNat (\(m : nat) -> dec (Path nat zero m)) (inl (<_> zero)) (\(m : nat) -> inr (znots m))
+ suc n -> caseDNat (\(m : nat) -> dec (Path nat (suc n) m)) (inr (snotz n))
+   (\(m : nat) -> decEqCong (Path nat n m) (Path nat (suc n) (suc m)) (\(p : Path nat n m) -> <i> suc (p @ i))
+                  (sucInj n m) (discreteNat n m))
 
--- natSet : set nat = hedberg nat natDec
--- ZSet : set Z = hedberg Z (orDisc nat nat natDec natDec)
--- Z is not or anymore...
+posNotneg (a b : nat) (h : Path Z (pos a) (neg b)) : N0 = subst Z T (pos a) (neg b) h tt
+  where
+  T : Z -> U = split
+       pos _ -> Unit
+       neg _ -> N0
+
+negNotpos (a b : nat) (h : Path Z (neg b) (pos a)) : N0 = subst Z T (neg b) (pos a) h tt
+  where
+  T : Z -> U = split
+       pos _ -> N0
+       neg _ -> Unit
+
+injPos (a b : nat) (h : Path Z (pos a) (pos b)) : Path nat a b =
+ subst Z T (pos a) (pos b) h (<_> a)
+ where
+   T : Z -> U = split
+        pos c -> Path nat a c
+        neg _ -> N0
+
+injNeg (a b : nat) (h : Path Z (neg a) (neg b)) : Path nat a b =
+  subst Z T (neg a) (neg b) h (<_> a)
+  where
+    T : Z -> U = split
+         pos _ -> N0
+         neg c -> Path nat a c
+
+discreteZ : discrete Z = split
+  pos a -> split@((z1 : Z) -> dec (Path Z (pos a) z1)) with
+             pos a1 -> let rem : dec (Path nat a a1) -> dec (Path Z (pos a) (pos a1)) = split
+                             inl p -> inl (<i> pos (p @ i))
+                             inr h -> inr (\(p : Path Z (pos a) (pos a1)) -> h (injPos a a1 p))
+                       in rem (discreteNat a a1)
+             neg b -> inr (posNotneg a b)
+  neg b -> split@((z1 : Z) -> dec (Path Z (neg b) z1)) with
+             pos a -> inr (negNotpos a b)
+             neg b1 -> let rem : dec (Path nat b b1) -> dec (Path Z (neg b) (neg b1)) = split
+                             inl p -> inl (<i> neg (p @ i))
+                             inr h -> inr (\(p : Path Z (neg b) (neg b1)) -> h (injNeg b b1 p))
+                       in rem (discreteNat b b1)
 
 
-ZSet : set Z = undefined
+ZSet : set Z = hedberg Z discreteZ
 --
 
-setLoop : set loopS1 = subst U set Z loopS1 (<i> loopS1equalsZ @ -i) ZSet
+-- No need for substituting in the universe here
+-- setLoop : set loopS1 = subst U set Z loopS1 (<i> loopS1equalsZ @ -i) ZSet
+
+sucZ : Z -> Z = split
+  pos u -> auxsucZ u
+    where
+    auxsucZ : nat -> Z = split
+      zero  -> neg zero
+      suc n -> pos n
+  neg v -> neg (suc v)
+
+predZ : Z -> Z = split
+  pos u -> pos (suc u)
+  neg v -> auxpredZ v
+    where
+    auxpredZ : nat -> Z = split
+      zero  -> pos zero
+      suc n -> neg n
+
+sucpredZ : (x : Z) -> Path Z (sucZ (predZ x)) x = split
+  pos u -> <_> pos u
+  neg v -> lem v
+   where
+    lem : (u : nat) -> Path Z (sucZ (predZ (neg u))) (neg u) = split
+      zero  -> <_> neg zero
+      suc n -> <_> neg (suc n)
+
+predsucZ : (x : Z) -> Path Z (predZ (sucZ x)) x = split
+  pos u -> lem u
+   where
+    lem : (u : nat) -> Path Z (predZ (sucZ (pos u))) (pos u) = split
+      zero  -> <_> pos zero
+      suc n -> <_> pos (suc n)
+  neg v -> <_> neg v
+  
+lemIso (A B : U) (f : A -> B) (g : B -> A)
+       (s : (y : B) -> Path B (f (g y)) y)
+       (t : (x : A) -> Path A (g (f x)) x)
+       (y : B) (x0 x1 : A) (p0 : Path B y (f x0)) (p1 : Path B y (f x1)) :
+       Path (fiber A B f y) (x0,p0) (x1,p1) = <i> (p @ i,sq1 @ i)
+  where
+    rem0 : Path A (g y) x0 =
+      <i> hcomp A (g (p0 @ i)) [ (i = 1) -> t x0, (i = 0) -> <k> g y ]
+
+    rem1 : Path A (g y) x1 =
+      <i> hcomp A (g (p1 @ i)) [ (i = 1) -> t x1, (i = 0) -> <k> g y ]
+
+    p : Path A x0 x1 =
+     <i> hcomp A (g y) [ (i = 0) -> rem0
+                            , (i = 1) -> rem1 ]
+
+    fill0 : Square A (g y) (g (f x0)) (g y) x0
+                     (<i> g (p0 @ i)) rem0 (<i> g y) (t x0)  =
+      <i j> hcomp A (g (p0 @ i)) [ (i = 1) -> <k> t x0 @ j /\ k
+                                      , (i = 0) -> <k> g y
+                                      , (j = 0) -> <k> g (p0 @ i) ]
+
+    fill1 : Square A (g y) (g (f x1)) (g y) x1
+                     (<i> g (p1 @ i)) rem1 (<i> g y) (t x1) =
+      <i j> hcomp A (g (p1 @ i)) [ (i = 1) -> <k> t x1 @ j /\ k
+                                      , (i = 0) -> <k> g y
+                                      , (j = 0) -> <k> g (p1 @ i) ]
+
+    fill2 : Square A (g y) (g y) x0 x1
+                     (<k> g y) p rem0 rem1 =
+      <i j> hcomp A (g y) [ (i = 0) -> <k> rem0 @ j /\ k
+                               , (i = 1) -> <k> rem1 @ j /\ k
+                               , (j = 0) -> <k> g y ]
+
+    sq : Square A (g y) (g y) (g (f x0)) (g (f x1))
+                  (<i> g y) (<i> g (f (p @ i)))
+                  (<j> g (p0 @ j)) (<j> g (p1 @ j)) =
+      <i j> hcomp A (fill2 @ i @ j) [ (i = 0) -> <k> fill0 @ j @ -k
+                                         , (i = 1) -> <k> fill1 @ j @ -k
+                                         , (j = 0) -> <k> g y
+                                         , (j = 1) -> <k> t (p @ i) @ -k ]
+
+    sq1 : Square B y y (f x0) (f x1)
+                   (<k>y) (<i> f (p @ i)) p0 p1 =
+      <i j> hcomp B (f (sq @ i @j)) [ (i = 0) -> s (p0 @ j)
+                                         , (i = 1) -> s (p1 @ j)
+                                         , (j = 1) -> s (f (p @ i))
+                                         , (j = 0) -> s y ]
+
+gradLemma (A B : U) (f : A -> B) (g : B -> A)
+       (s : (y : B) -> Path B (f (g y)) y)
+       (t : (x : A) -> Path A (g (f x)) x) : isEquiv A B f =
+  \(y:B) -> ((g y,<i>s y@-i),\ (z:fiber A B f y) ->
+    lemIso A B f g s t y (g y) z.1 (<i>s y@-i) z.2)
+
+isoPath (A B : U) (f : A -> B) (g : B -> A)
+      (s : (y : B) -> Path B (f (g y)) y)
+      (t : (x : A) -> Path A (g (f x)) x) : Path U A B =
+       <i> Glue B [ (i = 0) -> (A,f,gradLemma A B f g s t)
+                  , (i = 1) -> (B,idfun B,idIsEquiv B) ]
+
+sucPathZ : Path U Z Z = isoPath Z Z sucZ predZ sucpredZ predsucZ
+
+helix : S1 -> U = split
+  base -> Z
+  loop @ i -> sucPathZ @ i
+  
+encode (x : S1) (p : Path S1 base x) : helix x = subst S1 helix base x p zeroZ
+
+
+lem1ItPos : (n : nat) -> Path loopS1 (loopIt (sucZ (pos n))) (oneTurn (loopIt (pos n))) = split
+  zero -> ? -- <_> oneTurn (<_> base)
+  suc p -> ? -- <i>oneTurn (lem1ItPos p@i)
+
+lem1ItNeg : (n : nat) -> Path loopS1 (loopIt (sucZ (neg n))) (oneTurn (loopIt (neg n))) = split
+  zero -> ? -- compInvS1
+  suc p -> ? -- compInv S1 base base (loopIt (inl p)) base invLoop
+
+
+lem1It : (n:Z) -> Path loopS1 (loopIt (sucZ n)) (oneTurn (loopIt n)) = split
+  pos n -> lem1ItPos n
+  neg n -> lem1ItNeg n
+
+lemFib1 (A:U) (F G : A -> U) (a:A) (fa : F a -> G a) :
+   (x:A) (p : Path A a x) -> (fx : F x -> G x) ->
+     Path U (Path (F a -> G x) (\ (u:F a) -> subst A G a x p (fa u)) (\ (u:F a) -> fx (subst A F a x p u)))
+         (PathP (<i>F (p@i) -> G (p@i)) fa fx) = undefined
+
+
+corFib1 (A:U) (F G : A -> U) (a:A) (fa ga : F a -> G a) (p:Path A a a)
+  (h : (u:F a) -> Path (G a) (subst A G a a p (fa u)) (ga (subst A F a a p u))) :
+  PathP (<i>F (p@i) -> G (p@i)) fa ga = comp (lemFib1 A F G a fa a p ga) (<i>\ (u:F a) -> h u @ i) []
+
+-- Should be given by uabeta
+testIsoPath (A B : U) (f : A -> B) (g : B -> A)
+      (s : (y : B) -> Path B (f (g y)) y)
+      (t : (x : A) -> Path A (g (f x)) x) (a:A) :
+      Path B (f a) (transGen (isoPath A B f g s t) 0 a) = undefined
+ -- <i>comp (<_>B) (comp (<_>B) (f a) [(i=0) -> <_> f a]) [(i=0) -> <_> f a]
+
+testHelix : Path (Z->Z) sucZ (subst S1 helix base base loopP) = 
+  <i> \(n : Z) -> testIsoPath Z Z sucZ predZ sucpredZ predsucZ n @ i
+
+decode : (x:S1) -> helix x -> Path S1 base x = split
+ base -> loopIt
+ loop @ i -> rem @ i
+   where T : U = Z -> loopS1
+         G (x:S1) : U =  Path S1 base x
+         p : Path U T T = <j> helix (loopP @ j) -> Path S1 base (loopP@j)
+         rem2 (n:Z) : Path loopS1 (oneTurn (loopIt n)) (loopIt (sucZ n)) = <i>lem1It n@-i
+         rem1 (n:Z) : Path loopS1 (subst S1 G base base loopP (loopIt n))
+                                  (loopIt (subst S1 helix base base loopP n)) = undefined
+           -- comp (<i> Path loopS1 (oneTurn (loopIt n)) (loopIt (testHelix @ i n))) (rem2 n) []
+         rem : PathP p loopIt loopIt = corFib1 S1 helix G base loopIt loopIt loopP rem1
+
+encodeDecode (x : S1) (p : Path S1 base x) : Path (Path S1 base x) (decode x (encode x p)) p =
+  transport (<i> Path (Path S1 base (p @ i))
+            (decode (p @ i) (encode (p @ i) (<j> p @ i /\ j))) (<j> p @ i /\ j))
+            (<_> triv)
+
+setLoop : set loopS1 = retractSet loopS1 Z (encode base) (decode base) (encodeDecode base) ZSet
+
+
+lemPropFib (P : S1 -> U) (pP : (x : S1) -> prop (P x)) (bP : P base) : (x : S1) -> P x = split
+ base -> bP
+ loop @ i -> lemPropF S1 P pP base base loopP bP bP @ i
 
 isGroupoidS1 : groupoid S1 = lem
  where
   lem2 : (y : S1) -> set (Path S1 base y)
-    = lemPropFib (\ (y:S1) -> set (Path S1 base y)) (\ (y:S1) -> setIsProp (Path S1 base y)) setLoop
+    = lemPropFib (\(y : S1) -> set (Path S1 base y)) (\(y : S1) -> setIsProp (Path S1 base y)) setLoop
 
   lem : (x y : S1) -> set (Path S1 x y)
-   = lemPropFib (\ (x:S1) -> (y : S1) -> set (Path S1 x y)) pP lem2
+   = lemPropFib (\(x : S1) -> (y : S1) -> set (Path S1 x y)) pP lem2
      where
-       pP (x:S1) : prop ((y:S1) -> set (Path S1 x y)) =
-        propPi S1 (\ (y:S1) -> set (Path S1 x y)) (\ (y:S1) -> setIsProp (Path S1 x y))
+       pP (x : S1) : prop ((y : S1) -> set (Path S1 x y)) =
+        propPi S1 (\(y : S1) -> set (Path S1 x y)) (\(y : S1) -> setIsProp (Path S1 x y))
 
 -- opaque isGroupoidS1
 -----

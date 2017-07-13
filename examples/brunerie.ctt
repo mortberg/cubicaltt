@@ -633,7 +633,7 @@ lemRSquare (A B : U)  (f : A -> B) (g : B -> A) (rfg: retract A B f g)(x y:A) (p
   Square A (g (f x)) (g (f y)) x y
            (<i> g (f (p @ i))) (retractInv A B f g rfg x y (<i> f (p @ i)))
            (rfg x) (rfg y) = undefined
--- This probably fails due to lack of regularity:           
+-- This probably fails due to lack of regularity:
 --    <j i> comp A (g (f (p @ j))) [(j=0) -> <l> (rfg x) @ (i/\l), (j=1) -> <l> (rfg y) @ (i/\l)]
 
 retractPath (A B : U)(f : A -> B) (g : B -> A) (rfg : retract A B f g) (x y :A) (p:Path A x y) :
@@ -808,7 +808,7 @@ sucZ : Z -> Z = split
       zero  -> pos zero
       suc n -> neg n
 
-sucsucZ : (x : Z) -> Path Z (predZ (sucZ x)) x = split
+predsucZ : (x : Z) -> Path Z (predZ (sucZ x)) x = split
   pos u -> <_> pos u
   neg v -> lem v
    where
@@ -816,14 +816,14 @@ sucsucZ : (x : Z) -> Path Z (predZ (sucZ x)) x = split
       zero  -> <_> neg zero
       suc n -> <_> neg (suc n)
 
-predpredZ : (x : Z) -> Path Z (sucZ (predZ x)) x = split
+sucpredZ : (x : Z) -> Path Z (sucZ (predZ x)) x = split
   pos u -> lem u
    where
     lem : (u : nat) -> Path Z (sucZ (predZ (pos u))) (pos u) = split
       zero  -> <_> pos zero
       suc n -> <_> pos (suc n)
   neg v -> <_> neg v
-  
+
 lemIso (A B : U) (f : A -> B) (g : B -> A)
        (s : (y : B) -> Path B (f (g y)) y)
        (t : (x : A) -> Path A (g (f x)) x)
@@ -885,12 +885,12 @@ isoPath (A B : U) (f : A -> B) (g : B -> A)
        <i> Glue B [ (i = 0) -> (A,f,gradLemma A B f g s t)
                   , (i = 1) -> (B,idfun B,idIsEquiv B) ]
 
-sucPathZ : Path U Z Z = isoPath Z Z predZ sucZ sucsucZ predpredZ
+sucPathZ : Path U Z Z = isoPath Z Z sucZ predZ sucpredZ predsucZ
 
 helix : S1 -> U = split
   base -> Z
   loop @ i -> sucPathZ @ i
-  
+
 encode (x : S1) (p : Path S1 base x) : helix x = subst S1 helix base x p zeroZ
 
 
@@ -924,25 +924,46 @@ lem1It : (n:Z) -> Path loopS1 (loopIt (sucZ n)) (oneTurn (loopIt n)) = split
   pos n -> lem1ItPos n
   neg n -> lem1ItNeg n
 
+-- This should be used above!
+transGen0 (A : U) (a : A) : A = transGen (<_> A) 0 a
+
+lemTransGen0 (A : U) (a : A) : Path A (transGen0 A a) a =
+  let rem1 : Path A a (hcomp A (transGen (<_> A) 0 a) []) = fill (<_> A) a []
+      rem2 : Path A (transGen (<_> A) 0 a) (hcomp A (transGen (<_> A) 0 a) []) =
+        hfill A (transGen (<_> A) 0 a) []
+  in compPath A (transGen0 A a) (hcomp A (transGen (<_> A) 0 a) []) a rem2 (<i> rem1 @ -i)
+
+
 lemFib1 (A:U) (F G : A -> U) (a:A) (fa : F a -> G a) :
    (x:A) (p : Path A a x) -> (fx : F x -> G x) ->
-     Path U (Path (F a -> G x) (\ (u:F a) -> subst A G a x p (fa u)) (\ (u:F a) -> fx (subst A F a x p u)))
-         (PathP (<i>F (p@i) -> G (p@i)) fa fx) = undefined
-
+     Path U (Path (F a -> G x) (\(u : F a) -> subst A G a x p (fa u))
+                               (\(u : F a) -> fx (subst A F a x p u)))
+            (PathP (<i> F (p @ i) -> G (p @ i)) fa fx) =
+  J A a (\(x : A) (p : Path A a x) -> (fx : F x -> G x) ->
+     Path U (Path (F a -> G x) (\(u : F a) -> subst A G a x p (fa u))
+                               (\(u : F a) -> fx (subst A F a x p u)))
+            (PathP (<i>F (p@i) -> G (p@i)) fa fx)) rem
+  where
+  rem (ga : F a -> G a) :
+    Path U (Path (F a -> G a) (\(u : F a) -> transGen (<_> G a) 0 (fa u))
+                              (\(u : F a) -> ga (transGen (<_> F a) 0 u)))
+           (PathP (<_> F a -> G a) fa ga) =
+      <j> Path (F a -> G a) (\(u : F a) -> lemTransGen0 (G a) (fa u) @ j)
+                            (\(u : F a) -> ga (lemTransGen0 (F a) u @ j))
 
 corFib1 (A:U) (F G : A -> U) (a:A) (fa ga : F a -> G a) (p:Path A a a)
   (h : (u:F a) -> Path (G a) (subst A G a a p (fa u)) (ga (subst A F a a p u))) :
-  PathP (<i>F (p@i) -> G (p@i)) fa ga = comp (lemFib1 A F G a fa a p ga) (<i>\ (u:F a) -> h u @ i) []
+  PathP (<i> F (p @ i) -> G (p @ i)) fa ga =
+    comp (lemFib1 A F G a fa a p ga) (<i> \(u : F a) -> h u @ i) []
 
--- Should be given by uabeta
-testIsoPath (A B : U) (f : A -> B) (g : B -> A)
-      (s : (y : B) -> Path B (f (g y)) y)
-      (t : (x : A) -> Path A (g (f x)) x) (a:A) :
-      Path B (f a) (transGen (isoPath A B f g s t) 0 a) = undefined
- -- <i>comp (<_>B) (comp (<_>B) (f a) [(i=0) -> <_> f a]) [(i=0) -> <_> f a]
-
-testHelix : Path (Z->Z) predZ (subst S1 helix base base loopP) = 
-  <i> \(n : Z) -> testIsoPath Z Z predZ sucZ sucsucZ predpredZ n @ i
+testHelix : Path (Z->Z) sucZ (subst S1 helix base base loopP) =
+  let rem (x : Z) : Path Z (sucZ x) (hcomp Z (hcomp Z (transGen (<!0> Z) 0 (sucZ x)) []) []) =
+        compPath Z (sucZ x)
+                   (hcomp Z (transGen (<!0> Z) 0 (sucZ x)) [])
+                   (hcomp Z (hcomp Z (transGen (<!0> Z) 0 (sucZ x)) []) [])
+                   (fill (<_> Z) (sucZ x) [])
+                   (hfill Z (hcomp Z (transGen (<!0> Z) 0 (sucZ x)) []) [])
+  in   <i> \(x : Z) -> rem x @ i
 
 decode : (x:S1) -> helix x -> Path S1 base x = split
  base -> loopIt

@@ -968,14 +968,26 @@ testHelix : Path (Z->Z) sucZ (subst S1 helix base base loopP) =
 decode : (x:S1) -> helix x -> Path S1 base x = split
  base -> loopIt
  loop @ i -> rem @ i
-   where T : U = Z -> loopS1
-         G (x:S1) : U =  Path S1 base x
-         p : Path U T T = <j> helix (loopP @ j) -> Path S1 base (loopP@j)
-         rem2 (n:Z) : Path loopS1 (oneTurn (loopIt n)) (loopIt (sucZ n)) = <i>lem1It n@-i
-         rem1 (n:Z) : Path loopS1 (subst S1 G base base loopP (loopIt n))
-                                  (loopIt (subst S1 helix base base loopP n)) = undefined
-           -- comp (<i> Path loopS1 (oneTurn (loopIt n)) (loopIt (testHelix @ i n))) (rem2 n) []
-         rem : PathP p loopIt loopIt = corFib1 S1 helix G base loopIt loopIt loopP rem1
+   where
+   T : U = Z -> loopS1
+   G (x:S1) : U =  Path S1 base x
+   p : Path U T T = <j> helix (loopP @ j) -> Path S1 base (loopP@j)
+   rem2 (n:Z) : Path loopS1 (oneTurn (loopIt n)) (loopIt (sucZ n)) = <i>lem1It n@-i
+   rem1 (n:Z) : Path loopS1 (subst S1 G base base loopP (loopIt n))
+                            (loopIt (subst S1 helix base base loopP n)) =
+     let goal : Path loopS1 (subst S1 G base base loopP (loopIt n))
+                            (loopIt (subst S1 helix base base loopP n)) = undefined
+         boo : Path U (Path loopS1 (oneTurn (loopIt n)) (loopIt (sucZ n)))
+                      (Path loopS1 (oneTurn (loopIt n)) (loopIt (subst S1 helix base base loopP n))) =
+                      <i> Path loopS1 (oneTurn (loopIt n)) (loopIt (testHelix @ i n))
+     in goal
+-- comp (<i> Path loopS1 (oneTurn (loopIt n)) (loopIt (testHelix @ i n))) (rem2 n) []
+   rem : PathP p loopIt loopIt = corFib1 S1 helix G base loopIt loopIt loopP rem1
+
+-- loopIt : Z -> loopS1 = split
+--  pos n -> itLoop n
+--  neg n -> itLoopNeg n
+
 
 encodeDecode (x : S1) (p : Path S1 base x) : Path (Path S1 base x) (decode x (encode x p)) p =
   transport (<i> Path (Path S1 base (p @ i))
@@ -1010,7 +1022,7 @@ fibContrHopfThree (p : (Omega3 S2pt).1) : HopfThree p =
        (<_> pt (Omega S2pt))) p
 
 -- The map h from 9.3
-HopfLoop (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 =
+h (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 =
   mapOmegaRefl3 (Sigma S2 Hopf, (north,base)) (join S1 S1) t'
     (itTotalFibOmega three S2pt Hopf base (p, fibContrHopfThree p))
 
@@ -1045,7 +1057,7 @@ f4 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S2pt).1 =
   -- (mapOmega3 (joinpt S1pt S1) S2pt alpha).1
   mapOmegaRefl3 (joinpt S1pt S1) S2 alpha.1
 
-f5 : (Omega3 S2pt).1 -> (Omega3 (joinpt S1pt S1)).1 = HopfLoop
+f5 : (Omega3 S2pt).1 -> (Omega3 (joinpt S1pt S1)).1 = h
 
 
 -- WORKS

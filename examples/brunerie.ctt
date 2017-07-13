@@ -792,34 +792,34 @@ ZSet : set Z = hedberg Z discreteZ
 -- No need for substituting in the universe here
 -- setLoop : set loopS1 = subst U set Z loopS1 (<i> loopS1equalsZ @ -i) ZSet
 
-sucZ : Z -> Z = split
-  pos u -> auxsucZ u
+predZ : Z -> Z = split
+  pos u -> auxpredZ u
     where
-    auxsucZ : nat -> Z = split
+    auxpredZ : nat -> Z = split
       zero  -> neg zero
       suc n -> pos n
   neg v -> neg (suc v)
 
-predZ : Z -> Z = split
+sucZ : Z -> Z = split
   pos u -> pos (suc u)
-  neg v -> auxpredZ v
+  neg v -> auxsucZ v
     where
-    auxpredZ : nat -> Z = split
+    auxsucZ : nat -> Z = split
       zero  -> pos zero
       suc n -> neg n
 
-sucpredZ : (x : Z) -> Path Z (sucZ (predZ x)) x = split
+sucsucZ : (x : Z) -> Path Z (predZ (sucZ x)) x = split
   pos u -> <_> pos u
   neg v -> lem v
    where
-    lem : (u : nat) -> Path Z (sucZ (predZ (neg u))) (neg u) = split
+    lem : (u : nat) -> Path Z (predZ (sucZ (neg u))) (neg u) = split
       zero  -> <_> neg zero
       suc n -> <_> neg (suc n)
 
-predsucZ : (x : Z) -> Path Z (predZ (sucZ x)) x = split
+predpredZ : (x : Z) -> Path Z (sucZ (predZ x)) x = split
   pos u -> lem u
    where
-    lem : (u : nat) -> Path Z (predZ (sucZ (pos u))) (pos u) = split
+    lem : (u : nat) -> Path Z (sucZ (predZ (pos u))) (pos u) = split
       zero  -> <_> pos zero
       suc n -> <_> pos (suc n)
   neg v -> <_> neg v
@@ -885,7 +885,7 @@ isoPath (A B : U) (f : A -> B) (g : B -> A)
        <i> Glue B [ (i = 0) -> (A,f,gradLemma A B f g s t)
                   , (i = 1) -> (B,idfun B,idIsEquiv B) ]
 
-sucPathZ : Path U Z Z = isoPath Z Z sucZ predZ sucpredZ predsucZ
+sucPathZ : Path U Z Z = isoPath Z Z predZ sucZ sucsucZ predpredZ
 
 helix : S1 -> U = split
   base -> Z
@@ -894,13 +894,30 @@ helix : S1 -> U = split
 encode (x : S1) (p : Path S1 base x) : helix x = subst S1 helix base x p zeroZ
 
 
-lem1ItPos : (n : nat) -> Path loopS1 (loopIt (sucZ (pos n))) (oneTurn (loopIt (pos n))) = split
-  zero -> ? -- <_> oneTurn (<_> base)
-  suc p -> ? -- <i>oneTurn (lem1ItPos p@i)
+lem1ItPos : (n:nat) -> Path loopS1 (loopIt (sucZ (pos n))) (oneTurn ((loopIt (pos n)))) = split
+ zero -> refl loopS1 (oneTurn (<_> base))
+ suc p -> <i>oneTurn (lem1ItPos p@i)
 
-lem1ItNeg : (n : nat) -> Path loopS1 (loopIt (sucZ (neg n))) (oneTurn (loopIt (neg n))) = split
-  zero -> ? -- compInvS1
-  suc p -> ? -- compInv S1 base base (loopIt (inl p)) base invLoop
+
+-- Clean
+compInv (A:U) (a:A) : (x:A) (p:Path A a x) -> Path (Path A x x) (<_>x) (compPath A x a x (<i>p@-i) p) =
+ J A a (\  (x:A) (p:Path A a x) -> Path (Path A x x) (<_>x) (compPath A x a x (<i>p@-i) p)) rem
+ where rem : Path (Path A a a) (<_>a) (<i>hcomp A a [(i=0) -> <_>a,(i=1) -> <_>a]) =
+        <j i>hcomp A a [(j=0) -> <_>a,(i=0) -> <_>a,(i=1) -> <_>a]
+
+compInvS1 : Path loopS1 (refl S1 base) (compS1 invLoop loopP) = compInv S1 base base loopP
+
+-- why this one with the same name? clean!
+compInv (A:U) (a b:A) (q:Path A a b) : (x:A) (p:Path A b x) -> Path (Path A a b) q (compPath A a x b (compPath A a b x q p) (<i>p@-i)) =
+ J A b (\ (x:A) (p:Path A b x) -> Path (Path A a b) q (compPath A a x b (compPath A a b x q p) (<i>p@-i))) rem
+ where rem : Path (Path A a b) q
+                           (<i>hcomp A (hcomp A (q@i) [(i=0) -> <_>a,(i=1) -> <_>b]) [(i=0) -> <_>a,(i=1) -> <_>b]) =
+          <j i>hcomp A (hcomp A (q@i) [(j=0) -> <_>q@i,(i=0) -> <_>a,(i=1) -> <_>b]) [(j=0) -> <_>q@i,(i=0) -> <_>a,(i=1) -> <_>b]
+
+
+lem1ItNeg : (n:nat) -> Path loopS1  (loopIt (sucZ (neg n))) (oneTurn (loopIt (neg n))) = split
+ zero -> compInvS1
+ suc p -> compInv S1 base base (loopIt (neg p)) base invLoop
 
 
 lem1It : (n:Z) -> Path loopS1 (loopIt (sucZ n)) (oneTurn (loopIt n)) = split
@@ -924,8 +941,8 @@ testIsoPath (A B : U) (f : A -> B) (g : B -> A)
       Path B (f a) (transGen (isoPath A B f g s t) 0 a) = undefined
  -- <i>comp (<_>B) (comp (<_>B) (f a) [(i=0) -> <_> f a]) [(i=0) -> <_> f a]
 
-testHelix : Path (Z->Z) sucZ (subst S1 helix base base loopP) = 
-  <i> \(n : Z) -> testIsoPath Z Z sucZ predZ sucpredZ predsucZ n @ i
+testHelix : Path (Z->Z) predZ (subst S1 helix base base loopP) = 
+  <i> \(n : Z) -> testIsoPath Z Z predZ sucZ sucsucZ predpredZ n @ i
 
 decode : (x:S1) -> helix x -> Path S1 base x = split
  base -> loopIt

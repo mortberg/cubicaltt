@@ -272,8 +272,12 @@ l2rSquare (A B C : U) (a : A) (b : B) (c : C) :
 
 opl2r (A : U) (a b c : A) (p : Path A a c) (q : Path A a b) (r : Path A b c)
       (sq : Square A a a b c (<_> a) r q p) :
-      Square A a b c c q (<_> c) p r = undefined
-      -- <i j>hcomp A (sq@j@i) [(i=0) -> <k>p@(j/\k),(j=1) -> <k>p@(i\/k)]
+      Square A a b c c q (<_> c) p r =
+        <i j> hcomp A (q @ i \/ j)
+                        [ (i = 0) -> <k> sq @ k @ j
+                        , (i = 1) -> <k> r @ j /\ k
+                        , (j = 0) -> <k> q @ i
+                        , (j = 1) -> <k> r @ k ]
 
 l2rPushPush (A B C : U) (a : A) (b : B) (c : C) :
   Square (join A (join B C)) (inl a) (inr (inl b)) (inr (inr c)) (inr (inr c))

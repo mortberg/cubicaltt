@@ -1,3 +1,29 @@
+{- 
+
+The structure of the file is as follows (numbers as in Appendix B in
+Guillaume's thesis):
+
+B.3 Suspension and spheres
+
+B.4 Pointed types, pointed maps and loop spaces
+
+B.5 Loop space of a suspension
+
+B.6 The 3-sphere and the join of two circles
+
+B.7 The main map
+
+B.8 The map defining pi3(S2)
+
+B.9 Going back to pi2(S2)
+
+B.10 Loop space of truncations
+
+B.11 Down one more dimension
+
+B.2 The definition
+
+-}
 module brunerie where
 
 data bool = false | true
@@ -1126,7 +1152,25 @@ h (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 =
 
 -- B.9.1 Truncations
 
--- Need 2-groupoid truncation...
+-- 2-Groupoid truncation
+data g2Trunc (A : U) =
+    g2inc (a : A)
+  | g2squashC (a b : g2Trunc A)
+              (p q : Path (g2Trunc A) a b)
+              (r s : Path (Path (g2Trunc A) a b) p q)
+              (t u : Path (Path (Path (g2Trunc A) a b) p q) r s)
+              <i j k l>
+               [ (i=0) -> t @ j @ k @ l
+               , (i=1) -> u @ j @ k @ l
+               , (j=0) -> r @ k @ l
+               , (j=1) -> s @ k @ l
+               , (k=0) -> p @ l
+               , (k=1) -> q @ l
+               , (l=0) -> a
+               , (l=1) -> b]
+
+g2Truncpt (A : ptType) : ptType = (g2Trunc A.1,g2inc (pt A))
+
 
 -- Groupoid truncation
 data gTrunc (A : U) =
@@ -1230,10 +1274,9 @@ f5 : (Omega3 S2pt).1 -> (Omega3 (joinpt S1pt S1)).1 = h
 f6 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S3pt).1 =
   mapOmegaRefl3 (joinpt S1pt S1) S3 einv
 
--- This should be 2-groupoid truncation!
-f7 : (Omega3 S3pt).1 -> (Omega2 (gTruncpt S2pt)).1 = undefined
+f7 : (Omega3 S3pt).1 -> (Omega2 (g2Truncpt S2pt)).1 = undefined
 
-f8 : (Omega2 (gTruncpt S2pt)).1 -> (Omega (gTruncpt (Omega S2pt))).1 = undefined
+f8 : (Omega2 (g2Truncpt S2pt)).1 -> (Omega (gTruncpt (Omega S2pt))).1 = undefined
 
 f9 : (Omega (gTruncpt (Omega S2pt))).1 -> sTrunc (Omega2 S2pt).1 = undefined
 
@@ -1274,7 +1317,7 @@ test0To5 : (Omega3 (joinpt S1pt S1)).1 = f5 test0To4
 test0To6 : (Omega3 S3pt).1 = f6 test0To5
 
 -- ? (not finished)
-test0To7 : (Omega2 (gTruncpt S2pt)).1 = f7 test0To6
+test0To7 : (Omega2 (g2Truncpt S2pt)).1 = f7 test0To6
 
 -- ? (not finished)
 test0To8 : (Omega (gTruncpt (Omega S2pt))).1 = f8 test0To7

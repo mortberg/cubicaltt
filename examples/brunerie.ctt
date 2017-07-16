@@ -636,9 +636,10 @@ lemRSquare (A B : U) (f : A -> B) (g : B -> A)
            (<i> g (f (p @ i)))
            (<i> hcomp A (g (f (p @ i))) [(i = 0) -> rfg x, (i = 1) -> rfg y])
            (rfg x)
-           (rfg y) = undefined
--- This probably fails due to lack of regularity:
---    <j i> comp A (g (f (p @ j))) [(j=0) -> <l> (rfg x) @ (i/\l), (j=1) -> <l> (rfg y) @ (i/\l)]
+           (rfg y) =
+           <i j> hcomp A (g (f (p @ i))) [ (i = 0) -> <k> rfg x @ j /\ k
+                                         , (i = 1) -> <k> rfg y @ j /\ k
+                                         , (j = 0) -> <k> g (f (p @ i)) ]
 
 retractPath (A B : U)(f : A -> B) (g : B -> A) (rfg : retract A B f g) (x y :A) (p:Path A x y) :
   Path (Path A x y) (retractInv A B f g rfg x y (<i> f (p@ i))) p =

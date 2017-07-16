@@ -231,41 +231,42 @@ joinassoc1 (A B C : U) : join A (join B C) -> join (join A B) C = split
 
 -- Map from [join (join A B) C] to [join A (join B C)]
 
--- l2rInl (A B C : U) : join A B -> join A (join B C) = split
---   inl a    -> inl a
---   inr b    -> inr (inl b)
---   push a b @ i -> pushP A (join B C) a (inl b) @ i
+l2rInl (A B C : U) : join A B -> join A (join B C) = split
+  inl a    -> inl a
+  inr b    -> inr (inl b)
+  push a b @ i -> pushP A (join B C) a (inl b) @ i
 
--- l2rPushInr (A B C : U) (b : B) (c : C) :
---   Path (join A (join B C)) (inr (inl b)) (inr (inr c)) = <i>inr (pushP B C b c@i)
+l2rPushInr (A B C : U) (b : B) (c : C) :
+  Path (join A (join B C)) (inr (inl b)) (inr (inr c)) = <i> inr (pushP B C b c @ i)
 
--- l2rSquare (A B C : U) (a : A) (b : B) (c : C) :
---        PathP (<i> Path (join A (join B C)) (inl a) (inr (pushP B C b c@i)))
---            (<i>pushP A (join B C) a (inl b)@i) (<i>pushP A (join B C) a (inr c)@i) =
---  <i j>pushP A (join B C) a (pushP B C b c@i)@j
+l2rSquare (A B C : U) (a : A) (b : B) (c : C) :
+  PathP (<i> Path (join A (join B C)) (inl a) (inr (pushP B C b c @ i)))
+        (<i> pushP A (join B C) a (inl b) @ i) (<i> pushP A (join B C) a (inr c) @ i) =
+        <i j> pushP A (join B C) a (pushP B C b c @ i) @ j
 
--- opl2r (A : U) (a b c : A) (p : Path A a c) (q : Path A a b) (r : Path A b c)
---      (sq : Square A a a b c (<_> a) r q p) : Square A a b c c q (<_> c) p r = undefined
---       -- <i j>comp A (sq@j@i) [(i=0) -> <k>p@(j/\k),(j=1) -> <k>p@(i\/k)]
+opl2r (A : U) (a b c : A) (p : Path A a c) (q : Path A a b) (r : Path A b c)
+      (sq : Square A a a b c (<_> a) r q p) :
+      Square A a b c c q (<_> c) p r = undefined
+      -- <i j>hcomp A (sq@j@i) [(i=0) -> <k>p@(j/\k),(j=1) -> <k>p@(i\/k)]
 
--- l2rPushPush (A B C : U) (a : A) (b : B) (c : C) :
---   Square (join A (join B C)) (inl a) (inr (inl b)) (inr (inr c)) (inr (inr c))
---          (pushP A (join B C) a (inl b)) (<_> inr (inr c))
---          (pushP A (join B C) a (inr c)) (l2rPushInr A B C b c) =
---   opl2r (join A (join B C)) (inl a) (inr (inl b)) (inr (inr c))
---         (pushP A (join B C) a (inr c)) (pushP A (join B C) a (inl b)) (l2rPushInr A B C b c)
---         (l2rSquare A B C a b c)
+l2rPushPush (A B C : U) (a : A) (b : B) (c : C) :
+  Square (join A (join B C)) (inl a) (inr (inl b)) (inr (inr c)) (inr (inr c))
+         (pushP A (join B C) a (inl b)) (<_> inr (inr c))
+         (pushP A (join B C) a (inr c)) (l2rPushInr A B C b c) = 
+  opl2r (join A (join B C)) (inl a) (inr (inl b)) (inr (inr c))
+        (pushP A (join B C) a (inr c)) (pushP A (join B C) a (inl b)) (l2rPushInr A B C b c)
+        (l2rSquare A B C a b c)
 
--- l2rPush (A B C : U) (c : C) : (u : join A B) ->
---             Path (join A (join B C)) (l2rInl A B C u) (inr (inr c)) = split
---   inl a -> pushP A (join B C) a (inr c)
---   inr b -> l2rPushInr A B C b c
---   push a b @ i -> l2rPushPush A B C a b c @ i
+l2rPush (A B C : U) (c : C) : (u : join A B) ->
+            Path (join A (join B C)) (l2rInl A B C u) (inr (inr c)) = split
+  inl a -> pushP A (join B C) a (inr c)
+  inr b -> l2rPushInr A B C b c
+  push a b @ i -> l2rPushPush A B C a b c @ i
 
--- joinassoc2 (A B C : U) : join (join A B) C -> join A (join B C) = split
---   inl jab -> l2rInl A B C jab
---   inr c   -> inr (inr c)
---   push p q @ i -> l2rPush A B C q p @ i
+joinassoc2 (A B C : U) : join (join A B) C -> join A (join B C) = split
+  inl jab -> l2rInl A B C jab
+  inr c   -> inr (inr c)
+  push p q @ i -> l2rPush A B C q p @ i
 
 
 mapJoin (A A' B B' : U) (f : A -> A') (g : B -> B') : join A B -> join A' B' = split
@@ -333,8 +334,14 @@ e (x : S3) : join S1 S1 =
       res : join S1 S1 = mapJoin (join bool bool) S1 S1 S1 c (idfun S1) x3
   in res
 
--- einv : join S1 S1 -> S3 = undefined
-
+einv (x : join S1 S1) : S3 =
+  let x1 : join (join bool bool) S1 =
+        mapJoin S1 (join bool bool) S1 S1 cinv (idfun S1) x
+      x2 : join bool (join bool S1) = joinassoc2 bool bool S1 x1
+      x3 : join bool S2 =
+        mapJoin bool bool (join bool S1) S2 (idfun bool) (psiinv S1) x2
+      res : S3 = psiinv S2 x3
+  in res
 
 --------------------------------------------------------------------------------
 -- B.7 The main map
@@ -1115,6 +1122,80 @@ h (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 =
 
 
 --------------------------------------------------------------------------------
+-- B.9 Going back to pi2(S2)
+
+-- B.9.1 Truncations
+
+-- Need 2-groupoid truncation...
+
+-- Groupoid truncation
+data gTrunc (A : U) =
+    ginc (a : A)
+  | gsquashC (a b : gTrunc A) (p q : Path (gTrunc A) a b)
+             (r s : Path (Path (gTrunc A) a b) p q) <i j k>
+               [ (i=0) -> r @ j @ k
+               , (i=1) -> s @ j @ k
+               , (j=0) -> p @ k
+               , (j=1) -> q @ k
+               , (k=0) -> a
+               , (k=1) -> b]
+
+gTruncpt (A : ptType) : ptType = (gTrunc A.1,ginc (pt A))
+
+-- Set truncation
+data sTrunc (A : U) =
+    sinc (a : A)
+  | ssquashC (a b : sTrunc A) (p q : Path (sTrunc A) a b) <i j>
+      [ (i=0) -> p @ j
+      , (i=1) -> q @ j
+      , (j=0) -> a
+      , (j=1) -> b ]
+
+sTruncpt (A : ptType) : ptType = (sTrunc A.1,sinc (pt A))
+
+sTruncRec (A B : U) (bS : set B) (f : A -> B) : sTrunc A -> B = split
+  sinc a -> f a
+  ssquashC a b p q @ i j -> (bS (sTruncRec A B bS f a)
+                              (sTruncRec A B bS f b)
+                               (<k> sTruncRec A B bS f (p @ k))
+                               (<k> sTruncRec A B bS f (q @ k))) @ i @ j
+
+-- Propositional truncation (not needed?)
+-- data pTrunc (A : U) =
+--     inc (a : A)
+--   | inh (x y : pTrunc A) <i> [(i=0) -> x, (i=1) -> y]
+
+-- pTruncpt (A : ptType) : ptType = (pTrunc A.1,inc (pt A))
+
+-- pTruncRec (A B : U) (pP : prop B) (f : A -> B) : pTrunc A -> B = split
+--   inc a -> f a
+--   inh x y @ i -> pP (pTruncRec A B pP f x) (pTruncRec A B pP f y) @ i
+
+
+-- B.9.2 Truncated higher Hopf fibration
+
+-- See https://github.com/simhu/cubical/blob/connections/examples/truncHopf.cub
+
+
+--------------------------------------------------------------------------------
+-- B.10 Loop space of truncations
+
+-- See https://github.com/simhu/cubical/blob/connections/examples/loopTrunc.cub
+
+
+--------------------------------------------------------------------------------
+-- B.11 Down one more dimension
+
+-- e'_2 from 12
+pi2S2' (p : (Omega2 S2pt).1) : loopS1 =
+  let point : (Omega S2pt).1 = pt (Omega S2pt)
+  in subst (Omega S2pt).1 HopfOne point point p (<_> base)
+
+e2' : sTrunc (Omega2 S2pt).1 -> loopS1 =
+  sTruncRec (Omega2 S2pt).1 loopS1 setLoop pi2S2'
+
+
+--------------------------------------------------------------------------------
 -- B.2 The definition
 
 f0 : Z -> loopS1 = loopIt
@@ -1146,6 +1227,20 @@ f4 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S2pt).1 =
 
 f5 : (Omega3 S2pt).1 -> (Omega3 (joinpt S1pt S1)).1 = h
 
+f6 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S3pt).1 =
+  mapOmegaRefl3 (joinpt S1pt S1) S3 einv
+
+-- This should be 2-groupoid truncation!
+f7 : (Omega3 S3pt).1 -> (Omega2 (gTruncpt S2pt)).1 = undefined
+
+f8 : (Omega2 (gTruncpt S2pt)).1 -> (Omega (gTruncpt (Omega S2pt))).1 = undefined
+
+f9 : (Omega (gTruncpt (Omega S2pt))).1 -> sTrunc (Omega2 S2pt).1 = undefined
+
+f10 : sTrunc (Omega2 S2pt).1 -> loopS1 = e2'
+
+-- I think this is correct
+f11 (p : loopS1) : Z = encode base p
 
 -- WORKS
 test0To1 : (Omega2 S2pt).1 = f1 (f0 oneZ)
@@ -1174,3 +1269,21 @@ test0To4 : (Omega3 S2pt).1 = f4 test0To3
 
 -- ? (not finished)
 test0To5 : (Omega3 (joinpt S1pt S1)).1 = f5 test0To4
+
+-- ? (not finished)
+test0To6 : (Omega3 S3pt).1 = f6 test0To5
+
+-- ? (not finished)
+test0To7 : (Omega2 (gTruncpt S2pt)).1 = f7 test0To6
+
+-- ? (not finished)
+test0To8 : (Omega (gTruncpt (Omega S2pt))).1 = f8 test0To7
+
+-- ? (not finished)
+test0To9 : sTrunc (Omega2 S2pt).1 = f9 test0To8
+
+-- ? (not finished)
+test0To10 : loopS1 = f10 test0To9
+
+-- This should be "pos (suc (suc zero))"...
+brunerie : Z = f11 test0To10

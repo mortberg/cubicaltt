@@ -404,6 +404,10 @@ isContr (A : U) : U = (x : A) * ((y : A) -> Path A x y)
 prop (A : U) : U = (a b : A) -> Path A a b
 set (A : U) : U = (a b : A) -> prop (Path A a b)
 groupoid (A : U) : U = (a b : A) -> set (Path A a b)
+twogroupoid (A : U) : U = (a b : A) -> groupoid (Path A a b)
+
+SET : U = (A : U) * set A
+GROUPOID : U = (A : U) * groupoid A
 
 fiber (A B : U) (f : A -> B) (y : B) : U =
   (x : A) * Path B y (f x)
@@ -1175,6 +1179,18 @@ data g2Trunc (A : U) =
 
 g2Truncpt (A : ptType) : ptType = (g2Trunc A.1,g2inc (pt A))
 
+g2TruncRec (A B : U) (bG : twogroupoid B) (f : A -> B) : g2Trunc A -> B = split
+    g2inc a -> f a
+    g2squashC a b p q r s t u @ i j k l ->
+      bG (g2TruncRec A B bG f a)
+         (g2TruncRec A B bG f b)
+         (<m> g2TruncRec A B bG f (p @ m))
+         (<m> g2TruncRec A B bG f (q @ m))
+         (<m n> g2TruncRec A B bG f (r @ m @ n))
+         (<m n> g2TruncRec A B bG f (s @ m @ n))
+         (<m n o> g2TruncRec A B bG f (t @ m @ n @ o))
+         (<m n o> g2TruncRec A B bG f (u @ m @ n @ o))
+         @ i @ j @ k @ l
 
 -- Groupoid truncation
 data gTrunc (A : U) =
@@ -1190,6 +1206,19 @@ data gTrunc (A : U) =
 
 gTruncpt (A : ptType) : ptType = (gTrunc A.1,ginc (pt A))
 
+gTruncRec (A B : U) (bG : groupoid B) (f : A -> B) : gTrunc A -> B = split
+    ginc a -> f a
+    gsquashC a b p q r s @ i j k   -> bG (gTruncRec A B bG f a)
+                                         (gTruncRec A B bG f b)
+                                         (<m> gTruncRec A B bG f (p @ m))
+                                         (<m> gTruncRec A B bG f (q @ m))
+                                         (<m n> gTruncRec A B bG f (r @ m @ n))
+                                         (<m n> gTruncRec A B bG f (s @ m @ n)) @ i @ j @ k
+
+gTruncGroupoid (A : U) : groupoid (gTrunc A) =
+  \(a b : gTrunc A) (p q : Path (gTrunc A) a b) (r s : Path (Path (gTrunc A) a b) p q) ->
+    <i j k> gsquashC{gTrunc A} a b p q r s @ i @ j @ k
+    
 -- Set truncation
 data sTrunc (A : U) =
     sinc (a : A)
@@ -1207,6 +1236,10 @@ sTruncRec (A B : U) (bS : set B) (f : A -> B) : sTrunc A -> B = split
                               (sTruncRec A B bS f b)
                                (<k> sTruncRec A B bS f (p @ k))
                                (<k> sTruncRec A B bS f (q @ k))) @ i @ j
+
+setTruncSet (A : U) : set (sTrunc A) =
+  \(a b : sTrunc A) (p q : Path (sTrunc A) a b) ->
+    <i j> ssquashC{sTrunc A} a b p q @ i @ j
 
 -- Propositional truncation (not needed?)
 -- data pTrunc (A : U) =
@@ -1229,7 +1262,29 @@ sTruncRec (A B : U) (bS : set B) (f : A -> B) : sTrunc A -> B = split
 -- B.10 Loop space of truncations
 
 -- See https://github.com/simhu/cubical/blob/connections/examples/loopTrunc.cub
+ 
+-- This needs univalence
+twogroupoidGROUPOID : twogroupoid GROUPOID = undefined
 
+truncPath2 (A : ptType) : g2Trunc A.1 -> GROUPOID =
+  g2TruncRec A.1 GROUPOID twogroupoidGROUPOID
+    (\(x : A.1) -> (gTrunc (Path A.1 (pt A) x),gTruncGroupoid (Path A.1 (pt A) x)))
+
+kappaTwo (A : ptType) (p : (Omega (g2Truncpt A)).1) : gTrunc (Omega A).1 =
+  subst (g2Trunc A.1) (\(x : g2Trunc A.1) -> (truncPath2 A x).1)
+        (g2inc (pt A)) (g2inc (pt A)) p (ginc (<_> pt A))
+
+
+-- This needs univalence
+groupoidSET : groupoid SET = undefined
+
+truncPath1 (A : ptType) : gTrunc A.1 -> SET =
+  gTruncRec A.1 SET groupoidSET 
+    (\(x : A.1) -> (sTrunc (Path A.1 (pt A) x),setTruncSet (Path A.1 (pt A) x)))
+    
+kappaOne (A : ptType) (p : (Omega (gTruncpt A)).1) : sTrunc (Omega A).1 =
+  subst (gTrunc A.1) (\(x : gTrunc A.1) -> (truncPath1 A x).1)
+        (ginc (pt A)) (ginc (pt A)) p (sinc (<_> pt A))
 
 --------------------------------------------------------------------------------
 -- B.11 Down one more dimension
@@ -1281,8 +1336,10 @@ f6 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S3pt).1 =
 f7 : (Omega3 S3pt).1 -> (Omega2 (g2Truncpt S2pt)).1 = undefined
 
 f8 : (Omega2 (g2Truncpt S2pt)).1 -> (Omega (gTruncpt (Omega S2pt))).1 = undefined
-
-f9 : (Omega (gTruncpt (Omega S2pt))).1 -> sTrunc (Omega2 S2pt).1 = undefined
+--  mapOmegaRefl (Omega (trS2,inc north)) (gtruncPt (Omega S2pt).1) (kappaTwo S2pt)
+  
+f9 : (Omega (gTruncpt (Omega S2pt))).1 -> sTrunc (Omega2 S2pt).1 =
+  kappaOne (Omega S2pt)
 
 f10 : sTrunc (Omega2 S2pt).1 -> loopS1 = e2'
 

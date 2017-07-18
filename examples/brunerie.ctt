@@ -1274,6 +1274,12 @@ kappaTwo (A : ptType) (p : (Omega (g2Truncpt A)).1) : gTrunc (Omega A).1 =
   subst (g2Trunc A.1) (\(x : g2Trunc A.1) -> (truncPath2 A x).1)
         (g2inc (pt A)) (g2inc (pt A)) p (ginc (<_> pt A))
 
+kappaTwoPt (A : ptType) :
+  Path (gTrunc (Omega A).1)
+    (kappaTwo A (pt (Omega (g2Truncpt A))))
+    (pt (gTruncpt (Omega A)))
+  = <i> transGen (<_> (truncPath2 A (pt (g2Truncpt A))).1) i (ginc (<_> pt A))
+
 
 -- This needs univalence
 groupoidSET : groupoid SET = undefined
@@ -1335,15 +1341,8 @@ f6 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S3pt).1 =
 
 f7 : (Omega3 S3pt).1 -> (Omega2 (g2Truncpt S2pt)).1 = undefined
 
-f8 (p : (Omega2 (g2Truncpt S2pt)).1) : (Omega (gTruncpt (Omega S2pt))).1 =
-  let moo' : Path (gTrunc (Path (susp S1) north north))
-                  (ginc (<i> hcomp (susp S1) north [ (i = 0) -> <_> north, (i = 1) -> <_> north ]))
-                  (ginc (<i> hcomp (susp S1) north [ (i = 0) -> <_> north, (i = 1) -> <_> north ])) =
-                  mapOmegaRefl (Omega (g2Truncpt S2pt)) (gTrunc (Omega S2pt).1) (kappaTwo S2pt) p
-      goal : Path (gTrunc (Path (susp S1) north north))
-                  (ginc (<_> north))
-                  (ginc (<_> north)) = undefined
-  in goal
+f8 : (Omega2 (g2Truncpt S2pt)).1 -> (Omega (gTruncpt (Omega S2pt))).1 =
+  (mapOmega (Omega (g2Truncpt S2pt)) (gTruncpt (Omega S2pt)) (kappaTwo S2pt, kappaTwoPt S2pt)).1
 
 f9 : (Omega (gTruncpt (Omega S2pt))).1 -> sTrunc (Omega2 S2pt).1 =
   kappaOne (Omega S2pt)

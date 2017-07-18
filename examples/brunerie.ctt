@@ -1012,17 +1012,17 @@ testHelix : Path (Z->Z) sucZ (subst S1 helix base base loopP) =
                    (hfill Z (hcomp Z (transGen (<!0> Z) 0 (sucZ x)) []) [])
   in   <i> \(x : Z) -> rem x @ i
 
-keySquare : (x : S1) (q : Path S1 base x) ->
-  Square S1 base base x x (lemTransGen0 S1 base) (<_> x) q q =
-    J S1
-      base
-      (\(x : S1) (p : Path S1 base x) ->
-         Square S1 base base x x (lemTransGen0 S1 base) (<_> x) p p)
-      rem
-    where
-    -- This seems like a pain to prove:
-    rem : Square S1 base base base base
-             (lemTransGen0 S1 base) (<_> base) (<_> base) (<_> base) = undefined
+-- keySquare : (x : S1) (q : Path S1 base x) ->
+--   Square S1 base base x x (lemTransGen0 S1 base) (<_> x) q q =
+--     J S1
+--       base
+--       (\(x : S1) (p : Path S1 base x) ->
+--          Square S1 base base x x (lemTransGen0 S1 base) (<_> x) p p)
+--       rem
+--     where
+--     -- This seems like a pain to prove:
+--     rem : Square S1 base base base base
+--              (lemTransGen0 S1 base) (<_> base) (<_> base) (<_> base) = undefined
   
 decode : (x:S1) -> helix x -> Path S1 base x = split
   base -> loopIt
@@ -1041,68 +1041,68 @@ decode : (x:S1) -> helix x -> Path S1 base x = split
                        , (i = 1) -> loopP ])
         (<i> hcomp S1 (loopIt x @ i)
                        [ (i = 0) -> <_> base
-                       , (i = 1) -> loopP ]) =
-          let bottom : Square S1
-                          (transGen0 S1 base) (transGen0 S1 base) base base
-                          (<i> transGen0 S1 (loopIt x @ i))
-                          (loopIt x)
-                          (lemTransGen0 S1 base) (lemTransGen0 S1 base) =
-                          <i j> lemTransGen0 S1 (loopIt x @ i) @ j
-              -- front : Square S1
-              --           (transGen0 S1 base) (transGen0 S1 base) base base
-              --           (<i> transGen0 S1 (loopIt x @ i))
-              --           (<i> hcomp S1 (transGen0 S1 (loopIt x @ i))
-              --                   [ (i = 0) -> <_> base, (i = 1) -> loopP ])
-              --           (<_> base) loopP =
-              --               <i> hfill S1 (transGen0 S1 (loopIt x @ i))
-              --                   [ (i = 0) -> <_> base, (i = 1) -> loopP ]
-              -- back : Square S1 base base base base
-              --          (loopIt x)
-              --          (<i> hcomp S1 (loopIt x @ i)
-              --                  [ (i = 0) -> <_> base, (i = 1) -> loopP ])
-              --          (<_> base) loopP =
-              --             <i> hfill S1 (loopIt x @ i)
-              --                  [ (i = 0) -> <_> base, (i = 1) -> loopP ]
-              -- left : Square S1 (transGen0 S1 base) base base base
-              --           (lemTransGen0 S1 base)
-              --           (<i> hcomp S1 (lemTransGen0 S1 base @ i)
-              --                  [ (i = 0) -> <_> base, (i = 1) -> <_> base ])
-              --           (<_> base) (<_> base) = 
-              --             <i> hfill S1 (lemTransGen0 S1 base @ i)
-              --                  [ (i = 0) -> <_> base, (i = 1) -> <_> base ]
-              -- right : Square S1 (transGen0 S1 base) base base base
-              --           (lemTransGen0 S1 base)
-              --           (<i> hcomp S1 (lemTransGen0 S1 base @ i)
-              --                  [ (i = 0) -> loopP, (i = 1) -> loopP ])
-              --           loopP loopP  = 
-              --             <i> hfill S1 (lemTransGen0 S1 base @ i)
-              --                  [ (i = 0) -> loopP, (i = 1) -> loopP ]
-              -- goal : Square S1 base base base base
-              --         (<i> hcomp S1 (transGen0 S1 (loopIt x @ i)) [ (i = 0) -> <_> base, (i = 1) -> loopP ])
-              --         (<i> hcomp S1 (loopIt x @ i) [ (i = 0) -> <_> base, (i = 1) -> loopP ])
-              --         (<i> hcomp S1 (lemTransGen0 S1 base @ i) [ (i = 0) -> <_> base, (i = 1) -> <_> base ])
-              --         (<i> hcomp S1 (lemTransGen0 S1 base @ i) [ (i = 0) -> loopP, (i = 1) -> loopP ])
-              --         = <i j> hcomp S1 (bottom @ i @ j)
-              --                   [ (i = 0) -> left @ j
-              --                   , (i = 1) -> right @ j ]
+                       , (i = 1) -> loopP ]) = <j i> hcomp S1 (transGen (<_> S1) j (loopIt x @ i)) [ (i = 0) -> <_> base, (i = 1) -> loopP ]
+          -- let bottom : Square S1
+          --                 (transGen0 S1 base) (transGen0 S1 base) base base
+          --                 (<i> transGen0 S1 (loopIt x @ i))
+          --                 (loopIt x)
+          --                 (lemTransGen0 S1 base) (lemTransGen0 S1 base) =
+          --                 <i j> lemTransGen0 S1 (loopIt x @ i) @ j
+          --     -- front : Square S1
+          --     --           (transGen0 S1 base) (transGen0 S1 base) base base
+          --     --           (<i> transGen0 S1 (loopIt x @ i))
+          --     --           (<i> hcomp S1 (transGen0 S1 (loopIt x @ i))
+          --     --                   [ (i = 0) -> <_> base, (i = 1) -> loopP ])
+          --     --           (<_> base) loopP =
+          --     --               <i> hfill S1 (transGen0 S1 (loopIt x @ i))
+          --     --                   [ (i = 0) -> <_> base, (i = 1) -> loopP ]
+          --     -- back : Square S1 base base base base
+          --     --          (loopIt x)
+          --     --          (<i> hcomp S1 (loopIt x @ i)
+          --     --                  [ (i = 0) -> <_> base, (i = 1) -> loopP ])
+          --     --          (<_> base) loopP =
+          --     --             <i> hfill S1 (loopIt x @ i)
+          --     --                  [ (i = 0) -> <_> base, (i = 1) -> loopP ]
+          --     -- left : Square S1 (transGen0 S1 base) base base base
+          --     --           (lemTransGen0 S1 base)
+          --     --           (<i> hcomp S1 (lemTransGen0 S1 base @ i)
+          --     --                  [ (i = 0) -> <_> base, (i = 1) -> <_> base ])
+          --     --           (<_> base) (<_> base) = 
+          --     --             <i> hfill S1 (lemTransGen0 S1 base @ i)
+          --     --                  [ (i = 0) -> <_> base, (i = 1) -> <_> base ]
+          --     -- right : Square S1 (transGen0 S1 base) base base base
+          --     --           (lemTransGen0 S1 base)
+          --     --           (<i> hcomp S1 (lemTransGen0 S1 base @ i)
+          --     --                  [ (i = 0) -> loopP, (i = 1) -> loopP ])
+          --     --           loopP loopP  = 
+          --     --             <i> hfill S1 (lemTransGen0 S1 base @ i)
+          --     --                  [ (i = 0) -> loopP, (i = 1) -> loopP ]
+          --     -- goal : Square S1 base base base base
+          --     --         (<i> hcomp S1 (transGen0 S1 (loopIt x @ i)) [ (i = 0) -> <_> base, (i = 1) -> loopP ])
+          --     --         (<i> hcomp S1 (loopIt x @ i) [ (i = 0) -> <_> base, (i = 1) -> loopP ])
+          --     --         (<i> hcomp S1 (lemTransGen0 S1 base @ i) [ (i = 0) -> <_> base, (i = 1) -> <_> base ])
+          --     --         (<i> hcomp S1 (lemTransGen0 S1 base @ i) [ (i = 0) -> loopP, (i = 1) -> loopP ])
+          --     --         = <i j> hcomp S1 (bottom @ i @ j)
+          --     --                   [ (i = 0) -> left @ j
+          --     --                   , (i = 1) -> right @ j ]
 
-              left' : Square S1 base base base base
-                        (lemTransGen0 S1 base)
-                        (<_> base)
-                        (<_> base) (<_> base) = keySquare base (<_> base)
-              right' : Square S1 base base base base
-                        (lemTransGen0 S1 base)
-                        (<_> base)
-                        loopP loopP = keySquare base loopP
-              goal' : Square S1 base base base base
-                      (<i> hcomp S1 (transGen0 S1 (loopIt x @ i)) [ (i = 0) -> <_> base, (i = 1) -> loopP ])
-                      (<i> hcomp S1 (loopIt x @ i) [ (i = 0) -> <_> base, (i = 1) -> loopP ])
-                      (<_> base)
-                      (<_> base)
-                      = <i j> hcomp S1 (bottom @ i @ j)
-                                [ (i = 0) -> left' @ j
-                                , (i = 1) -> right' @ j ]
-          in <i j> goal' @ j @ i
+          --     left' : Square S1 base base base base
+          --               (lemTransGen0 S1 base)
+          --               (<_> base)
+          --               (<_> base) (<_> base) = keySquare base (<_> base)
+          --     right' : Square S1 base base base base
+          --               (lemTransGen0 S1 base)
+          --               (<_> base)
+          --               loopP loopP = keySquare base loopP
+          --     goal' : Square S1 base base base base
+          --             (<i> hcomp S1 (transGen0 S1 (loopIt x @ i)) [ (i = 0) -> <_> base, (i = 1) -> loopP ])
+          --             (<i> hcomp S1 (loopIt x @ i) [ (i = 0) -> <_> base, (i = 1) -> loopP ])
+          --             (<_> base)
+          --             (<_> base)
+          --             = <i j> hcomp S1 (bottom @ i @ j)
+          --                       [ (i = 0) -> left' @ j
+          --                       , (i = 1) -> right' @ j ]
+          -- in <i j> goal' @ j @ i
 
 
    rem3 (x : Z) :
@@ -1335,9 +1335,16 @@ f6 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S3pt).1 =
 
 f7 : (Omega3 S3pt).1 -> (Omega2 (g2Truncpt S2pt)).1 = undefined
 
-f8 : (Omega2 (g2Truncpt S2pt)).1 -> (Omega (gTruncpt (Omega S2pt))).1 = undefined
---  mapOmegaRefl (Omega (trS2,inc north)) (gtruncPt (Omega S2pt).1) (kappaTwo S2pt)
-  
+f8 (p : (Omega2 (g2Truncpt S2pt)).1) : (Omega (gTruncpt (Omega S2pt))).1 =
+  let moo' : Path (gTrunc (Path (susp S1) north north))
+                  (ginc (<i> hcomp (susp S1) north [ (i = 0) -> <_> north, (i = 1) -> <_> north ]))
+                  (ginc (<i> hcomp (susp S1) north [ (i = 0) -> <_> north, (i = 1) -> <_> north ])) =
+                  mapOmegaRefl (Omega (g2Truncpt S2pt)) (gTrunc (Omega S2pt).1) (kappaTwo S2pt) p
+      goal : Path (gTrunc (Path (susp S1) north north))
+                  (ginc (<_> north))
+                  (ginc (<_> north)) = undefined
+  in goal
+
 f9 : (Omega (gTruncpt (Omega S2pt))).1 -> sTrunc (Omega2 S2pt).1 =
   kappaOne (Omega S2pt)
 

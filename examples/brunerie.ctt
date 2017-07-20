@@ -1355,22 +1355,63 @@ auxCompId (a b : S2) (p p0 q : Path S2 a b) : U =
 
 alphaAuxCompId (a : S2) : (b : S2) (p0 q : Path S2 a b) -> auxCompId a b p0 p0 q =
   J S2 a (\(b : S2) (p0 : Path S2 a b) -> (q : Path S2 a b) -> auxCompId a b p0 p0 q) rem2
-   where rem (q : Path S2 a a) : auxCompId a a (<_> a) (<_> a) q = undefined
-         rem2 (q : Path S2 a a) :
-           Path (Path trS2 (g2inc a) (g2inc a))
-                (auxComp a a (<_> a) (<_> a) q)
-                (auxComp a a q (<_> a) (<_> a)) = undefined
-         p1 (q : Path S2 a a) :
-           Path (Path trS2 (g2inc a) (g2inc a))
-                (auxComp a a (<_> a) (<_> a) q)
-                (<i> g2inc (q @ i)) = undefined
-         p2 (q : Path S2 a a) :
+   where p1 (q : Path S2 a a) :
            Path (Path trS2 (g2inc a) (g2inc a))
                 (<i> g2inc (compPath S2 a a a (<_> a) q @ i))
                 (<i> g2inc (q @ i)) = 
              <i j> g2inc (comp1Path S2 a a q @ i @ j)
+         p2 (q : Path S2 a a) : Path (Path trS2 (g2inc a) (g2inc a))
+                (auxComp a a (<_> a) (<_> a) q)
+                (<i> g2inc (compPath S2 a a a (<_> a) q @ i)) =
+                comp1Path trS2 (g2inc a) (g2inc a)
+                  (<i> g2inc (compPath S2 a a a (<_> a) q @ i))
+         p3 (q : Path S2 a a) :
+           Path (Path trS2 (g2inc a) (g2inc a))
+                (auxComp a a (<_> a) (<_> a) q)
+                (<i> g2inc (q @ i)) =
+                compPath (Path trS2 (g2inc a) (g2inc a))
+                  (auxComp a a (<_> a) (<_> a) q)
+                  (<i> g2inc (compPath S2 a a a (<_> a) q @ i))
+                  (<i> g2inc (q @ i))
+                  (p2 q) (p1 q)
 
---? --     (\q -> compIdl trS2 (inc a) (inc a) (apInc S2 a a q))
+         q1 : Path (Path trS2 (g2inc a) (g2inc a))
+                (<i> g2inc (compPath S2 a a a (<_> a) (<_> a) @ i))
+                (<i> g2inc a) = p1 (<_> a)
+
+         q2' (q : Path S2 a a) :
+           Path (Path trS2 (g2inc a) (g2inc a))
+                (compPath trS2 (g2inc a) (g2inc a) (g2inc a) (<i> g2inc (q @ i)) (<_> g2inc a))
+                (auxComp a a q (<_> a) (<_> a)) =
+                          <i> compPath trS2 (g2inc a) (g2inc a) (g2inc a)
+                                (<i> g2inc (q @ i)) (q1 @ -i)
+
+         q2 (q : Path S2 a a) :
+           Path (Path trS2 (g2inc a) (g2inc a))
+                (compPath trS2 (g2inc a) (g2inc a) (g2inc a) (<i> g2inc (q @ i)) (<_> g2inc a))
+                (<i> g2inc (q @ i)) = compPath1 trS2 (g2inc a) (g2inc a) (<i> g2inc (q @ i))
+
+         q3 (q : Path S2 a a) :
+           Path (Path trS2 (g2inc a) (g2inc a))
+                (auxComp a a q (<_> a) (<_> a))
+                (<i> g2inc (q @ i)) = 
+                compPath (Path trS2 (g2inc a) (g2inc a))
+                       (auxComp a a q (<_> a) (<_> a))
+                       (compPath trS2 (g2inc a) (g2inc a) (g2inc a) (<i> g2inc (q @ i)) (<_> g2inc a))
+                       (<i> g2inc (q @ i))
+                       (<i> q2' q @ -i)
+                       (q2 q)
+
+         rem2 (q : Path S2 a a) :
+           Path (Path trS2 (g2inc a) (g2inc a))
+                (auxComp a a (<_> a) (<_> a) q)
+                (auxComp a a q (<_> a) (<_> a)) =
+                compPath (Path trS2 (g2inc a) (g2inc a))
+                         (auxComp a a (<_> a) (<_> a) q)
+                         (<i> g2inc (q @ i))
+                         (auxComp a a q (<_> a) (<_> a))
+                         (p3 q)
+                         (<i> q3 q @ -i)
 
 betaAuxCompId : (a b : S2) (p0 p : Path S2 a b) -> auxCompId a b p p0 p0 = undefined
 

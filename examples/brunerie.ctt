@@ -1,4 +1,4 @@
-{- 
+{-
 
 The structure of the file is as follows (numbers as in Appendix B in
 Guillaume's thesis):
@@ -283,7 +283,7 @@ opl2r (A : U) (a b c : A) (p : Path A a c) (q : Path A a b) (r : Path A b c)
 l2rPushPush (A B C : U) (a : A) (b : B) (c : C) :
   Square (join A (join B C)) (inl a) (inr (inl b)) (inr (inr c)) (inr (inr c))
          (pushP A (join B C) a (inl b)) (<_> inr (inr c))
-         (pushP A (join B C) a (inr c)) (l2rPushInr A B C b c) = 
+         (pushP A (join B C) a (inr c)) (l2rPushInr A B C b c) =
   opl2r (join A (join B C)) (inl a) (inr (inl b)) (inr (inr c))
         (pushP A (join B C) a (inr c)) (pushP A (join B C) a (inl b)) (l2rPushInr A B C b c)
         (l2rSquare A B C a b c)
@@ -1024,7 +1024,7 @@ testHelix : Path (Z->Z) sucZ (subst S1 helix base base loopP) =
 --     -- This seems like a pain to prove:
 --     rem : Square S1 base base base base
 --              (lemTransGen0 S1 base) (<_> base) (<_> base) (<_> base) = undefined
-  
+
 decode : (x:S1) -> helix x -> Path S1 base x = split
   base -> loopIt
   loop @ i -> rem @ i
@@ -1068,14 +1068,14 @@ decode : (x:S1) -> helix x -> Path S1 base x = split
           --     --           (lemTransGen0 S1 base)
           --     --           (<i> hcomp S1 (lemTransGen0 S1 base @ i)
           --     --                  [ (i = 0) -> <_> base, (i = 1) -> <_> base ])
-          --     --           (<_> base) (<_> base) = 
+          --     --           (<_> base) (<_> base) =
           --     --             <i> hfill S1 (lemTransGen0 S1 base @ i)
           --     --                  [ (i = 0) -> <_> base, (i = 1) -> <_> base ]
           --     -- right : Square S1 (transGen0 S1 base) base base base
           --     --           (lemTransGen0 S1 base)
           --     --           (<i> hcomp S1 (lemTransGen0 S1 base @ i)
           --     --                  [ (i = 0) -> loopP, (i = 1) -> loopP ])
-          --     --           loopP loopP  = 
+          --     --           loopP loopP  =
           --     --             <i> hfill S1 (lemTransGen0 S1 base @ i)
           --     --                  [ (i = 0) -> loopP, (i = 1) -> loopP ]
           --     -- goal : Square S1 base base base base
@@ -1225,7 +1225,7 @@ gTruncRec (A B : U) (bG : groupoid B) (f : A -> B) : gTrunc A -> B = split
 gTruncGroupoid (A : U) : groupoid (gTrunc A) =
   \(a b : gTrunc A) (p q : Path (gTrunc A) a b) (r s : Path (Path (gTrunc A) a b) p q) ->
     <i j k> gsquashC{gTrunc A} a b p q r s @ i @ j @ k
-    
+
 -- Set truncation
 data sTrunc (A : U) =
     sinc (a : A)
@@ -1266,6 +1266,7 @@ setTruncSet (A : U) : set (sTrunc A) =
 
 trS2 : U = g2Trunc S2
 trS2Trunc : twogroupoid trS2 = g2TruncTwoGroupoid S2
+idIncNS : U = Path trS2 (g2inc north) (g2inc south)
 
 incSouthPath (x : S1) : Path trS2 (g2inc south) (g2inc south) =
   let pp : Path S2 south south =
@@ -1276,8 +1277,6 @@ multTwoSouth : S2 -> trS2 = split
   north -> g2inc south
   south -> g2inc south
   merid x @ i -> incSouthPath x @ i
-
-idIncNS : U = Path trS2 (g2inc north) (g2inc south)
 
 meridIncSouth (x y : S1) : Path trS2 (g2inc north) (g2inc south) =
   compPath trS2 (g2inc north) (g2inc south) (g2inc south)
@@ -1316,16 +1315,16 @@ lemSetTorus (E : S1 -> S1 -> U) (sE : set (E base base))
 
     lem1 : (y : S1) -> PathS S1 (\(x : S1) -> E x y) base base loopP (f y) (f y) =
       let P (y : S1) : U = PathS S1 (\(x : S1) -> E x y) base base loopP (f y) (f y)
-          pP (y : S1) : prop (P y) = 
+          pP (y : S1) : prop (P y) =
             let rem1 : Path U (P y) (Path (E base y) (subst S1 (\(x : S1) -> E x y) base base loopP (f y)) (f y)) = eqSubstSig S1 (\(x : S1) -> E x y) base base loopP (f y) (f y)
 
                 rem2 : prop (Path (E base y) (subst S1 (\(x : S1) -> E x y) base base loopP (f y)) (f y)) = sbE y (subst S1 (\(x : S1) -> E x y) base base loopP (f y)) (f y)
 
             in substInv U prop (P y) (Path (E base y) (subst S1 (\(x : S1) -> E x y) base base loopP (f y)) (f y)) rem1 rem2
-           
+
           lem2 : PathS S1 (\(x : S1) -> E x base) base base loopP (g base) (g base) =
             <i> g (loopP @ i)
-            
+
           bP : P base = substInv (E base base) (\(u : E base base) -> PathS S1 (\(x : S1) -> E x base) base base loopP u u) (f base) (g base) efg lem2
       in lemPropFib P pP bP
 
@@ -1350,15 +1349,17 @@ auxComp (a b : S2) (p p0 q : Path S2 a b) : Path trS2 (g2inc a) (g2inc b) =
   compPath trS2 (g2inc a) (g2inc b) (g2inc b)
     (<i> g2inc (p @ i)) (<i> g2inc (compPath S2 b a b (<j> p0 @ -j) q @ i))
 
+-- |p|^1 . | !p0 . q |^1 = |q|^1 . | !p0 . p |^1
 auxCompId (a b : S2) (p p0 q : Path S2 a b) : U =
   Path (Path trS2 (g2inc a) (g2inc b)) (auxComp a b p p0 q) (auxComp a b q p0 p)
 
+-- |p0|^1 . | !p0 . q |^1 = |q|^1 . | !p0 . p0 |^1
 alphaAuxCompId (a : S2) : (b : S2) (p0 q : Path S2 a b) -> auxCompId a b p0 p0 q =
   J S2 a (\(b : S2) (p0 : Path S2 a b) -> (q : Path S2 a b) -> auxCompId a b p0 p0 q) rem2
    where p1 (q : Path S2 a a) :
            Path (Path trS2 (g2inc a) (g2inc a))
                 (<i> g2inc (compPath S2 a a a (<_> a) q @ i))
-                (<i> g2inc (q @ i)) = 
+                (<i> g2inc (q @ i)) =
              <i j> g2inc (comp1Path S2 a a q @ i @ j)
          p2 (q : Path S2 a a) : Path (Path trS2 (g2inc a) (g2inc a))
                 (auxComp a a (<_> a) (<_> a) q)
@@ -1394,7 +1395,7 @@ alphaAuxCompId (a : S2) : (b : S2) (p0 q : Path S2 a b) -> auxCompId a b p0 p0 q
          q3 (q : Path S2 a a) :
            Path (Path trS2 (g2inc a) (g2inc a))
                 (auxComp a a q (<_> a) (<_> a))
-                (<i> g2inc (q @ i)) = 
+                (<i> g2inc (q @ i)) =
                 compPath (Path trS2 (g2inc a) (g2inc a))
                        (auxComp a a q (<_> a) (<_> a))
                        (compPath trS2 (g2inc a) (g2inc a) (g2inc a) (<i> g2inc (q @ i)) (<_> g2inc a))
@@ -1413,12 +1414,31 @@ alphaAuxCompId (a : S2) : (b : S2) (p0 q : Path S2 a b) -> auxCompId a b p0 p0 q
                          (p3 q)
                          (<i> q3 q @ -i)
 
-betaAuxCompId : (a b : S2) (p0 p : Path S2 a b) -> auxCompId a b p p0 p0 = undefined
+-- |p|^1 . | !p0 . p0 |^1 = |p0|^1 . | !p0 . p |^1
+betaAuxCompId (a : S2) (b : S2) (p0 p : Path S2 a b) : auxCompId a b p p0 p0 =
+  <i> alphaAuxCompId a b p0 p @ -i
 
-alphaEqBetaDiag : (a b : S2) (p0 : Path S2 a b) ->
-                  Path (auxCompId a b p0 p0 p0) (alphaAuxCompId a b p0 p0) (betaAuxCompId a b p0 p0) = undefined
-                  
-multTwoMeridMerid : (x y : S1) -> Path idIncNS (meridIncSouth x y) (meridIncSouth y x) = 
+alphaEqBetaDiag (a : S2) : (b : S2) (p0 : Path S2 a b) ->
+                Path (auxCompId a b p0 p0 p0) (alphaAuxCompId a b p0 p0) (betaAuxCompId a b p0 p0) =
+  J S2 a (\(b : S2)  (p0 : Path S2 a b) ->
+         Path (auxCompId a b p0 p0 p0) (alphaAuxCompId a b p0 p0) (betaAuxCompId a b p0 p0))
+    rem
+  where
+  rem : Path (auxCompId a a (<_> a) (<_> a) (<_> a))
+             (alphaAuxCompId a a (<_> a) (<_> a))
+             (betaAuxCompId a a (<_> a) (<_> a)) = undefined
+
+alphaEqBetaDiag (a b : S2) (p0 : Path S2 a b) :
+                Path (auxCompId a b p0 p0 p0) (alphaAuxCompId a b p0 p0) (betaAuxCompId a b p0 p0) = goal
+  where
+  goal : Path (auxCompId a b p0 p0 p0) (alphaAuxCompId a b p0 p0) (betaAuxCompId a b p0 p0) = undefined
+
+
+-- auxCompId (a b : S2) (p p0 q : Path S2 a b) : U =
+--   Path (Path trS2 (g2inc a) (g2inc b)) (auxComp a b p p0 q) (auxComp a b q p0 p)
+
+
+multTwoMeridMerid : (x y : S1) -> Path idIncNS (meridIncSouth x y) (meridIncSouth y x) =
   lemSetTorus E sE
     (\(x : S1) -> alphaAuxCompId north south (meridP S1 base) (meridP S1 x))
     (\(x : S1) -> betaAuxCompId north south (meridP S1 base) (meridP S1 x))
@@ -1442,11 +1462,11 @@ substPathPi (A B : U) (f g : A -> B) (a : A) : (a' : A) (p : Path A a a')
            (compPath B (f a) (f a') (g a') (<i> f (p @ i)) qa') ->
       PathS A (\(x : A) -> Path B (f x) (g x)) a a' p qa qa')
     rem
-    where rem (qa : Path B (f a) (g a)) (qa' : Path B (f a) (g a)) 
+    where rem (qa : Path B (f a) (g a)) (qa' : Path B (f a) (g a))
               (pp : Path (Path B (f a) (g a))
                          (compPath B (f a) (g a) (g a) qa (<_> g a))
                          (compPath B (f a) (f a) (g a) (<_> f a) qa')) :
-              Path (Path B (f a) (g a)) qa qa' = 
+              Path (Path B (f a) (g a)) qa qa' =
                let p1 : Path (Path B (f a) (g a))
                           (compPath B (f a) (g a) (g a) qa (<_> g a)) qa =
                           compPath1 B (f a) (g a) qa
@@ -1504,7 +1524,7 @@ lem3Trunc : (A B : U) (tB : twogroupoid B) (g h : g2Trunc A -> B) ->
 --    rem x = cumTrunc n B tB (g x) (h x)
 
 
-multTwoTildeEquiv : (x : S2) -> isEquiv trS2 trS2 (multTwoTilde x) = 
+multTwoTildeEquiv : (x : S2) -> isEquiv trS2 trS2 (multTwoTilde x) =
   lemPropS2
     (\(x : S2) -> isEquiv trS2 trS2 (multTwoTilde x))
     (\(x : S2) -> propIsEquiv trS2 trS2 (multTwoTilde x))
@@ -1513,7 +1533,7 @@ multTwoTildeEquiv : (x : S2) -> isEquiv trS2 trS2 (multTwoTilde x) =
           funExt trS2 (\(_ : trS2) -> trS2) (\(x : trS2) -> x) (multTwoTilde north)
                           (lem3Trunc S2 trS2 (g2TruncTwoGroupoid S2) (\(x : trS2) -> x) (multTwoTilde north)
                             (\(a : S2) -> refl trS2 (g2inc a)))
-        multEquivNorth : isEquiv trS2 trS2 (multTwoTilde north) = 
+        multEquivNorth : isEquiv trS2 trS2 (multTwoTilde north) =
           subst (trS2 -> trS2) (isEquiv trS2 trS2) (\(x : trS2) -> x)
                 (multTwoTilde north) multNorthEqPath (idIsEquiv trS2)
 
@@ -1529,11 +1549,197 @@ pi3S3 : (Omega3 S3pt).1 -> (Omega2 (g2Truncpt S2pt)).1 =
     pi3S3' (p : (Omega S3pt).1) : trS2 =
       subst S3 tHopf3 north north p (g2inc north)
 
+
+
+------------- EXPERIMENT
+-- Maybe define things like this instead?
+incSouthPath' (x : S1) : Path trS2 (g2inc south) (g2inc south) =
+  compPath trS2 (g2inc south) (g2inc north) (g2inc south)
+           (<i> g2inc (meridP S1 base @ -i)) (<i> g2inc (meridP S1 x @ i))
+
+multTwoSouth' : S2 -> trS2 = split
+  north -> g2inc south
+  south -> g2inc south
+  merid x @ i -> incSouthPath' x @ i
+
+meridIncSouth' (x y : S1) : Path trS2 (g2inc north) (g2inc south) =
+  <i> hcomp trS2 (g2inc (meridP S1 base @ -i))
+        [ (i = 0) -> <j> g2inc (meridP S1 x @ -j)
+        , (i = 1) -> <j> g2inc (meridP S1 y @ j) ]
+  -- compPath trS2 (g2inc north) (g2inc south) (g2inc south)
+  --          (<i> g2inc (meridP S1 x @ i)) (incSouthPath' y)
+
+-- |p| . | !p0 | . |q|
+auxComp' (a b : S2) (p p0 q : Path S2 a b) : Path trS2 (g2inc a) (g2inc b) =
+  <i> hcomp trS2 (g2inc (p0 @ -i))
+         [ (i = 0) -> <j> g2inc (p @ -j)
+         , (i = 1) -> <j> g2inc (q @ j) ]
+  -- compPath trS2 (g2inc a) (g2inc b) (g2inc b)
+  --   (<i> g2inc (p @ i))
+  --   (compPath trS2 (g2inc b) (g2inc a) (g2inc b)
+  --             (<j> g2inc (p0 @ -j))
+  --             (<i> g2inc (q @ i)))
+
+-- |p| . | !p0 | . |q| = |q| . | !p0 | . |p|
+auxCompId' (a b : S2) (p p0 q : Path S2 a b) : U =
+  Path (Path trS2 (g2inc a) (g2inc b)) (auxComp' a b p p0 q) (auxComp' a b q p0 p)
+
+helper (A : U) (a b : A) (p : Path A a b) (q : Path A b a) :
+  Square A a b b a p q p q =
+  <i j> hcomp A b [ (i = 0) -> <k> p @ j \/ -k
+                  , (i = 1) -> <k> q @ j /\ k
+                  , (j = 0) -> <k> p @ i \/ -k
+                  , (j = 1) -> <k> q @ i /\ k ]
+
+-- |p0| . | !p0 | . |q| = |q| . | !p0 | . |p0|
+alphaAuxCompId' (a : S2) (b : S2) (p0 q : Path S2 a b) : auxCompId' a b p0 p0 q =
+  let a' : trS2 = g2inc a
+      b' : trS2 = g2inc b
+      p0' : Path trS2 a' b' = <i> g2inc (p0 @ i)
+      p0inv : Path trS2 b' a' = <i> p0' @ -i
+      q' : Path trS2 a' b' = <i> g2inc (q @ i)
+      qinv : Path trS2 b' a' = <i> q' @ -i
+
+      bottom : Square trS2 b' a' b' a' p0inv p0inv
+                 (compPath trS2 b' a' b' p0inv q')
+                 (compPath trS2 a' b' a' q' p0inv) =
+        <i j> hcomp trS2 (helper trS2 b' a' p0inv q' @ i @ j)
+                 [ (j = 0) -> <k> p0inv @ i
+                 , (j = 1) -> <k> helper trS2 a' b' q' p0inv @ i @ k ]
+
+      right : Square trS2 a' a' b' b'
+                (compPath trS2 a' b' a' q' p0inv) (<_> b') q' p0' =
+        <j k> hcomp trS2 (q' @ j \/ k)
+                 [ (j = 0) -> <l> q' @ k
+                 , (j = 1) -> <l> p0' @ k \/ -l
+                 , (k = 1) -> <l> b' ]
+
+      left : Square trS2 b' b' a' a'
+               (compPath trS2 b' a' b' p0inv q') (<_> a') p0inv qinv =
+        <j k> hcomp trS2 (p0inv @ j \/ k)
+                 [ (j = 0) -> <l> p0inv @ k
+                 , (j = 1) -> <l> qinv @ k \/ -l
+                 , (k = 1) -> <l> a' ]
+
+      goal : Square trS2 a' b' a' b'
+               (auxComp' a b p0 p0 q) (auxComp' a b q p0 p0) (<_> a') (<_> b') =
+        <i j> hcomp trS2 (bottom @ i @ j)
+                         [ (i = 0) -> left @ j
+                         , (i = 1) -> right @ j ]
+  in <i j> goal @ j @ i
+
+-- not needed
+booooo (A : U) (a : A) :
+  Path (Path A a a) (<i> hcomp A a [ (i=0) -> <_> a,(i=1) -> <_>a]) (<_> a) =
+  <j i> hcomp A a [(i = 0) -> <_>a,(i = 1) -> <_>a,(j=1) -> <_>a]
+
+-- todo: inline
+booooo2 (A : U) (a : A) :
+  Path (Square A a a a a (<_> a) (<_> a) (<_> a) (<_> a))
+       (<i j> hcomp A a [ (i=0) -> <_> a,(i=1) -> <_> a, (j=0) -> <_> a, (j=1) -> <_> a]) (<_ _> a) = <k j i> hcomp A a [(i = 0) -> <_>a,(i = 1) -> <_>a,(j = 0) -> <_> a, (j=1) -> <_>a, (k = 1) -> <_> a]
+
+
+-- |p| . | !p0 | . |p0| = |p0| . | !p0 | . |p|
+betaAuxCompId' (a : S2) (b : S2) (p0 p : Path S2 a b) : auxCompId' a b p p0 p0 =
+  <i> alphaAuxCompId' a b p0 p @ -i
+
+alphaEqBetaDiag' (a : S2) : (b : S2) (p0 : Path S2 a b) ->
+  Path (auxCompId' a b p0 p0 p0) (alphaAuxCompId' a b p0 p0) (betaAuxCompId' a b p0 p0) =
+    J S2 a (\(b : S2)  (p0 : Path S2 a b) ->
+         Path (auxCompId' a b p0 p0 p0) (alphaAuxCompId' a b p0 p0) (betaAuxCompId' a b p0 p0))
+    rem
+  where
+  rem : Path (auxCompId' a a (<_> a) (<_> a) (<_> a))
+             (alphaAuxCompId' a a (<_> a) (<_> a))
+             (betaAuxCompId' a a (<_> a) (<_> a)) =
+    let foo : Square trS2 (g2inc a) (g2inc a) (g2inc a) (g2inc a)
+                     (<_> g2inc a) (<_> g2inc a) (<_> g2inc a) (<_> g2inc a) =
+                     <i j> hcomp trS2 (g2inc a)
+                                 [ (i = 0) -> <_> g2inc a, (i = 1) -> <_> g2inc a
+                                 , (j = 0) -> <_> g2inc a, (j = 1) -> <_> g2inc a ]
+
+        bar : Square trS2 (g2inc a) (g2inc a) (g2inc a) (g2inc a)
+                (compPath trS2 (g2inc a) (g2inc a) (g2inc a) (<_> g2inc a) (<_> g2inc a))
+                (<_> g2inc a) (<_> g2inc a) (<_> g2inc a) =
+                <i k> hcomp trS2 (g2inc a)
+                            [ (i = 0) -> <_> g2inc a
+                            , (i = 1) -> <_> g2inc a
+                            , (k = 1) -> <_> g2inc a ]
+
+        T : Path trS2 (g2inc a) (g2inc a) =
+            <i> hcomp trS2 (g2inc a) [ (i = 0) -> <_> g2inc a, (i = 1) -> <_> g2inc a ]
+
+        T0 : Path (Path trS2 (g2inc a) (g2inc a)) T T =
+                <j i> hcomp trS2 (foo @ i @ j)
+                                      [ (i = 0) -> <_> g2inc a
+                                      , (i = 1) -> foo @ j ]
+        T1 : Path (Path trS2 (g2inc a) (g2inc a)) T T =
+               <j i> hcomp trS2 (foo @ i @ j)
+                                [ (i = 0) -> foo @ j
+                                , (i = 1) -> <_> g2inc a ]
+
+        test : Path (Square trS2 (g2inc a) (g2inc a) (g2inc a) (g2inc a)
+                     (<_> g2inc a) (<_> g2inc a) (<_> g2inc a) (<_> g2inc a))
+                     foo (<_ _> g2inc a) =
+                     booooo2 trS2 (g2inc a)
+                     
+        key0 : Path (Path (Path trS2 (g2inc a) (g2inc a)) T T)
+                    T0 (<j i> hcomp trS2 (g2inc a)
+                                      [ (i = 0) -> <_> g2inc a
+                                      , (i = 1) -> <_> g2inc a ]) =
+                                      <k j i> hcomp trS2 (test @ k @ i @ j)
+                                                    [ (i = 0) -> <_> g2inc a
+                                                    , (i = 1) -> test @ k @ j ]
+        key1 : Path (Path (Path trS2 (g2inc a) (g2inc a)) T T)
+                    T1 (<j i> hcomp trS2 (g2inc a)
+                                      [ (i = 0) -> <_> g2inc a
+                                      , (i = 1) -> <_> g2inc a ]) =
+                                      <k j i> hcomp trS2 (test @ k @ i @ j)
+                                                    [ (i = 0) -> test @ k @ j
+                                                    , (i = 1) -> <_> g2inc a ]
+                                                    
+        key : Path (Path (Path trS2 (g2inc a) (g2inc a)) T T) T0 T1 =
+          compPath (Path (Path trS2 (g2inc a) (g2inc a)) T T) T0  (<j i> hcomp trS2 (g2inc a)
+                                      [ (i = 0) -> <_> g2inc a
+                                      , (i = 1) -> <_> g2inc a ]) T1 key0 (<i> key1 @ -i)
+
+        goal : Path (Path (Path trS2 (g2inc a) (g2inc a)) T T)
+              (<i j> hcomp trS2 (T0 @ j @ i)
+                          [ (j = 0) -> bar @ i, (j = 1) -> bar @ i ])
+              (<i j> hcomp trS2 (T1 @ j @ i)
+                          [ (j = 0) -> bar @ i, (j = 1) -> bar @ i ] ) =
+                    <k i j> hcomp trS2
+                              (key @ k @ j @ i)
+                              [ (j = 0) -> bar @ i, (j = 1) -> bar @ i ]
+    in goal
+
+
+multTwoMeridMerid' : (x y : S1) -> Path idIncNS (meridIncSouth' x y) (meridIncSouth' y x) =
+  lemSetTorus E sE
+    (\(x : S1) -> alphaAuxCompId' north south (meridP S1 base) (meridP S1 x))
+    (\(x : S1) -> betaAuxCompId' north south (meridP S1 base) (meridP S1 x))
+    (alphaEqBetaDiag' north south (meridP S1 base))
+  where E (x y : S1) : U = Path idIncNS (meridIncSouth' x y) (meridIncSouth' y x)
+
+        sE : set (E base base) =
+          g2TruncTwoGroupoid S2 (g2inc north) (g2inc south) (meridIncSouth' base base) (meridIncSouth' base base)
+
+
+-- multTwoMerid' (x : S1) : (y : S2) -> Path trS2 (g2inc y) (multTwoSouth' y) = split
+--   north -> <i> g2inc (meridP S1 x @ i)
+--   south -> incSouthPath' x
+--   merid y @ i -> substPathPi S2 trS2 (\(x : S2) -> g2inc x) multTwoSouth' north south (meridP S1 y)
+--                 (<i> g2inc (meridP S1 x @ i))
+--                 (incSouthPath' x) (multTwoMeridMerid' x y) @ i
+
+
+-- END OF EXPERIMENT -------------
+
 --------------------------------------------------------------------------------
 -- B.10 Loop space of truncations
 
 -- See https://github.com/simhu/cubical/blob/connections/examples/loopTrunc.cub
- 
+
 -- This needs univalence
 twogroupoidGROUPOID : twogroupoid GROUPOID = undefined
 
@@ -1556,9 +1762,9 @@ kappaTwoPt (A : ptType) :
 groupoidSET : groupoid SET = undefined
 
 truncPath1 (A : ptType) : gTrunc A.1 -> SET =
-  gTruncRec A.1 SET groupoidSET 
+  gTruncRec A.1 SET groupoidSET
     (\(x : A.1) -> (sTrunc (Path A.1 (pt A) x),setTruncSet (Path A.1 (pt A) x)))
-    
+
 kappaOne (A : ptType) (p : (Omega (gTruncpt A)).1) : sTrunc (Omega A).1 =
   subst (gTrunc A.1) (\(x : gTrunc A.1) -> (truncPath1 A x).1)
         (ginc (pt A)) (ginc (pt A)) p (sinc (<_> pt A))

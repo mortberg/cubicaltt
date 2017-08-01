@@ -1553,21 +1553,25 @@ pi3S3 : (Omega3 S3pt).1 -> (Omega2 (g2Truncpt S2pt)).1 =
 
 ------------- EXPERIMENT
 -- Maybe define things like this instead?
-incSouthPath' (x : S1) : Path trS2 (g2inc south) (g2inc south) =
-  compPath trS2 (g2inc south) (g2inc north) (g2inc south)
-           (<i> g2inc (meridP S1 base @ -i)) (<i> g2inc (meridP S1 x @ i))
+-- incSouthPath' (x : S1) : Path trS2 (g2inc south) (g2inc south) =
+--   compPath trS2 (g2inc south) (g2inc north) (g2inc south)
+--            (<i> g2inc (meridP S1 base @ -i)) (<i> g2inc (meridP S1 x @ i))
 
-multTwoSouth' : S2 -> trS2 = split
-  north -> g2inc south
-  south -> g2inc south
-  merid x @ i -> incSouthPath' x @ i
+-- multTwoSouth' : S2 -> trS2 = split
+--   north -> g2inc south
+--   south -> g2inc south
+--   merid x @ i -> incSouthPath' x @ i
 
-meridIncSouth' (x y : S1) : Path trS2 (g2inc north) (g2inc south) =
+meridIncSouth' (x y : S1) : idIncNS =
   <i> hcomp trS2 (g2inc (meridP S1 base @ -i))
         [ (i = 0) -> <j> g2inc (meridP S1 x @ -j)
         , (i = 1) -> <j> g2inc (meridP S1 y @ j) ]
   -- compPath trS2 (g2inc north) (g2inc south) (g2inc south)
   --          (<i> g2inc (meridP S1 x @ i)) (incSouthPath' y)
+
+
+meridIncSouthEq (x y : S1) : Path idIncNS (meridIncSouth' x y) (meridIncSouth x y) = undefined
+
 
 -- |p| . | !p0 | . |q|
 auxComp' (a b : S2) (p p0 q : Path S2 a b) : Path trS2 (g2inc a) (g2inc b) =
@@ -1584,6 +1588,7 @@ auxComp' (a b : S2) (p p0 q : Path S2 a b) : Path trS2 (g2inc a) (g2inc b) =
 auxCompId' (a b : S2) (p p0 q : Path S2 a b) : U =
   Path (Path trS2 (g2inc a) (g2inc b)) (auxComp' a b p p0 q) (auxComp' a b q p0 p)
 
+-- This would make a nice exercise
 helper (A : U) (a b : A) (p : Path A a b) (q : Path A b a) :
   Square A a b b a p q p q =
   <i j> hcomp A b [ (i = 0) -> <k> p @ j \/ -k
@@ -1682,7 +1687,7 @@ alphaEqBetaDiag' (a : S2) : (b : S2) (p0 : Path S2 a b) ->
                      (<_> g2inc a) (<_> g2inc a) (<_> g2inc a) (<_> g2inc a))
                      foo (<_ _> g2inc a) =
                      booooo2 trS2 (g2inc a)
-                     
+
         key0 : Path (Path (Path trS2 (g2inc a) (g2inc a)) T T)
                     T0 (<j i> hcomp trS2 (g2inc a)
                                       [ (i = 0) -> <_> g2inc a
@@ -1697,7 +1702,7 @@ alphaEqBetaDiag' (a : S2) : (b : S2) (p0 : Path S2 a b) ->
                                       <k j i> hcomp trS2 (test @ k @ i @ j)
                                                     [ (i = 0) -> test @ k @ j
                                                     , (i = 1) -> <_> g2inc a ]
-                                                    
+
         key : Path (Path (Path trS2 (g2inc a) (g2inc a)) T T) T0 T1 =
           compPath (Path (Path trS2 (g2inc a) (g2inc a)) T T) T0  (<j i> hcomp trS2 (g2inc a)
                                       [ (i = 0) -> <_> g2inc a
@@ -1724,13 +1729,23 @@ multTwoMeridMerid' : (x y : S1) -> Path idIncNS (meridIncSouth' x y) (meridIncSo
         sE : set (E base base) =
           g2TruncTwoGroupoid S2 (g2inc north) (g2inc south) (meridIncSouth' base base) (meridIncSouth' base base)
 
+multTwoMeridMerid'' (x y : S1) : Path idIncNS (meridIncSouth x y) (meridIncSouth y x) =
+  <i> hcomp idIncNS (multTwoMeridMerid' x y @ i)
+            [ (i = 0) -> meridIncSouthEq x y, (i = 1) -> meridIncSouthEq y x ]
 
--- multTwoMerid' (x : S1) : (y : S2) -> Path trS2 (g2inc y) (multTwoSouth' y) = split
---   north -> <i> g2inc (meridP S1 x @ i)
---   south -> incSouthPath' x
---   merid y @ i -> substPathPi S2 trS2 (\(x : S2) -> g2inc x) multTwoSouth' north south (meridP S1 y)
---                 (<i> g2inc (meridP S1 x @ i))
---                 (incSouthPath' x) (multTwoMeridMerid' x y) @ i
+multTwoMerid'' (x : S1) : (y : S2) -> Path trS2 (g2inc y) (multTwoSouth y) = split
+  north -> <i> g2inc (meridP S1 x @ i)
+  south -> incSouthPath x
+  merid y @ i -> substPathPi S2 trS2 (\(x : S2) -> g2inc x) multTwoSouth north south (meridP S1 y)
+                (<i> g2inc (meridP S1 x @ i))
+                (incSouthPath x) (multTwoMeridMerid'' x y) @ i
+
+multTwo : S2 -> S2 -> trS2 = split
+  north -> \(x : S2) -> g2inc x
+  south -> multTwoSouth
+  merid x @ i -> funExt S2 (\(_ : S2) -> trS2) (\(x : S2) -> g2inc x) multTwoSouth (multTwoMerid'' x) @ i
+
+-- Everything should work from here on!
 
 
 -- END OF EXPERIMENT -------------

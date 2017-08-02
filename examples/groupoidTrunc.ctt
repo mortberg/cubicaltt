@@ -15,10 +15,10 @@ data gTrunc (A : U)
        , (k=0) -> a
        , (k=1) -> b]
 
-gTr (A:U) (a b : gTrunc A) (p q : Path (gTrunc A) a b)
-    (r s: Path (Path (gTrunc A) a b) p q) : 
- Path (Path (Path (gTrunc A) a b) p q) r s = 
- <i j k> squashC{gTrunc A} a b p q r s@ i @ j @k
+gTr (A : U) : groupoid (gTrunc A) =
+  \(a b : gTrunc A) (p q : Path (gTrunc A) a b)
+   (r s : Path (Path (gTrunc A) a b) p q) ->
+   <i j k> squashC{gTrunc A} a b p q r s @ i @ j @ k
 
 gTruncRec (A B : U) (bG : groupoid B) (f : A -> B) : gTrunc A -> B = split
     inc a -> f a
@@ -29,65 +29,94 @@ gTruncRec (A B : U) (bG : groupoid B) (f : A -> B) : gTrunc A -> B = split
                                         (<m n> gTruncRec A B bG f (r @ m @ n))
                                         (<m n> gTruncRec A B bG f (s @ m @ n)) @ i @ j @ k
 
-lem1 (A:U) (P:A -> U) (gP:(x:A) -> groupoid (P x)) (a :A) : 
-     (s:Path (Path A a a) (refl A a) (refl A a)) 
-           (t:Path (Path (Path A a a) (refl A a) (refl A a)) (refl (Path A a a) (refl A a)) s)
-           (a1 b1:P a) (p1 q1: Path (P a) a1 b1)
-           (r1 : Path (Path (P a) a1 b1) p1 q1) (s1 : PathP (<i>PathP (<j>P (s@i@j)) a1 b1) p1 q1) ->
-                   PathP (<i>PathP (<j>PathP (<k>P (t@i@j@k)) a1 b1) p1 q1) r1 s1 =
- J (Path (Path A a a) (refl A a) (refl A a)) (refl (Path A a a) (refl A a))
-   (\ (s:Path (Path A a a) (refl A a) (refl A a)) 
-      (t:Path (Path (Path A a a) (refl A a) (refl A a)) (refl (Path A a a) (refl A a)) s) ->
-      (a1 b1 :P a) (p1 q1: Path (P a) a1 b1)
-      (r1 : Path (Path (P a) a1 b1) p1 q1)  (s1 : PathP (<i>PathP (<j>P (s@i@j)) a1 b1) p1 q1) ->
-      PathP (<i>PathP (<j>PathP (<k>P (t@i@j@k)) a1 b1) p1 q1) r1 s1) (gP a)
+lem1 (A : U) (P : A -> U) (gP : (x : A) -> groupoid (P x)) (a : A) :
+     (s : Path (Path A a a) (<_> a) (<_> a))
+     (t : Path (Path (Path A a a) (<_> a) (<_> a)) (<_ _> a) s)
+     (a1 b1 : P a) (p1 q1 : Path (P a) a1 b1)
+     (r1 : Path (Path (P a) a1 b1) p1 q1)
+     (s1 : PathP (<i> PathP (<j> P (s @ i @ j)) a1 b1) p1 q1) ->
+     PathP (<i> PathP (<j> PathP (<k> P (t @ i @ j @ k)) a1 b1) p1 q1) r1 s1 =
+ J (Path (Path A a a) (<_> a) (<_> a)) (<_ _> a)
+   (\(s : Path (Path A a a) (<_> a) (<_> a))
+     (t : Path (Path (Path A a a) (<_> a) (<_> a)) (<_ _> a) s) ->
+     (a1 b1 : P a) (p1 q1 : Path (P a) a1 b1)
+     (r1 : Path (Path (P a) a1 b1) p1 q1)
+     (s1 : PathP (<i> PathP (<j> P (s @ i @ j)) a1 b1) p1 q1) ->
+     PathP (<i> PathP (<j> PathP (<k> P (t @ i @ j @ k)) a1 b1) p1 q1) r1 s1)
+     (gP a)
 
-lem (A:U) (P:A -> U) (gP:(x:A) -> groupoid (P x))
-    (a :A) : (b:A) (p q:Path A a b) (r s:Path (Path A a b) p q) (t:Path (Path (Path A a b) p q) r s)
-    (a1:P a) (b1:P b) (p1: PathP (<i>P (p@i)) a1 b1) (q1: PathP (<i>P (q@i)) a1 b1)
-    (r1 : PathP (<i>PathP (<j>P (r@i@j)) a1 b1) p1 q1)  (s1 : PathP (<i>PathP (<j>P (s@i@j)) a1 b1) p1 q1) ->
-    PathP (<i>PathP (<j>PathP (<k>P (t@i@j@k)) a1 b1) p1 q1) r1 s1 = 
- J A a (\ (b:A) (p :Path A a b) -> (q:Path A a b) (r s:Path (Path A a b) p q) (t:Path (Path (Path A a b) p q) r s)
-          (a1:P a) (b1:P b) (p1: PathP (<i>P (p@i)) a1 b1) (q1: PathP (<i>P (q@i)) a1 b1)
-          (r1 : PathP (<i>PathP (<j>P (r@i@j)) a1 b1) p1 q1)  (s1 : PathP (<i>PathP (<j>P (s@i@j)) a1 b1) p1 q1) ->
-          PathP (<i>PathP (<j>PathP (<k>P (t@i@j@k)) a1 b1) p1 q1) r1 s1) rem
+lem (A : U) (P : A -> U) (gP : (x : A) -> groupoid (P x)) (a : A) :
+    (b : A) (p q : Path A a b)
+    (r s : Path (Path A a b) p q)
+    (t : Path (Path (Path A a b) p q) r s)
+    (a1 : P a) (b1 : P b)
+    (p1 : PathP (<i> P (p @ i)) a1 b1)
+    (q1 : PathP (<i> P (q @ i)) a1 b1)
+    (r1 : PathP (<i> PathP (<j> P (r @ i @ j)) a1 b1) p1 q1)
+    (s1 : PathP (<i> PathP (<j> P (s @ i @ j)) a1 b1) p1 q1) ->
+    PathP (<i> PathP (<j> PathP (<k> P (t @ i @ j @ k)) a1 b1) p1 q1) r1 s1 =
+ J A a (\(b : A) (p : Path A a b) -> (q : Path A a b)
+          (r s : Path (Path A a b) p q)
+          (t : Path (Path (Path A a b) p q) r s)
+          (a1 : P a) (b1 : P b)
+          (p1 : PathP (<i> P (p @ i)) a1 b1)
+          (q1 : PathP (<i> P (q @ i)) a1 b1)
+          (r1 : PathP (<i> PathP (<j> P (r @ i @ j)) a1 b1) p1 q1)
+          (s1 : PathP (<i> PathP (<j> P (s @ i @ j)) a1 b1) p1 q1) ->
+          PathP (<i> PathP (<j> PathP (<k> P (t @ i @ j @ k)) a1 b1) p1 q1) r1 s1) rem
  where
-  rem : (q:Path A a a) (r s:Path (Path A a a) (refl A a) q) (t:Path (Path (Path A a a) (refl A a) q) r s)
-        (a1:P a) (b1:P a) (p1: Path (P a) a1 b1) (q1: PathP (<i>P (q@i)) a1 b1)
-        (r1 : PathP (<i>PathP (<j>P (r@i@j)) a1 b1) p1 q1)  (s1 : PathP (<i>PathP (<j>P (s@i@j)) a1 b1) p1 q1) ->
-    PathP (<i>PathP (<j>PathP (<k>P (t@i@j@k)) a1 b1) p1 q1) r1 s1 =
-   J (Path A a a) (refl A a) (\ (q:Path A a a) (r:Path (Path A a a) (refl A a) q) ->
-     (s:Path (Path A a a) (refl A a) q) (t:Path (Path (Path A a a) (refl A a) q) r s)
-     (a1:P a) (b1:P a) (p1: Path (P a) a1 b1) (q1: PathP (<i>P (q@i)) a1 b1)
-     (r1 : PathP (<i>PathP (<j>P (r@i@j)) a1 b1) p1 q1)  (s1 : PathP (<i>PathP (<j>P (s@i@j)) a1 b1) p1 q1) ->
-     PathP (<i>PathP (<j>PathP (<k>P (t@i@j@k)) a1 b1) p1 q1) r1 s1) (lem1 A P gP a)
+  rem : (q : Path A a a) (r s : Path (Path A a a) (<_> a) q)
+        (t : Path (Path (Path A a a) (<_> a) q) r s)
+        (a1 : P a) (b1 : P a)
+        (p1 : Path (P a) a1 b1)
+        (q1 : PathP (<i> P (q @ i)) a1 b1)
+        (r1 : PathP (<i> PathP (<j> P (r @ i @ j)) a1 b1) p1 q1)
+        (s1 : PathP (<i> PathP (<j> P (s @ i @ j)) a1 b1) p1 q1) ->
+        PathP (<i> PathP (<j> PathP (<k> P (t @ i @ j @ k)) a1 b1) p1 q1) r1 s1 =
+   J (Path A a a) (<_> a) (\(q : Path A a a) (r : Path (Path A a a) (<_> a) q) ->
+     (s : Path (Path A a a) (<_> a) q)
+     (t : Path (Path (Path A a a) (<_> a) q) r s)
+     (a1 b1 : P a)
+     (p1 : Path (P a) a1 b1)
+     (q1 : PathP (<i> P (q @ i)) a1 b1)
+     (r1 : PathP (<i> PathP (<j> P (r @ i @ j)) a1 b1) p1 q1)
+     (s1 : PathP (<i> PathP (<j> P (s @ i @ j)) a1 b1) p1 q1) ->
+     PathP (<i> PathP (<j> PathP (<k> P (t @ i @ j @ k)) a1 b1) p1 q1) r1 s1) (lem1 A P gP a)
 
-T:U =  (A:U) (P:A -> U) (gP:(x:A) -> groupoid (P x))
-       (a b:A) (p q:Path A a b) (r s:Path (Path A a b) p q) (t:Path (Path (Path A a b) p q) r s)
-       (a1:P a) (b1:P b) (p1: PathP (<i>P (p@i)) a1 b1) (q1: PathP (<i>P (q@i)) a1 b1)
-       (r1 : PathP (<i>PathP (<j>P (r@i@j)) a1 b1) p1 q1)  (s1 : PathP (<i>PathP (<j>P (s@i@j)) a1 b1) p1 q1) ->
-         PathP (<i>PathP (<j>PathP (<k>P (t@i@j@k)) a1 b1) p1 q1) r1 s1
+T : U = (A : U) (P : A -> U) (gP : (x : A) -> groupoid (P x))
+        (a b : A) (p q : Path A a b) (r s : Path (Path A a b) p q)
+        (t : Path (Path (Path A a b) p q) r s)
+        (a1 : P a) (b1 : P b)
+        (p1 : PathP (<i> P (p @ i)) a1 b1)
+        (q1 : PathP (<i> P (q @ i)) a1 b1)
+        (r1 : PathP (<i> PathP (<j> P (r @ i @ j)) a1 b1) p1 q1)
+        (s1 : PathP (<i> PathP (<j> P (s @ i @ j)) a1 b1) p1 q1) ->
+        PathP (<i> PathP (<j> PathP (<k> P (t @ i @ j @ k)) a1 b1) p1 q1) r1 s1
 
-gTruncElim1 (lem:T) (A : U)
-           (B : (gTrunc A) -> U)
-           (bG : (z:gTrunc A) -> groupoid (B z))
-           (f : (x:A) -> B (inc x)) : (z:gTrunc A) -> B z = split
-    inc a -> f a
-    squashC a b p q r s @ i j k   -> lem (gTrunc A) B bG a b p q r s
-                                        (gTr A a b p q r s)
-                                        (gTruncElim1 lem A B bG f a)
-                                        (gTruncElim1 lem A B bG f b)
-                                        (<m> gTruncElim1 lem A B bG f (p @ m))
-                                        (<m> gTruncElim1 lem A B bG f (q @ m))
-                                        (<m n> gTruncElim1 lem A B bG f (r @ m @ n))
-                                        (<m n> gTruncElim1 lem A B bG f (s @ m @ n)) @ i @ j @ k
+gTruncElim1 (P : T) (A : U) (B : (gTrunc A) -> U)
+            (bG : (x : gTrunc A) -> groupoid (B x))
+            (f : (x : A) -> B (inc x)) : (x : gTrunc A) -> B x = split
+  inc a -> f a
+  squashC a b p q r s @ i j k -> P (gTrunc A) B bG a b p q r s
+                                   (gTr A a b p q r s)
+                                   (gTruncElim1 P A B bG f a)
+                                   (gTruncElim1 P A B bG f b)
+                                   (<m> gTruncElim1 P A B bG f (p @ m))
+                                   (<m> gTruncElim1 P A B bG f (q @ m))
+                                   (<m n> gTruncElim1 P A B bG f (r @ m @ n))
+                                   (<m n> gTruncElim1 P A B bG f (s @ m @ n)) @ i @ j @ k
 
-gTruncElim : (A : U)
-           (B : (gTrunc A) -> U)
-           (bG : (z:gTrunc A) -> groupoid (B z))
-           (f : (x:A) -> B (inc x)) (z:gTrunc A) -> B z = gTruncElim1 lem
+gTruncElim : (A : U) (B : (gTrunc A) -> U)
+             (bG : (x : gTrunc A) -> groupoid (B x))
+             (f : (x : A) -> B (inc x)) (x : gTrunc A) -> B x = gTruncElim1 lem
 
-univG (A B:U) (bG:groupoid B) : Path U ((gTrunc A) -> B) (A -> B) = 
+gTruncMapUniq (A B : U) (hB : groupoid B) (g h : gTrunc A -> B)
+              (H : (a : A) -> Path B (g (inc a)) (h (inc a))) :
+              (x : gTrunc A) -> Path B (g x) (h x) =
+  gTruncElim A (\(x : gTrunc A) -> Path B (g x) (h x))
+             (\(x : gTrunc A) -> groupoidTwoGroupoid B hB (g x) (h x)) H
+
+univG (A B:U) (bG:groupoid B) : Path U ((gTrunc A) -> B) (A -> B) =
    isoPath (gTrunc A -> B) (A -> B) F G s t
  where
    F (h : gTrunc A -> B) (a: A) : B = h (inc a)
@@ -102,4 +131,3 @@ univG (A B:U) (bG:groupoid B) : Path U ((gTrunc A) -> B) (A -> B) =
       tP (z : gTrunc A) : groupoid (P z) = setGroupoid (P z) (bG (G (F h) z) (h z))
 
       rem : (z:gTrunc A) -> P z = gTruncElim A P tP (\ (a:A) -> refl B (h (inc a)))
-

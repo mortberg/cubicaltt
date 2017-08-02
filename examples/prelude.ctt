@@ -159,6 +159,7 @@ constSquare (A : U) (a : A) (p : Path A a a) : Square A a a a a p p p p =
 prop (A : U) : U = (a b : A) -> Path A a b
 set (A : U) : U = (a b : A) -> prop (Path A a b)
 groupoid (A : U) : U = (a b : A) -> set (Path A a b)
+twogroupoid (A : U) : U = (a b : A) -> groupoid (Path A a b)
 
 -- the collection of all sets
 SET : U = (X:U) * set X
@@ -166,9 +167,15 @@ SET : U = (X:U) * set X
 propSet (A : U) (h : prop A) : set A =
  \(a b : A) (p q : Path A a b) ->
    <j i> hcomp A a [ (i=0) -> h a a
-                       , (i=1) -> h a b
-                       , (j=0) -> h a (p @ i)
-                       , (j=1) -> h a (q @ i)]
+                   , (i=1) -> h a b
+                   , (j=0) -> h a (p @ i)
+                   , (j=1) -> h a (q @ i)]
+
+setGroupoid (A : U) (h : set A) : groupoid A =
+  \(a b : A) -> propSet (Path A a b) (h a b)
+
+groupoidTwoGroupoid (A : U) (h : groupoid A) : twogroupoid A =
+  \(a b : A) -> setGroupoid (Path A a b) (h a b)
 
 propIsProp (A : U) : prop (prop A) =
   \(f g : prop A) -> <i> \(a b : A) ->

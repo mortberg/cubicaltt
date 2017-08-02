@@ -34,6 +34,13 @@ pTruncElim (A : U) (B : (pTrunc A) -> U)
       (pTruncElim A B pP f y)
     @ i
 
+pTruncMapUniq (A B : U) (hB : prop B) (g h : pTrunc A -> B)
+              (H : (a : A) -> Path B (g (inc a)) (h (inc a))) :
+              (x : pTrunc A) -> Path B (g x) (h x) =
+  pTruncElim A (\(x : pTrunc A) -> Path B (g x) (h x))
+             (\(x : pTrunc A) -> propSet B hB (g x) (h x)) H
+
+
 
 -- test with truncation of unit
 

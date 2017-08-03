@@ -524,8 +524,6 @@ Hopf : S2 -> U = split
   south -> S1
   merid x @ i -> ua S1 S1 (mu x) @ i
 
--- Definition of the t map, this needs cleaning!
-
 subst (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
   transGen (<i> P (p @ i)) 0 e
 
@@ -540,37 +538,31 @@ J (A : U) (a : A) (C : (x : A) -> Path A a x -> U)
 PathS (A : U) (P : A -> U) (a0 a1 : A) (p : Path A a0 a1) (u0 : P a0) (u1 : P a1) : U =
   PathP (<i> P (p @ i)) u0 u1
 
--- CLEAN THIS MESS!
+transGen0 (A : U) (a : A) : A = transGen (<_> A) 0 a
+
+-- this could use comp3
+lemTransGen0 (A : U) (a : A) : Path A (transGen0 A a) a =
+-- let rem1 : Path A a (hcomp A (transGen (<_> A) 0 a) []) = fill (<_> A) a []
+--     rem2 : Path A (transGen (<_> A) 0 a) (hcomp A (transGen (<_> A) 0 a) []) =
+--       hfill A (transGen (<_> A) 0 a) []
+-- in compPath A (transGen0 A a) (hcomp A (transGen (<_> A) 0 a) []) a rem2 (<i> rem1 @ -i)
+  <i> hcomp A (hfill A (transGen (<_> A) 0 a) [] @ i)
+           [ (i = 0) -> <_> transGen0 A a
+           , (i = 1) -> <j> fill (<_> A) a [] @ -j ]
+
 -- TODO: is there a direct proof not involving J?
-funExt1 (C B : U) (F : C -> U) (a : C) : (b : C) (p : Path C a b)
-        (f : F a -> B) (g : F b -> B)
-        (h : (x : F a) -> Path B (f x) (g (subst C F a b p x))) ->
-        PathP (<i> F (p @ i) -> B) f g =
-        let
-            rem (f g : F a -> B) (h : (x : F a) -> Path B (f x) (g x)) : Path (F a -> B) f g =
-              <i>\(x:F a) -> h x @ i
-            P : (b:C) (p:Path C a b) -> U = \(b:C) (p:Path C a b) -> (f : F a -> B) (g : F b -> B)
-                                            (h : (x : F a) -> Path B (f x) (g (subst C F a b p x)))
-                                            -> PathP (<i> F (p @ i) -> B) f g
-            rem1 (f g : F a -> B)
-                 (h : (x : F a) -> Path B (f x) (g (transGen (<_> F a) 0 x)))
-                 : Path (F a -> B) f g =
-                     let
-                         moo : Path (F a -> B) f (\(x : F a) -> g (transGen (<_> F a) 0 x)) =
-                           <i> \(x : F a) -> h x @ i
-                         boo' (x : F a) : Path (F a) x (hcomp (F a) (transGen (<_> F a) 0 x) []) =
-                           fill (<_> F a) x []
-                         boo'' (x : F a) : Path (F a) (transGen (<_> F a) 0 x) (hcomp (F a) (transGen (<_> F a) 0 x) []) = hfill (F a) (transGen (<_> F a) 0 x) []
-                         boo''' (x : F a) : Path (F a) x (transGen (<_> F a) 0 x) =
-                           compPath (F a) x (hcomp (F a) (transGen (<_> F a) 0 x) []) (transGen (<_> F a) 0 x) (boo' x) (<i> boo'' x @ -i)
-                         boo (x : F a) : Path B (g x) (g (transGen (<_> F a) 0 x)) =
-                           <i> g (boo''' x @ i)
-                         boof : Path (F a -> B) (\(x : F a) -> g (transGen (<_> F a) 0 x)) g =
-                           <i> \(x : F a) -> boo x @ -i
-                     in compPath (F a -> B) f (\(x : F a) -> g (transGen (<_> F a) 0 x)) g moo boof
-        in J C a (\ (b:C) (p:Path C a b) -> (f : F a -> B) (g : F b -> B)
-            (h : (x : F a) -> Path B (f x) (g (subst C F a b p x)))
-              -> PathP (<i> F (p @ i) -> B) f g) rem1
+funExt1 (C B : U) (F : C -> U) (a : C) :
+  (b : C) (p : Path C a b) (f : F a -> B) (g : F b -> B)
+  (h : (x : F a) -> Path B (f x) (g (subst C F a b p x))) ->
+  PathP (<i> F (p @ i) -> B) f g =
+  let rem1 (f g : F a -> B) (h : (x : F a) -> Path B (f x) (g (transGen (<_> F a) 0 x))) : Path (F a -> B) f g =
+        let p1 : Path (F a -> B) f (\(x : F a) -> g (transGen (<_> F a) 0 x)) =
+              <i> \(x : F a) -> h x @ i
+            p2 : Path (F a -> B) (\(x : F a) -> g (transGen (<_> F a) 0 x)) g =
+              <i> \(x : F a) -> g (lemTransGen0 (F a) x @ i)
+        in compPath (F a -> B) f (\(x : F a) -> g (transGen (<_> F a) 0 x)) g p1 p2
+  in J C a (\(b : C) (p:Path C a b) -> (f : F a -> B) (g : F b -> B)
+           (h : (x : F a) -> Path B (f x) (g (subst C F a b p x))) -> PathP (<i> F (p @ i) -> B) f g) rem1
 
 t : (x : S2) -> (Hopf x -> join S1 S1) = split
   north -> \(x : S1) -> inl x
@@ -638,24 +630,20 @@ inhOrTrunc (A : U) : nat -> U = split
   zero  -> A
   suc n -> (x y : A) -> inhOrTrunc (Path A x y) n
 
--- TODO: change to transGen
-subst' (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
-  transport (<i> P (p @ i)) e
-
 funDepTr (A : U) (P : A -> U) (a0 a1 : A) (p : Path A a0 a1) (u0 : P a0) (u1 : P a1) :
          Path U (PathP (<i> P (p @ i)) u0 u1)
-                (Path (P a1) (subst' A P a0 a1 p u0) u1) =
-  <j> PathP (<i> P (p @ j \/ i)) (comp (<i> P (p @ j /\ i)) u0 [ (j=0) -> <_> u0 ]) u1
+                (Path (P a1) (subst A P a0 a1 p u0) u1) =
+  <j> PathP (<i> P (p @ j \/ i)) (transGen (<i> P (p @ j /\ i)) (-j) u0) u1
 
 truncFibOmega (B : ptType) (P : B.1 -> U) (f : P (pt B)) (n : nat)
   (tr : inhOrTrunc (P (pt B)) (suc n)) (p : (Omega B).1) : inhOrTrunc (fibOmega B P f p) n =
-  let trf : inhOrTrunc (Path (P B.2) (subst' B.1 P (pt B) (pt B) p f) f) n =
-        tr (subst' B.1 P (pt B) (pt B) p f) f
-      eq : Path U (Path (P (pt B)) (subst' B.1 P (pt B) (pt B) p f) f)
+  let trf : inhOrTrunc (Path (P B.2) (subst B.1 P (pt B) (pt B) p f) f) n =
+        tr (subst B.1 P (pt B) (pt B) p f) f
+      eq : Path U (Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f)
                   (PathP (<i> P (p @ i)) f f) =
                     <i> funDepTr B.1 P (pt B) (pt B) p f f @ -i
   in subst U (\(X : U) -> inhOrTrunc X n)
-             (Path (P (pt B)) (subst' B.1 P (pt B) (pt B) p f) f)
+             (Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f)
              (PathP (<i> P (p @ i)) f f)
              eq trf
 
@@ -956,7 +944,6 @@ helix : S1 -> U = split
 
 encode (x : S1) (p : Path S1 base x) : helix x = subst S1 helix base x p zeroZ
 
-
 lem1ItPos : (n:nat) -> Path loopS1 (loopIt (sucZ (pos n))) (oneTurn ((loopIt (pos n)))) = split
  zero -> refl loopS1 (oneTurn (<_> base))
  suc p -> <i>oneTurn (lem1ItPos p@i)
@@ -983,18 +970,6 @@ lem1ItNeg : (n:nat) -> Path loopS1 (loopIt (sucZ (neg n))) (oneTurn (loopIt (neg
 lem1It : (n:Z) -> Path loopS1 (loopIt (sucZ n)) (oneTurn (loopIt n)) = split
   pos n -> lem1ItPos n
   neg n -> lem1ItNeg n
-
--- todo: this should be used above!
-transGen0 (A : U) (a : A) : A = transGen (<_> A) 0 a
-
-lemTransGen0 (A : U) (a : A) : Path A (transGen0 A a) a =
-  -- let rem1 : Path A a (hcomp A (transGen (<_> A) 0 a) []) = fill (<_> A) a []
-  --     rem2 : Path A (transGen (<_> A) 0 a) (hcomp A (transGen (<_> A) 0 a) []) =
-  --       hfill A (transGen (<_> A) 0 a) []
-  -- in compPath A (transGen0 A a) (hcomp A (transGen (<_> A) 0 a) []) a rem2 (<i> rem1 @ -i)
-  <i> hcomp A (hfill A (transGen (<_> A) 0 a) [] @ i)
-           [ (i = 0) -> <_> transGen0 A a
-           , (i = 1) -> <j> fill (<_> A) a [] @ -j ]
 
 lemFib1 (A:U) (F G : A -> U) (a:A) (fa : F a -> G a) :
    (x:A) (p : Path A a x) -> (fx : F x -> G x) ->
@@ -1057,8 +1032,8 @@ decode : (x:S1) -> helix x -> Path S1 base x = split
    rem : PathP p loopIt loopIt = corFib1 S1 helix G base loopIt loopIt loopP rem1
 
 encodeDecode (x : S1) (p : Path S1 base x) : Path (Path S1 base x) (decode x (encode x p)) p =
-  transport (<i> Path (Path S1 base (p @ i))
-            (decode (p @ i) (encode (p @ i) (<j> p @ i /\ j))) (<j> p @ i /\ j))
+  transGen (<i> Path (Path S1 base (p @ i))
+            (decode (p @ i) (encode (p @ i) (<j> p @ i /\ j))) (<j> p @ i /\ j)) 0
             (<_> triv)
 
 setLoop : set loopS1 = retractSet loopS1 Z (encode base) (decode base) (encodeDecode base) ZSet
@@ -1090,6 +1065,8 @@ h (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 =
   mapOmegaRefl3 (Sigma S2 Hopf, (north,base)) (join S1 S1) t'
     (itTotalFibOmega three S2pt Hopf base (p, fibContrHopfThree p))
 
+
+-- This is all that is needed for test0To5
 
 --------------------------------------------------------------------------------
 -- B.9 Going back to pi2(S2)
@@ -1934,18 +1911,18 @@ lemContr (A:U) (pA:prop A) (a:A) : isContr A = (a,rem)
  where rem (y:A) : Path A a y = pA a y
 
 lem2 (A:U) (B:A-> U) (t u : Sigma A B) (p:Path A t.1 u.1) :
-  Path U  (PathP (<i>B (p@i)) t.2 u.2) (Path (B u.1) (transport (<i>B (p@i)) t.2) u.2) =
+  Path U  (PathP (<i>B (p@i)) t.2 u.2) (Path (B u.1) (transGen (<i>B (p@i)) 0 t.2) u.2) =
     funDepTr A B t.1 u.1 p  t.2 u.2
 
 lem3 (A:U) (B:A-> U) (pB : (x:A) -> prop (B x)) (t u : Sigma A B) (p:Path A t.1 u.1) :
   isContr (PathP (<i>B (p@i)) t.2 u.2) = lemContr T0 (substInv U prop T0 T1 rem rem1) rem2
  where P : Path U (B t.1) (B u.1) = <i>B (p@i)
        T0 : U = PathP P t.2 u.2
-       T1 : U = Path (B u.1) (transport P t.2) u.2
+       T1 : U = Path (B u.1) (transGen P 0 t.2) u.2
        rem : Path U T0 T1 = lem2 A B t u p
-       v2 : B u.1 = transport P t.2
+       v2 : B u.1 = transGen P 0 t.2
        rem1 : prop T1 = propSet (B u.1) (pB u.1) v2 u.2
-       rem2 : T0 = transport (<i>rem@-i) (pB u.1 v2 u.2)
+       rem2 : T0 = transGen (<i>rem@-i) 0 (pB u.1 v2 u.2)
 
 lem6 (A:U) (P:A-> U) (cA:(x:A) -> isContr (P x)) : Path U ((x:A)*P x) A = isoPath T A f g t s
  where

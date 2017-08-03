@@ -12,6 +12,8 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Maybe
 import Test.QuickCheck
+import Data.IORef
+import System.IO.Unsafe
 
 newtype Name = Name String
   deriving (Arbitrary,Eq,Ord)
@@ -263,11 +265,23 @@ propInvFormulaIncomp phi b = incomparables (invFormula phi b)
 -- gensymNice i@(Name s) xs = head (ys \\ xs)
 --   where ys = i:map (\n -> Name (s ++ show n)) [0..]
 
-gensym :: [Name] -> Name
-gensym xs = Name ('!' : show max)
-  where max = maximum' [ read x | Name ('!':x) <- xs ]
-        maximum' [] = 0
-        maximum' xs = maximum xs + 1
+{-# NOINLINE freshVar #-}
+freshVar :: IORef Int
+freshVar = unsafePerformIO (newIORef 0)
+
+-- succName (Name x) = Name ()
+
+gensym :: [a] -> Name
+gensym _ = unsafePerformIO $ do
+  x <- readIORef freshVar
+  modifyIORef freshVar succ
+  return (Name (show x))
+
+-- gensym :: [Name] -> Name
+-- gensym xs = Name ('!' : show max)
+--   where max = maximum' [ read x | Name ('!':x) <- xs ]
+--         maximum' [] = 0
+--         maximum' xs = maximum xs + 1
 
 gensyms :: [Name] -> [Name]
 gensyms d = let x = gensym d in x : gensyms (x : d)
@@ -276,6 +290,7 @@ class Nominal a where
   support :: a -> [Name]
   act     :: a -> (Name,Formula) -> a
   swap    :: a -> (Name,Name) -> a
+
 
 fresh :: Nominal a => a -> Name
 fresh = gensym . support

@@ -334,12 +334,12 @@ psiinv (A : U) : join bool A -> susp A = split
           false -> south
           true  -> north
     in case b
-  inr a -> south
+  inr _ -> south
   push b a @ i ->
-    let case (a : A) : (b : bool) -> Path (susp A) (psiinv A (inl b)) south = split
+    let case : (b : bool) -> Path (susp A) (psiinv A (inl b)) south = split
           false -> <_> south
           true  -> meridP A a
-    in case a b @ i
+    in case b @ i
 
 -- I define c by going via susp bool
 -- TODO: maybe do it directly?

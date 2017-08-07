@@ -97,6 +97,28 @@ comp1Path (A : U) (a b : A) (p : Path A a b) :
                   , (i = 1) -> p
                   , (j = 1) -> <k> p @ i /\ k ]
 
+-- This would make a nice exercise
+helper (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) :
+  Square A a b b c p q p q =
+  <i j> hcomp A b [ (i = 0) -> <k> p @ j \/ -k
+                  , (i = 1) -> <k> q @ j /\ k
+                  , (j = 0) -> <k> p @ i \/ -k
+                  , (j = 1) -> <k> q @ i /\ k ]
+
+comp3 (A : U) (a b c d : A) (p : Path A a b) (q : Path A b c) (r : Path A c d) : Path A a d =
+  <i> hcomp A (q @ i) [ (i = 0) -> <j> p @ -j, (i = 1) -> r ]
+
+comp3eq (A : U) (a b c d : A) (p : Path A a b) (q : Path A b c) (r : Path A c d) :
+  Path (Path A a d) (compPath A a b d p (compPath A b c d q r)) (comp3 A a b c d p q r) =
+  let sq : Square A b c d d q (<_> d) (compPath A b c d q r) r =
+        <i j> hcomp A (q @ j) [ (i = 1) -> helper A b c d q r @ j
+                              , (j = 0) -> <k> q @ i /\ k
+                              , (j = 1) -> r ]
+      goal : Path (Path A a d) (compPath A a b d p (compPath A b c d q r)) (comp3 A a b c d p q r) =
+        <j i> hcomp A (helper A a b c p q @ i @ j) [ (i = 0) -> <k> p @ j /\ -k
+                                                   , (i = 1) -> sq @ j ]
+
+  in goal
 
 --------------------------------------------------------------------------------
 -- B.3 Suspension and spheres
@@ -312,7 +334,6 @@ joinassoc2 (A B C : U) : join (join A B) C -> join A (join B C) = split
   inr c   -> inr (inr c)
   push p q @ i -> l2rPush A B C q p @ i
 
-
 mapJoin (A A' B B' : U) (f : A -> A') (g : B -> B') : join A B -> join A' B' = split
   inl a -> inl (f a)
   inr b -> inr (g b)
@@ -341,26 +362,56 @@ psiinv (A : U) : join bool A -> susp A = split
           true  -> meridP A a
     in case b @ i
 
--- I define c by going via susp bool
--- TODO: maybe do it directly?
+-- Indirect definition of c going via susp bool:
 
-suspBoolToS1 : susp bool -> S1 = split
-  north   -> base
-  south   -> base
-  merid b @ i ->
+-- suspBoolToS1 : susp bool -> S1 = split
+--   north   -> base
+--   south   -> base
+--   merid b @ i ->
+--     let case : bool -> Path S1 base base = split
+--           false -> loopP
+--           true  -> <_> base
+--     in case b @ i
+
+-- s1ToSuspBool : S1 -> susp bool = split
+--   base -> north
+--   loop @ i -> compPath (susp bool) north south north
+--                        (meridP bool false) (<i> meridP bool true @ -i) @ i
+
+-- c (x : join bool bool) : S1 = suspBoolToS1 (psiinv bool x)
+
+-- cinv (x : S1) : join bool bool = psi bool (s1ToSuspBool x)
+
+
+-- Direct definition of c as in Appendix B:
+
+andBool : bool -> bool -> bool = split
+  false -> \(_ : bool) -> false
+  true -> idfun bool
+
+c : join bool bool -> S1 = split
+  inl _ -> base
+  inr _ -> base
+  push b b' @ i ->
     let case : bool -> Path S1 base base = split
-          false -> loopP
-          true  -> <_> base
-    in case b @ i
+          false -> <_> base
+          true -> loopP
+    in case (andBool b b') @ i -- if both b and b' are true then return loopP
 
-s1ToSuspBool : S1 -> susp bool = split
-  base -> north
-  loop @ i -> compPath (susp bool) north south north
-                       (meridP bool false) (<i> meridP bool true @ -i) @ i
-
-c (x : join bool bool) : S1 = suspBoolToS1 (psiinv bool x)
-
-cinv (x : S1) : join bool bool = psi bool (s1ToSuspBool x)
+cinv : S1 -> join bool bool = split
+  base -> inl true
+  loop @ i -> let p0 : Path (join bool bool) (inl true) (inr true) =
+                    pushP bool bool true true
+                  p1 : Path (join bool bool) (inr true) (inl false) =
+                    <i> pushP bool bool false true @ -i
+                  p2 : Path (join bool bool) (inl false) (inr false) =
+                    pushP bool bool false false
+                  p3 : Path (join bool bool) (inr false) (inl true) =
+                    <i> pushP bool bool true false @ -i
+                  -- By using comp3 we should hopefully get some hcomp's less
+                  p123 : Path (join bool bool) (inr true) (inl true) =
+                    comp3 (join bool bool) (inr true) (inl false) (inr false) (inl true) p1 p2 p3
+              in compPath (join bool bool) (inl true) (inr true) (inl true) p0 p123 @ i
 
 -- B.6.3 Equivalence between S3 and join S1 S1
 
@@ -385,15 +436,14 @@ einv (x : join S1 S1) : S3 =
 --------------------------------------------------------------------------------
 -- B.7 The main map
 
--- A modified version of the main map alpha, which is equal to the
--- other one (to be checked) but pointed by reflexivity
+-- Is this really the same as the one in the thesis?
 prealpha : join S1 S1 -> S2 = split
   inl x -> north
   inr y -> north
   push x y @ i ->
     -- A: I think there must be a bug in the old version when
     -- typechecking path constructors (we use merid{S2} there...)
-    compPath S2 north south north (meridP S1 x) (<i> meridP S1 y @ -i) @ i
+    compPath S2 north south north (meridP S1 x) (<i> meridP S1 y @ -i) @ i 
 
 alpha : ptMap (joinpt S1pt S1) S2pt = (prealpha, <_> north)
 
@@ -449,6 +499,8 @@ propSet (A : U) (h : prop A) : set A =
                        , (j=0) -> h a (p @ i)
                        , (j=1) -> h a (q @ i)]
 
+opaque propSet
+
 setGroupoid (A : U) (h : set A) : groupoid A =
   \(a b : A) -> propSet (Path A a b) (h a b)
 
@@ -462,13 +514,19 @@ propIsProp (A : U) : prop (prop A) =
   \(f g : prop A) -> <i> \(a b : A) ->
     propSet A f a b (f a b) (g a b) @ i
 
+opaque propIsProp
+
 setIsProp (A : U) : prop (set A) =
  \(f g : set A) -> <i> \(a b :A) ->
    propIsProp (Path A a b) (f a b) (g a b) @ i
 
+opaque setIsProp
+
 groupoidIsProp (A : U) : prop (groupoid A) =
  \(f g : groupoid A) -> <i> \(a b :A) ->
    setIsProp (Path A a b) (f a b) (g a b) @ i
+
+opaque groupoidIsProp
 
 propPi (A : U) (B : A -> U) (h : (x : A) -> prop (B x))
        (f0 f1 : (x : A) -> B x) : Path ((x : A) -> B x) f0 f1
@@ -478,7 +536,7 @@ propIsEquiv (A B : U) (f : A -> B) : prop (isEquiv A B f) =
   \(u0 u1 : isEquiv A B f) -> <i> \(y : B) -> propIsContr (fiber A B f y) (u0 y) (u1 y) @ i
 
 -- This opaque makes typechecking mu below faster, not sure if it breaks computation
--- opaque propIsEquiv
+opaque propIsEquiv
 
 lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a0 a1 :A)
          (p : Path A a0 a1) (b0 : P a0) (b1 : P a1) : PathP (<i> P (p @ i)) b0 b1 =
@@ -838,7 +896,8 @@ discreteZ : discrete Z = split
 
 
 ZSet : set Z = hedberg Z discreteZ
---
+
+opaque ZSet
 
 -- No need for substituting in the universe here
 -- setLoop : set loopS1 = subst U set Z loopS1 (<i> loopS1equalsZ @ -i) ZSet
@@ -945,8 +1004,8 @@ helix : S1 -> U = split
 encode (x : S1) (p : Path S1 base x) : helix x = subst S1 helix base x p zeroZ
 
 lem1ItPos : (n:nat) -> Path loopS1 (loopIt (sucZ (pos n))) (oneTurn ((loopIt (pos n)))) = split
- zero -> refl loopS1 (oneTurn (<_> base))
- suc p -> <i>oneTurn (lem1ItPos p@i)
+ zero -> <_> oneTurn (<_> base)
+ suc p -> <i> oneTurn (lem1ItPos p @ i)
 
 -- todo: clean
 compInv (A:U) (a:A) : (x:A) (p:Path A a x) -> Path (Path A x x) (<_>x) (compPath A x a x (<i>p@-i) p) =
@@ -954,7 +1013,7 @@ compInv (A:U) (a:A) : (x:A) (p:Path A a x) -> Path (Path A x x) (<_>x) (compPath
  where rem : Path (Path A a a) (<_>a) (<i>hcomp A a [(i=0) -> <_>a,(i=1) -> <_>a]) =
         <j i>hcomp A a [(j=0) -> <_>a,(i=0) -> <_>a,(i=1) -> <_>a]
 
-compInvS1 : Path loopS1 (refl S1 base) (compS1 invLoop loopP) = compInv S1 base base loopP
+compInvS1 : Path loopS1 (<_> base) (compS1 invLoop loopP) = compInv S1 base base loopP
 
 -- todo: why this one with the same name? clean!
 compInv (A:U) (a b:A) (q:Path A a b) : (x:A) (p:Path A b x) -> Path (Path A a b) q (compPath A a x b (compPath A a b x q p) (<i>p@-i)) =
@@ -1000,7 +1059,7 @@ testHelix : Path (Z->Z) sucZ (subst S1 helix base base loopP) =
                    (hcomp Z (hcomp Z (transGen (<!0> Z) 0 (sucZ x)) []) [])
                    (fill (<_> Z) (sucZ x) [])
                    (hfill Z (hcomp Z (transGen (<!0> Z) 0 (sucZ x)) []) [])
-  in   <i> \(x : Z) -> rem x @ i
+  in <i> \(x : Z) -> rem x @ i
 
 decode : (x:S1) -> helix x -> Path S1 base x = split
   base -> loopIt
@@ -1038,6 +1097,7 @@ encodeDecode (x : S1) (p : Path S1 base x) : Path (Path S1 base x) (decode x (en
 
 setLoop : set loopS1 = retractSet loopS1 Z (encode base) (decode base) (encodeDecode base) ZSet
 
+opaque setLoop
 
 lemPropFib (P : S1 -> U) (pP : (x : S1) -> prop (P x)) (bP : P base) : (x : S1) -> P x = split
  base -> bP
@@ -1053,6 +1113,8 @@ isGroupoidS1 : groupoid S1 = lem
      where
        pP (x : S1) : prop ((y : S1) -> set (Path S1 x y)) =
         propPi S1 (\(y : S1) -> set (Path S1 x y)) (\(y : S1) -> setIsProp (Path S1 x y))
+
+opaque isGroupoidS1
 
 fibContrHopfThree (p : (Omega3 S2pt).1) : HopfThree p =
   truncFibOmega (Omega2 S2pt) HopfTwo (<_ _> base) zero
@@ -1489,8 +1551,6 @@ substPathPi (A B : U) (f g : A -> B) (a : A) : (a' : A) (p : Path A a a')
 
 -- alternative approach
 
-comp3 (A : U) (a b c d : A) (p : Path A a b) (q : Path A b c) (r : Path A c d) : Path A a d =
-  <i> hcomp A (q @ i) [ (i = 0) -> <j> p @ -j, (i = 1) -> r ]
 
 meridIncSouth' (x y : S1) : idIncNS =
   comp3 trS2 (g2inc north) (g2inc south) (g2inc north) (g2inc south)
@@ -1505,33 +1565,11 @@ meridIncSouth' (x y : S1) : idIncNS =
   --          (<i> g2inc (meridP S1 x @ i)) (incSouthPath' y)
 
 
--- This would make a nice exercise
-helper (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) :
-  Square A a b b c p q p q =
-  <i j> hcomp A b [ (i = 0) -> <k> p @ j \/ -k
-                  , (i = 1) -> <k> q @ j /\ k
-                  , (j = 0) -> <k> p @ i \/ -k
-                  , (j = 1) -> <k> q @ i /\ k ]
-
-temp (A : U) (a b c d : A) (p : Path A a b) (q : Path A b c) (r : Path A c d) :
-  Path (Path A a d) (compPath A a b d p (compPath A b c d q r)) (comp3 A a b c d p q r) =
-  let sq : Square A b c d d q (<_> d) (compPath A b c d q r) r =
-        <i j> hcomp A (q @ j) [ (i = 1) -> helper A b c d q r @ j
-                              , (j = 0) -> <k> q @ i /\ k
-                              , (j = 1) -> r ]
-      goal : Path (Path A a d) (compPath A a b d p (compPath A b c d q r)) (comp3 A a b c d p q r) =
-        <j i> hcomp A (helper A a b c p q @ i @ j) [ (i = 0) -> <k> p @ j /\ -k
-                                                   , (i = 1) -> sq @ j ]
-
-  in goal
-
-
 meridIncSouthEq (x y : S1) : Path idIncNS (meridIncSouth x y) (meridIncSouth' x y) =
-  temp trS2 (g2inc north) (g2inc south) (g2inc north) (g2inc south)
+  comp3eq trS2 (g2inc north) (g2inc south) (g2inc north) (g2inc south)
     (<i> g2inc (meridP S1 x @ i))     -- p
     (<i> g2inc (meridP S1 base @ -i)) -- q
     (<j> g2inc (meridP S1 y @ j))     -- r
-
 
 
 -- |p| . | !p0 | . |q|
@@ -1719,6 +1757,8 @@ lem3Trunc (A B : U) (hB : twogroupoid B) (g h : g2Trunc A -> B)
   g2TruncElim A (\(x : g2Trunc A) -> Path B (g x) (h x))
              (\(x : g2Trunc A) -> twogroupoidThreeGroupoid B hB (g x) (h x)) H
 
+opaque lem3Trunc
+
 multTwoTildeEquiv : (x : S2) -> isEquiv trS2 trS2 (multTwoTilde x) =
   lemPropS2
     (\(x : S2) -> isEquiv trS2 trS2 (multTwoTilde x))
@@ -1730,6 +1770,8 @@ multTwoTildeEquiv : (x : S2) -> isEquiv trS2 trS2 (multTwoTilde x) =
         multEquivNorth : isEquiv trS2 trS2 (multTwoTilde north) =
           subst (trS2 -> trS2) (isEquiv trS2 trS2) (idfun trS2)
                 (multTwoTilde north) multNorthEqPath (idIsEquiv trS2)
+
+-- opaque multTwoTildeEquiv
 
 tHopf3 : S3 -> U = split
   north -> trS2
@@ -1967,6 +2009,8 @@ twogroupoidGROUPOID : twogroupoid GROUPOID = \(A B : GROUPOID) ->
         lemSigProp U groupoid groupoidIsProp A B
   in substInv U groupoid (Path GROUPOID A B) (Path U A.1 B.1) rem1 rem
 
+opaque twogroupoidGROUPOID
+
 truncPath2 (A : ptType) : g2Trunc A.1 -> GROUPOID =
   g2TruncRec A.1 GROUPOID twogroupoidGROUPOID
     (\(x : A.1) -> (gTrunc (Path A.1 (pt A) x),gTruncGroupoid (Path A.1 (pt A) x)))
@@ -1997,6 +2041,8 @@ groupoidSET : groupoid SET = \(A B : SET) ->
       rem1 : Path U (Path SET A B) (Path U A.1 B.1) =
         lemSigProp U set setIsProp A B
   in substInv U set (Path SET A B) (Path U A.1 B.1) rem1 rem
+
+opaque groupoidSET
 
 truncPath1 (A : ptType) : gTrunc A.1 -> SET =
   gTruncRec A.1 SET groupoidSET
@@ -2064,8 +2110,7 @@ f9 : (Omega (gTruncpt (Omega S2pt))).1 -> sTrunc (Omega2 S2pt).1 =
 
 f10 : sTrunc (Omega2 S2pt).1 -> loopS1 = e2'
 
--- I think this is correct
-f11 (p : loopS1) : Z = encode base p
+f11 : loopS1 -> Z = encode base
 
 -- WORKS
 test0To1 : (Omega2 S2pt).1 = f1 (f0 oneZ)
@@ -2108,3 +2153,37 @@ test0To10 : loopS1 = f10 test0To9
 
 -- This should be "pos (suc (suc zero))"...
 brunerie : Z = f11 test0To10
+
+
+-- Various shortcuts:
+
+-- Works
+-- EVAL: neg zero
+-- Time: 0m0.224s
+testShortcut2To9 : Z = f11 (f10 (shortcut2To9 (f1 (f0 oneZ))))
+  where
+  shortcut2To9 (x : (Omega2 S2pt).1) : sTrunc (Omega2 S2pt).1 = sinc x
+
+-- Works
+-- EVAL: neg zero
+-- Time: 0m14.399s
+-- With opaque propIsEquiv:
+-- EVAL: neg zero
+-- Time: 0m5.798s
+testShortcut2To8 : Z = f11 (f10 (f9 (shortcut2To8 (f1 (f0 oneZ)))))
+  where
+  foo (x : (Omega S2pt).1) : (gTrunc (Omega S2pt).1) = ginc x
+  shortcut2To8 : (Omega2 S2pt).1 -> (Omega (gTruncpt (Omega S2pt))).1 =
+    mapOmegaRefl (Omega S2pt) (gTrunc (Omega S2pt).1) foo
+
+-- ?
+testShortcut2To7 : Z = f11 (f10 (f9 (f8 (shortcut2To7 (f1 (f0 oneZ))))))
+  where
+  shortcut2To7 : (Omega2 S2pt).1 -> (Omega2 (g2Truncpt S2pt)).1 =
+    mapOmegaRefl2 S2pt (g2Trunc S2) (\(x : S2) -> g2inc x)
+
+-- ?
+testShortcut3To6 : Z = f11 (f10 (f9 (f8 (f7 (f2 (f1 (f0 oneZ)))))))
+
+-- ?
+testShortcut4To5 : Z = f11 (f10 (f9 (f8 (f7 (f6 (f3 (f2 (f1 (f0 oneZ)))))))))

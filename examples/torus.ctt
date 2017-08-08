@@ -130,7 +130,9 @@ data Torus' = b
                                          , (j=1) -> <k> q{Torus'} @ k ]
                          , (i=1) -> hcomp Torus' (q{Torus'} @ j)
                                          [ (j=0) -> <_> b
-                                         , (j=1) -> <k> p{Torus'} @ k ] ]
+                                         , (j=1) -> <k> p{Torus'} @ k ]
+                         , (j=0) -> b
+                         , (j=1) -> b ]
 
 pq : Path Torus' b b =
   <j> hcomp Torus' (p{Torus'} @ j)
@@ -148,5 +150,4 @@ qp' : Path Torus' b b = <j> surf{Torus'} @ 1 @ j
 test1 : Path (Path Torus' b b) pq pq' = <_> pq
 test2 : Path (Path Torus' b b) qp qp' = <_> qp
 
-pqqp : PathP (<i> Path Torus' (surf{Torus'} @ i @ 0) (surf{Torus'} @ i @ 1)) pq qp =
-  <i> (<j> (surf{Torus'} @ i) @ j)
+pqqp : Path (Path Torus' b b) pq qp = <i j> surf{Torus'} @ i @ j

@@ -74,7 +74,7 @@ idToPathToId (A : U) (a b : A) (p : Id A a b) :
 PathIdPath (A B : U) : Path U (Id U A B) (Path U A B) =
   equivPath (Id U A B) (Path U A B) (idToPath U A B) rem
   where rem : isEquiv (Id U A B) (Path U A B) (idToPath U A B) =
-          gradLemma (Id U A B) (Path U A B) (idToPath U A B) (pathToId U A B)
+          isoToEquiv (Id U A B) (Path U A B) (idToPath U A B) (pathToId U A B)
             (\(p : Path U A B) -> <i> pathToIdToPath U A B p @ - i)
             (\(p : Id U A B) -> <i> idToPathToId U A B p @ - i)
 

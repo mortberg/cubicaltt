@@ -1,7 +1,7 @@
 -- The old version of univalence using the old definition of equivalences
 module univalence where
 
-import gradLemma
+import isoToEquiv
 
 transEquivToId (A B : U) (w : equiv A B) : Id U A B =
   <i> glue B [ (i = 1) -> (B,eB)
@@ -36,7 +36,7 @@ idToId (A B : U) (w : equiv A B)
 
 transEquivIsEquiv (A B : U)
   : isEquiv (Id U A B) (equiv A B) (transEquiv A B)
-  = gradLemma (Id U A B) (equiv A B) (transEquiv A B)
+  = isoToEquiv (Id U A B) (equiv A B) (transEquiv A B)
       (transEquivToId A B) (idToId A B) (eqToEq A B)
 
 univalence (A B : U) : equiv (Id U A B) (equiv A B) =

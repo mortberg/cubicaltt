@@ -8,7 +8,7 @@ import helix
 
 isEquivComp (A B C : U) (F : A -> B) (G : B -> C) (ef : isEquiv A B F) (eg : isEquiv B C G)
   : isEquiv A C (\(x : A) -> G (F x))
-  = gradLemma A C (\(x : A) -> G (F x)) (\(x : C) -> (ef (eg x).1.1).1.1)
+  = isoToEquiv A C (\(x : A) -> G (F x)) (\(x : C) -> (ef (eg x).1.1).1.1)
     (\(x : C) -> compPath C (G (F (ef (eg x).1.1).1.1)) (G (eg x).1.1) x
                  (<i> G (retEq A B (F, ef) (eg x).1.1 @ i)) (retEq B C (G, eg) x))
     (\(x : A) -> compPath A ((ef (eg (G (F x))).1.1).1.1) (ef (F x)).1.1 x
@@ -16,7 +16,7 @@ isEquivComp (A B C : U) (F : A -> B) (G : B -> C) (ef : isEquiv A B F) (eg : isE
 
 isEquivComp' (A B C : U) (F : A -> B) (G : C -> B) (ef : isEquiv A B F) (eg : isEquiv C B G)
   : isEquiv A C (\(x : A) -> (eg (F x)).1.1)
-  = gradLemma A C (\(x : A) -> (eg (F x)).1.1) (\(x : C) -> (ef (G x)).1.1)
+  = isoToEquiv A C (\(x : A) -> (eg (F x)).1.1) (\(x : C) -> (ef (G x)).1.1)
     (\(x : C) -> compPath C (eg (F (ef (G x)).1.1)).1.1 (eg (G x)).1.1 x
                  (<i> (eg (retEq A B (F, ef) (G x) @ i)).1.1) (secEq C B (G, eg) x))
     (\(x : A) -> compPath A ((ef (G (eg (F x)).1.1)).1.1) (ef (F x)).1.1 x
@@ -96,7 +96,7 @@ lemPathPSet2 (A B : U) (ASet : set A) (p1 : Path U A B)
     (lemPathPSet A B ASet p1)
 
 
-isEquivPath (A : U) : isEquiv A A (\(x : A) -> x) = gradLemma A A (\(x : A) -> x) (\(x : A) -> x) (\(x : A) -> <_> x) (\(x : A) -> <_> x)
+isEquivPath (A : U) : isEquiv A A (\(x : A) -> x) = isoToEquiv A A (\(x : A) -> x) (\(x : A) -> x) (\(x : A) -> <_> x) (\(x : A) -> <_> x)
 
 lem10 (A B : U) (e : equiv A B) (x y : B) (p : Path A (e.2 x).1.1 (e.2 y).1.1) : Path B x y
   = transport
@@ -208,7 +208,7 @@ isoPathProp (A B : U) (AProp : prop A) (BProp : prop B) (F : A -> B) (G : B -> A
   isoPath A B F G (\(y : B) -> BProp (F (G y)) y) (\(x : A) -> AProp (G (F x)) x)
 
 equivProp (A B : U) (AProp : prop A) (BProp : prop B) (F : A -> B) (G : B -> A) : equiv A B =
-  (F, gradLemma A B F G (\(y : B) -> BProp (F (G y)) y) (\(x : A) -> AProp (G (F x)) x))
+  (F, isoToEquiv A B F G (\(y : B) -> BProp (F (G y)) y) (\(x : A) -> AProp (G (F x)) x))
 
 isContrProp (A : U) (p : isContr A) (x y : A) : Path A x y = compPath A x p.1 y (<i> p.2 x @ -i) (p.2 y)
 
@@ -297,7 +297,7 @@ F12 (A B : U) (F : A -> B) (p1 : P1 A B F) (x : A) : isContr ((y : A) * Path B (
     hole  : isContr ((y : A) * Path B (F x) (F y)) = transport (<i> isContr (hole4@i)) (lem2 A x)
 
 contrEquiv (A B : U) (aC : isContr A) (bC : isContr B) : equiv A B
-  = (\(_ : A) -> bC.1, gradLemma A B (\(_ : A) -> bC.1) (\(_ : B) -> aC.1) (\(x : B) -> bC.2 x) (\(x : A) -> aC.2 x))
+  = (\(_ : A) -> bC.1, isoToEquiv A B (\(_ : A) -> bC.1) (\(_ : B) -> aC.1) (\(x : B) -> bC.2 x) (\(x : A) -> aC.2 x))
 
 F21 (A B : U) (F : A -> B) (p2 : P2 A B F) (x y : A) : isEquiv (Path A x y) (Path B (F x) (F y)) (mapOnPath A B F x y) = hole3 y
   where
@@ -442,7 +442,7 @@ lemBZ (BA BB : BZ) : equiv ((p : Path U (BZSet BA) (BZSet BB)) * PathP (<i> p@i 
                    AEquiv BEquiv (<i> BZEquiv (q2@i)) (<i> BZEquiv (q@i))
           hole : Path (Path BZ BA BB) q2 q = <j i> (p@i, (pNE@j@i, (pShift@j@i, pEquiv@j@i)))
       hole : equiv ((p : Path U (BZSet BA) (BZSet BB)) * PathP (<i> p@i -> p@i) (BZS BA) (BZS BB)) (Path BZ BA BB)
-           = (F, gradLemma ((p : Path U (BZSet BA) (BZSet BB)) * PathP (<i> p@i -> p@i) (BZS BA) (BZS BB)) (Path BZ BA BB) F G FG GF)
+           = (F, isoToEquiv ((p : Path U (BZSet BA) (BZSet BB)) * PathP (<i> p@i -> p@i) (BZS BA) (BZS BB)) (Path BZ BA BB) F G FG GF)
 
 lem2 (A : U) (shift : equiv A A) (a : A) : (x : Z) -> Path A (shift.1 (action A shift a x)) (action A shift a (sucZ x)) = split
   inl n -> lem2Aux n
@@ -470,7 +470,7 @@ lem2' (A : U) (shift : equiv A A) (a : A) : (x : Z) -> Path A (shift.2 (action A
 
 ZBZ : BZ = (Z, (hinhpr Z zeroZ, (ZShift, ZEquiv)))
   where
-    ZShift : equiv Z Z = (sucZ, gradLemma Z Z sucZ predZ sucpredZ predsucZ)
+    ZShift : equiv Z Z = (sucZ, isoToEquiv Z Z sucZ predZ sucpredZ predsucZ)
     plus : Z -> Z -> Z = action Z ZShift
     plusCommZero : (y : Z) -> Path Z (plus zeroZ y) (plus y zeroZ) = split
       inl u -> hole u
@@ -606,14 +606,14 @@ BZequivBZ' : Path U BZ BZ' = isoPath BZ BZ' F G FG GF
                        where
                          SHIFT : isEquiv A.1.1 A.1.1 A.1.2
                                = A.2 (isEquiv A.1.1 A.1.1 A.1.2, propIsEquiv A.1.1 A.1.1 A.1.2)
-                                 (\(a : Path AA A.1 (Z, sucZ)) -> transport (<i> isEquiv (a@-i).1 (a@-i).1 (a@-i).2) (gradLemma Z Z sucZ predZ sucpredZ predsucZ))
-                         ZEquiv : (x : Z) -> isEquiv Z Z (action Z (sucZ, gradLemma Z Z sucZ predZ sucpredZ predsucZ) x) = BZEquiv ZBZ
+                                 (\(a : Path AA A.1 (Z, sucZ)) -> transport (<i> isEquiv (a@-i).1 (a@-i).1 (a@-i).2) (isoToEquiv Z Z sucZ predZ sucpredZ predsucZ))
+                         ZEquiv : (x : Z) -> isEquiv Z Z (action Z (sucZ, isoToEquiv Z Z sucZ predZ sucpredZ predsucZ) x) = BZEquiv ZBZ
                          hole (a : Path AA A.1 (Z, sucZ))
-                             : PathP (<i> isEquiv (a@-i).1 (a@-i).1 (a@-i).2) (gradLemma Z Z sucZ predZ sucpredZ predsucZ) SHIFT
+                             : PathP (<i> isEquiv (a@-i).1 (a@-i).1 (a@-i).2) (isoToEquiv Z Z sucZ predZ sucpredZ predsucZ) SHIFT
                              = lemPathPProp (isEquiv Z Z sucZ) (isEquiv A.1.1 A.1.1 A.1.2) (propIsEquiv Z Z sucZ)
-                               (<i> isEquiv (a@-i).1 (a@-i).1 (a@-i).2) (gradLemma Z Z sucZ predZ sucpredZ predsucZ) SHIFT
+                               (<i> isEquiv (a@-i).1 (a@-i).1 (a@-i).2) (isoToEquiv Z Z sucZ predZ sucpredZ predsucZ) SHIFT
                          ZEquivEq (a : Path AA A.1 (Z, sucZ))
-                             : Path U ((x : Z) -> isEquiv Z Z (action Z (sucZ, gradLemma Z Z sucZ predZ sucpredZ predsucZ) x))
+                             : Path U ((x : Z) -> isEquiv Z Z (action Z (sucZ, isoToEquiv Z Z sucZ predZ sucpredZ predsucZ) x))
                                     ((x : A.1.1) -> isEquiv Z A.1.1 (action A.1.1 (A.1.2, SHIFT) x))
                              = <i> (x : (a@-i).1) -> isEquiv Z (a@-i).1 (action (a@-i).1 ((a@-i).2, hole a @ i) x)
                          EQUIV : (x : A.1.1) -> isEquiv Z A.1.1 (action A.1.1 (A.1.2, SHIFT) x)
@@ -711,7 +711,7 @@ multZ (A B : BZ) : BZ = (T, (TNE, (TShift A B, TEquiv)))
     opaque FG
     GF (A B : BZ) (x : (Path BZ A B)) : Path (Path BZ A B) (G A B (F A B x)) x = lemCompInv BZ A B B x (loopA B)
     opaque GF
-    TShift (A B : BZ) : equiv (Path BZ A B) (Path BZ A B) = (F A B, gradLemma (Path BZ A B) (Path BZ A B) (F A B) (G A B) (FG A B) (GF A B))
+    TShift (A B : BZ) : equiv (Path BZ A B) (Path BZ A B) = (F A B, isoToEquiv (Path BZ A B) (Path BZ A B) (F A B) (G A B) (FG A B) (GF A B))
     hole : (y : Z) -> Path (Path BZ ZBZ ZBZ) (action (Path BZ ZBZ ZBZ) (TShift ZBZ ZBZ) (<_> ZBZ) y) (decodeZ ZBZ y) = split
       inl u -> hole0 u
         where hole0 : (n : nat) -> Path (Path BZ ZBZ ZBZ) (action (Path BZ ZBZ ZBZ) (TShift ZBZ ZBZ) (<_> ZBZ) (inl n)) (decodeZ ZBZ (inl n)) = split
@@ -735,7 +735,7 @@ multZ (A B : BZ) : BZ = (T, (TNE, (TShift A B, TEquiv)))
                           (decodeLoop (inr n))
     transparent decodeZ
     TEquiv''' : isEquiv Z (Path BZ ZBZ ZBZ) (action (Path BZ ZBZ ZBZ) (TShift ZBZ ZBZ) (<_> ZBZ))
-      = transport (<i> isEquiv Z loopBZ (\(y : Z) -> hole y @ -i)) (gradLemma Z loopBZ (decodeZ ZBZ) (encodeZ ZBZ) (decodeEncodeZ ZBZ) (encodeDecodeZ ZBZ))
+      = transport (<i> isEquiv Z loopBZ (\(y : Z) -> hole y @ -i)) (isoToEquiv Z loopBZ (decodeZ ZBZ) (encodeZ ZBZ) (decodeEncodeZ ZBZ) (encodeDecodeZ ZBZ))
     TEquiv'' (b : BZSet B) (x : Path BZ ZBZ B) : isEquiv Z (Path BZ ZBZ B) (action (Path BZ ZBZ B) (TShift ZBZ B) x)
       = J BZ ZBZ (\(B : BZ) -> \(x : Path BZ ZBZ B) -> isEquiv Z (Path BZ ZBZ B) (action (Path BZ ZBZ B) (TShift ZBZ B) x))
         TEquiv''' B x

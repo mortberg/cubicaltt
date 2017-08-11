@@ -167,7 +167,7 @@ univalenceJ (A B : U) : equiv (Path U A B) (equiv A B) =
 -- transEquiv is an equiv
 transEquivIsEquiv (A B : U)
   : isEquiv (Path U A B) (equiv A B) (transEquiv A B)
-  = gradLemma (Path U A B) (equiv A B) (transEquiv A B)
+  = isoToEquiv (Path U A B) (equiv A B) (transEquiv A B)
       (transEquivToPath A B) (idToPath A B) (eqToEq A B)
 
 -- Univalence proved using transEquiv.
@@ -281,7 +281,7 @@ elimIso (B : U) (Q : (A : U) -> (A -> B) -> (B -> A) -> U)
      substInv (B -> B) (Q B (idfun B)) g (idfun B) (<i> \(b : B) -> (sg b) @ i) h1
 
    rem1 (A : U) (f : A -> B) : P A f = \(g : B -> A) (sg : section A B f g) (rg : retract A B f g) -> 
-          elimEquiv B P rem A (f,gradLemma A B f g sg rg) g sg rg
+          elimEquiv B P rem A (f,isoToEquiv A B f g sg rg) g sg rg
 
 elimIsIso (A : U) (Q : (B : U) -> (A -> B) -> (B -> A) -> U)
          (d : Q A (idfun A) (idfun A)) (B : U) (f : A -> B) (g : B -> A)

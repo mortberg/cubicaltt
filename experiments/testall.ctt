@@ -1,6 +1,5 @@
 module testall where
 
-import gradLemma
 import interval
 import uafunext2
 import prop

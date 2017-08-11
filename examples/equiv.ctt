@@ -1,5 +1,5 @@
 -- This file contains the definition of equivalences and various
--- results on these, including the "graduate lemma".
+-- results on these
 module equiv where
 
 import prelude
@@ -98,7 +98,7 @@ idToPath (A B : U) (w : equiv A B)
       (<i>transPathFun A B w@-i)
 
 
--- The grad lemma
+-- The iso to equiv
 
 lemIso (A B : U) (f : A -> B) (g : B -> A)
        (s : (y : B) -> Path B (f (g y)) y)
@@ -149,7 +149,7 @@ lemIso (A B : U) (f : A -> B) (g : B -> A)
                                          , (j = 1) -> s (f (p @ i))
                                          , (j = 0) -> s y ]
 
-gradLemma (A B : U) (f : A -> B) (g : B -> A)
+isoToEquiv (A B : U) (f : A -> B) (g : B -> A)
        (s : (y : B) -> Path B (f (g y)) y)
        (t : (x : A) -> Path A (g (f x)) x) : isEquiv A B f =
   \(y:B) -> ((g y,<i>s y@-i),\ (z:fiber A B f y) ->
@@ -158,8 +158,8 @@ gradLemma (A B : U) (f : A -> B) (g : B -> A)
 isoPath (A B : U) (f : A -> B) (g : B -> A)
       (s : (y : B) -> Path B (f (g y)) y)
       (t : (x : A) -> Path A (g (f x)) x) : Path U A B =
-       <i> Glue B [ (i = 0) -> (A,f,gradLemma A B f g s t)
+       <i> Glue B [ (i = 0) -> (A,f,isoToEquiv A B f g s t)
                   , (i = 1) -> (B,idfun B,idIsEquiv B) ]
 
-idIsEquivGrad (A : U) : isEquiv A A (idfun A) =
-  gradLemma A A (idfun A) (idfun A) (\(a : A) -> <i> a) (\(a : A) -> <i> a)
+idIsEquivIsoToEquiv (A : U) : isEquiv A A (idfun A) =
+  isoToEquiv A A (idfun A) (idfun A) (\(a : A) -> <i> a) (\(a : A) -> <i> a)

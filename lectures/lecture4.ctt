@@ -59,8 +59,8 @@ isPropIsEquiv (A B : U) (f : A -> B) : isProp (isEquiv A B f) =
   \(u0 u1 : isEquiv A B f) ->
   <i> \(y : B) -> isPropIsContr (fiber A B f y) (u0 y) (u1 y) @ i
 
--- The "grad lemma": any isomorphism is an equivalence
-gradLemma (A B : U) (f : A -> B) (g : B -> A)
+-- The "isoToEquiv": any isomorphism is an equivalence
+isoToEquiv (A B : U) (f : A -> B) (g : B -> A)
        (s : (y : B) -> Path B (f (g y)) y)
        (t : (x : A) -> Path A (g (f x)) x) : isEquiv A B f =
   \(y:B) -> ((g y,<i>s y@-i),\ (z:fiber A B f y) ->
@@ -167,7 +167,7 @@ ua (A B : U) (e : equiv A B) : Path U A B =
 -- recall: notK : (b : bool) -> Path bool (not (not b)) b = ...
 
 notEquiv : equiv bool bool =
-  (not,gradLemma bool bool not not notK notK)
+  (not,isoToEquiv bool bool not not notK notK)
 
 -- Construct an equality in the universe using Glue
 notEq : Path U bool bool =
@@ -231,7 +231,7 @@ predsucZ : (x : Z) -> Path Z (predZ (sucZ x)) x = split
   inr v -> <i> inr v
 
 sucPathZ : Path U Z Z =
-   <i> Glue Z [ (i = 0) -> (Z,sucZ,gradLemma Z Z sucZ predZ sucpredZ predsucZ)
+   <i> Glue Z [ (i = 0) -> (Z,sucZ,isoToEquiv Z Z sucZ predZ sucpredZ predsucZ)
               , (i = 1) -> (Z,idEquiv Z) ]
 
 -- We can transport along the proof forward and backwards:

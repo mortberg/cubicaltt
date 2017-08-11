@@ -47,7 +47,7 @@ isContrProp (A : U) (p : isContr A) (x y : A) : Path A x y = compPath A x p.1 y 
 opaque isContrProp
 
 equivProp (A B : U) (AProp : prop A) (BProp : prop B) (F : A -> B) (G : B -> A) : equiv A B =
-  (F, gradLemma A B F G (\(y : B) -> BProp (F (G y)) y) (\(x : A) -> AProp (G (F x)) x))
+  (F, isoToEquiv A B F G (\(y : B) -> BProp (F (G y)) y) (\(x : A) -> AProp (G (F x)) x))
 opaque equivProp
 
 idProp (A B : U) (AProp : prop A) (BProp : prop B) (F : A -> B) (G : B -> A) : Path U A B
@@ -155,7 +155,7 @@ invIso (C : precategory) (A B : cA C) (f : iso C A B) : iso C B A = (f.2.1, f.1,
 idIso (C : precategory) (A : cA C) : iso C A A = (cPath C A, cPath C A, cPathL C A A (cPath C A), cPathL C A A (cPath C A))
 
 invIsoEquiv (C : precategory) (A B : cA C) : isEquiv (iso C A B) (iso C B A) (invIso C A B)
-  = gradLemma (iso C A B) (iso C B A) (invIso C A B) (invIso C B A) (\(x : iso C B A) -> <_> x) (\(x : iso C A B) -> <_> x)
+  = isoToEquiv (iso C A B) (iso C B A) (invIso C A B) (invIso C B A) (\(x : iso C B A) -> <_> x) (\(x : iso C A B) -> <_> x)
 
 invIsoEq (C : precategory) (A B : cA C) : Path U (iso C A B) (iso C B A)
   = equivPath (iso C A B) (iso C B A) (invIso C A B) (invIsoEquiv C A B)
@@ -789,7 +789,7 @@ sigEquivLem (A A':U) (B:A->U) (B':A'->U)
             (e:equiv A A')
             (f:(x:A)->equiv (B x) (B' (e.1 x)))
           : equiv (Sigma A B) (Sigma A' B')
-          = (F, gradLemma (Sigma A B) (Sigma A' B') F G FG GF)
+          = (F, isoToEquiv (Sigma A B) (Sigma A' B') F G FG GF)
   where
     F (x:Sigma A B):Sigma A' B' = (e.1 x.1, (f x.1).1 x.2)
     G (x:Sigma A' B'):Sigma A B = ((e.2 x.1).1.1, ((f (e.2 x.1).1.1).2 (transport (<i> B' ((e.2 x.1).1.2 @ i)) x.2)).1.1)
@@ -846,7 +846,7 @@ eCatIso32 (A B : precategory) : Path U (catIso31 A B) (catIso32 A B)
         (sigEquivLem (catIso311 A B e1) (catIso321 A B e1)
          (\(e2 : catIso311 A B e1) -> (_ : catIso312 A B e1 e2) * ( catIso313 A B e1 e2))
          (\(e2 : catIso321 A B e1) -> (_ : catIso322 A B e1 e2) * ( catIso323 A B e1 e2))
-          (F, gradLemma (catIso311 A B e1) (catIso321 A B e1)
+          (F, isoToEquiv (catIso311 A B e1) (catIso321 A B e1)
                F (\(e2:catIso321 A B e1)-><i>\(x y:cA A)->(e2 x y)@i)
                (\(e2:catIso321 A B e1)-><_>e2) (\(e2:catIso311 A B e1)-><_>e2))
         (\(e2:catIso311 A B e1)->
@@ -854,12 +854,12 @@ eCatIso32 (A B : precategory) : Path U (catIso31 A B) (catIso32 A B)
          (\(_ : catIso312 A B e1 e2) -> (catIso313 A B e1 e2))
          (\(_ : catIso322 A B e1 (F e2)) -> (catIso323 A B e1 (F e2)))
           (let F2(e:catIso312 A B e1 e2):catIso322 A B e1 (F e2)=\(x:cA A)-><i>(e@i)x in
-           (F2, gradLemma (catIso312 A B e1 e2) (catIso322 A B e1 (F e2))
+           (F2, isoToEquiv (catIso312 A B e1 e2) (catIso322 A B e1 (F e2))
                  F2 (\(e:catIso322 A B e1 (F e2))-><i>\(x:cA A)->(e x)@i)
                  (\(e:catIso322 A B e1 (F e2))-><_>e) (\(e:catIso312 A B e1 e2)-><_>e)))
         (\(_:catIso312 A B e1 e2)->
          (let F3(e:catIso313 A B e1 e2):catIso323 A B e1 (F e2)=\(x y z:cA A)(f:cH A x y)(g:cH A y z)-><i>(e@i)x y z f g in
-          (F3, gradLemma (catIso313 A B e1 e2) (catIso323 A B e1 (F e2))
+          (F3, isoToEquiv (catIso313 A B e1 e2) (catIso323 A B e1 (F e2))
                 F3 (\(e:catIso323 A B e1 (F e2))-><i>\(x y z:cA A)(f:cH A x y)(g:cH A y z)->(e x y z f g)@i)
                 (\(e:catIso323 A B e1 (F e2))-><_>e) (\(e:catIso313 A B e1 e2)-><_>e))
         )))))) @ i
@@ -882,7 +882,7 @@ catIso2 (A B : precategory) : U = (e1 : equiv (cA A) (cA B))
 
 eCatIso (A B : precategory) : Path U (catIso A B) (catIso2 A B)
   = transEquivToPath (catIso A B) (catIso2 A B)
-    (F, gradLemma (catIso A B) (catIso2 A B) F G (\(e:catIso2 A B)-><_>e) (\(e:catIso A B)-><_>e))
+    (F, isoToEquiv (catIso A B) (catIso2 A B) F G (\(e:catIso2 A B)-><_>e) (\(e:catIso A B)-><_>e))
   where
     F(e:catIso A B):catIso2 A B=((e.1.1, e.2.2),\(x y:cA A)->(e.1.2.1 x y, e.2.1 x y),e.1.2.2.1,e.1.2.2.2)
     G(e:catIso2 A B):catIso A B=((e.1.1,\(x y:cA A)->(e.2.1 x y).1,e.2.2.1,e.2.2.2),\(x y:cA A)->(e.2.1 x y).2,e.1.2)
@@ -900,7 +900,7 @@ catIso23' (A B : precategory) (e1:Path U (cA A) (cA B)) (e2:catIso21' A B e1) : 
        (cC B (transport e1 x) (transport e1 y) (transport e1 z) ((e2 x y).1 f) ((e2 y z).1 g))
 
 equivPi (A:U) (B0 B1:A->U) (e:(a:A)->equiv (B0 a) (B1 a)) : equiv ((a:A)->B0 a) ((a:A)->B1 a)
-  = (F, gradLemma ((a:A)->B0 a) ((a:A)->B1 a)
+  = (F, isoToEquiv ((a:A)->B0 a) ((a:A)->B1 a)
                   F (\(g:(a:A)->B1 a)(a:A)->((e a).2 (g a)).1.1)
                   (\(g:(a:A)->B1 a)-><i>\(a:A)->retEq (B0 a) (B1 a) (e a) (g a)@i)
                   (\(f:(a:A)->B0 a)-><i>\(a:A)->secEq (B0 a) (B1 a) (e a) (f a)@i)
@@ -952,7 +952,7 @@ catIsoIsEquiv (A B : precategory) (F : functor A B) (e : catIsIso A B F) : catIs
   = (e.1,\(b:cA B)->((e.2 b).1.1, eqToIso B (F.1 (e.2 b).1.1) b (<i>(e.2 b).1.2@-i)))
 
 invEquiv (A:U) (a b:A) : Path U (Path A a b) (Path A b a)
- = equivPath (Path A a b) (Path A b a) (inv A a b) (gradLemma (Path A a b) (Path A b a) (inv A a b) (inv A b a) (\(x:Path A b a) -> <_> x) (\(x:Path A a b) -> <_> x))
+ = equivPath (Path A a b) (Path A b a) (inv A a b) (isoToEquiv (Path A a b) (Path A b a) (inv A a b) (inv A b a) (\(x:Path A b a) -> <_> x) (\(x:Path A a b) -> <_> x))
 
 catEquivIsIso (A B : precategory) (isCA : isCategory A) (isCB : isCategory B) (F : functor A B) (e : catIsEquiv A B F)
   : catIsIso A B F
@@ -963,7 +963,7 @@ catEquivIsIso (A B : precategory) (isCA : isCategory A) (isCB : isCategory B) (F
         (transport (<i> isContr ((a:cA A)*lemIsCategory3 B isCB (F.1 a) b@-i)) p))
 
 equivProp (A B : U) (AProp : prop A) (BProp : prop B) (F : A -> B) (G : B -> A) : equiv A B =
-  (F, gradLemma A B F G (\(y : B) -> BProp (F (G y)) y) (\(x : A) -> AProp (G (F x)) x))
+  (F, isoToEquiv A B F G (\(y : B) -> BProp (F (G y)) y) (\(x : A) -> AProp (G (F x)) x))
 
 catIsEquivEqIso (A B : precategory) (isCA : isCategory A) (isCB : isCategory B) (F : functor A B)
   : equiv (catIsEquiv A B F) (catIsIso A B F)

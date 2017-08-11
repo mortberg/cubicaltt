@@ -82,7 +82,7 @@ negBoolK : (b : bool) -> Path bool (negBool (negBool b)) b = split
 
 -- negBool is hence and equivalence:
 negBoolEquiv : equiv bool bool =
-  (negBool,gradLemma bool bool negBool negBool negBoolK negBoolK)
+  (negBool,isoToEquiv bool bool negBool negBool negBoolK negBoolK)
 
 -- This defines a non-trivial equality between bool and bool:
 negBoolEq : Path U bool bool =
@@ -168,7 +168,7 @@ q : Path U F2 F2 = <i> p @ (i /\ - i)
 
 -- A small test of univalence using boolean negation
 isEquivNegBool : isEquiv bool bool negBool =
- gradLemma bool bool negBool negBool negBoolK negBoolK
+ isoToEquiv bool bool negBool negBool negBoolK negBoolK
 
 eqBool : Path U bool bool =
  trans (equiv bool bool) (Path U bool bool)

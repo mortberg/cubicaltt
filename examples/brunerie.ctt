@@ -1111,7 +1111,7 @@ isGroupoidS1 : groupoid S1 = lem
        pP (x : S1) : prop ((y : S1) -> set (Path S1 x y)) =
         propPi S1 (\(y : S1) -> set (Path S1 x y)) (\(y : S1) -> setIsProp (Path S1 x y))
 
-opaque isGroupoidS1
+-- opaque isGroupoidS1
 
 one : nat = suc zero
 two : nat = suc one

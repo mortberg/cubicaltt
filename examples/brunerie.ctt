@@ -443,7 +443,7 @@ prealpha : join S1 S1 -> S2 = split
   push x y @ i ->
     -- A: I think there must be a bug in the old version when
     -- typechecking path constructors (we use merid{S2} there...)
-    compPath S2 north south north (meridP S1 x) (<i> meridP S1 y @ -i) @ i 
+    compPath S2 north south north (meridP S1 x) (<i> meridP S1 y @ -i) @ i
 
 alpha : ptMap (joinpt S1pt S1) S2pt = (prealpha, <_> north)
 
@@ -594,11 +594,11 @@ transGen0 (A : U) (a : A) : A = transGen (<_> A) 0 a
 funExt1 (C B : U) (P : C -> U) (a : C) :
   (b : C) (p : Path C a b) (f : P a -> B) (g : P b -> B)
   (h : (x : P a) -> Path B (f x) (g (subst C P a b p x))) ->
-  PathP (<i> P (p @ i) -> B) f g = 
+  PathP (<i> P (p @ i) -> B) f g =
   let rem2 (f g : P a -> B) (h : (x : P a) -> Path B (f x) (g (transGen0 (P a) x))) (x : P a) : Path B (f x) (g x) =
         <i> hcomp B (g (hfill (P a) (transGen0 (P a) x) [] @ i))
                   [ (i = 0) -> <j> h x @ -j
-                  , (i = 1) -> <j> g (fill (<_> P a) x [] @ -j) ] 
+                  , (i = 1) -> <j> g (fill (<_> P a) x [] @ -j) ]
       rem1 (f g : P a -> B) (h : (x : P a) -> Path B (f x) (g (transGen0 (P a) x))) : Path (P a -> B) f g =
         <i> \(x : P a) -> rem2 f g h x @ i
   in J C a (\(b : C) (p : Path C a b) -> (f : P a -> B) (g : P b -> B)
@@ -1134,7 +1134,7 @@ three : nat = suc two
 --   in <i> comp (<j> P (p @ -j \/ i)) (h @ i) [ (i = 0) -> q, (i = 1) -> <_> u1 ]
 
 -- truncFibOmega0 (B : ptType) (P : B.1 -> U) (f : P (pt B))
---   (tr : prop (P (pt B))) (p : (Omega B).1) : fibOmega B P f p = 
+--   (tr : prop (P (pt B))) (p : (Omega B).1) : fibOmega B P f p =
 --   let trf : Path (P B.2) (subst B.1 P (pt B) (pt B) p f) f =
 --         tr (subst B.1 P (pt B) (pt B) p f) f
 --   in funDepTr' B.1 P B.2 B.2 p f f trf
@@ -1422,7 +1422,15 @@ lift (B : U) (x y : B) (n : nat) (f : sphere n -> Path B x y) : sphere (suc n) -
   north -> x
   south -> y
   merid t @ i -> f t @ i
-   
+
+-- TODO: clean
+compInv (A : U) (a b c : A) (p : Path A a b) (q : Path A a c) : Path A b c =
+  compPath A b a c (<i> p @ -i) q
+
+compInvLemma (A : U) (a b : A) (p : Path A a b) :
+  Path (Path A b b) (compInv A a b b p p) (<_> b) =
+    compInvPath A a b p
+
 lem1Trunc : (n : nat) (A : U) -> ((f : sphere n -> A) -> filler A n f) -> truncated n A = split
   zero -> rem
     where rem (A : U) (h : (f : bool -> A) -> filler A zero f) (x y : A) : Path A x y =
@@ -1434,40 +1442,32 @@ lem1Trunc : (n : nat) (A : U) -> ((f : sphere n -> A) -> filler A n f) -> trunca
             in compPath A x hubf y (<i> spokef true @ -i) (spokef false)
   suc n -> rem
     where lem (A : U) (h : (f : sphere (suc n) -> A) -> filler A (suc n) f)
-              (x y : A) (g : sphere n -> Path A x y) : filler (Path A x y) n g = (hub',spoke')
+              (x y : A) (g : sphere n -> Path A x y) : filler (Path A x y) n g =
+              (hub',spoke')
             where
             lg : sphere (suc n) -> A = lift A x y n g
 
             hub' : Path A x y =
-              compPath A x (h lg).1 y (<i> (h lg).2 north @ -i) ( (h lg).2 south)
+              compInv A (h lg).1 (lg north) (lg south)
+                        ((h lg).2 north) ((h lg).2 south)
 
- --            spokeLemma : (t t':sphere (suc n)) (p: Id (sphere (suc n)) t t') ->
- --              Id (Id A (lg t) (lg t'))
- --              (compInv A (h lg).1 (lg t) (lg t') ((h lg).2 t) ((h lg).2 t'))
- --              (mapOnPath (sphere (suc n)) A lg t t' p)
- --            spokeLemma t = J (sphere (suc n)) t
- --                             (\ t' p ->  Id (Id A (lg t) (lg t'))
- --                                 (compInv A (h lg).1 (lg t) (lg t') ((h lg).2 t) ((h lg).2 t'))
- --                                 (mapOnPath (sphere (suc n)) A lg t t' p)) rem
- --                  where
- --                    rem : Id (Id A (lg t) (lg t))
- --                             (compInv A (h lg).1 (lg t) (lg t) ((h lg).2 t) ((h lg).2 t))
- --                             (refl A (lg t))
- --                    rem = compInvLemma A (h lg).1 (lg t) ((h lg).2 t)
-
--- meridP (A : U) (a : A) : Path (susp A) north south =
---   <i> merid{susp A} a @ i
-
+            -- TODO: prove this without J?
+            spokeLemma (t t':sphere (suc n)) (p: Path (sphere (suc n)) t t') :
+              Path (Path A (lg t) (lg t'))
+                (compInv A (h lg).1 (lg t) (lg t') ((h lg).2 t) ((h lg).2 t'))
+                (<i> lg (p @ i)) =
+                  J (sphere (suc n)) t
+                    (\(t' : sphere (suc n)) (p : Path (sphere (suc n)) t t') ->
+                       Path (Path A (lg t) (lg t'))
+                            (compInv A (h lg).1 (lg t) (lg t') ((h lg).2 t) ((h lg).2 t'))
+                            (<i> lg (p @ i))) rem1 t' p
+                  where
+                    rem1 : Path (Path A (lg t) (lg t))
+                             (compInv A (h lg).1 (lg t) (lg t) ((h lg).2 t) ((h lg).2 t))
+                             (<_> lg t) = compInvLemma A (h lg).1 (lg t) ((h lg).2 t)
 
             spoke' (t : sphere n) : Path (Path A x y) hub' (g t) =
-              let eq : Path (sphere (suc n)) north south = meridP (sphere n) t
---                  eq2 : Path (
-                  goal : Path (Path A x y)
-                              (<i> hcomp A ((h lg).2 north @ -i) [ (i=0) -> <_> x, (i=1) -> <j> (h lg).2 south @ j ])
-                              (g t) = undefined
-              in goal
-
- --            spoke' t = spokeLemma north south (merid t)
+              spokeLemma north south (meridP (sphere n) t)
 
           rem (A : U) (h : (f : sphere (suc n) -> A) -> filler A (suc n) f) (x y : A) :
             truncated n (Path A x y) = lem1Trunc n (Path A x y) (lem A h x y)
@@ -1480,14 +1480,179 @@ g2TruncTwoGroupoid (A : U) : twogroupoid (g2Trunc A) = truncIsTrunc three A
 gTruncGroupoid (A : U) : groupoid (gTrunc A) = truncIsTrunc two A
 setTruncSet (A : U) : set (sTrunc A) = truncIsTrunc one A
 
-truncRec (n : nat) (A B : U) (tr : truncated n B) (g : A -> B) : trunc n A -> B = undefined
+-- The recursion principle comes now:
 
-g2TruncRec : (A B : U) -> twogroupoid B -> (A -> B) -> g2Trunc A -> B = truncRec three 
+elemSp : (n : nat) -> sphere n = split
+  zero -> true
+  suc n -> north
+
+substPathPi (A B : U) (f g : A -> B) (a : A) : (a' : A) (p : Path A a a')
+  (qa : Path B (f a) (g a)) (qa' : Path B (f a') (g a')) ->
+  Path (Path B (f a) (g a'))
+       (compPath B (f a) (g a) (g a') qa (<i> g (p @ i)))
+       (compPath B (f a) (f a') (g a') (<i> f (p @ i)) qa') ->
+  PathS A (\(x : A) -> Path B (f x) (g x)) a a' p qa qa' =
+   J A a
+    (\(a' : A) (p : Path A a a') ->
+      (qa : Path B (f a) (g a)) (qa' : Path B (f a') (g a')) ->
+      Path (Path B (f a) (g a'))
+           (compPath B (f a) (g a) (g a') qa (<i> g (p @ i)))
+           (compPath B (f a) (f a') (g a') (<i> f (p @ i)) qa') ->
+      PathS A (\(x : A) -> Path B (f x) (g x)) a a' p qa qa')
+    rem
+    where rem (qa : Path B (f a) (g a)) (qa' : Path B (f a) (g a))
+              (pp : Path (Path B (f a) (g a))
+                         (compPath B (f a) (g a) (g a) qa (<_> g a))
+                         (compPath B (f a) (f a) (g a) (<_> f a) qa')) :
+              Path (Path B (f a) (g a)) qa qa' =
+               let p1 : Path (Path B (f a) (g a))
+                          (compPath B (f a) (g a) (g a) qa (<_> g a)) qa =
+                          compPath1 B (f a) (g a) qa
+                   p2 : Path (Path B (f a) (g a))
+                          (compPath B (f a) (f a) (g a) (<_> f a) qa') qa' =
+                          comp1Path B (f a) (g a) qa'
+               in <i> hcomp (Path B (f a) (g a)) (pp @ i)
+                          [ (i = 0) -> p1
+                          , (i = 1) -> p2 ]
+
+-- special case of substPathPi
+substPathPiConst (A B : U) (b : B) : (g : A -> B) (a a' : A) (p : Path A a a')
+  (qa : Path B b (g a)) (qa' : Path B b (g a')) ->
+  Path (Path B b (g a'))
+     (compPath B b (g a) (g a') qa (<i> g (p @ i)))
+     (compPath B b b (g a') (<_> b) qa') ->
+  PathS A (\(x : A) -> Path B b (g x)) a a' p qa qa' = substPathPi A B (\(x : A) -> b)
+
+
+-- This is a nice use of mapOnPaths
+compPathlLemma (A : U) (b c : A) (q q' : Path A b c) (h : Path (Path A b c) q q') :
+   Path (Path A b c) (compPath A b b c (<_> b) q) (compPath A b b c (<_> b) q') =
+   <i> compPath A b b c (<_> b) (h @ i)
+
+substPathPiTrunc (A B : U) (g : A -> B) (a a' : A) (p : Path A a a')
+  (qa' : Path B (g a) (g a')) (h : Path (Path B (g a) (g a')) (<i> g (p @ i)) qa') :
+  PathS A (\(x : A) -> Path B (g a) (g x)) a a' p (<_> g a) qa' =
+    substPathPiConst A B (g a) g a a' p (<_> g a) qa' rem
+     where
+     b : B = g a
+     rem : Path (Path B b (g a'))
+                (compPath B b b (g a') (<_> b) (<i> g (p @ i)))
+                (compPath B b b (g a') (<_> b) qa') =
+       compPathlLemma B b (g a') (<i> g (p @ i)) qa' h
+
+
+lem2Trunc : (n : nat) (A : U) -> truncated n A -> (f : sphere n -> A) -> filler A n f = split
+  zero -> rem
+    where
+    rem (A : U) (pA : prop A) (f : bool -> A) : filler A zero f =
+      (f true,\(t : bool) -> pA (f true) (f t))
+  suc n -> rem
+    where
+    indh : (A:U) -> truncated n A -> (f : sphere n -> A) -> filler A n f = lem2Trunc n
+
+    rem (A : U) (h : truncated (suc n) A) (f : sphere (suc n) -> A) : filler A (suc n) f =
+      (f north,spoke)
+      where
+        rem1 (x y : A) : (g : sphere n -> Path A x y) -> filler (Path A x y) n g =
+           indh (Path A x y) (h x y)
+
+        hubInd (x y : A) (g : sphere n -> Path A x y) : Path A x y = (rem1 x y g).1
+
+        spokeInd (x y : A) (g : sphere n -> Path A x y) :
+          (t : sphere n) -> Path (Path A x y) (hubInd x y g) (g t) = (rem1 x y g).2
+
+        spoke : (t : sphere (suc n)) -> Path A (f north) (f t) = split
+                 north -> <_> f north
+                 south -> <i> f (meridP (sphere n) (elemSp n) @ i)
+                 merid u @ i -> lem4 @ i
+                   where
+                     F (t : sphere (suc n)) : U = Path A (f north) (f t)
+
+                     T : U = Path A (f north) (f south)
+
+                     mp (w : sphere n) : T = <i> f (meridP (sphere n) w @ i)
+
+                     hubMp : T = hubInd (f north) (f south) mp
+
+                     spokeMp : (t : sphere n) -> Path T hubMp (mp t) =
+                       spokeInd  (f north) (f south) mp
+
+                     qa : Path A (f north) (f north) = <_> f north
+
+                     qa' : T = mp (elemSp n)
+
+                     lem1 : Path T hubMp (mp u) = spokeMp u
+
+                     lem2 : Path T hubMp (mp (elemSp n)) = spokeMp (elemSp n)
+
+                     lem3 : Path T (mp u) (mp (elemSp n)) =
+                       compInv T hubMp (mp u) (mp (elemSp n)) lem1 lem2
+
+                     lem4 : PathS (sphere (suc n)) F north south (meridP (sphere n) u) qa qa' = substPathPiTrunc (sphere (suc n)) A f north south (meridP (sphere n) u) qa' lem3
+
+
+truncRec (n : nat) (A B : U) (tr : truncated n B) (g : A -> B) : trunc n A -> B = split
+  inc a -> g a
+  hub f -> (lem2Trunc n B tr (\(x : sphere n) -> truncRec n A B tr g (f x))).1
+  spoke f t @ i -> (lem2Trunc n B tr (\(x : sphere n) -> truncRec n A B tr g (f x))).2 t @ i
+
+g2TruncRec : (A B : U) -> twogroupoid B -> (A -> B) -> g2Trunc A -> B = truncRec three
 gTruncRec : (A B : U) -> groupoid B -> (A -> B) -> gTrunc A -> B = truncRec two
 sTruncRec : (A B : U) -> set B -> (A -> B) -> sTrunc A -> B = truncRec one
 
-elimTrunc : (A : U) (n : nat) (P : trunc n A -> U) (tP : (x : trunc n A) -> truncated n (P x)) ->
-            ((a : A) -> P (inc a)) -> (x : trunc n A) -> P x = undefined
+eqSubstSig (A : U) (F : A -> U) (x : A) : (y : A) (p : Path A x y) (u : F x) (v : F y) ->
+             Path U (PathS A F x y p u v) (Path (F y) (subst A F x y p u) v) =
+   J A x (\(y : A) (p : Path A x y) -> (u : F x) (v : F y) ->
+          Path U (PathS A F x y p u v) (Path (F y) (subst A F x y p u) v))
+          rem
+     where
+     rem (u v : F x) :
+           Path U (PathS A F x x (<_> x) u v)
+                  (Path (F x) (subst A F x x (<_> x) u) v) =
+                  let goal : Path U
+                                (Path (F x) u v)
+                                (Path (F x) (transGen (<_> F x) 0 u) v) =
+                                <i> Path (F x) (transGen (<_> F x) (-i) u) v
+                  in goal
+
+pathSIntro (A : U) (F : A -> U) (x y : A) (p : Path A x y) (u : F x) (v : F y)
+           (w : Path (F y) (subst A F x y p u) v) : PathS A F x y p u v =
+             transGen (<i> eqSubstSig A F x y p u v @ -i) 0 w
+
+
+eqSubstSigInv (A : U) (F : A -> U) (x : A) : (y : A) (p : Path A x y) (u : F x) (v : F y) ->
+             Path U (Path (F x) u (subst A F y x (<i> p @ -i) v)) (PathS A F x y p u v) =
+  J A x (\(y : A) (p : Path A x y) -> (u : F x) (v : F y) ->
+         Path U (Path (F x) u (subst A F y x (<i> p @ -i) v)) (PathS A F x y p u v))
+         rem
+    where
+    rem (u v : F x) : Path U (Path (F x) u (subst A F x x (<_> x) v))
+                             (PathS A F x x (<_> x) u v) =
+                             <i> Path (F x) u (transGen (<_> F x) i v)
+  
+pathSIntroInv (A : U) (F : A -> U) (x y : A) (p : Path A x y) (u : F x) (v : F y)
+  (w : Path (F x) u (subst A F y x (<i> p @ -i) v)) : PathS A F x y p u v =
+  transGen (eqSubstSigInv A F x y p u v) 0 w
+
+elimTrunc (A : U) (n : nat) (P : trunc n A -> U)
+  (tP : (x : trunc n A) -> truncated n (P x)) (g : (a : A) -> P (inc a)) :
+  (x : trunc n A) -> P x = rem
+ where
+  t (r : sphere n -> trunc n A) (r' : (x : sphere n) -> P (r x))
+    (x : sphere n) : P (hub r) = substInv (trunc n A) P (hub r) (r x) (spokeC n A r x) (r' x)
+
+  h' (r : sphere n -> trunc n A) (r' : (x : sphere n) -> P (r x)) : P (hub r) = 
+    (lem2Trunc n (P (hub r)) (tP (hub r)) (t r r')).1
+
+  v (r : sphere n -> trunc n A) (r' : (x : sphere n) -> P (r x))
+    (x : sphere n) : PathS (trunc n A) P (hub r) (r x) (spokeC n A r x) (h' r r') (r' x) = 
+    pathSIntroInv (trunc n A) P (hub r) (r x) (spokeC n A r x) (h' r r') (r' x)
+                  ((lem2Trunc n (P (hub r)) (tP (hub r)) (t r r')).2 x)
+
+  rem : (x : trunc n A) -> P x = split
+    inc a -> g a
+    hub f -> h' f (\(x : sphere n) -> rem (f x))
+    spoke f t @ i -> v f (\(x : sphere n) -> rem (f x)) t @ i
 
 g2TruncElim (A : U) :
               (B : (g2Trunc A) -> U)
@@ -1519,22 +1684,6 @@ multTwoSouth : S2 -> trS2 = split
 meridIncSouth (x y : S1) : Path trS2 (g2inc north) (g2inc south) =
   compPath trS2 (g2inc north) (g2inc south) (g2inc south)
            (<i> g2inc (meridP S1 x @ i)) (incSouthPath y)
-
-
-eqSubstSig (A : U) (F : A -> U) (x : A) : (y : A) (p : Path A x y) (u : F x) (v : F y) ->
-             Path U (PathS A F x y p u v) (Path (F y) (subst A F x y p u) v) =
-   J A x (\(y : A) (p : Path A x y) -> (u : F x) (v : F y) ->
-          Path U (PathS A F x y p u v) (Path (F y) (subst A F x y p u) v))
-          rem
-     where
-     rem (u v : F x) :
-           Path U (PathS A F x x (<_> x) u v)
-                  (Path (F x) (subst A F x x (<_> x) u) v) =
-                  let goal : Path U
-                                (Path (F x) u v)
-                                (Path (F x) (transGen (<_> F x) 0 u) v) =
-                                <i> Path (F x) (transGen (<_> F x) (-i) u) v
-                  in goal
 
 -- a general Lemma about set-valued family of type over S1 x S1
 lemSetTorus (E : S1 -> S1 -> U) (sE : set (E base base))
@@ -1653,35 +1802,6 @@ lemSetTorus (E : S1 -> S1 -> U) (sE : set (E base base))
 --   rem : Path (auxCompId a a (<_> a) (<_> a) (<_> a))
 --              (alphaAuxCompId a a (<_> a) (<_> a))
 --              (betaAuxCompId a a (<_> a) (<_> a)) = ?
-
-substPathPi (A B : U) (f g : A -> B) (a : A) : (a' : A) (p : Path A a a')
-  (qa : Path B (f a) (g a)) (qa' : Path B (f a') (g a')) ->
-  Path (Path B (f a) (g a'))
-       (compPath B (f a) (g a) (g a') qa (<i> g (p @ i)))
-       (compPath B (f a) (f a') (g a') (<i> f (p @ i)) qa') ->
-  PathS A (\(x : A) -> Path B (f x) (g x)) a a' p qa qa' =
-   J A a
-    (\(a' : A) (p : Path A a a') ->
-      (qa : Path B (f a) (g a)) (qa' : Path B (f a') (g a')) ->
-      Path (Path B (f a) (g a'))
-           (compPath B (f a) (g a) (g a') qa (<i> g (p @ i)))
-           (compPath B (f a) (f a') (g a') (<i> f (p @ i)) qa') ->
-      PathS A (\(x : A) -> Path B (f x) (g x)) a a' p qa qa')
-    rem
-    where rem (qa : Path B (f a) (g a)) (qa' : Path B (f a) (g a))
-              (pp : Path (Path B (f a) (g a))
-                         (compPath B (f a) (g a) (g a) qa (<_> g a))
-                         (compPath B (f a) (f a) (g a) (<_> f a) qa')) :
-              Path (Path B (f a) (g a)) qa qa' =
-               let p1 : Path (Path B (f a) (g a))
-                          (compPath B (f a) (g a) (g a) qa (<_> g a)) qa =
-                          compPath1 B (f a) (g a) qa
-                   p2 : Path (Path B (f a) (g a))
-                          (compPath B (f a) (f a) (g a) (<_> f a) qa') qa' =
-                          comp1Path B (f a) (g a) qa'
-               in <i> hcomp (Path B (f a) (g a)) (pp @ i)
-                          [ (i = 0) -> p1
-                          , (i = 1) -> p2 ]
 
 -- alternative approach
 
@@ -1868,10 +1988,6 @@ multTwo : S2 -> S2 -> trS2 = split
 multTwoTilde (x : S2) : trS2 -> trS2 =
   g2TruncRec S2 trS2 trS2Trunc (multTwo x)
 
-idSIntro (A : U) (F : A -> U) (x y : A) (p : Path A x y) (u : F x) (v : F y)
-         (w : Path (F y) (subst A F x y p u) v) : PathS A F x y p u v =
-           transGen (<i> eqSubstSig A F x y p u v @ -i) 0 w
-
 lemPropS2 (P : S2 -> U) (pP : (x : S2) -> prop (P x)) (pN : P north) : (x : S2) -> P x = split
     north -> pN
     south -> subst S2 P north south (meridP S1 base) pN
@@ -1880,7 +1996,7 @@ lemPropS2 (P : S2 -> U) (pP : (x : S2) -> prop (P x)) (pN : P north) : (x : S2) 
       pS (x : S1) : P south = subst S2 P north south (meridP S1 x) pN
 
       rem (p : P south) : PathS S2 P north south (meridP S1 x) pN p =
-        idSIntro S2 P north south (meridP S1 x) pN p (pP south (pS x) p)
+        pathSIntro S2 P north south (meridP S1 x) pN p (pP south (pS x) p)
 
       rem1 : PathS S2 P north south (meridP S1 x) pN (pS base) = rem (pS base)
 
@@ -1896,9 +2012,9 @@ multTwoTildeEquiv : (x : S2) -> isEquiv trS2 trS2 (multTwoTilde x) =
     (\(x : S2) -> isEquiv trS2 trS2 (multTwoTilde x))
     (\(x : S2) -> propIsEquiv trS2 trS2 (multTwoTilde x))
     multEquivNorth
-  where multNorthEqPath : Path (trS2 -> trS2) (\(x : trS2) -> x) (multTwoTilde north) = undefined
-          -- <i> \(x : trS2) -> lem3Trunc S2 trS2 (g2TruncTwoGroupoid S2) (idfun trS2)
-          --                       (multTwoTilde north) (\(a : S2) -> <_> inc a) x @ i
+  where multNorthEqPath : Path (trS2 -> trS2) (\(x : trS2) -> x) (multTwoTilde north) =
+          <i> \(x : trS2) -> lem3Trunc S2 trS2 (g2TruncTwoGroupoid S2) (idfun trS2)
+                                (multTwoTilde north) (\(a : S2) -> <_> inc a) x @ i
         multEquivNorth : isEquiv trS2 trS2 (multTwoTilde north) =
           subst (trS2 -> trS2) (isEquiv trS2 trS2) (idfun trS2)
                 (multTwoTilde north) multNorthEqPath (idIsEquiv trS2)
@@ -2145,15 +2261,15 @@ truncPath2 (A : ptType) : g2Trunc A.1 -> GROUPOID =
   g2TruncRec A.1 GROUPOID twogroupoidGROUPOID
     (\(x : A.1) -> (gTrunc (Path A.1 (pt A) x),gTruncGroupoid (Path A.1 (pt A) x)))
 
-kappaTwo (A : ptType) (p : (Omega (g2Truncpt A)).1) : gTrunc (Omega A).1 = undefined
-  -- subst (g2Trunc A.1) (\(x : g2Trunc A.1) -> (truncPath2 A x).1)
-  --       (inc (pt A)) (inc (pt A)) p (inc (<_> pt A))
+kappaTwo (A : ptType) (p : (Omega (g2Truncpt A)).1) : gTrunc (Omega A).1 =
+  subst (g2Trunc A.1) (\(x : g2Trunc A.1) -> (truncPath2 A x).1)
+        (inc (pt A)) (inc (pt A)) p (inc (<_> pt A))
 
 kappaTwoPt (A : ptType) :
   Path (gTrunc (Omega A).1)
     (kappaTwo A (pt (Omega (g2Truncpt A))))
-    (pt (gTruncpt (Omega A))) = undefined
-  -- = <i> transGen (<_> (truncPath2 A (pt (g2Truncpt A))).1) i (inc (<_> pt A))
+    (pt (gTruncpt (Omega A))) =
+    <i> transGen (<_> (truncPath2 A (pt (g2Truncpt A))).1) i (inc (<_> pt A))
 
 -- Groupoid set
 setFun (A B : U) (sB : set B) : set (A -> B) =
@@ -2178,9 +2294,9 @@ truncPath1 (A : ptType) : gTrunc A.1 -> SET =
   gTruncRec A.1 SET groupoidSET
     (\(x : A.1) -> (sTrunc (Path A.1 (pt A) x),setTruncSet (Path A.1 (pt A) x)))
 
-kappaOne (A : ptType) (p : (Omega (gTruncpt A)).1) : sTrunc (Omega A).1 = undefined
-  -- subst (gTrunc A.1) (\(x : gTrunc A.1) -> (truncPath1 A x).1)
-  --       (inc (pt A)) (inc (pt A)) p (inc (<_> pt A))
+kappaOne (A : ptType) (p : (Omega (gTruncpt A)).1) : sTrunc (Omega A).1 =
+  subst (gTrunc A.1) (\(x : gTrunc A.1) -> (truncPath1 A x).1)
+        (inc (pt A)) (inc (pt A)) p (inc (<_> pt A))
 
 
 --------------------------------------------------------------------------------

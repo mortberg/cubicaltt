@@ -151,3 +151,58 @@ test1 : Path (Path Torus' b b) pq pq' = <_> pq
 test2 : Path (Path Torus' b b) qp qp' = <_> qp
 
 pqqp : Path (Path Torus' b b) pq qp = <i j> surf{Torus'} @ i @ j
+
+TorusToTorus': Torus -> Torus' = split
+  ptT -> b
+  pathOneT @ i -> p{Torus'} @ i
+  pathTwoT @ i -> q{Torus'} @ i
+  squareT @ i j ->
+    let lhs : Square Torus' b b b b pq (<i> p{Torus'} @ i) (<_> b) (<i> q{Torus'} @ -i) =
+          <i j> hcomp Torus' (p{Torus'} @ i) [ (i = 0) -> <k> b
+                                             , (i = 1) -> <k> q{Torus'} @ -j /\ k
+                                             , (j = 1) -> <k> p{Torus'} @ i ]
+        rhs : Square Torus' b b b b qp (<i> p{Torus'} @ i) (<i> q{Torus'} @ i) (<_> b) =
+          <i j> hcomp Torus' (q{Torus'} @ i \/ j) [ (i = 0) -> <k> q{Torus'} @ j
+                                                  , (i = 1) -> <k> p{Torus'} @ k
+                                                  , (j = 1) -> <k> p{Torus'} @ i /\ k ]
+        frt : Square Torus' b b b b (<_> b) (<i> q{Torus'} @ i) (<_> b) (<i> q{Torus'} @ i) =
+          <i j> q{Torus'} @ i /\ j
+        bck : Square Torus' b b b b (<_> b) (<i> q{Torus'} @ i) (<i> q{Torus'} @ -i) (<_> b) =
+          <i k> q{Torus'} @ i \/ -k
+        btm : Square Torus' b b b b (<_> b) (<_> b) pq qp = <i j> surf{Torus'} @ i @ j
+        goal : Square Torus' b b b b (<i> q{Torus'} @ i) (<i> q{Torus'} @ i)
+                                     (<i> p{Torus'} @ i) (<i> p{Torus'} @ i) =
+          <i j> hcomp Torus' (btm @ i @ j) [ (i = 0) -> lhs @ j
+                                           , (i = 1) -> rhs @ j
+                                           , (j = 0) -> frt @ i
+                                           , (j = 1) -> bck @ i ]
+    in goal @ i @ j
+    
+-- Torus'ToTorus : Torus' -> Torus = split
+--   b -> ptT
+--   p @ i -> pathOneT{Torus} @ i
+--   q @ i -> pathTwoT{Torus} @ i
+--   surf @ i j -> ?
+
+-- got
+-- [ (i = 0) -> pathOneT {Torus} @ j
+-- , (i = 1) -> pathOneT {Torus} @ j
+-- , (j = 0) -> pathTwoT {Torus} @ i
+-- , (j = 1) -> pathTwoT {Torus} @ i ]
+-- but expected
+-- [ (i = 0) -> hcomp Torus (hcomp Torus (pathOneT {Torus} @ j)
+--                                 [ (j = 0) -> <_> ptT
+--                                 , (j = 1) -> <_> ptT ])
+--                    [ (j = 0) -> <_> ptT
+--                    , (j = 1) -> <k> hcomp Torus (pathTwoT {Torus} @ k)
+--                                            [ (k = 0) -> <_> ptT
+--                                            , (k = 1) -> <_> ptT ]]
+-- , (i = 1) -> hcomp Torus (hcomp Torus (pathTwoT {Torus} @ j)
+--                                 [ (j = 0) -> <_> ptT
+--                                 , (j = 1) -> <_> ptT ])
+--                    [ (j = 0) -> <_> ptT
+--                    , (j = 1) -> <k> hcomp Torus (pathOneT {Torus} @ k)
+--                                            [ (k = 0) -> <_> ptT
+--                                            , (k = 1) -> <_> ptT ] ]
+-- , (j = 0) -> ptT
+-- , (j = 1) -> ptT ]

@@ -49,7 +49,9 @@ executable cubical
     directory >=1.2 && <1.3,
     filepath >=1.4 && <1.5,
     haskeline >=0.7 && <0.8,
-    array >=0.4 && <0.6
+    array >=0.4 && <0.6,
+    -- Build tool
+    BNFC >=2.8.1 && <3.0
   -- hs-source-dirs:
   build-tools:         alex, happy, bnfc
   default-language:    Haskell2010

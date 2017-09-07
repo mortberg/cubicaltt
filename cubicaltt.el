@@ -58,6 +58,10 @@
     "with" "module" "where" "U" "opaque" "transparent" "transparent_all")
   "Keywords for cubical.")
 
+(defvar cubicaltt-operations
+  '("PathP" "comp" "transport" "fill" "Glue" "glue" "unglue" "Id" "idC" "idJ")
+  "Operations for cubical.")
+
 (defvar cubicaltt-special
   '("undefined" "primitive")
   "Special operators for cubical.")
@@ -65,6 +69,10 @@
 (defvar cubicaltt-keywords-regexp
   (regexp-opt cubicaltt-keywords 'words)
   "Regexp that recognizes keywords for cubical.")
+
+(defvar cubicaltt-operations-regexp
+  (regexp-opt cubicaltt-operations 'words)
+  "Regexp that recognizes operations for cubical.")
 
 (defvar cubicaltt-operators-regexp
   (regexp-opt '(":" "->" "=" "|" "\\" "*" "_" "<" ">" "\\/" "/\\" "-" "@") t)
@@ -78,7 +86,8 @@
   "Regexp that recognizes the beginning of a cubical definition.")
 
 (defvar cubicaltt-font-lock-keywords
-  `((,cubicaltt-keywords-regexp . font-lock-type-face)
+  `((,cubicaltt-keywords-regexp . font-lock-keyword-face)
+    (,cubicaltt-operations-regexp . font-lock-builtin-face)
     (,cubicaltt-operators-regexp . font-lock-variable-name-face)
     (,cubicaltt-special-regexp . font-lock-warning-face)
     (,cubicaltt-def-regexp . font-lock-function-name-face))

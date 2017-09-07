@@ -111,6 +111,9 @@ If no buffer is loaded, then this variable is nil.")
       cubicaltt-cubical-process
     (let ((process (make-comint "cubical" cubicaltt-command)))
       (setq cubicaltt-cubical-process process)
+      (save-current-buffer
+	(set-buffer process)
+	(set-syntax-table cubicaltt-syntax-table))
       process)))
 
 (defun cubicaltt-load ()

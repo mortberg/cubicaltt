@@ -33,7 +33,7 @@ cubicaltt. The files contain:
 * **discor.ctt** - or A B is discrete if A and B are.
 
 * **equiv.ctt** - Definition of equivalences and various results on
-                  these, including the "graduate lemma".
+                  these, including "isoToEquiv".
 
 * **grothendieck.ctt** - This file contains a constuction of the Grothendieck
                          group and a proof of its universal property.

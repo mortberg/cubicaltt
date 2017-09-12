@@ -40,6 +40,10 @@ opaque, transparent, transparent_all, Id, idC, idJ
 Install
 -------
 
+You can compile the project using either `cabal`, `make`, or `stack`.
+
+## Cabal
+
 To compile the project using [cabal](https://www.haskell.org/cabal/),
 first install the build-time dependencies (either globally or in a
 cabal sandbox):
@@ -49,6 +53,8 @@ cabal sandbox):
 Then the project can be built (and installed):
 
   `cabal install`
+
+## Make
 
 Alternatively, a `Makefile` is provided:
 
@@ -75,6 +81,15 @@ To clean up, run:
 
 ```sh
     make clean
+```
+
+## Stack
+
+To compile and install the project using [stack](https://haskellstack.org/), run:
+
+```sh
+    stack setup
+    stack install
 ```
 
 Usage

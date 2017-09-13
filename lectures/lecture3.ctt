@@ -18,7 +18,7 @@ import lecture2
 -- Higher dimensional compositions
 
 -- Recall: the composition operation takes an open box in a type A and
--- compute the lid. 
+-- computes the lid.
 
 -- Recall: compinv composes p with its inverse:
 -- compinv (A : U) (a b : A) (p : Path A a b) : Path A a a =
@@ -46,7 +46,7 @@ type theory).
 
 If we substitute k for 0 in ex we get:
 
-  <j> comp (<_> A) (p @ j /\ -0) 
+  <j> comp (<_> A) (p @ j /\ -0)
                    [ (j = 0) -> <i> a
                    , (j = 1) -> <i> p @ -i /\ -0
                    , (0 = 1) -> <i> a ]
@@ -54,7 +54,7 @@ If we substitute k for 0 in ex we get:
 The face 0=1 is absurd and disappears by the rules of the system. We
 hence get the following after simplifications:
 
-  <j> comp (<_> A) (p @ j) 
+  <j> comp (<_> A) (p @ j)
                    [ (j = 0) -> <i> a
                    , (j = 1) -> <i> p @ -i ]
 
@@ -62,8 +62,8 @@ Which is the same as compinv up to renaming of dimensions.
 
 We could also give the k = 0 side explicitly. Such a square is
 produced by an operation called "fill", this takes the same arguments
-as comp and produces the interior of a cube with comp as its missing
-side.
+as comp and produces the interior of a cube with the comp as its
+missing side.
 
 -}
 
@@ -99,9 +99,8 @@ Square (A : U) (a0 a1 b0 b1 : A) (u : Path A a0 a1) (v : Path A b0 b1)
 constSquare (A : U) (a : A) (p : Path A a a) : Square A a a a a p p p p =
   undefined
 
--- Exercise (very hard and not solved as far as I know, so let me know
--- if someone manages to do it): define a cube type and construct a
--- constant cube.
+-- Exercise (VERY hard, for solutions see examples/constcubes.ctt):
+-- define a cube type and construct a constant cube.
 
 
 
@@ -110,7 +109,7 @@ constSquare (A : U) (a : A) (p : Path A a a) : Square A a a a a p p p p =
 
 {-
 
-Given P : Path U A B we want to define 
+Given P : Path U A B we want to define
 
   transport P : A -> B
 
@@ -119,8 +118,7 @@ This is like a cast operation (compare with castmx of MathComp).
 -}
 
 -- We do this by a comp with an empty list of sides:
-trans (A B : U) (p : Path U A B) (a : A) : B =
-  comp p a []
+trans (A B : U) (p : Path U A B) (a : A) : B = comp p a []
 
 -- This uses that the composition operations are heterogeneous. So the
 -- lower line of the square can be in type A while the constructed
@@ -132,8 +130,7 @@ gencomp (A B : U) (P : Path U A B) (a b : A) (c d : B)
 
 -- We can use transport to define:
 subst (A : U) (P : A -> U) (a b : A)
-      (p : Path A a b) (e : P a) : P b =
-  transport (<i> P (p @ i)) e
+      (p : Path A a b) (e : P a) : P b = transport (<i> P (p @ i)) e
 
 -- Note that we are using transport and not trans. The reason is that
 -- we don't have implicit arguments, so we have a built-in transport
@@ -155,13 +152,13 @@ J (A : U) (a : A) (P : (b : A) -> Path A a b -> U)
 -- In Univalent Foundations/Homotopy Type Theory there is a very
 -- important stratification of types called h-levels
 -- ("homotopy-levels"). This is different from the normal universe
--- level stratification of types and instead of size the types are
+-- level stratification of types and instead of the size the types are
 -- categorized by the complexity of their equality.
 
 -- A type of h-level 1 is called a "proposition" (written "mere
 -- proposition" in the HoTT book or simply "h-proposition"). In such a
 -- type all elements are equal, so the only information that it
--- carries is whether it is inhabited or not. 
+-- carries is whether it is inhabited or not.
 isProp (A : U) : U = (x y : A) -> Path A x y
 
 
@@ -179,15 +176,15 @@ propPi (A : U) (B : A -> U) (h : (x : A) -> isProp (B x)) :
        isProp ((x : A) -> B x) = rem
        where
        rem (f0 f1 : (x : A) -> B x) :
-           Path ((x : A) -> B x) f0 f1 = 
+           Path ((x : A) -> B x) f0 f1 =
            <i> \(x : A) -> h x (f0 x) (f1 x) @ i
 
--- Exercise: Prove that if A is a proposition then it is a set. (hint:
--- use a composition in a suitable cube)
+-- Exercise: Prove that if A is a proposition then it is a set.
+-- (hint: use a composition in a suitable cube)
 propSet (A : U) (h : isProp A) : isSet A = undefined
 
--- Exercise: Prove that being a proposition is a proposition. (hint:
--- use propSet and function extensionality for binary functions)
+-- Exercise: Prove that being a proposition is a proposition.
+-- (hint: use propSet and function extensionality for binary functions)
 propIsProp (A : U) : isProp (isProp A) = undefined
 
 

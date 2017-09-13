@@ -17,7 +17,7 @@ module lecture2 where
 
 import lecture1
 
-{- 
+{-
 
 We have an involutive operation on II that corresponds to:
 
@@ -30,14 +30,13 @@ for a point i in the real interval [0,1].
 -- This can be used to prove symmetry of Path-equality:
 sym (A : U) (a b : A) (p : Path A a b) : Path A b a = <i> p @ -i
 
--- As this operation is an involution, so - - i = i. This gives new
+-- This operation is an involution, so - - i = i. This gives new
 -- judgmental equalities, in particular sym A b a (sym A a b p) is
 -- judgmentally equality to p. This is not true in standard type
--- theory where sym would be defined using by induction on p. This is
--- useful for formalizing mathematics, for example we get the
--- judgmental equality C^op^op = C for a category C that cannot be
--- obtained in standard type theory with the standard definition of
--- category.
+-- theory where sym would be defined by induction on p. This is useful
+-- for formalizing mathematics, for example we get the judgmental
+-- equality C^op^op = C for a category C that cannot be obtained in
+-- standard type theory with the standard definition of category.
 
 
 {-
@@ -79,10 +78,10 @@ In particular the laws:
   - r \/ r = 1
 
 do *not* hold (unless r is 0 or 1). This means that a De Morgan
-algebra is *not* a Boolean algebra. The intuition for why this has to
-be the case is that II should model the real interval [0,1] and there
-we of course cannot have min(1-r,r) = 0 or max(1-r,r) = 1 for a point
-r in [0,1] (unless r is 0 or 1).
+algebra is *not* a Boolean algebra. The intuition for why this is the
+case is that II should model the real interval [0,1] and there we of
+course cannot have min(1-r,r) = 0 or max(1-r,r) = 1 for a point r in
+[0,1] (unless r is 0 or 1).
 
 To test if two elements r and s in II are equal we first push the
 negations to the atoms and then compare their disjunctive normal forms
@@ -93,7 +92,7 @@ example the following equations:
   0 /\ r = 0
   1 /\ r = r
   r /\ s = s /\ r
-  
+
 and similarly for \/.
 
 
@@ -178,14 +177,14 @@ inductive family:
     | refl : eq A a a.
 
 this means that eq comes with an induction principle:
-      
+
   eq_rect : forall (A : Type) (a : A) (P : forall b : A, eq A a b -> Type),
             P a (refl A a) -> forall (b : A) (e : eq A a b), P b e
 
 This principle is commonly referred to simply as J and it says that in
 order to prove P for an equality e it suffices to do it in the case of
 refl. This can then be used to prove things like transitivity and all
-the other properties one expects equality to have. 
+the other properties one expects equality to have.
 
 The approach taken in cubicaltt is very different to this approach to
 adding equality to type theory. Instead of adding equality as an
@@ -232,15 +231,15 @@ i : II |-
           |                   |
           |                   |
           a ----------------> b
-                 p @ i
+                  p @ i
 
 
 The composition is the dashed line at the top of the square. The
 direction i goes left-to-right and j goes down-to-up. As we are
 constructing a Path from a to c we have i : II in the context already
 which is why we have to put p @ i as bottom (this is achieved by
-writing the comp under a <i> binder). The direction j that we are
-doing the composition in is implicit, more about this below.
+writing the comp after a path-abstraction). The direction j that we
+are doing the composition in is implicit, more about this below.
 
 -}
 trans (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
@@ -285,7 +284,7 @@ ex (A : U) (a b : A) (p : Path A a b) :
 -- Hint: draw a cube with a square with these as sides as its missing
 -- top and compute it as a composition (the exercise about which
 -- squares one can make using /\, \/ and - will be very useful for
--- this).
+-- this). The solution can be found in the beginning of lecture3.
 
 
 -- We can use Path types and compositions to prove basic results about
@@ -336,7 +335,6 @@ addAC (a b c : nat) : Path nat (add (add a b) c) (add (add a c) b) = undefined
 
 -- a + (b + c) = b + (a + c)
 addCA (a b c : nat) : Path nat (add a (add b c)) (add b (add a c)) = undefined
-
 
 
 

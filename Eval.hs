@@ -762,7 +762,7 @@ lemEq eq b aps = (a,VPLam i (compNeg j (eq @@ j) p1 thetas'))
 --         -- for gamma in es'', (i1) gamma is in es, so wsi1 gamma
 --         -- is in the domain of isoGamma
 --         uls'' = mapWithKey (\gamma eGamma ->
---                   gradLemmaU (bi1 `face` gamma) eGamma
+--                   isoToEquivU (bi1 `face` gamma) eGamma
 --                     ((usi1' `face` gamma) `unionSystem` (wsi1 `face` gamma))
 --                     (vi1' `face` gamma))
 --                   es''
@@ -777,11 +777,11 @@ lemEq eq b aps = (a,VPLam i (compNeg j (eq @@ j) p1 thetas'))
 --                      else fst (uls'' ! gamma))
 --                   esI1
 
--- Grad Lemma, takes a line eq in U, a system us and a value v, s.t. f us =
+-- IsoToEquiv, takes a line eq in U, a system us and a value v, s.t. f us =
 -- border v. Outputs (u,p) s.t. border u = us and a path p between v
 -- and f u, where f is transNegLine eq
--- gradLemmaU :: Val -> Val -> System Val -> Val -> (Val, Val)
--- gradLemmaU b eq us v = (u, VPLam i theta)
+-- isoToEquivU :: Val -> Val -> System Val -> Val -> (Val, Val)
+-- isoToEquivU b eq us v = (u, VPLam i theta)
 --   where i:j:_   = freshs (b,eq,us,v)
 --         ej      = eq @@ j
 --         a       = eq @@ One
@@ -794,8 +794,8 @@ lemEq eq b aps = (a,VPLam i (compNeg j (eq @@ j) p1 thetas'))
 --         theta   = compNeg j ej u xs
 
 -- Old version:
--- gradLemmaU :: Val -> Val -> System Val -> Val -> (Val, Val)
--- gradLemmaU b eq us v = (u, VPLam i theta'')
+-- isoToEquivU :: Val -> Val -> System Val -> Val -> (Val, Val)
+-- isoToEquivU b eq us v = (u, VPLam i theta'')
 --   where i:j:_   = freshs (b,eq,us,v)
 --         a       = eq @@ One
 --         g       = transLine

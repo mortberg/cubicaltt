@@ -187,7 +187,7 @@ import nat
 However as this lecture will be self-contained no imports are
 necessary. Note that the import mechanism is very simple and recursive
 so that if I import nat then it will automatically import everything
-nat depends on (like prelude).
+nat depends on (like prelude.ctt).
 
 -}
 
@@ -257,7 +257,7 @@ or : bool -> bool -> bool = split
     true -> true
     false -> false
 
--- Note the _, this is name that is used for arguments that do not
+-- Note the _, this is a name that is used for arguments that do not
 -- appear in the rest of the term (in particular one cannot refer to a
 -- variable called _).
 
@@ -329,6 +329,7 @@ head (A : U) (a : A) : list A -> A = split
 -- Path types
 
 {-
+
 We would like to prove: (b : bool) -> not (not b) = b
 But what is =?
 
@@ -339,11 +340,12 @@ type A can then be thought of as a function II -> A. As II is not a
 type we introduce a Path type called PathP together with a binder,
 written <i>, for path-abstraction and a path-application written p @ r
 where r is some element of the interval.
+
 -}
 
 
 -- As in the Cubical Type Theory paper the type PathP (written Path in
--- the paper!) is heterogeneous.  The homogeneous Path type can be
+-- the paper!) is heterogeneous. The homogeneous Path type can be
 -- defined by:
 Path (A : U) (a b : A) : U = PathP (<_> A) a b
 
@@ -364,20 +366,21 @@ So the above goal can now be written:
 {-
 The simplest path possible is the reflexivity path:
 
-      <i>a
-   a ------> a
+      <i> a
+   a -------> a
 
 The intuition is that
 
-  <i> u
+  <i> a
 
 corresponds to
 
-  \(i : II) -> u
+  \(i : II) -> a
 
 So <i> a is a function out of II that is constantly a. (But as II
 isn't a type we cannot write that as a lambda abstraction and we need
 a special syntax for it)
+
 -}
 refl (A : U) (a : A) : Path A a a = <i> a
 
@@ -427,7 +430,7 @@ congbin (A B C : U) (f : A -> B -> C) (a a' : A) (b b' : B)
         (p : Path A a a') (q : Path B b b') :
         Path C (f a b) (f a' b') = undefined
 
--- Note that undefined can be used at the top-level to introduce
+-- Note that undefined can only be used at the top-level to introduce
 -- definitions without bodies, much like axioms in Coq. The reason
 -- that it only works at the top-level is that we need to know the
 -- type. We could have a version of undefined that is annotated with

@@ -113,7 +113,7 @@ subsetIso0 (A : U) (sA : set A) : (s0 : subset0 A sA) ->
     P (X : U) (h: X -> B) : U
       = (p : Path U X B) * (PathP (<i> p @ i -> A) (\ (x : X) -> f' (g (h x))) f)
     q : P B' g'
-      = elimEquiv B P (<i> B, <i> f) B' (g', gradLemma B' B g' g s t)
+      = elimEquiv B P (<i> B, <i> f) B' (g', isoToEquiv B' B g' g s t)
     idB : Path U B' B
       = q.1
     -- Show that sB can be identified with sB'

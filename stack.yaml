@@ -1,0 +1,10 @@
+resolver: lts-6.35
+
+packages:
+- .
+extra-deps:
+    - BNFC-2.8.1
+
+flags: {}
+
+extra-package-dbs: []

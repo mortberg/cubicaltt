@@ -22,7 +22,7 @@ import lecture3
 fiber (A B : U) (f : A -> B) (y : B) : U =
   (x : A) * Path B y (f x)
 
--- A map is an equivalence
+-- A map is an equivalence if its fibers are contractible
 isEquiv (A B : U) (f : A -> B) : U =
   (y : B) -> isContr (fiber A B f y)
 
@@ -39,9 +39,8 @@ idIsEquiv (A : U) : isEquiv A A (idfun A) =
 
 idEquiv (A : U) : equiv A A = (idfun A,idIsEquiv A)
 
--- Compute the inverse of an equivalence
-invEquiv (A B : U) (e : equiv A B) (y : B) : A =
-  (e.2 y).1.1
+-- We can compute the inverse of an equivalence
+invEquiv (A B : U) (e : equiv A B) (y : B) : A = (e.2 y).1.1
 
 -- Exercises (easy): the inverse is really the inverse
 retEq (A B : U) (e : equiv A B) (y : B) : Path B (e.1 (invEquiv A B e y)) y = undefined
@@ -51,21 +50,24 @@ secEq (A B : U) (e : equiv A B) (x : A) : Path A (invEquiv A B e (e.1 x)) x = un
 -- (hint: use a composition)
 isPropIsContr (A : U) : isProp (isContr A) = undefined
 
--- Being an equivalence is hence a proposition. Note that propositions
--- in HoTT is different from Prop of Coq as we cannot erase them. If
--- we erase the proof that a map is an equivalence we cannot invert
--- it!
+-- So the property of being an equivalence is a proposition. Note that
+-- propositions in HoTT are different from Prop in Coq as we cannot
+-- erase them. If we erase the proof that a map is an equivalence we
+-- cannot invert it!
+
 isPropIsEquiv (A B : U) (f : A -> B) : isProp (isEquiv A B f) =
   \(u0 u1 : isEquiv A B f) ->
   <i> \(y : B) -> isPropIsContr (fiber A B f y) (u0 y) (u1 y) @ i
 
--- The "grad lemma": any isomorphism is an equivalence
-gradLemma (A B : U) (f : A -> B) (g : B -> A)
+-- The "isoToEquiv" lemma: any isomorphism is an equivalence
+isoToEquiv (A B : U) (f : A -> B) (g : B -> A)
        (s : (y : B) -> Path B (f (g y)) y)
        (t : (x : A) -> Path A (g (f x)) x) : isEquiv A B f =
-  \(y:B) -> ((g y,<i>s y@-i),\ (z:fiber A B f y) ->
-    lemIso A B f g s t y (g y) z.1 (<i>s y@-i) z.2)
+  \(y : B) -> ((g y,<i> s y @ -i),\(z : fiber A B f y) ->
+    lemIso A B f g s t y (g y) z.1 (<i> s y @ -i) z.2)
   where
+  -- Exercise: draw all of the squares in the proof of lemIso to see
+  -- why sq1 makes sense
   lemIso (A B : U) (f : A -> B) (g : B -> A)
        (s : (y : B) -> Path B (f (g y)) y)
        (t : (x : A) -> Path A (g (f x)) x)
@@ -128,9 +130,9 @@ equivalence of types:
 
        (A = B)  ~  (A ~ B)
 
-Glueing is a weaker form of this for producing non-trivial equalities
+Glueing is a variation of this for producing non-trivial equalities
 from equivalences. In particular Glueing gives a map from equiv A B to
-A = B. This weak form of univalence is useful for developing a lot of
+A = B. This form of univalence is useful for developing a lot of
 examples.
 
 If e : equiv A B then we can get a path between A and B by
@@ -142,14 +144,14 @@ This can be illustrated as:
               G
         A - - - - > B
         |           |
-       e|           | idEquiv B
+      e |           | idEquiv B
         |           |
         V           V
         B --------> B
               B
 
 The sides of this square are equivalence while the bottom and top are
-lines in direction i.
+lines in direction i (left-to-right).
 
 The Glue type allows us to do two very hard things: prove that the
 universe is fibrant (i.e. define composition for U) and prove the
@@ -167,7 +169,7 @@ ua (A B : U) (e : equiv A B) : Path U A B =
 -- recall: notK : (b : bool) -> Path bool (not (not b)) b = ...
 
 notEquiv : equiv bool bool =
-  (not,gradLemma bool bool not not notK notK)
+  (not,isoToEquiv bool bool not not notK notK)
 
 -- Construct an equality in the universe using Glue
 notEq : Path U bool bool =
@@ -231,7 +233,7 @@ predsucZ : (x : Z) -> Path Z (predZ (sucZ x)) x = split
   inr v -> <i> inr v
 
 sucPathZ : Path U Z Z =
-   <i> Glue Z [ (i = 0) -> (Z,sucZ,gradLemma Z Z sucZ predZ sucpredZ predsucZ)
+   <i> Glue Z [ (i = 0) -> (Z,sucZ,isoToEquiv Z Z sucZ predZ sucpredZ predsucZ)
               , (i = 1) -> (Z,idEquiv Z) ]
 
 -- We can transport along the proof forward and backwards:
@@ -290,10 +292,11 @@ cyril : eats bool = substEquiv eats bool bool notEquiv anders
 -- (hint: use fill with the empty system)
 uabeta (A B : U) (e : equiv A B) : Path (A -> B) (trans A B (ua A B e)) e.1 = undefined
 
--- One would expect this computation rule to hold judgmentally, but it
--- doesn't as the algorithm for computation in the universe adds some
--- compositions with the empty system.
--- Open problem: construct a type theory where this holds judgmentally.
+-- One could imagine this computation rule to hold judgmentally, but
+-- it doesn't as the algorithm for computation in the universe adds
+-- some compositions with the empty system.
+-- Open problem: construct a type theory where this holds
+-- judgmentally.
 
 -- A further reduction of these axioms to even simpler axioms have
 -- recently been found by Ian Orton and Andrew Pitts:
@@ -328,7 +331,7 @@ flipbeta (A B : U) (C : A -> B -> U) (a : A) (b : B) (c : C a b) :
 
 What I didn't talk about:
 
-  o Id types: we can define a type from Path for which the
+  o Id types: we can define a type from Path types for which the
     computation rule for J holds judgmentally. See
     examples/idtypes.ctt
 

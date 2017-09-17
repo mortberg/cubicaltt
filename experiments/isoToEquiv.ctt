@@ -1,10 +1,8 @@
--- This file contains a proof of the graduate lemma using the old
--- version of equivalence
-module gradLemma where
+-- This file contains a proof of the isoToId using the old version of
+-- equivalence
+module isoToEquiv where
 
 import equiv
-
--- Gradlemma:
 
 lemIso (A B : U) (f : A -> B) (g : B -> A)
        (s : (y : B) -> Id B (f (g y)) y)
@@ -56,7 +54,7 @@ lemIso (A B : U) (f : A -> B) (g : B -> A)
                                          , (j = 0) -> s (f (p @ i))
                                          , (j = 1) -> s y ]
 
-gradLemma (A B : U) (f : A -> B) (g : B -> A)
+isoToEquiv (A B : U) (f : A -> B) (g : B -> A)
           (s : (y : B) -> Id B (f (g y)) y)
           (t : (x : A) -> Id A (g (f x)) x) : isEquiv A B f = (fCenter,fIsCenter)
   where

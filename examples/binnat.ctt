@@ -211,10 +211,8 @@ eqDouble2 : Path Double DoubleBinN' DoubleBinN
      rem1 : (n : binN) -> Path binN (doubleBinN' n) (doubleBinN n)
       = split
       binN0     -> <_> binN0
-      binNpos p -> <i> comp (<_> binN) (NtoBinN (doubleN (PosToN p)))
-                          [ (i=0) -> <_> NtoBinN (doubleN (PosToN p))
-                          , (i=1) -> lem1 (x0 p) ]
-
+      binNpos p -> lem1 (x0 p)
+      
 eqDouble : Path Double DoubleN DoubleBinN =
   compPath Double DoubleN DoubleBinN' DoubleBinN eqDouble1 eqDouble2
 

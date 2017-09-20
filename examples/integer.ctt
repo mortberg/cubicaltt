@@ -10,7 +10,8 @@ import int
 
 data int = pos (n : nat)
          | neg (n : nat)
-         | zeroP <i> [(i=0) -> pos zero, (i=1) -> neg zero]
+         | zeroP <i> [ (i = 0) -> pos zero
+                     , (i = 1) -> neg zero ]
 
 -- Nice version of the zero constructor:
 zeroZ : Path int (pos zero) (neg zero) = <i> zeroP {int} @ i
@@ -44,15 +45,15 @@ fromZ : Z -> int = split
   inr n -> pos n
 
 toZK : (a : Z) -> Path Z (toZ (fromZ a)) a = split
-  inl n -> refl Z (inl n)
-  inr n -> refl Z (inr n)
+  inl n -> <_> inl n
+  inr n -> <_> inr n
 
 fromZK : (a : int) -> Path int (fromZ (toZ a)) a = split
-  pos n -> refl int (pos n)
+  pos n -> <_> pos n
   neg n -> rem n
     where rem : (n : nat) -> Path int (fromZ (toZ (neg n))) (neg n) = split
       zero -> zeroZ
-      suc m -> refl int (neg (suc m))
+      suc m -> <_> neg (suc m)
   zeroP @ i -> <j> zeroZ @ i /\ j
 
 isoIntZ : Path U Z int = isoPath Z int fromZ toZ fromZK toZK
@@ -62,11 +63,11 @@ intSet : set int = subst U set Z int isoIntZ ZSet
 -- a concrete instance
 
 T : U = Path int (pos zero) (pos zero)
-p0 : T = refl int (pos zero)
+p0 : T = <_> pos zero
 p1 : T = compPath int (pos zero) (neg zero) (pos zero) zeroZ (<i>zeroZ@-i)
 
-test0 : Path (Path Z (inr zero) (inr zero)) (refl Z (inr zero)) (refl Z (inr zero)) =
-  ZSet (inr zero) (inr zero) (refl Z (inr zero)) (refl Z (inr zero))
+test0 : Path (Path Z (inr zero) (inr zero)) (<_> inr zero) (<_> inr zero) =
+  ZSet (inr zero) (inr zero) (<_> inr zero) (<_> inr zero)
 
 -- Tests for normal forms:
 test1 : Path T p0 p1 = intSet (pos zero) (pos zero) p0 p1

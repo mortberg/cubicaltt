@@ -150,11 +150,11 @@ Square (A : U) (a0 a1 b0 b1 : A)
   = PathP (<i> (PathP (<j> A) (u @ i) (v @ i))) r0 r1
 
 constSquare (A : U) (a : A) (p : Path A a a) : Square A a a a a p p p p =
-  <i j> comp (<k>A) a
-     [(i = 0) -> <k> p @ (j \/ - k),
-      (i = 1) -> <k> p @ (j /\ k),
-      (j = 0) -> <k> p @ (i \/ - k),
-      (j = 1) -> <k> p @ (i /\ k)]
+  <i j> comp (<_> A) a
+             [ (i = 0) -> <k> p @ j \/ - k
+             , (i = 1) -> <k> p @ j /\ k
+             , (j = 0) -> <k> p @ i \/ - k
+             , (j = 1) -> <k> p @ i /\ k ]
 
 prop (A : U) : U = (a b : A) -> Path A a b
 set (A : U) : U = (a b : A) -> prop (Path A a b)

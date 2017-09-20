@@ -1,18 +1,18 @@
 # DO NOT DELETE: Beginning of Haskell dependencies
+Exp/Lex.o : Exp/Lex.hs
+Exp/Layout.o : Exp/Layout.hs
+Exp/Layout.o : Exp/Lex.hi
 Exp/ErrM.o : Exp/ErrM.hs
 Exp/Abs.o : Exp/Abs.hs
-Exp/Skel.o : Exp/Skel.hs
-Exp/Skel.o : Exp/ErrM.hi
-Exp/Skel.o : Exp/Abs.hi
-Exp/Print.o : Exp/Print.hs
-Exp/Print.o : Exp/Abs.hi
-Exp/Lex.o : Exp/Lex.hs
 Exp/Par.o : Exp/Par.hs
 Exp/Par.o : Exp/ErrM.hi
 Exp/Par.o : Exp/Lex.hi
 Exp/Par.o : Exp/Abs.hi
-Exp/Layout.o : Exp/Layout.hs
-Exp/Layout.o : Exp/Lex.hi
+Exp/Print.o : Exp/Print.hs
+Exp/Print.o : Exp/Abs.hi
+Exp/Skel.o : Exp/Skel.hs
+Exp/Skel.o : Exp/ErrM.hi
+Exp/Skel.o : Exp/Abs.hi
 Exp/Test.o : Exp/Test.hs
 Exp/Test.o : Exp/ErrM.hi
 Exp/Test.o : Exp/Layout.hi

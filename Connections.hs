@@ -275,7 +275,7 @@ gensym :: [a] -> Name
 gensym _ = unsafePerformIO $ do
   x <- readIORef freshVar
   modifyIORef freshVar succ
-  return (Name (show x))
+  return (Name ('i' : show x))
 
 -- gensym :: [Name] -> Name
 -- gensym xs = Name ('!' : show max)

@@ -11,4 +11,6 @@ Main
 .depends-made
 .cabal-sandbox
 cabal.sandbox.config
+.stack-work
+.*.sw?
 

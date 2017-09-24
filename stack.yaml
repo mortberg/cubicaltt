@@ -1,4 +1,4 @@
-resolver: lts-6.35
+resolver: lts-9.5
 
 packages:
 - .

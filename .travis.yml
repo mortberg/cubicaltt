@@ -39,3 +39,4 @@ script:
 # Build the package, its tests, and its docs and run the tests
 - stack --no-terminal build --haddock --no-haddock-deps
 
+

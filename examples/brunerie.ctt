@@ -535,19 +535,18 @@ lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a0 a1 :A)
   <i> pP (p @ i) (comp (<j> P (p @ i/\ j)) b0 [ (i=0) -> <_> b0])
                  (comp (<j> P (p @ i\/ -j)) b1 [ (i=1) -> <_> b1]) @ i
 
-lemSig (A : U) (B : A -> U) (pB : (x : A) -> prop (B x))
-       (u v : (x:A) * B x) (p : Path A u.1 v.1) :
-       Path ((x:A) * B x) u v = <i> (p @ i, lemPropF A B pB u.1 v.1 p u.2 v.2 @ i)
+-- lemSig (A : U) (B : A -> U) (pB : (x : A) -> prop (B x))
+--        (u v : (x:A) * B x) (p : Path A u.1 v.1) :
+--        Path ((x:A) * B x) u v = <i> (p @ i, lemPropF A B pB u.1 v.1 p u.2 v.2 @ i)
 
-equivEq (A B : U) (v w : equiv A B) (p : Path (A -> B) v.1 w.1) : Path (equiv A B) v w =
-  lemSig (A -> B) (isEquiv A B) (propIsEquiv A B) v w p
+-- equivEq (A B : U) (v w : equiv A B) (p : Path (A -> B) v.1 w.1) : Path (equiv A B) v w =
+--   lemSig (A -> B) (isEquiv A B) (propIsEquiv A B) v w p
 
 contrSingl (A : U) (a b : A) (p : Path A a b) :
   Path ((x : A) * Path A a x) (a,<_>a) (b,p) = <i> (p @ i,<j> p @ i/\j)
 
 idIsEquiv (A : U) : isEquiv A A (idfun A) =
-  \(a : A) -> ((a,<_>a)
-              ,\(z : fiber A A (idfun A) a) -> contrSingl A a z.1 z.2)
+  \(a : A) -> ((a,<_>a),\(z : (x : A) * Path A a x) -> contrSingl A a z.1 z.2)
 
 idEquiv (A : U) : equiv A A = (idfun A,idIsEquiv A)
 
@@ -559,20 +558,55 @@ ua (A B : U) (e : equiv A B) : Path U A B =
 
 -- B.8.1 The Hopf fibration
 
-mu : S1 -> equiv S1 S1 = split
-  base -> idEquiv S1
-  loop @ i ->
-    let f : (x : S1) -> Path S1 x x = split
-          base -> loopP
-          loop @ i -> constSquare S1 base loopP @ i
-        goal : Path (equiv S1 S1) (idEquiv S1) (idEquiv S1) =
-          equivEq S1 S1 (idEquiv S1) (idEquiv S1) (<j> \(x : S1) -> f x @ j)
-    in goal @ i
+-- mu : S1 -> equiv S1 S1 = split
+--   base -> idEquiv S1
+--   loop @ i ->
+--     let f : (x : S1) -> Path S1 x x = split
+--           base -> loopP
+--           loop @ i -> constSquare S1 base loopP @ i
+--         goal : Path (equiv S1 S1) (idEquiv S1) (idEquiv S1) =
+--           equivEq S1 S1 (idEquiv S1) (idEquiv S1) (<j> \(x : S1) -> f x @ j)
+--     in goal @ i
+
+-- Hopf : S2 -> U = split
+--   north -> S1
+--   south -> S1
+--   merid x @ i -> ua S1 S1 (mu x) @ i
+
+-- "rotation by angle x"
+-- adds loops
+
+rotLoop : (a : S1) -> Path S1 a a = split
+  base -> loopP
+  loop @ i -> constSquare S1 base loopP @ i
+
+rot : S1 -> S1 -> S1 = split
+  base -> \(y : S1) -> y
+  loop @ i -> \(y : S1) -> rotLoop y @ i
+  
+rot_unit_r : (a : S1) -> Path S1 (rot a base) a = split
+   base -> <_> base
+   loop @ i -> <_> loopP @ i
+
+rotIsEquiv_loop : PathP (<i> isEquiv S1 S1 (rot (loopP @ i))) (idIsEquiv S1) (idIsEquiv S1) =
+  lemPropF S1 (\(a : S1) -> isEquiv S1 S1 (rot a))
+           (\(a : S1) -> propIsEquiv S1 S1 (rot a)) base base loopP
+           (idIsEquiv S1) (idIsEquiv S1)
+
+rotIsEquiv : (a : S1) -> isEquiv S1 S1 (rot a) = split
+   base -> idIsEquiv S1
+   loop @ i -> rotIsEquiv_loop @ i
+
+rotpath (x : S1) : Path U S1 S1 = ua S1 S1 (rot x, rotIsEquiv x)
 
 Hopf : S2 -> U = split
   north -> S1
   south -> S1
-  merid x @ i -> ua S1 S1 (mu x) @ i
+  merid x @ i -> rotpath x @ i
+
+
+
+--
 
 subst (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
   transGen (<i> P (p @ i)) 0 e
@@ -2383,6 +2417,10 @@ test0To3 : (Omega3 (joinpt S1pt S1)).1 = f3 test0To2
 
 -- WORKS without endpoint correction (~2s)
 test0To4 : (Omega3 S2pt).1 = f4 test0To3
+
+-- fibContrHopfThree (p : (Omega3 S2pt).1) : HopfThree p =
+
+testFibContrHopf3 : HopfThree test0To4 = fibContrHopfThree test0To4
 
 -- ? (not finished)
 test0To5 : (Omega3 (joinpt S1pt S1)).1 = f5 test0To4

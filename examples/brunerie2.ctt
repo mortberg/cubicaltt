@@ -1,0 +1,112 @@
+module brunerie2 where
+
+Path (A : U) (a0 a1 : A) : U = PathP (<i> A) a0 a1
+
+data bool = false | true
+data nat = zero | suc (n : nat)
+
+idfun (A : U) (a : A) : A = a
+
+data S1 = base1
+        | loop1 <i> [ (i=0) -> base1
+                    , (i=1) -> base1 ]
+
+data S2 = base2
+        | loop2 <i j> [ (i=0) -> base2
+                      , (i=1) -> base2
+                      , (j=0) -> base2
+                      , (j=1) -> base2]
+
+data S3 = base3
+        | loop3 <i j k> [ (i=0) -> base3
+                        , (i=1) -> base3
+                        , (j=0) -> base3
+                        , (j=1) -> base3
+                        , (k=0) -> base3
+                        , (k=1) -> base3]
+
+-- Pointed types
+ptType : U = (A : U) * A
+pt (A : ptType) : A.1 = A.2
+
+boolpt : ptType = (bool,true)
+
+ptMap (A B : ptType) : U = (f : A.1 -> B.1) * (Path B.1 (f (pt A)) (pt B))
+
+-- The first 3 loop spaces of a pointed type.
+-- TODO: Maybe defined these by induction on n as in experiments/pointed.ctt?
+Omega (A : ptType) : ptType = (Path A.1 (pt A) (pt A),<_> pt A)
+Omega2 (A : ptType) : ptType = Omega (Omega A)
+Omega3 (A : ptType) : ptType = Omega2 (Omega A)
+
+kanOp (A : U) (a : A) (p : Path A a a) (b : A) (q : Path A a b) : Path A b b =
+ <i> hcomp A (p @ i) [ (i = 0) -> q, (i = 1) -> q ]
+
+kanOpRefl (A : U) (a b : A) (q : Path A a b) :
+  Path (Path A b b) (kanOp A a (<i> a) b q) (<_> b) =
+    <j i> hcomp A (q @ j) [ (i = 0) -> <k> q @ j \/ k
+                          , (i = 1) -> <k> q @ j \/ k
+                          , (j = 1) -> <k> b ]
+
+mapOmega (A B : ptType) (f : ptMap A B) : ptMap (Omega A) (Omega B) = (g,pg)
+  where
+  g (p : (Omega A).1) : (Omega B).1 =
+   kanOp B.1 (f.1 (pt A)) (<i>f.1 (p@i)) (pt B) f.2
+  pg : Path (Omega B).1 (g (pt (Omega A))) (pt (Omega B)) =
+    kanOpRefl B.1 (f.1 (pt A)) (pt B) f.2
+
+mapOmega2 (A B : ptType) (f : ptMap A B) : ptMap (Omega2 A) (Omega2 B) =
+  mapOmega (Omega A) (Omega B) (mapOmega A B f)
+
+mapOmega3 (A B : ptType) (f : ptMap A B) : ptMap (Omega3 A) (Omega3 B) =
+  mapOmega (Omega2 A) (Omega2 B) (mapOmega2 A B f)
+
+-- Simplified mapOmega when the function is pointed by reflexivity
+mapOmegaRefl (A : ptType) (B : U) (h : A.1 -> B) (p : (Omega A).1) :
+  (Omega (B, h (pt A))).1 = <i> h (p @ i)
+
+mapOmegaRefl2 (A : ptType) (B : U) (h : A.1 -> B) (p : (Omega2 A).1) :
+  (Omega2 (B, h (pt A))).1 = <i j> h (p @ i @ j)
+  -- mapOmegaRefl (Omega A) (Omega (B,h (pt A))).1 (mapOmegaRefl A B h) p
+
+mapOmegaRefl3 (A : ptType) (B : U) (h : A.1 -> B) (p : (Omega3 A).1) :
+  (Omega3 (B, h (pt A))).1 = <i j k> h (p @ i @ j @ k)
+  -- mapOmegaRefl2 (Omega A) (Omega (B,h (pt A))).1 (mapOmegaRefl A B h)
+
+
+data join (A B : U) = inl (a : A)
+                    | inr (b : B)
+                    | push (a : A) (b : B) <i> [ (i = 0) -> inl a
+                                               , (i = 1) -> inr b ]
+
+pushP (A B : U) (a : A) (b : B) : Path (join A B) (inl a) (inr b) =
+  <i> push {join A B} a b @ i
+
+joinpt (A : ptType) (B : U) : ptType = (join A.1 B,inl (pt A))
+
+e : S3 -> join S1 S1 = split
+  base3 -> inl base1
+  loop3 @ i j k -> hcomp (join S1 S1) (push{join S1 S1} (loop1{S1} @ i) (loop1{S1} @ j) @ k)
+                         [ (i=0) -> <l> push{join S1 S1} base1 base1
+                         , (i=1) ->
+                         , (j=0) ->
+                         , (j=1) ->
+                         , (k=0) -> <l> inl base1
+                         , (k=1) -> <l> push{join S1 S1} base1 base1 @ l]
+
+compPath (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
+  <i> hcomp A (p @ i) [ (i =0) -> <j> a, (i = 1) -> q ]
+
+merid : S1 -> Path S2 base2 base2 = split
+  base1 -> <_> base2
+  loop1 @ i -> <j> loop2{S2} @ i @ j
+
+foo (x y : S1) : Path S2 base2 base2 =
+  compPath S2 base2 base2 base2 (merid y) (merid x)
+
+alpha : join S1 S1 -> S2 = split
+  inl x -> base2
+  inr y -> base2
+  push x y @ i -> foo x y @ i
+
+

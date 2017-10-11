@@ -146,6 +146,8 @@ cubealpha' : PathP (<k> PathP (<i> Path (join S1 S1)
               (pushP S1 S1 (loopP @ i) base1)
               (<w> pushP S1 S1 base1 base1 @ -w) @ l @ k
 
+-- sqsq' (A : U) (a b : A) (p : Path A a b) :
+
 cubealpha : PathP (<k> PathP (<i> Path (join S1 S1)
                                        (pushP S1 S1 (loopP @ i) base1 @ k)
                                        (pushP S1 S1 base1 base1 @ -k))
@@ -156,7 +158,16 @@ cubealpha : PathP (<k> PathP (<i> Path (join S1 S1)
                                                   (pushP S1 S1 base1 base1)
                                                   (<w> pushP S1 S1 base1 base1 @ -w) @ l @ k))
                    (<i l> pushP S1 S1 (loopP @ i) base1 @ l)
-                   (<i l> pushP S1 S1 base1 base1 @ -l) = undefined
+                   (<i l> pushP S1 S1 base1 base1 @ -l) =
+  <k i l> hcomp (join S1 S1)
+                (cubealpha' @ k @ i @ l)
+                [ (k=0) -> <w> pushP S1 S1 (loopP @ i) base1 @ l
+                , (k=1) -> <w> pushP S1 S1 base1 base1 @ l
+                , (i=0) -> <w> sqsq' (join S1 S1) (inl base1) (inr base1) (pushP S1 S1 base1 base1) @ w @ k @ l
+                , (i=1) -> <w> sqsq' (join S1 S1) (inl base1) (inr base1) (pushP S1 S1 base1 base1) @ w @ k @ l
+                , (l=0) -> <w> pushP S1 S1 (loopP @ i) base1 @ k
+                , (l=1) -> <w> pushP S1 S1 base1 base1 @ k
+                ]
 
 
 -- e : S3 -> join S1 S1 = split

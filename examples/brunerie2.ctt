@@ -185,18 +185,14 @@ cubebeta : PathP (<k> PathP (<j> Path (join S1 S1)
              (pushP S1 S1 base1 (loopP @ j))
              (<w> pushP S1 S1 base1 base1 @ -w) @ k @ l
 
-cubestep1 : PathP (<k> PathP (<j> Path (join S1 S1)
-                                       (pushP S1 S1 base1 base1 @ k)
-                                       (pushP S1 S1 base1 base1 @ -k))
-                             (<l> sq (join S1 S1) (inl base1) (inr base1) (inr base1)
-                                                  (pushP S1 S1 base1 base1)
-                                                  (<w> pushP S1 S1 base1 base1 @ -w) @ l @ k)
-                             (<l> sq (join S1 S1) (inl base1) (inr base1) (inr base1)
-                                                  (pushP S1 S1 base1 base1)
-                                                  (<w> pushP S1 S1 base1 base1 @ -w) @ l @ k))
-                   (<j l> pushP S1 S1 base1 base1 @ l)
-                   (<j l> pushP S1 S1 base1 base1 @ -l) = undefined
 
+cubestep1 : PathP (<k> Path (Path (join S1 S1)
+                                  (pushP S1 S1 base1 base1 @ -k)
+                                  (pushP S1 S1 base1 base1 @ -k))
+                      (<_> pushP S1 S1 base1 base1 @ -k)
+                      (<_> pushP S1 S1 base1 base1 @ -k))
+                  (<_ _> inr base1)
+                  (<_ _> inl base1) = undefined
 
 goalcube : Path (Path (Path (join S1 S1)
                             (inl base1) (inl base1))

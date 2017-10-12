@@ -297,8 +297,10 @@ rotIsEquiv : (a : S1) -> isEquiv S1 S1 (rot a) = split
 
 rotpath (x : S1) : Path U S1 S1 = ua S1 S1 (rot x, rotIsEquiv x)
 
-goal (A : U) : Path (Path U A A) (ua A A (idEquiv A)) (<_> A) = undefined
---  <i j> ?
+goal (A : U) : Path (Path U A A) (ua A A (idEquiv A)) (<_> A) =
+  <j i> Glue A [ (i = 0) -> (A,idEquiv A)
+               , (i = 1) -> (A,idEquiv A)
+               , (j = 1) -> (A,idEquiv A) ]
 
 Hopf : S2 -> U = split
   base2 -> S1

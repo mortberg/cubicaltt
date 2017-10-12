@@ -169,10 +169,29 @@ cubealpha : PathP (<k> PathP (<i> Path (join S1 S1)
                 , (l=1) -> <w> pushP S1 S1 base1 base1 @ -k
                 ]
 
+cubestep1 : PathP (<k> PathP (<j> Path (join S1 S1)
+                                       (pushP S1 S1 base1 base1 @ k)
+                                       (pushP S1 S1 base1 base1 @ -k))
+                             (<l> sq (join S1 S1) (inl base1) (inr base1) (inr base1)
+                                                  (pushP S1 S1 base1 base1)
+                                                  (<w> pushP S1 S1 base1 base1 @ -w) @ l @ k)
+                             (<l> sq (join S1 S1) (inl base1) (inr base1) (inr base1)
+                                                  (pushP S1 S1 base1 base1)
+                                                  (<w> pushP S1 S1 base1 base1 @ -w) @ l @ k))
+                   (<j l> pushP S1 S1 base1 base1 @ l)
+                   (<j l> pushP S1 S1 base1 base1 @ -l) = undefined
 
--- e : S3 -> join S1 S1 = split
---   base3 -> inl base1
---   loop3 @ i j k -> hcomp (join S1 S1) (push{join S1 S1} (loop1{S1} @ i) (loop1{S1} @ j) @ k)
+
+goalcube : Path (Path (Path (join S1 S1)
+                            (inl base1) (inl base1))
+                      (<_> inl base1) (<_> inl base1))
+                (<_ _> inl base1) (<_ _> inl base1) = undefined
+
+e : S3 -> join S1 S1 = split
+  base3 -> inl base1
+  loop3 @ i j k -> goalcube @ i @ j @ k
+  
+-- hcomp (join S1 S1) (push{join S1 S1} (loop1{S1} @ i) (loop1{S1} @ j) @ k)
 --                          [ (i=0) -> <l> push{join S1 S1} base1 base1
 --                          , (i=1) ->
 --                          , (j=0) ->

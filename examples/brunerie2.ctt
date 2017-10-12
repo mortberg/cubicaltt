@@ -416,8 +416,34 @@ fibContrHopfThree (p : (Omega3 S2pt).1) : HopfThree p =
       (truncFibOmega two S2pt Hopf base1 isGroupoidS1 (<_> base2))
       (<_ _> base2)) p
 
--- opaque funExt1
 
--- -- The map h from 9.3
--- h (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 =
---   <i j k> t (p @ i @ j @ k) (fibContrHopfThree p @ i @ j @ k)
+-- t : (x : S2) -> (Hopf x -> join S1 S1) = split
+--   base2 -> \(a : S1) -> inl a
+--   loop2 @ i j -> ?
+
+-- The map h from 9.3
+h (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 = undefined
+--  <i j k> t (p @ i @ j @ k) (fibContrHopfThree p @ i @ j @ k)
+
+
+
+--- tests
+
+test0To2 : (Omega3 S3pt).1 = <i j k> loop3{S3} @ i @ j @ k
+
+f3 : (Omega3 S3pt).1 -> (Omega3 (joinpt S1pt S1)).1 =
+  mapOmegaRefl3 S3pt (join S1 S1) e
+
+test0To3 : (Omega3 (joinpt S1pt S1)).1 = f3 test0To2
+
+f4 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S2pt).1 =
+  mapOmegaRefl3 (joinpt S1pt S1) S2 alpha
+
+test0To4 : (Omega3 S2pt).1 = f4 test0To3
+
+-- Part of test0To5
+testFibContrHopf3 : HopfThree test0To4 = fibContrHopfThree test0To4
+
+f5 : (Omega3 S2pt).1 -> (Omega3 (joinpt S1pt S1)).1 = h
+
+test0To5 : (Omega3 (joinpt S1pt S1)).1 = f5 test0To4

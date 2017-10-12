@@ -169,6 +169,22 @@ cubealpha : PathP (<k> PathP (<i> Path (join S1 S1)
                 , (l=1) -> <w> pushP S1 S1 base1 base1 @ -k
                 ]
 
+cubebeta : PathP (<k> PathP (<j> Path (join S1 S1)
+                                      (pushP S1 S1 base1 (loopP @ j) @ k)
+                                      (pushP S1 S1 base1 base1 @ -k))
+                            (<l> sq (join S1 S1) (inl base1) (inr base1) (inr base1)
+                                                 (pushP S1 S1 base1 base1)
+                                                 (<w> pushP S1 S1 base1 base1 @ -w) @ l @ k)
+                            (<l> sq (join S1 S1) (inl base1) (inr base1) (inr base1)
+                                                 (pushP S1 S1 base1 base1)
+                                                 (<w> pushP S1 S1 base1 base1 @ -w) @ l @ k))
+                   (<j l> pushP S1 S1 base1 base1 @ l)
+                   (<j l> pushP S1 S1 base1 (loopP @ j) @ -l) =
+  <k j l> sq (join S1 S1)
+             (inl base1) (inr (loopP @ j)) (inr base1)
+             (pushP S1 S1 base1 (loopP @ j))
+             (<w> pushP S1 S1 base1 base1 @ -w) @ k @ l
+
 
 -- e : S3 -> join S1 S1 = split
 --   base3 -> inl base1
@@ -402,3 +418,6 @@ fibContrHopfThree (p : (Omega3 S2pt).1) : HopfThree p =
 -- -- The map h from 9.3
 -- h (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 =
 --   <i j k> t (p @ i @ j @ k) (fibContrHopfThree p @ i @ j @ k)
+
+
+-- mu2 : S2 -> S2 -> g2Trunc S2

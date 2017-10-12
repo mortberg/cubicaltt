@@ -195,6 +195,19 @@ cubealpha : PathP (<k> PathP (<i> Path (join S1 S1)
 --                       , (k=1) ->
 --                       ]
 
+eInvAux2 : S1 -> Path (Path S3 base3 base3) (<_> base3) (<_> base3) = split
+  base1 -> <_ _> base3
+  loop1 @ i -> <j k> loop3{S3} @ i @ j @ k
+
+eInvAux (x : S1) : S1 -> Path S3 base3 base3 = split
+  base1 -> <_> base3
+  loop1 @ i -> eInvAux2 x @ i
+
+eInv : join S1 S1 -> S3 = split
+  inl x -> base3
+  inr y -> base3
+  push x y @ i -> eInvAux x y @ i
+
 
 compPath (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
   <i> hcomp A (p @ i) [ (i =0) -> <j> a, (i = 1) -> q ]

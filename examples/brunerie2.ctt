@@ -974,7 +974,6 @@ temp0' : inhOrTrunc (HopfOne' (<_> base2)) two =
 temp1' : inhOrTrunc (HopfTwo' (<_ _> base2)) one =
   truncFibOmega' one (Omega S2pt) HopfOne' (ptFibOmega' S2pt Hopf base1) temp0' (<_ _> base2)
 
--- How to define this?
 fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p =
   truncFibOmega' zero (Omega2 S2pt) HopfTwo' point temp1' p
    where
@@ -1279,16 +1278,11 @@ multTwo : S2 -> S2 -> trS2 = split
 multTwoTilde (x : S2) : trS2 -> trS2 =
   g2TruncRec S2 trS2 trS2Trunc (multTwo x)
 
+-- TODO: need to compose the loop2 branch with the proof that lemPropF applied to p = refl gives pB.
+--       Technically, it will give pP base2 pB pB instead, but that is itself equal to <_> pB
 lemPropS2 (P : S2 -> U) (pP : (x : S2) -> prop (P x)) (pB : P base2) : (x : S2) -> P x = ? -- split
     -- base2 -> pB
-    -- loop2 @ i j -> ? -- rem1 @ i
-    --   -- where
-    --   -- pS (x : S1) : P south = subst S2 P north south (meridP S1 x) pN
-
-    --   -- rem (p : P south) : PathS S2 P north south (meridP S1 x) pN p =
-    --   --   pathSIntro S2 P north south (meridP S1 x) pN p (pP south (pS x) p)
-
-    --   -- rem1 : PathS S2 P north south (meridP S1 x) pN (pS base) = rem (pS base)
+    -- loop2 @ i j -> lemPropF S2 P pP base2 base2 (<k> loop2{S2} @ i @ k) pB pB @ j
 
 -- This needs the elimination principle for 2-groupoid truncation...
 lem3Trunc (A B : U) (hB : twogroupoid B) (g h : g2Trunc A -> B)
@@ -1297,43 +1291,63 @@ lem3Trunc (A B : U) (hB : twogroupoid B) (g h : g2Trunc A -> B)
   g2TruncElim A (\(x : g2Trunc A) -> Path B (g x) (h x))
              (\(x : g2Trunc A) -> twogroupoidThreeGroupoid B hB (g x) (h x)) H
 
+multBase2EqPath : Path (trS2 -> trS2) (\(x : trS2) -> x) (multTwoTilde base2) =
+  <i> \(x : trS2) -> lem3Trunc S2 trS2 (g2TruncTwoGroupoid S2) (idfun trS2)
+                               (multTwoTilde base2) (\(a : S2) -> <_> g2inc a) x @ i
+
+multEquivBase2 : isEquiv trS2 trS2 (multTwoTilde base2) =
+  subst (trS2 -> trS2) (isEquiv trS2 trS2) (idfun trS2)
+        (multTwoTilde base2) multBase2EqPath (idIsEquiv trS2)
+
 multTwoTildeEquiv : (x : S2) -> isEquiv trS2 trS2 (multTwoTilde x) =
   lemPropS2
     (\(x : S2) -> isEquiv trS2 trS2 (multTwoTilde x))
     (\(x : S2) -> propIsEquiv trS2 trS2 (multTwoTilde x))
     multEquivBase2
-  where multBase2EqPath : Path (trS2 -> trS2) (\(x : trS2) -> x) (multTwoTilde base2) =
-          <i> \(x : trS2) -> lem3Trunc S2 trS2 (g2TruncTwoGroupoid S2) (idfun trS2)
-                                (multTwoTilde base2) (\(a : S2) -> <_> g2inc a) x @ i
-        multEquivBase2 : isEquiv trS2 trS2 (multTwoTilde base2) =
-          subst (trS2 -> trS2) (isEquiv trS2 trS2) (idfun trS2)
-                (multTwoTilde base2) multBase2EqPath (idIsEquiv trS2)
 
--- goal2 (A : U) (e : equiv A A) (p : Path (equiv A A) (idEquiv A) e) : Path (Path U A A) (ua A A e) (<_> A) =
---   <j i> Glue A [ (i = 0) -> (A, p @ -j)
---                , (i = 1) -> (A, idEquiv A)
---                , (j = 1) -> (A, idEquiv A) ]
+opaque multTwoTildeEquiv
+opaque multBase2EqPath
 
--- goal3 : Path (equiv trS2 trS2) (idEquiv trS2) (multTwoTilde base2, multTwoTildeEquiv base2)
---   = <i> (\(x : trS2) -> lem3Trunc S2 trS2 (g2TruncTwoGroupoid S2) (idfun trS2)
---                                 (multTwoTilde base2) (\(a : S2) -> <_> g2inc a) x @ i
---         , ?)
+goal2 (A : U) (e : equiv A A) (p : Path (equiv A A) (idEquiv A) e) : Path (Path U A A) (ua A A e) (<_> A) =
+  <j i> Glue A [ (i = 0) -> (A, p @ -j)
+               , (i = 1) -> (A, idEquiv A)
+               , (j = 1) -> (A, idEquiv A) ]
 
--- tHopf3 : S3 -> U = split
---   base3 -> trS2
---   loop3 @ i j k -> hcomp U (ua trS2 trS2 (multTwoTilde (loop2{S2} @ i @ j),multTwoTildeEquiv (loop2{S2} @ i @ j)) @ k)
---                          [ (i=0) -> <l> goal trS2 @ l @ j
---                          , (i=1) -> <l> goal trS2 @ l @ j
---                          , (j=0) -> <l> goal trS2 @ l @ i
---                          , (j=1) -> <l> goal trS2 @ l @ i
---                          , (k=0) -> <_> trS2
---                          , (k=1) -> <_> trS2]
+goal3 : Path (equiv trS2 trS2) (idEquiv trS2) (multTwoTilde base2, multTwoTildeEquiv base2)
+  = <i> (multBase2EqPath @ i
+        , lemPropF (trS2 -> trS2) (isEquiv trS2 trS2) (propIsEquiv trS2 trS2)
+                   (\ (x : trS2) -> x) (multTwoTilde base2) multBase2EqPath
+                   (idIsEquiv trS2) (multTwoTildeEquiv base2) @ i)
 
--- pi3S3 : (Omega3 S3pt).1 -> (Omega2 (g2Truncpt S2pt)).1 =
---   mapOmegaRefl2 (Omega S3pt) trS2 pi3S3'
---     where
---     pi3S3' (p : (Omega S3pt).1) : trS2 =
---       subst S3 tHopf3 base3 base3 p (g2inc base2)
+eee : equiv trS2 trS2 =
+  (multTwoTilde base2, multTwoTildeEquiv base2)
+
+tHopf3 : S3 -> U = split
+  base3 -> trS2
+  loop3 @ i j k -> hcomp U (ua trS2 trS2 (multTwoTilde (loop2{S2} @ i @ j),multTwoTildeEquiv (loop2{S2} @ i @ j)) @ k)
+                         [ (i=0) -> <l> goal2 trS2 eee goal3 @ l @ k
+                         , (i=1) -> <l> goal2 trS2 eee goal3 @ l @ k
+                         , (j=0) -> <l> goal2 trS2 eee goal3 @ l @ k
+                         , (j=1) -> <l> goal2 trS2 eee goal3 @ l @ k
+                         , (k=0) -> <_> trS2
+                         , (k=1) -> <_> trS2]
+
+pi3S3 : (Omega3 S3pt).1 -> (Omega2 (g2Truncpt S2pt)).1 =
+  mapOmegaRefl2 (Omega S3pt) trS2 pi3S3'
+    where
+    pi3S3' (p : (Omega S3pt).1) : trS2 =
+      subst S3 tHopf3 base3 base3 p (g2inc base2)
+
+--------------------------------------------------------------------------------
+-- B.11 Down one more dimension
+
+-- e'_2 from 12
+pi2S2' (p : (Omega2 S2pt).1) : loopS1 =
+  let point : (Omega S2pt).1 = pt (Omega S2pt)
+  in subst (Omega S2pt).1 HopfOne point point p (<_> base1)
+
+e2' : sTrunc (Omega2 S2pt).1 -> loopS1 =
+  sTruncRec (Omega2 S2pt).1 loopS1 setLoop pi2S2'
 
 --- tests
 
@@ -1359,7 +1373,7 @@ test0To5 : (Omega3 (joinpt S1pt S1)).1 = f5 test0To4
 f6 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S3pt).1 =
   mapOmegaRefl3 (joinpt S1pt S1) S3 eInv
 
--- f7 : (Omega3 S3pt).1 -> (Omega2 (g2Truncpt S2pt)).1 = pi3S3
+f7 : (Omega3 S3pt).1 -> (Omega2 (g2Truncpt S2pt)).1 = pi3S3
 
 -- f8 : (Omega2 (g2Truncpt S2pt)).1 -> (Omega (gTruncpt (Omega S2pt))).1 =
 --  (mapOmega (Omega (g2Truncpt S2pt)) (gTruncpt (Omega S2pt)) (kappaTwo S2pt, kappaTwoPt S2pt)).1
@@ -1367,6 +1381,6 @@ f6 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S3pt).1 =
 -- f9 : (Omega (gTruncpt (Omega S2pt))).1 -> sTrunc (Omega2 S2pt).1 =
 --   kappaOne (Omega S2pt)
 
--- f10 : sTrunc (Omega2 S2pt).1 -> loopS1 = e2'
+f10 : sTrunc (Omega2 S2pt).1 -> loopS1 = e2'
 
--- f11 : loopS1 -> Z = encode base
+f11 : loopS1 -> Z = encode base1

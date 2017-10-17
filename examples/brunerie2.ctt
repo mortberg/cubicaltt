@@ -459,6 +459,16 @@ PathS (A : U) (P : A -> U) (a0 a1 : A) (p : Path A a0 a1) (u0 : P a0) (u1 : P a1
 
 transGen0 (A : U) (a : A) : A = transGen (<_> A) 0 a
 
+-- this could use comp3
+lemTransGen0 (A : U) (a : A) : Path A (transGen0 A a) a =
+-- let rem1 : Path A a (hcomp A (transGen (<_> A) 0 a) []) = fill (<_> A) a []
+--     rem2 : Path A (transGen (<_> A) 0 a) (hcomp A (transGen (<_> A) 0 a) []) =
+--       hfill A (transGen (<_> A) 0 a) []
+-- in compPath A (transGen0 A a) (hcomp A (transGen (<_> A) 0 a) []) a rem2 (<i> rem1 @ -i)
+  <i> hcomp A (hfill A (transGen (<_> A) 0 a) [] @ i)
+           [ (i = 0) -> <_> transGen0 A a
+           , (i = 1) -> <j> fill (<_> A) a [] @ -j ]
+
 -- Define these directly and unfolded makes the definition of itTotalFibOmega3 extremely simple
 fibOmega (B : ptType) (P : B.1 -> U) (f : P (pt B)) (p : (Omega B).1) : U =
   PathS B.1 P (pt B) (pt B) p f f
@@ -469,9 +479,9 @@ itFibOmega2 (B : ptType) (P : B.1 -> U) (f : P (pt B)) : (Omega2 B).1 -> U =
 itFibOmega3 (B : ptType) (P : B.1 -> U) (f : P (pt B)) : (Omega3 B).1 -> U =
   itFibOmega2 (Omega B) (fibOmega B P f) (<_> f)
 
-itTotalFibOmega3 (B : ptType) (P : B.1 -> U) (f : P (pt B))
-  (x : Sigma (Omega3 B).1 (itFibOmega3 B P f)) : (Omega3 (Sigma B.1 P, (pt B, f))).1 =
-  <i j k> (x.1 @ i @ j @ k,x.2 @ i @ j @ k)
+-- itTotalFibOmega3 (B : ptType) (P : B.1 -> U) (f : P (pt B))
+--   (x : Sigma (Omega3 B).1 (itFibOmega3 B P f)) : (Omega3 (Sigma B.1 P, (pt B, f))).1 =
+--   <i j k> (x.1 @ i @ j @ k,x.2 @ i @ j @ k)
 
 -- B.8.3 Looping the Hopf fibration
 
@@ -501,6 +511,39 @@ truncFibOmega (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B))
              (Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f)
              (PathP (<i> P (p @ i)) f f)
              eq trf
+
+-- alternative attempt:
+
+fibOmega' (B : ptType) (P : B.1 -> U) (f : P (pt B)) (p : (Omega B).1) : U =
+  Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f
+
+itFibOmega1' (B : ptType) (P : B.1 -> U) (f : P (pt B)) (p : (Omega B).1) : U =
+  Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f
+itFibOmega2' (B : ptType) (P : B.1 -> U) (f : P (pt B)) : (Omega2 B).1 -> U =
+  itFibOmega1' (Omega B) (fibOmega' B P f) (lemTransGen0 (P (pt B)) f)
+itFibOmega3' (B : ptType) (P : B.1 -> U) (f : P (pt B)) : (Omega3 B).1 -> U =
+  itFibOmega2' (Omega B) (fibOmega' B P f) (lemTransGen0 (P (pt B)) f)
+
+-- itTotalFibOmega3' (B : ptType) (P : B.1 -> U) (f : P (pt B))
+--   (x : Sigma (Omega3 B).1 (itFibOmega3' B P f)) : (Omega3 (Sigma B.1 P, (pt B, f))).1 =
+--   undefined
+--   -- <i j k> (x.1 @ i @ j @ k,x.2 @ i @ j @ k)
+
+-- B.8.3 Looping the Hopf fibration
+
+HopfOne' : (Omega S2pt).1 -> U = itFibOmega1' S2pt Hopf base1
+
+HopfTwo' : (Omega2 S2pt).1 -> U = itFibOmega2' S2pt Hopf base1
+
+HopfThree' : (Omega3 S2pt).1 -> U = itFibOmega3' S2pt Hopf base1
+
+-- This is now trivial!
+truncFibOmega' (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B))
+  (tr : inhOrTrunc (P (pt B)) (suc n)) (p : (Omega B).1) : inhOrTrunc (fibOmega' B P f p) n = tr (subst B.1 P (pt B) (pt B) p f) f
+
+
+-- end of alternative attempt
+
 
 -------
 -- We now need that S1 is a groupoid
@@ -825,16 +868,6 @@ lem1It : (n:Z) -> Path loopS1 (loopIt (sucZ n)) (oneTurn (loopIt n)) = split
   pos n -> lem1ItPos n
   neg n -> lem1ItNeg n
 
--- this could use comp3
-lemTransGen0 (A : U) (a : A) : Path A (transGen0 A a) a =
--- let rem1 : Path A a (hcomp A (transGen (<_> A) 0 a) []) = fill (<_> A) a []
---     rem2 : Path A (transGen (<_> A) 0 a) (hcomp A (transGen (<_> A) 0 a) []) =
---       hfill A (transGen (<_> A) 0 a) []
--- in compPath A (transGen0 A a) (hcomp A (transGen (<_> A) 0 a) []) a rem2 (<i> rem1 @ -i)
-  <i> hcomp A (hfill A (transGen (<_> A) 0 a) [] @ i)
-           [ (i = 0) -> <_> transGen0 A a
-           , (i = 1) -> <j> fill (<_> A) a [] @ -j ]
-
 lemFib1 (A:U) (F G : A -> U) (a:A) (fa : F a -> G a) :
    (x:A) (p : Path A a x) -> (fx : F x -> G x) ->
      Path U (Path (F a -> G x) (\(u : F a) -> subst A G a x p (fa u))
@@ -926,11 +959,21 @@ two : nat = suc one
 three : nat = suc two
 
 
-fibContrHopfThree (p : (Omega3 S2pt).1) : HopfThree p =
-  truncFibOmega zero (Omega2 S2pt) HopfTwo (<_ _> base1)
-    (truncFibOmega one (Omega S2pt) HopfOne (<_> base1)
-      (truncFibOmega two S2pt Hopf base1 isGroupoidS1 (<_> base2))
-      (<_ _> base2)) p
+-- alternative approach:
+temp0' : inhOrTrunc (fibOmega' S2pt Hopf base1 (<_> base2)) two =
+  truncFibOmega' two S2pt Hopf base1 isGroupoidS1 (<_> base2)
+  
+temp1' : inhOrTrunc (fibOmega' (Omega S2pt) HopfOne' (<_> base1) (<_ _> base2)) one =
+  truncFibOmega' one (Omega S2pt) HopfOne' (<_> base1) temp0' (<_ _> base2)
+
+-- How to define this?
+-- fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p =
+--   truncFibOmega' zero (Omega2 S2pt) HopfTwo' point temp1' p
+--   where
+--   point : HopfTwo' (pt (Omega2 S2pt)) = undefined
+
+-- end of alternative approach
+
 
 
 -- t : (x : S2) -> (Hopf x -> join S1 S1) = split

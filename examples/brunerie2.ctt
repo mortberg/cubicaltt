@@ -517,12 +517,20 @@ truncFibOmega (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B))
 fibOmega' (B : ptType) (P : B.1 -> U) (f : P (pt B)) (p : (Omega B).1) : U =
   Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f
 
-itFibOmega1' (B : ptType) (P : B.1 -> U) (f : P (pt B)) (p : (Omega B).1) : U =
-  Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f
+ptFibOmega' (B : ptType) (P : B.1 -> U) (f : P (pt B)) : fibOmega' B P f (<_> B.2) =
+  lemTransGen0 (P (pt B)) f
+
 itFibOmega2' (B : ptType) (P : B.1 -> U) (f : P (pt B)) : (Omega2 B).1 -> U =
-  itFibOmega1' (Omega B) (fibOmega' B P f) (lemTransGen0 (P (pt B)) f)
+  fibOmega' (Omega B) (fibOmega' B P f) (ptFibOmega' B P f)
+
+ptItFibOmega2' (B : ptType) (P : B.1 -> U) (f : P (pt B)) : itFibOmega2' B P f (<_ _> B.2) =
+  ptFibOmega' (Omega B) (fibOmega' B P f) (ptFibOmega' B P f)
+
 itFibOmega3' (B : ptType) (P : B.1 -> U) (f : P (pt B)) : (Omega3 B).1 -> U =
-  itFibOmega2' (Omega B) (fibOmega' B P f) (lemTransGen0 (P (pt B)) f)
+  fibOmega' (Omega2 B) (itFibOmega2' B P f) (ptItFibOmega2' B P f)
+
+ptItFibOmega3' (B : ptType) (P : B.1 -> U) (f : P (pt B)) : itFibOmega3' B P f (<_ _ _> B.2) =
+  ptFibOmega' (Omega2 B) (itFibOmega2' B P f) (ptItFibOmega2' B P f)
 
 -- itTotalFibOmega3' (B : ptType) (P : B.1 -> U) (f : P (pt B))
 --   (x : Sigma (Omega3 B).1 (itFibOmega3' B P f)) : (Omega3 (Sigma B.1 P, (pt B, f))).1 =
@@ -531,7 +539,7 @@ itFibOmega3' (B : ptType) (P : B.1 -> U) (f : P (pt B)) : (Omega3 B).1 -> U =
 
 -- B.8.3 Looping the Hopf fibration
 
-HopfOne' : (Omega S2pt).1 -> U = itFibOmega1' S2pt Hopf base1
+HopfOne' : (Omega S2pt).1 -> U = fibOmega' S2pt Hopf base1
 
 HopfTwo' : (Omega2 S2pt).1 -> U = itFibOmega2' S2pt Hopf base1
 
@@ -960,20 +968,19 @@ three : nat = suc two
 
 
 -- alternative approach:
-temp0' : inhOrTrunc (fibOmega' S2pt Hopf base1 (<_> base2)) two =
+temp0' : inhOrTrunc (HopfOne' (<_> base2)) two =
   truncFibOmega' two S2pt Hopf base1 isGroupoidS1 (<_> base2)
   
-temp1' : inhOrTrunc (fibOmega' (Omega S2pt) HopfOne' (<_> base1) (<_ _> base2)) one =
-  truncFibOmega' one (Omega S2pt) HopfOne' (<_> base1) temp0' (<_ _> base2)
+temp1' : inhOrTrunc (HopfTwo' (<_ _> base2)) one =
+  truncFibOmega' one (Omega S2pt) HopfOne' (ptFibOmega' S2pt Hopf base1) temp0' (<_ _> base2)
 
 -- How to define this?
--- fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p =
---   truncFibOmega' zero (Omega2 S2pt) HopfTwo' point temp1' p
---   where
---   point : HopfTwo' (pt (Omega2 S2pt)) = undefined
+fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p =
+  truncFibOmega' zero (Omega2 S2pt) HopfTwo' point temp1' p
+   where
+   point : HopfTwo' (pt (Omega2 S2pt)) = ptItFibOmega2' S2pt Hopf base1
 
--- end of alternative approach
-
+-- -- end of alternative approach
 
 
 -- t : (x : S2) -> (Hopf x -> join S1 S1) = split
@@ -982,7 +989,7 @@ temp1' : inhOrTrunc (fibOmega' (Omega S2pt) HopfOne' (<_> base1) (<_ _> base2)) 
 
 -- The map h from 9.3
 h (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 = undefined
---  <i j k> t (p @ i @ j @ k) (fibContrHopfThree p @ i @ j @ k)
+--  <i j k> t (p @ i @ j @ k) (fibContrHopfThree' p @ i @ j @ k)
 
 
 --------------------------------------------------------------------------------
@@ -1249,23 +1256,84 @@ setTruncFib (A : U) (P : A -> U) (gP : (x : A) -> set (P x)) (a : A) :
 
 -- B.9.2  Truncated higher Hopf fibration
 
-tS2 : U
+trS2 : U
   = g2Trunc S2
+trS2Trunc : twogroupoid trS2
+  = g2TruncTwoGroupoid S2
 
-mu2Aux : (x : S2) -> Path (Path tS2 (g2inc x) (g2inc x)) (<_> g2inc x) (<_> g2inc x) = split
+multTwoAux : (x : S2) -> Path (Path trS2 (g2inc x) (g2inc x)) (<_> g2inc x) (<_> g2inc x) = split
   base2       -> <i j> g2inc (loop2{S2} @ i @ j)
-  loop2 @ k l -> setTruncFib S2 (\ (x : S2) -> Path (Path tS2 (g2inc x) (g2inc x)) (<_> g2inc x) (<_> g2inc x))
-                             (\ (x : S2) (a b : Path (Path tS2 (g2inc x) (g2inc x)) (<_> g2inc x) (<_> g2inc x))
-                                (p q : Path (Path (Path tS2 (g2inc x) (g2inc x)) (<_> g2inc x) (<_> g2inc x)) a b)
-                                -> g2TruncTwoGroupoid S2 (g2inc x) (g2inc x) (<_> g2inc x) (<_> g2inc x) a b p q)
+  loop2 @ k l -> setTruncFib S2 (\ (x : S2) -> Path (Path trS2 (g2inc x) (g2inc x)) (<_> g2inc x) (<_> g2inc x))
+                             (\ (x : S2) (a b : Path (Path trS2 (g2inc x) (g2inc x)) (<_> g2inc x) (<_> g2inc x))
+                                (p q : Path (Path (Path trS2 (g2inc x) (g2inc x)) (<_> g2inc x) (<_> g2inc x)) a b)
+                                -> trS2Trunc (g2inc x) (g2inc x) (<_> g2inc x) (<_> g2inc x) a b p q)
                              base2 base2 (<_> base2) (<_> base2) (<i j> loop2{S2} @ i @ j)
                              (<i j> g2inc (loop2{S2} @ i @ j)) (<i j> g2inc (loop2{S2} @ i @ j))
                              (<_ i j> g2inc (loop2{S2} @ i @ j)) (<_ i j> g2inc (loop2{S2} @ i @ j))
                              @ k @ l
 
-mu2 (x : S2) : S2 -> tS2 = split
-  base2 -> g2inc x
-  loop2 @ i j -> mu2Aux x @ i @ j
+multTwo : S2 -> S2 -> trS2 = split
+  base2 -> (\ (x : S2) -> g2inc x)
+  loop2 @ i j -> (\ (x : S2) -> multTwoAux x @ i @ j)
+
+multTwoTilde (x : S2) : trS2 -> trS2 =
+  g2TruncRec S2 trS2 trS2Trunc (multTwo x)
+
+lemPropS2 (P : S2 -> U) (pP : (x : S2) -> prop (P x)) (pB : P base2) : (x : S2) -> P x = ? -- split
+    -- base2 -> pB
+    -- loop2 @ i j -> ? -- rem1 @ i
+    --   -- where
+    --   -- pS (x : S1) : P south = subst S2 P north south (meridP S1 x) pN
+
+    --   -- rem (p : P south) : PathS S2 P north south (meridP S1 x) pN p =
+    --   --   pathSIntro S2 P north south (meridP S1 x) pN p (pP south (pS x) p)
+
+    --   -- rem1 : PathS S2 P north south (meridP S1 x) pN (pS base) = rem (pS base)
+
+-- This needs the elimination principle for 2-groupoid truncation...
+lem3Trunc (A B : U) (hB : twogroupoid B) (g h : g2Trunc A -> B)
+              (H : (a : A) -> Path B (g (g2inc a)) (h (g2inc a))) :
+              (x : g2Trunc A) -> Path B (g x) (h x) =
+  g2TruncElim A (\(x : g2Trunc A) -> Path B (g x) (h x))
+             (\(x : g2Trunc A) -> twogroupoidThreeGroupoid B hB (g x) (h x)) H
+
+multTwoTildeEquiv : (x : S2) -> isEquiv trS2 trS2 (multTwoTilde x) =
+  lemPropS2
+    (\(x : S2) -> isEquiv trS2 trS2 (multTwoTilde x))
+    (\(x : S2) -> propIsEquiv trS2 trS2 (multTwoTilde x))
+    multEquivBase2
+  where multBase2EqPath : Path (trS2 -> trS2) (\(x : trS2) -> x) (multTwoTilde base2) =
+          <i> \(x : trS2) -> lem3Trunc S2 trS2 (g2TruncTwoGroupoid S2) (idfun trS2)
+                                (multTwoTilde base2) (\(a : S2) -> <_> g2inc a) x @ i
+        multEquivBase2 : isEquiv trS2 trS2 (multTwoTilde base2) =
+          subst (trS2 -> trS2) (isEquiv trS2 trS2) (idfun trS2)
+                (multTwoTilde base2) multBase2EqPath (idIsEquiv trS2)
+
+-- goal2 (A : U) (e : equiv A A) (p : Path (equiv A A) (idEquiv A) e) : Path (Path U A A) (ua A A e) (<_> A) =
+--   <j i> Glue A [ (i = 0) -> (A, p @ -j)
+--                , (i = 1) -> (A, idEquiv A)
+--                , (j = 1) -> (A, idEquiv A) ]
+
+-- goal3 : Path (equiv trS2 trS2) (idEquiv trS2) (multTwoTilde base2, multTwoTildeEquiv base2)
+--   = <i> (\(x : trS2) -> lem3Trunc S2 trS2 (g2TruncTwoGroupoid S2) (idfun trS2)
+--                                 (multTwoTilde base2) (\(a : S2) -> <_> g2inc a) x @ i
+--         , ?)
+
+-- tHopf3 : S3 -> U = split
+--   base3 -> trS2
+--   loop3 @ i j k -> hcomp U (ua trS2 trS2 (multTwoTilde (loop2{S2} @ i @ j),multTwoTildeEquiv (loop2{S2} @ i @ j)) @ k)
+--                          [ (i=0) -> <l> goal trS2 @ l @ j
+--                          , (i=1) -> <l> goal trS2 @ l @ j
+--                          , (j=0) -> <l> goal trS2 @ l @ i
+--                          , (j=1) -> <l> goal trS2 @ l @ i
+--                          , (k=0) -> <_> trS2
+--                          , (k=1) -> <_> trS2]
+
+-- pi3S3 : (Omega3 S3pt).1 -> (Omega2 (g2Truncpt S2pt)).1 =
+--   mapOmegaRefl2 (Omega S3pt) trS2 pi3S3'
+--     where
+--     pi3S3' (p : (Omega S3pt).1) : trS2 =
+--       subst S3 tHopf3 base3 base3 p (g2inc base2)
 
 --- tests
 
@@ -1282,8 +1350,23 @@ f4 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S2pt).1 =
 test0To4 : (Omega3 S2pt).1 = f4 test0To3
 
 -- Part of test0To5
-testFibContrHopf3 : HopfThree test0To4 = fibContrHopfThree test0To4
+-- testFibContrHopf3 : HopfThree' test0To4 = fibContrHopfThree' test0To4
 
 f5 : (Omega3 S2pt).1 -> (Omega3 (joinpt S1pt S1)).1 = h
 
 test0To5 : (Omega3 (joinpt S1pt S1)).1 = f5 test0To4
+
+f6 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S3pt).1 =
+  mapOmegaRefl3 (joinpt S1pt S1) S3 eInv
+
+-- f7 : (Omega3 S3pt).1 -> (Omega2 (g2Truncpt S2pt)).1 = pi3S3
+
+-- f8 : (Omega2 (g2Truncpt S2pt)).1 -> (Omega (gTruncpt (Omega S2pt))).1 =
+--  (mapOmega (Omega (g2Truncpt S2pt)) (gTruncpt (Omega S2pt)) (kappaTwo S2pt, kappaTwoPt S2pt)).1
+
+-- f9 : (Omega (gTruncpt (Omega S2pt))).1 -> sTrunc (Omega2 S2pt).1 =
+--   kappaOne (Omega S2pt)
+
+-- f10 : sTrunc (Omega2 S2pt).1 -> loopS1 = e2'
+
+-- f11 : loopS1 -> Z = encode base

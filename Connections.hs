@@ -266,7 +266,7 @@ propInvFormulaIncomp phi b = incomparables (invFormula phi b)
 --   where ys = i:map (\n -> Name (s ++ show n)) [0..]
 
 {-# NOINLINE freshVar #-}
-freshVar :: IORef Int
+freshVar :: IORef Integer
 freshVar = unsafePerformIO (newIORef 0)
 
 -- succName (Name x) = Name ()

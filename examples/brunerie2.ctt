@@ -997,7 +997,7 @@ fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p =
 
 -- t : (x : S2) -> (Hopf x -> join S1 S1) = split
 --   base2 -> \(a : S1) -> inl a
---   loop2 @ i j -> ?
+--   loop2 @ i j -> \(a : Hopf (loop2{S2} @ i @ j)) ->
 
 -- The map h from 9.3
 h (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 = undefined
@@ -1667,3 +1667,9 @@ f9 : (Omega (gTruncpt (Omega S2pt))).1 -> sTrunc (Omega2 S2pt).1 =
 f10 : sTrunc (Omega2 S2pt).1 -> loopS1 = e2'
 
 f11 : loopS1 -> Z = encode base1
+
+-- Skips the maps e, alpha, h and eInv
+testShortcut3To6 : Z = f11 (f10 (f9 (f8 (f7 test0To2))))
+
+-- Skips the maps alpha and h
+testShortcut4To5 : Z = f11 (f10 (f9 (f8 (f7 (f6 (f3 test0To2))))))

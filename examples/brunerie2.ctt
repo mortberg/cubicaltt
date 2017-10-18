@@ -553,6 +553,16 @@ truncFibOmega' (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B))
 -- end of alternative attempt
 
 
+-- transport doens't give something simpler:
+-- truncFibOmega0 (B : ptType) (P : B.1 -> U) (f : P (pt B))
+--   (tr : (x y : P (pt B)) -> Path (P (pt B)) x y) (p : (Omega B).1) : fibOmega B P f p =
+--   let trf : Path (P B.2) (subst B.1 P (pt B) (pt B) p f) f =
+--         tr (subst B.1 P (pt B) (pt B) p f) f
+--       eq : Path U (Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f)
+--                   (PathP (<i> P (p @ i)) f f) =
+--                     <i> funDepTr B.1 P (pt B) (pt B) p f f @ -i
+--   in transport eq trf
+
 -------
 -- We now need that S1 is a groupoid
 

@@ -331,6 +331,9 @@ groupoid (A : U) : U = (a b : A) -> set (Path A a b)
 twogroupoid (A : U) : U = (a b : A) -> groupoid (Path A a b)
 threegroupoid (A : U) : U = (a b : A) -> twogroupoid (Path A a b)
 
+SET : U = (A : U) * set A
+GROUPOID : U = (A : U) * groupoid A
+
 isEquiv (A B : U) (f : A -> B) : U = (y : B) -> isContr (fiber A B f y)
 
 equiv (A B : U) : U = (f : A -> B) * isEquiv A B f
@@ -1288,11 +1291,17 @@ multTwo : S2 -> S2 -> trS2 = split
 multTwoTilde (x : S2) : trS2 -> trS2 =
   g2TruncRec S2 trS2 trS2Trunc (multTwo x)
 
--- TODO: need to compose the loop2 branch with the proof that lemPropF applied to p = refl gives pB.
---       Technically, it will give pP base2 pB pB instead, but that is itself equal to <_> pB
-lemPropS2 (P : S2 -> U) (pP : (x : S2) -> prop (P x)) (pB : P base2) : (x : S2) -> P x = ? -- split
-    -- base2 -> pB
-    -- loop2 @ i j -> lemPropF S2 P pP base2 base2 (<k> loop2{S2} @ i @ k) pB pB @ j
+lemPropS2 (P : S2 -> U) (pP : (x : S2) -> prop (P x)) (pB : P base2) : (x : S2) -> P x = split
+    base2 -> pB
+    loop2 @ i j -> hcomp (P (loop2{S2} @ i @ j)) (lemPropF S2 P pP base2 base2 (<k> loop2{S2} @ i @ k) pB pB @ j)
+                         [ (i=0) -> <k> aux @ k @ j
+                         , (i=1) -> <k> aux @ k @ j
+                         , (j=0) -> <_> pB
+                         , (j=1) -> <_> pB ]
+                   where
+
+      aux : Path (Path (P base2) pB pB) (lemPropF S2 P pP base2 base2 (<_> base2) pB pB) (<_> pB) =
+        propSet (P base2) (pP base2) pB pB (lemPropF S2 P pP base2 base2 (<_> base2) pB pB) (<_> pB)
 
 -- This needs the elimination principle for 2-groupoid truncation...
 lem3Trunc (A B : U) (hB : twogroupoid B) (g h : g2Trunc A -> B)
@@ -1348,6 +1357,270 @@ pi3S3 : (Omega3 S3pt).1 -> (Omega2 (g2Truncpt S2pt)).1 =
     pi3S3' (p : (Omega S3pt).1) : trS2 =
       subst S3 tHopf3 base3 base3 p (g2inc base2)
 
+----------------------------------
+-- B.10 Loop spaces of truncations
+
+
+univalenceAlt (B : U) : isContr ((X : U) * equiv X B) =
+ ((B,idEquiv B)
+ ,\(w : (X : U) * equiv X B)
+    -> <i> let GlueB : U = Glue B [(i=0) -> (B,idEquiv B), (i=1) -> w]
+               unglueB (g : GlueB) : B =
+                 unglue g B [(i=0) -> (B,idEquiv B)
+                            ,(i=1) -> w]
+           in (GlueB
+              ,unglueB
+              ,\(b : B)
+               -> let center : fiber GlueB B unglueB b
+                             = (glue (hcomp B b [(i=0) -> <j> b
+                                                     ,(i=1) -> (w.2.2 b).1.2])
+                                         [(i=0) -> b
+                                         ,(i=1) -> (w.2.2 b).1.1]
+                               ,hfill B b [(i=0) -> <j> b
+                                               ,(i=1) -> (w.2.2 b).1.2])
+                      contr (v : fiber GlueB B unglueB b)
+                            : Path (fiber GlueB B unglueB b) center v
+                            = <j> (glue (hcomp B b [(i=0) -> <k> v.2 @ (j /\ k)
+                                                        ,(i=1) -> ((w.2.2 b).2 v @ j).2
+                                                        ,(j=0) -> hfill B b [(i=0) -> <j> b
+                                                                                     ,(i=1) -> (w.2.2 b).1.2]
+                                                        ,(j=1) -> v.2])
+                                            [(i=0) -> v.2 @ j
+                                            ,(i=1) -> ((w.2.2 b).2 v @ j).1]
+                                  ,hfill B b [(i=0) -> <l> v.2 @ (j /\ l)
+                                                  ,(i=1) -> ((w.2.2 b).2 v @ j).2
+                                                  ,(j=0) -> hfill B b [(i=0) -> <j> b
+                                                                      ,(i=1) -> (w.2.2 b).1.2]
+                                                  ,(j=1) -> v.2])
+                  in (center,contr)))
+
+retIsContr (A B : U) (f : A -> B) (g : B -> A)
+           (h : (x : A) -> Path A (g (f x)) x) (v : isContr B)
+           : isContr A = (g b,p)
+ where
+  b : B = v.1
+  q : (y:B) -> Path B b y = v.2
+  p (x:A) : Path A (g b) x =
+    <i> hcomp A (g (q (f x) @ i)) [(i=0) -> <j>g b,(i=1) -> h x]
+
+sigIsContr (A : U) (B : A -> U) (u : isContr A)
+  (q : (x : A) -> isContr (B x)) : isContr ((x:A) * B x) = ((a,g a),r)
+ where
+  a : A = u.1
+  p : (x:A) -> Path A a x = u.2
+  g (x:A) : B x = (q x).1
+  h (x:A) : (y:B x) -> Path (B x) (g x) y = (q x).2
+  C : U = (x:A) * B x
+  r (z:C) : Path C (a,g a) z =
+   <i>(p z.1@i,h (p z.1@i) (comp (<j>B (p z.1@i\/-j)) z.2 [(i=1)-><j>z.2])@i)
+
+isPathContr (A:U) (cA:isContr A) (x y:A) : isContr (Path A x y) =  (p0,q)
+ where
+  a : A = cA.1
+  f : (x:A) -> Path A a x = cA.2
+  p0 : Path A x y = <i> hcomp A a [(i=0) -> f x,(i=1) -> f y]
+  q (p:Path A x y) : Path (Path A x y) p0 p =
+   <j i> hcomp A a [(i=0) -> f x,(i=1) -> f y,
+                       (j=0) -> <k> hcomp A a [(k=0) -> <l>a,(i=0) -> <l>f x@k/\l,(i=1) -> <l>f y@k/\l],
+                       (j=1) -> f (p@i)]
+
+isEquivContr (A B:U) (cA:isContr A) (cB:isContr B) (f:A->B) : isEquiv A B f =
+ \ (y:B) -> sigIsContr A (\ (x:A) -> Path B y (f x)) cA (\ (x:A) -> isPathContr B cB y (f x))
+
+totalFun (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (w:Sigma A B) : Sigma A C =
+ (w.1,f (w.1) (w.2))
+
+funFib1  (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (x0:A) (z0:C x0) (u:fiber (B x0) (C x0) (f x0) z0) :
+ fiber (Sigma A B) (Sigma A C) (totalFun A B C f) (x0,z0) =  ((x0,u.1),<i>(x0,u.2@i))
+
+funFib2  (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (x0:A) (z0:C x0)
+         (w : fiber (Sigma A B) (Sigma A C) (totalFun A B C f) (x0,z0)) : fiber (B x0) (C x0) (f x0) z0 = (b0,s)
+ where
+  x : A = w.1.1
+  b : B x = w.1.2
+  p : Path A x0 x = <i>(w.2@i).1
+  q : PathP (<i>C (p@i)) z0 (f x b) = <i>(w.2@i).2
+  b0 : B x0 = comp (<i>B (p@-i)) b []
+  r : PathP (<i>B (p@-i)) b b0 = <i>comp (<j>B (p@-j\/-i)) b [(i=0) -> <k>b]
+  s : Path (C x0) z0 (f x0 b0) = <i>comp (<j>C (p@(i/\-j))) (q@i) [(i=0) -> <k>z0,(i=1) -> <k>f (p@-k) (r@k)]
+
+compFunFib (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (x0:A) (z0:C x0) (u:fiber (B x0) (C x0) (f x0) z0) :
+    fiber (B x0) (C x0) (f x0) z0 = funFib2 A B C f x0 z0 (funFib1 A B C f x0 z0 u)
+
+retFunFib (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (x0:A) (z0:C x0) (u:fiber (B x0) (C x0) (f x0) z0) :
+   Path (fiber (B x0) (C x0) (f x0) z0) (funFib2 A B C f x0 z0 (funFib1 A B C f x0 z0 u)) u =
+ <l> (comp (<i> B x0) u.1 [(l=1) -> <j>u.1],
+      <i> comp (<j> C x0) (u.2 @ i) [ (l=1) -> <j> u.2 @ i,
+                                      (i = 0) -> <j> z0,
+                                      (i = 1) -> <j> f x0 (comp (<k> B x0) u.1 [ (j = 0) -> <k> u.1, (l=1) -> <k>u.1 ]) ])
+
+equivFunFib (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (cB : isContr (Sigma A B)) (cC : isContr (Sigma A C)) (x:A)
+  : isEquiv (B x) (C x) (f x) =
+ \ (z:C x) -> retIsContr (fiber (B x) (C x) (f x) z) (fiber (Sigma A B) (Sigma A C) (totalFun A B C f) (x,z))
+                         (funFib1 A B C f x z)
+                         (funFib2 A B C f x z)
+                         (retFunFib A B C f x z)
+                         (isEquivContr (Sigma A B) (Sigma A C) cB cC (totalFun A B C f) (x,z))
+
+contrSingl' (A : U) (a b : A) (p : Path A a b) :
+  Path ((x:A) * Path A x b) (b,<_>b) (a,p) = <i> (p @ -i,<j> p @ -i\/j)
+
+lemSinglContr' (A:U) (a:A) : isContr ((x:A) * Path A x a) =
+ ((a,<_>a),\ (z:(x:A) * Path A x a) -> contrSingl' A z.1 a z.2)
+
+thmUniv (t : (A X : U) -> Path U X A -> equiv X A) (A : U) :
+  (X : U) -> isEquiv (Path U X A) (equiv X A) (t A X) =
+    equivFunFib U (\(X : U) -> Path U X A) (\(X : U) -> equiv X A)
+      (t A) (lemSinglContr' U A) (univalenceAlt A)
+
+substTrans (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
+  transGen (<i> P (p @ i)) 0 e
+
+transEquiv' (A X : U) (p : Path U X A) : equiv X A =
+  substTrans U (\(Y : U) -> equiv Y A) A X (<i> p @ -i) (idEquiv A)
+
+univalence (A X : U) : isEquiv (Path U X A) (equiv X A) (transEquiv' A X) =
+  thmUniv transEquiv' A X
+
+corrUniv (A B : U) : Path U (Path U A B) (equiv A B) =
+  ua (Path U A B) (equiv A B) (transEquiv' B A,univalence B A)
+
+pi (A:U) (P:A->U) : U = (x:A) -> P x
+
+idPi (A:U) (B:A->U) (f g : pi A B) : Path U (Path (pi A B) f g) ((x:A) -> Path (B x) (f x) (g x)) =
+ isoPath  (Path (pi A B) f g) ((x:A) -> Path (B x) (f x) (g x)) F G S T
+ where T0 : U = Path (pi A B) f g
+       T1 : U = (x:A) -> Path (B x) (f x) (g x)
+       F (p:T0) : T1 = \ (x:A) -> <i>p@i x
+       G (p:T1) : T0 = <i>\ (x:A) -> p x @ i
+       S (p:T1) : Path T1 (F (G p)) p = refl T1 p
+       T (p:T0) : Path T0 (G (F p)) p = refl T0 p
+
+setPi (A:U) (B:A -> U) (h:(x:A) -> set (B x)) (f g:pi A B) : prop (Path (pi A B) f g) =
+ rem
+ where
+  T : U = (x:A) -> Path (B x) (f x) (g x)
+  rem1 : prop T = \ (p q : T) -> <i> \ (x:A) -> h x (f x) (g x) (p x) (q x)@i
+
+  rem : prop (Path (pi A B) f g) =
+    subst U prop T (Path (pi A B) f g) (<i>idPi A B f g@-i) rem1
+
+
+lemPathSig (A:U) (B : A -> U) (t u : Sigma A B) :
+ Path U (Path (Sigma A B) t u) ((p : Path A t.1 u.1) * PathP (<i> B (p @ i)) t.2 u.2) =
+  isoPath T0 T1 f g s t where
+   T0 : U = Path (Sigma A B) t u
+   T1 : U = (p:Path A t.1 u.1) * PathP (<i> B (p@i)) t.2 u.2
+   f (q:T0) : T1 = (<i> (q@i).1,<i> (q@i).2)
+   g (z:T1) : T0 = <i>(z.1 @i,z.2 @i)
+   s (z:T1) : Path T1 (f (g z)) z = refl T1 z
+   t (q:T0) : Path T0 (g (f q)) q = refl T0 q
+
+lemContr (A:U) (pA:prop A) (a:A) : isContr A = (a,rem)
+ where rem (y:A) : Path A a y = pA a y
+
+lem2 (A:U) (B:A-> U) (t u : Sigma A B) (p:Path A t.1 u.1) :
+  Path U  (PathP (<i>B (p@i)) t.2 u.2) (Path (B u.1) (transGen (<i>B (p@i)) 0 t.2) u.2) =
+    funDepTr A B t.1 u.1 p  t.2 u.2
+
+lem3 (A:U) (B:A-> U) (pB : (x:A) -> prop (B x)) (t u : Sigma A B) (p:Path A t.1 u.1) :
+  isContr (PathP (<i>B (p@i)) t.2 u.2) = lemContr T0 (substInv U prop T0 T1 rem rem1) rem2
+ where P : Path U (B t.1) (B u.1) = <i>B (p@i)
+       T0 : U = PathP P t.2 u.2
+       T1 : U = Path (B u.1) (transGen P 0 t.2) u.2
+       rem : Path U T0 T1 = lem2 A B t u p
+       v2 : B u.1 = transGen P 0 t.2
+       rem1 : prop T1 = propSet (B u.1) (pB u.1) v2 u.2
+       rem2 : T0 = transGen (<i>rem@-i) 0 (pB u.1 v2 u.2)
+
+lem6 (A:U) (P:A-> U) (cA:(x:A) -> isContr (P x)) : Path U ((x:A)*P x) A = isoPath T A f g t s
+ where
+   T : U = (x:A) * P x
+   f (z:T) : A = z.1
+   g (x:A) : T = (x,(cA x).1)
+   s (z:T) : Path T (g (f z)) z = <i>(z.1,((cA z.1).2 z.2)@ i)
+   t (x:A) : Path A (f (g x)) x = refl A x
+
+lemSigProp (A:U) (B:A-> U) (pB : (x:A) -> prop (B x)) (t u : Sigma A B) : Path U (Path (Sigma A B) t u) (Path A t.1 u.1) =
+ compPath U (Path (Sigma A B) t u) ((p:Path A t.1 u.1) * PathP (<i> B (p@i)) t.2 u.2) (Path A t.1 u.1) rem2 rem1
+ where
+   T : U = Path A t.1 u.1
+   C (p:T) : U = PathP (<i> B (p@i)) t.2 u.2
+   rem (p : T) : isContr (C p) = lem3 A B pB t u p
+   rem1 : Path U ((p:T) * C p) T = lem6 T C rem
+   rem2 : Path U (Path (Sigma A B) t u) ((p:T) * C p) = lemPathSig A B t u
+
+eqEquivFst (A B : U) : (t u : equiv A B) ->
+     Path U (Path (equiv A B) t u) (Path (A -> B) t.1 u.1)
+   = lemSigProp (A -> B) (isEquiv A B) (propIsEquiv A B)
+
+groupoidPi (A : U) (B : A -> U) (h : (x : A) -> groupoid (B x)) (f g : pi A B) :
+  set (Path (pi A B) f g) = subst U set T (Path (pi A B) f g) (<i> idPi A B f g @ -i) rem1
+ where
+  T : U = (x : A) -> Path (B x) (f x) (g x)
+  rem1 : set T = setPi A (\(x : A) -> Path (B x) (f x) (g x)) (\(x : A) -> h x (f x) (g x))
+
+groupoidFun (A B : U) (sB : groupoid B) : groupoid (A -> B) =
+  groupoidPi A (\(x : A) -> B) (\(x : A) -> sB)
+
+groupoidPath (A B : U) (sB : groupoid B) : groupoid (Path U A B) =
+ substInv U groupoid (Path U A B) (equiv A B) (corrUniv A B) (rem A B sB)
+  where
+  rem (A B : U) (sB : groupoid B) (t u : equiv A B) : set (Path (equiv A B) t u) =
+    substInv U set (Path (equiv A B) t u) (Path (A -> B) t.1 u.1)
+             (eqEquivFst A B t u) (groupoidFun A B sB t.1 u.1)
+
+twogroupoidGROUPOID : twogroupoid GROUPOID = \(A B : GROUPOID) ->
+  let rem : groupoid (Path U A.1 B.1) = groupoidPath A.1 B.1 B.2
+      rem1 : Path U (Path GROUPOID A B) (Path U A.1 B.1) =
+        lemSigProp U groupoid groupoidIsProp A B
+  in substInv U groupoid (Path GROUPOID A B) (Path U A.1 B.1) rem1 rem
+
+-- opaque twogroupoidGROUPOID
+
+truncPath2 (A : ptType) : g2Trunc A.1 -> GROUPOID =
+  g2TruncRec A.1 GROUPOID twogroupoidGROUPOID
+    (\(x : A.1) -> (gTrunc (Path A.1 (pt A) x),gTruncGroupoid (Path A.1 (pt A) x)))
+
+kappaTwo (A : ptType) (p : (Omega (g2Truncpt A)).1) : gTrunc (Omega A).1 =
+  subst (g2Trunc A.1) (\(x : g2Trunc A.1) -> (truncPath2 A x).1)
+        (g2inc (pt A)) (g2inc (pt A)) p (ginc (<_> pt A))
+
+kappaTwoPt (A : ptType) :
+  Path (gTrunc (Omega A).1)
+    (kappaTwo A (pt (Omega (g2Truncpt A))))
+    (pt (gTruncpt (Omega A))) =
+    <i> transGen (<_> (truncPath2 A (pt (g2Truncpt A))).1) i (ginc (<_> pt A))
+
+-- Groupoid set
+setFun (A B : U) (sB : set B) : set (A -> B) =
+ setPi A (\(x : A) -> B) (\(x : A) -> sB)
+
+setPath (A B : U) (sB : set B) : set (Path U A B) =
+ substInv U set (Path U A B) (equiv A B) (corrUniv A B) (rem A B sB)
+  where
+  rem (A B : U) (sB:set B) (t u:equiv A B) : prop (Path (equiv A B) t u)
+    = substInv U prop (Path (equiv A B) t u) (Path (A -> B) t.1 u.1)
+            (eqEquivFst A B t u) (setFun A B sB t.1 u.1)
+
+groupoidSET : groupoid SET = \(A B : SET) ->
+  let rem : set (Path U A.1 B.1) = setPath A.1 B.1 B.2
+      rem1 : Path U (Path SET A B) (Path U A.1 B.1) =
+        lemSigProp U set setIsProp A B
+  in substInv U set (Path SET A B) (Path U A.1 B.1) rem1 rem
+
+-- opaque groupoidSET
+
+truncPath1 (A : ptType) : gTrunc A.1 -> SET =
+  gTruncRec A.1 SET groupoidSET
+    (\(x : A.1) -> (sTrunc (Path A.1 (pt A) x),setTruncSet (Path A.1 (pt A) x)))
+
+kappaOne (A : ptType) (p : (Omega (gTruncpt A)).1) : sTrunc (Omega A).1 =
+  subst (gTrunc A.1) (\(x : gTrunc A.1) -> (truncPath1 A x).1)
+        (ginc (pt A)) (ginc (pt A)) p (sinc (<_> pt A))
+
+
+
 --------------------------------------------------------------------------------
 -- B.11 Down one more dimension
 
@@ -1385,11 +1658,11 @@ f6 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S3pt).1 =
 
 f7 : (Omega3 S3pt).1 -> (Omega2 (g2Truncpt S2pt)).1 = pi3S3
 
--- f8 : (Omega2 (g2Truncpt S2pt)).1 -> (Omega (gTruncpt (Omega S2pt))).1 =
---  (mapOmega (Omega (g2Truncpt S2pt)) (gTruncpt (Omega S2pt)) (kappaTwo S2pt, kappaTwoPt S2pt)).1
+f8 : (Omega2 (g2Truncpt S2pt)).1 -> (Omega (gTruncpt (Omega S2pt))).1 =
+ (mapOmega (Omega (g2Truncpt S2pt)) (gTruncpt (Omega S2pt)) (kappaTwo S2pt, kappaTwoPt S2pt)).1
 
--- f9 : (Omega (gTruncpt (Omega S2pt))).1 -> sTrunc (Omega2 S2pt).1 =
---   kappaOne (Omega S2pt)
+f9 : (Omega (gTruncpt (Omega S2pt))).1 -> sTrunc (Omega2 S2pt).1 =
+  kappaOne (Omega S2pt)
 
 f10 : sTrunc (Omega2 S2pt).1 -> loopS1 = e2'
 

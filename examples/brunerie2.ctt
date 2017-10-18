@@ -1325,7 +1325,7 @@ multTwoTildeEquiv : (x : S2) -> isEquiv trS2 trS2 (multTwoTilde x) =
     multEquivBase2
 
 opaque multTwoTildeEquiv
-opaque multBase2EqPath
+-- opaque multBase2EqPath
 
 goal2 (A : U) (e : equiv A A) (p : Path (equiv A A) (idEquiv A) e) : Path (Path U A A) (ua A A e) (<_> A) =
   <j i> Glue A [ (i = 0) -> (A, p @ -j)

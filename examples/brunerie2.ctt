@@ -1669,6 +1669,7 @@ f10 : sTrunc (Omega2 S2pt).1 -> loopS1 = e2'
 f11 : loopS1 -> Z = encode base1
 
 -- Skips the maps e, alpha, h and eInv
+-- doesn't terminate? (run out of memory after 14h)
 testShortcut3To6 : Z = f11 (f10 (f9 (f8 (f7 test0To2))))
 
 -- Skips the maps alpha and h

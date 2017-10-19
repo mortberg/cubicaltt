@@ -1673,3 +1673,12 @@ testShortcut3To6 : Z = f11 (f10 (f9 (f8 (f7 test0To2))))
 
 -- Skips the maps alpha and h
 testShortcut4To5 : Z = f11 (f10 (f9 (f8 (f7 (f6 (f3 test0To2))))))
+
+-- Various simple tests:
+testShortcutf11 : Z = f11 (f10 (sinc (<i j> loop2{S2} @ i @ j)))
+testShortcutf11' : Z = f11 (f10 (f9 (<i> ginc (<j> loop2{S2} @ i @ j))))
+
+transparent propIsEquiv
+
+-- does this terminate? (with opaque propIsEquiv it does, but it isn't a numeral...)
+testShortcutf11'' : Z = f11 (f10 (f9 (f8 (<i j> g2inc (loop2{S2} @ i @ j)))))

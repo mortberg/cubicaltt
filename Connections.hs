@@ -293,19 +293,19 @@ class Nominal a where
 
 
 fresh :: Nominal a => a -> Name
-fresh = gensym . support
+fresh _ = gensym [] -- . support
 
 -- freshNice :: Nominal a => Name -> a -> Name
 -- freshNice i = gensymNice i . support
 
 freshs :: Nominal a => a -> [Name]
-freshs = gensyms . support
+freshs _ = gensyms [] -- . support
 
-unions :: Eq a => [[a]] -> [a]
-unions = foldr union []
+unions :: [[a]] -> [a]
+unions = concat -- foldr union []
 
-unionsMap :: Eq b => (a -> [b]) -> [a] -> [b]
-unionsMap f = unions . map f
+unionsMap :: (a -> [b]) -> [a] -> [b]
+unionsMap = concatMap -- unions . map f
 
 newtype Nameless a = Nameless { unNameless :: a }
                    deriving (Eq, Ord)

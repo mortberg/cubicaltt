@@ -1648,6 +1648,7 @@ test0To4 : (Omega3 S2pt).1 = f4 test0To3
 
 -- Part of test0To5
 -- testFibContrHopf3 : HopfThree' test0To4 = fibContrHopfThree' test0To4
+testFibContrHopf3refl : HopfThree' (<_ _ _> base2) = fibContrHopfThree' (<_ _ _> base2)
 
 f5 : (Omega3 S2pt).1 -> (Omega3 (joinpt S1pt S1)).1 = h
 

@@ -15,7 +15,8 @@ GRAMMAR_FILES := $(GRAMMAR_HS_FILES) $(GRAMMAR_X_FILES) $(GRAMMAR_Y_FILES) Exp/D
 GRAMMAR_HS_FILES += $(GRAMMAR_X_FILES:.x=.hs)
 GRAMMAR_HS_FILES += $(GRAMMAR_Y_FILES:.y=.hs)
 GRAMMAR_OBJECT_FILES = $(GRAMMAR_HS_FILES:.hs=.o)
-GHCOPTIONS = -O2 -rtsopts -v0 -fno-full-laziness
+PROFILING = # -prof -fprof-auto
+GHCOPTIONS = -O2 -rtsopts -v0 -fno-full-laziness $(PROFILING)
 
 all: cubical
 

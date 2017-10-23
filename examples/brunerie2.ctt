@@ -623,12 +623,142 @@ retractSet (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g)
 -- loopS1equalsZ : Path U loopS1 Z =
 --   isoPath loopS1 Z (encode base) (decode base) decodeEncodeBase (encodeDecode base)
 
--- Z is a set
 data N0 =
 
-efq (A : U) : N0 -> A = split {}
 not (A : U) : U = A -> N0
+efq (A : U) : N0 -> A = split {}
 
+caseBool (A : U) (f t : A) : bool -> A = split
+ false -> f
+ true  -> t
+
+falseNeqTrue : not (Path bool false true) =
+  \(h : Path bool false true) -> subst bool (caseBool U bool N0) false true h false
+
+trueNeqFalse : not (Path bool true false) =
+  \(h : Path bool true false) -> subst bool (caseBool U N0 bool) true false h true
+
+---- attempt to give an alternative definition of Z with direct proof that it is a set
+
+-- Direct proof that bool is a set:
+setbool : set bool = split
+ false -> rem
+  where
+  rem1 : (y : bool) (p : Path bool false y) -> Path bool false y = split
+    false -> \(p : Path bool false false) -> <_> false
+    true -> \(p : Path bool false true) -> p
+
+  rem2 : (x y : bool) (p : Path bool false x)
+         (q : Path bool false y) -> Path bool x y = split
+    false -> \(y : bool) (p : Path bool false false) (q : Path bool false y) -> rem1 y q
+    true -> \(y : bool) (p : Path bool false true) (q : Path bool false y) ->
+            efq (Path bool true y) (falseNeqTrue p)
+  
+  rem : (y : bool) (p q : Path bool false y) -> Path (Path bool false y) p q = split
+    false -> \(p q : Path bool false false) ->
+             <j i> rem2 (p @ i) (q @ i) (<k> p @ i /\ k) (<k> q @ i /\ k) @ j
+    true -> \(p q : Path bool false true) ->
+            efq (Path (Path bool false true) p q) (falseNeqTrue p)
+
+ true -> rem
+  where
+  rem1 : (y : bool) (p : Path bool true y) -> Path bool true y = split
+    false -> \ (p : Path bool true false) -> p
+    true -> \ (p : Path bool true true) -> <_> true
+
+  rem2 : (x y : bool)  (p : Path bool true x)
+         (q : Path bool true y) -> Path bool x y = split
+    false -> \(y : bool) (p : Path bool true false) (q : Path bool true y) ->
+             efq (Path bool false y) (trueNeqFalse p)
+    true -> \(y : bool) (p : Path bool true true) (q : Path bool true y) ->
+            rem1 y q
+
+  rem : (y : bool) (p q : Path bool true y) -> Path (Path bool true y) p q = split
+    false -> \(p q : Path bool true false) ->
+             efq (Path (Path bool true false) p q) (trueNeqFalse p)
+    true -> \(p q : Path bool true true) ->
+            <j i> rem2 (p @ i) (q @ i) (<k> p @ i /\ k) (<k> q @ i /\ k) @ j
+
+caseNat (A : U) (a0 aS : A) : nat -> A = split
+  zero -> a0
+  suc n -> aS
+
+znots (n : nat) : not (Path nat zero (suc n)) =
+  \(h : Path nat zero (suc n)) -> subst nat (caseNat U nat N0) zero (suc n) h zero
+
+snotz (n : nat) : not (Path nat (suc n) zero) =
+  \(h : Path nat (suc n) zero) -> znots n (<i> h @ -i)
+
+pred : nat -> nat = split
+  zero -> zero
+  suc n -> n
+
+sucInj (m n : nat) (p : Path nat (suc m) (suc n)) : Path nat m n =
+  <i> pred (p @ i)
+
+foo : (m n : nat) (r : Path nat (suc m) (suc n)) ->
+      Path (Path nat (suc m) (suc n))
+           (<j> suc (pred (r @ j))) r = undefined
+
+-- Direct proof that nat is a set:
+setnat : set nat = split
+ zero -> rem
+  where
+  rem1 : (y : nat) (p : Path nat zero y) -> Path nat zero y = split
+    zero -> \(p : Path nat zero zero) -> <_> zero
+    suc n -> \(p : Path nat zero (suc n)) -> p
+
+  rem2 : (x y : nat) (p : Path nat zero x)
+         (q : Path nat zero y) -> Path nat x y = split
+    zero -> \(y : nat) (p : Path nat zero zero) (q : Path nat zero y) -> rem1 y q
+    suc n -> \(y : nat) (p : Path nat zero (suc n)) (q : Path nat zero y) ->
+             efq (Path nat (suc n) y) (znots n p)
+  
+  rem : (y : nat) (p q : Path nat zero y) -> Path (Path nat zero y) p q = split
+    zero -> \(p q : Path nat zero zero) ->
+             <j i> rem2 (p @ i) (q @ i) (<k> p @ i /\ k) (<k> q @ i /\ k) @ j
+    suc n -> \(p q : Path nat zero (suc n)) -> 
+             efq (Path (Path nat zero (suc n)) p q) (znots n p)
+
+ suc m -> rem
+  where
+  rem : (y : nat) (p q : Path nat (suc m) y) -> Path (Path nat (suc m) y) p q = split
+    zero -> \(p q : Path nat (suc m) zero) ->
+            efq (Path (Path nat (suc m) zero) p q) (snotz m p)
+    suc n -> \(p q : Path nat (suc m) (suc n)) ->
+      let ih : (p q : Path nat m n) -> Path (Path nat m n) p q = setnat m n
+          ih2 : Path (Path nat m n) (sucInj m n p) (sucInj m n q) =
+                  ih (sucInj m n p) (sucInj m n q)
+          ih3 : Path (Path nat (suc m) (suc n))
+                     (<j> suc (pred (p @ j)))
+                     (<j> suc (pred (q @ j))) = <i j> suc (ih2 @ i @ j)
+          goal : Path (Path nat (suc m) (suc n)) p q =
+            <j i> hcomp nat (ih3 @ j @ i) [ (j = 0) -> <k> foo m n p @ k @ i
+                                          , (j = 1) -> <k> foo m n q @ k @ i
+                                          , (i = 0) -> <_> suc m
+                                          , (i = 1) -> <_> suc n
+                                          ]
+      in goal
+
+-- We can now define Z as this and get a direct proof that it is a set:
+ZZ : U = (_ : bool) * nat
+
+setZZ : set ZZ = goal
+  where
+  foo (a b : bool) (m n : nat)
+      (p q : Path ZZ (a,m) (b,n)) : Path (Path ZZ (a,m) (b,n)) p q =
+      let p1 : Path bool a b = <i> (p @ i).1
+          q1 : Path bool a b = <i> (q @ i).1
+          p2 : Path nat m n = <i> (p @ i).2
+          q2 : Path nat m n = <i> (q @ i).2
+          pq1 : Path (Path bool a b) p1 q1 = setbool a b p1 q1
+          pq2 : Path (Path nat m n) p2 q2 = setnat m n p2 q2
+      in <i j> (pq1 @ i @ j,pq2 @ i @ j)
+  goal (a b : ZZ) : (p q : Path ZZ a b) -> Path (Path ZZ a b) p q = foo a.1 b.1 a.2 b.2
+
+---- end of alternative definition of Z
+
+-- Z is a set
 data or (A B : U) = inl (a : A)
                   | inr (b : B)
 

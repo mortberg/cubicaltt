@@ -1,0 +1,127 @@
+module lambek where
+
+import prelude
+import list
+import nat
+--import stream
+import control
+
+-- recursion schemes
+
+cata (A: U) (F: U -> U) (alg: F A -> A) (f: fix F): A
+    = alg (fmap (fix F) A F (cata A F alg) (unfix F f))
+
+ana  (A: U) (F: U -> U) (coalg: A -> F A) (a: A): fix F
+    = Fix (fmap A (fix F) F (ana A F coalg) (coalg a))
+
+hylo (A B: U) (F: U -> U) (alg: F B -> B) (coalg: A -> F A) (a: A): B
+    = alg (fmap A B F (hylo A B F alg coalg) (coalg a))
+
+para (A: U) (F: U -> U) (alg: F (tuple (fix F) A) -> A) (f: fix F): A
+    = alg (fmap (fix F) (tuple (fix F) A) F (\(m: fix F)
+    -> pair m (para A F alg m)) (unfix F f))
+
+zygo (A B: U) (F: U -> U) (g: F A -> A) (alg: F (tuple A B) -> B) (f: fix F): B
+    = snd A B (cata (tuple A B) F (\(x: F (tuple A B))
+    -> pair (g(fmap (tuple A B) A F (\(y: tuple A B) -> fst A B y) x)) (alg x)) f)
+
+prepro (A: U) (F: U -> U) (nt: F(fix F) -> F(fix F)) (alg: F A -> A) (f: fix F): A
+    = alg(fmap (fix F) A F (\(x: fix F) -> prepro A F nt alg (cata (fix F) F (\(y: F(fix F))
+    -> Fix (nt(y))) x)) (unfix F f))
+
+postpro (A: U) (F: U -> U) (nt : F(fix F) -> F(fix F)) (coalg: A -> F A) (a: A): fix F
+    = Fix(fmap A (fix F) F (\(x: A) -> ana (fix F) F (\(y: fix F)
+    -> nt(unfix F y)) (postpro A F nt coalg x)) (coalg a))
+
+apo (A: U) (F: U -> U) (coalg: A -> F(either (fix F) A)) (a: A): fix F
+    = Fix(fmap (either (fix F) A) (fix F) F (\(x: either (fix F) A)
+    -> either_ (fix F) A (fix F) (idfun (fix F)) (apo A F coalg) x) (coalg a))
+
+gapo (A B: U) (F: U -> U) (coalg: A -> F A) (coalg2: B -> F(either A B)) (b: B): fix F
+    = Fix((fmap (either A B) (fix F) F (\(x: either A B)
+    -> either_ A B (fix F) (\(y: A) -> ana A F coalg y) (\(z: B)
+    -> gapo A B F coalg coalg2 z) x) (coalg2 b)))
+
+futu (A: U) (F: U -> U) (f: A -> F (free F A)) (a: A): fix F =
+    Fix (fmap (free F A) (fix F) F (\(z: free F A) -> w z) (f a)) where
+  w: free F A -> fix F = split
+    Free x -> unpack x where
+  unpack_free: freeF F A (fix (freeF F A)) -> fix F = split
+    ReturnF x -> futu A F f x
+    BindF g -> Fix (fmap (fix (freeF F A)) (fix F) F (\(x: fix (freeF F A)) -> w (Free x)) g)
+  unpack: fix (freeF F A) -> fix F = split
+    Fix x -> unpack_free x
+
+histo (A:U) (F: U->U) (f: F (cofree F A) -> A) (z: fix F): A =
+  extract A F ((cata (cofree F A) F (\(x: F (cofree F A)) ->
+    CoFree (Fix (CoBindF (f x) ((fmap (cofree F A)
+    (fix (cofreeF F A)) F (uncofree A F) x)))))) z) where
+  extract (A: U) (F: U -> U): cofree F A -> A = split
+    CoFree f -> unpack_fix f where
+  unpack_fix: fix (cofreeF F A) -> A = split
+    Fix f -> unpack_cofree f where
+  unpack_cofree: cofreeF F A (fix (cofreeF F A)) -> A = split
+    CoBindF a -> a
+
+chrono (A B: U) (F: U -> U)
+       (f: F (cofree F B) -> B)
+       (g: A -> F (free F A))
+       (a: A): B = histo B F f (futu A F g a)
+
+mcata (T: U) (F: U -> U) (f: ((fix F) -> T) -> F (fix F) -> T) (t: fix F): T
+    = f (\(x: fix F) -> mcata T F f x) (unfix F t)
+
+meta  (A B: U) (F: U -> U)
+      (f: A -> F A) (e: B -> A)
+      (g: F B -> B) (t: fix F): fix F
+    = ana A F f (e (cata B F g t))
+
+mutu (A B: U) (F: U -> U)
+     (f: F (tuple A B) -> B)
+     (g: F (tuple B A) -> A)
+     (t: fix F): A
+   = g (fmap (fix F) (tuple B A) F (\(x: fix F) ->
+     pair (mutu B A F g f x) (mutu A B F f g x)) (unfix F t))
+
+-- inductive types
+
+ind (A: U) (F: U -> U): U
+    = (in_: F (fix F) -> fix F)
+    * (in_rev: fix F -> F (fix F))
+    * (fold_: (F A -> A) -> fix F -> A)
+    * Unit
+
+inductive (F: U -> U) (A: U) : ind A F
+    = (embed F,unfix F,cata A F,tt)
+
+coind (A: U) (F: U -> U): U
+    = (out_: fix F -> F (fix F))
+    * (out_rev: F (fix F) -> fix F)
+    * (unfold_: (A -> F A) -> A -> fix F)
+    * Unit
+
+coinductive (F: U -> U) (A: U) : coind A F
+    = (unfix F,embed F,ana A F,tt)
+
+-- category of F-algebra endofunctors
+
+listAlg (A : U) : U
+    = (X: U)
+    * (nil: X)
+    * (cons: A -> X -> X)
+    * Unit
+
+listMor (A: U) (x1 x2: listAlg A) : U
+    = (map: x1.1 -> x2.1)
+    * (mapNil: Path x2.1 (map (x1.2.1)) (x2.2.1))
+    * (mapCons: (a:A) (x: x1.1) -> Path x2.1 (map (x1.2.2.1 a x)) (x2.2.2.1 a (map x)))
+    * Unit
+
+listObject (A: U) : U
+    = (point: (x: listAlg A) -> x.1)
+    * (map: (x1 x2: listAlg A)
+            (m: listMor A x1 x2) ->
+            Path x2.1 (m.1 (point x1)) (point x2))
+    * Unit
+
+listCategory (A: U) (o: listObject A): U = undefined

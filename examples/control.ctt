@@ -1,0 +1,52 @@
+module control where
+
+import prelude
+
+fmap (A B: U) (F: U -> U): (A -> B) -> F A -> F B = undefined
+
+-- Recursion/Corecursion
+
+data fix (F: U -> U) = Fix (point: F (fix F))
+
+unfix (F: U -> U): fix F -> F (fix F) = split Fix f -> f
+embed (F: U -> U): F (fix F) -> fix F = \(x: F (fix F)) -> Fix x
+
+data freeF   (F: U -> U) (A B: U)  = ReturnF (a: A) | BindF (f: F B)
+data cofreeF (F: U -> U) (A B: U)  = CoBindF (a: A)         (f: F B)
+data free    (F: U -> U) (A: U)    = Free    (_: fix (freeF     F A))
+data cofree  (F: U -> U) (A: U)    = CoFree  (_: fix (cofreeF   F A))
+
+unfree   (A: U) (F: U -> U): free   F A -> fix (freeF   F A) = split Free   a -> a
+uncofree (A: U) (F: U -> U): cofree F A -> fix (cofreeF F A) = split CoFree a -> a
+
+-- data free (A: U) (F: U -> U) = pure (a: A) | bind (x: F (free A F)) -- non fix version
+
+-- Control Type-Classes
+
+pure (A: U) (F: U -> U): U
+    = (return: A -> F A)
+    * Unit
+
+functor (A B: U) (F: U -> U): U
+    = (fmap: (A -> B) -> F A -> F B)
+    * Unit
+
+applicative (A B: U) (F: U -> U): U
+    = (pure_: pure A F)
+    * (functor_: functor A B F)
+    * (ap: F (A -> B) -> F A -> F B)
+    * Unit
+
+monad (A B: U) (F: U -> U): U
+    = (pure_: pure A F)
+    * (functor_: functor A B F)
+    * (join: F (F A) -> F B)
+    * Unit
+
+comonad (A B: U) (F: U -> U): U
+    = (pure_: pure A F)
+    * (functor_: functor A B F)
+    * (extract: F A -> A)
+    * (duplicate: F A -> F (F A))
+    * (extend: (F A -> B) -> F A -> F B)
+    * Unit

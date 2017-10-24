@@ -923,6 +923,24 @@ sucpredZ : (x : Z) -> Path Z (sucZ (predZ x)) x = split
       suc n -> <_> pos (suc n)
   neg v -> <_> neg v
 
+-- alternative proof that sucZ is an equiv, not using the "grad lemma"
+
+equivSucZ : isEquiv Z Z sucZ = goal
+  where
+  ctr (y : Z) : fiber Z Z sucZ y = (predZ y,<i> sucpredZ y @ -i)
+  foo (y : Z) (y' : fiber Z Z sucZ y) : Path ((x : Z) * Path Z y (sucZ x)) (ctr y) y' =
+    let foo : Path Z (predZ y) (predZ (sucZ y'.1)) = <i> predZ (y'.2 @ i)
+        p1 : Path Z (predZ y) y'.1 =
+          compPath Z (predZ y) (predZ (sucZ y'.1)) y'.1 foo (predsucZ y'.1)
+        -- this almost follows from the fact that Z is a set...
+        p2 : PathP (<i> Path Z y (sucZ (p1 @ i))) (<i> sucpredZ y @ -i) y'.2 = undefined
+    in <i> (p1 @ i,p2 @ i)
+  goal (y : Z) : isContr (fiber Z Z sucZ y) = (ctr y,foo y)
+
+sucPathZ0 : Path U Z Z = ua Z Z (sucZ,equivSucZ)
+
+-- end of alternative attempt to prove that sucZ is an equiv
+
 lemIso (A B : U) (f : A -> B) (g : B -> A)
        (s : (y : B) -> Path B (f (g y)) y)
        (t : (x : A) -> Path A (g (f x)) x)

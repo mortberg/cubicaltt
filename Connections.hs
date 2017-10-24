@@ -15,11 +15,12 @@ import Data.Maybe
 import Data.IORef
 import System.IO.Unsafe
 
-newtype Name = Name String
+data Name = Name String | Gen {-# UNPACK #-} !Int
   deriving (Eq,Ord)
 
 instance Show Name where
   show (Name i) = i
+  show (Gen x)  = 'i' : show x
 
 swapName :: Name -> (Name,Name) -> Name
 swapName k (i,j) | k == i    = j
@@ -266,7 +267,7 @@ propInvFormulaIncomp phi b = incomparables (invFormula phi b)
 --   where ys = i:map (\n -> Name (s ++ show n)) [0..]
 
 {-# NOINLINE freshVar #-}
-freshVar :: IORef Integer
+freshVar :: IORef Int
 freshVar = unsafePerformIO (newIORef 0)
 
 -- succName (Name x) = Name ()
@@ -275,7 +276,7 @@ gensym :: [a] -> Name
 gensym _ = unsafePerformIO $ do
   x <- readIORef freshVar
   modifyIORef freshVar succ
-  return (Name ('i' : show x))
+  return (Gen x)
 
 -- gensym :: [Name] -> Name
 -- gensym xs = Name ('!' : show max)

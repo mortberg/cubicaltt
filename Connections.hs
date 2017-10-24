@@ -288,7 +288,9 @@ gensyms :: [Name] -> [Name]
 gensyms d = let x = gensym d in x : gensyms (x : d)
 
 class Nominal a where
-  support :: a -> [Name]
+--  support :: a -> [Name]
+  occurs :: Name -> a -> Bool
+--  occurs x v = x `elem` support v
   act     :: a -> (Name,Formula) -> a
   swap    :: a -> (Name,Name) -> a
 
@@ -302,73 +304,91 @@ fresh _ = gensym [] -- . support
 freshs :: Nominal a => a -> [Name]
 freshs _ = gensyms [] -- . support
 
-unions :: [[a]] -> [a]
-unions = concat -- foldr union []
+-- unions :: [[a]] -> [a]
+-- unions = concat -- foldr union []
 
-unionsMap :: (a -> [b]) -> [a] -> [b]
-unionsMap = concatMap -- unions . map f
+-- unionsMap :: (a -> [b]) -> [a] -> [b]
+-- unionsMap = concatMap -- unions . map f
 
 newtype Nameless a = Nameless { unNameless :: a }
                    deriving (Eq, Ord)
 
 instance Nominal (Nameless a) where
-  support _ = []
+--  support _ = []
+  occurs _ _ = False
   act x _   = x
   swap x _  = x
 
 instance Nominal () where
-  support () = []
+--  support () = []
+  occurs _ _ = False
   act () _   = ()
   swap () _  = ()
 
 instance (Nominal a, Nominal b) => Nominal (a, b) where
-  support (a, b) = support a `union` support b
+--  support (a, b) = support a `union` support b
+  occurs x (a,b) = occurs x a || occurs x b
   act (a,b) f    = (act a f,act b f)
   swap (a,b) n   = (swap a n,swap b n)
 
 instance (Nominal a, Nominal b, Nominal c) => Nominal (a, b, c) where
-  support (a,b,c) = unions [support a, support b, support c]
+--  support (a,b,c) = unions [support a, support b, support c]
+  occurs x (a,b,c) = or [occurs x a,occurs x b,occurs x c]
   act (a,b,c) f   = (act a f,act b f,act c f)
   swap (a,b,c) n  = (swap a n,swap b n,swap c n)
 
 instance (Nominal a, Nominal b, Nominal c, Nominal d) =>
          Nominal (a, b, c, d) where
-  support (a,b,c,d) = unions [support a, support b, support c, support d]
+--  support (a,b,c,d) = unions [support a, support b, support c, support d]
+  occurs x (a,b,c,d) = or [occurs x a,occurs x b,occurs x c,occurs x d]
   act (a,b,c,d) f   = (act a f,act b f,act c f,act d f)
   swap (a,b,c,d) n  = (swap a n,swap b n,swap c n,swap d n)
 
 instance (Nominal a, Nominal b, Nominal c, Nominal d, Nominal e) =>
          Nominal (a, b, c, d, e) where
-  support (a,b,c,d,e)  =
-    unions [support a, support b, support c, support d, support e]
+  -- support (a,b,c,d,e)  =
+  --   unions [support a, support b, support c, support d, support e]
+  occurs x (a,b,c,d,e) =
+    or [occurs x a,occurs x b,occurs x c,occurs x d,occurs x e]
   act (a,b,c,d,e) f    = (act a f,act b f,act c f,act d f, act e f)
   swap (a,b,c,d,e) n =
     (swap a n,swap b n,swap c n,swap d n,swap e n)
 
 instance (Nominal a, Nominal b, Nominal c, Nominal d, Nominal e, Nominal h) =>
          Nominal (a, b, c, d, e, h) where
-  support (a,b,c,d,e,h) =
-    unions [support a, support b, support c, support d, support e, support h]
+  -- support (a,b,c,d,e,h) =
+  --   unions [support a, support b, support c, support d, support e, support h]
+  occurs x (a,b,c,d,e,h) =
+    or [occurs x a,occurs x b,occurs x c,occurs x d,occurs x e,occurs x h]
   act (a,b,c,d,e,h) f   = (act a f,act b f,act c f,act d f, act e f, act h f)
   swap (a,b,c,d,e,h) n  =
     (swap a n,swap b n,swap c n,swap d n,swap e n,swap h n)
 
 instance Nominal a => Nominal [a]  where
-  support xs  = unions (map support xs)
+--  support xs  = unions (map support xs)
+  occurs x xs = any (occurs x) xs
   act xs f    = [ act x f | x <- xs ]
   swap xs n   = [ swap x n | x <- xs ]
 
 instance Nominal a => Nominal (Maybe a)  where
-  support    = maybe [] support
+--  support    = maybe [] support
+  occurs x   = maybe False (occurs x)
   act v f    = fmap (`act` f) v
   swap a n   = fmap (`swap` n) a
 
 instance Nominal Formula where
-  support (Dir _)        = []
-  support (Atom i)       = [i]
-  support (NegAtom i)    = [i]
-  support (phi :/\: psi) = support phi `union` support psi
-  support (phi :\/: psi) = support phi `union` support psi
+  -- support (Dir _)        = []
+  -- support (Atom i)       = [i]
+  -- support (NegAtom i)    = [i]
+  -- support (phi :/\: psi) = support phi `union` support psi
+  -- support (phi :\/: psi) = support phi `union` support psi
+
+  occurs x u = case u of
+    Dir _ -> False
+    Atom i -> x == i
+    NegAtom i -> x == i
+    phi :/\: psi -> occurs x phi || occurs x psi
+    phi :\/: psi -> occurs x phi || occurs x psi
 
   act (Dir b) (i,phi)  = Dir b
   act (Atom j) (i,phi) | i == j    = phi
@@ -387,6 +407,14 @@ instance Nominal Formula where
                         | otherwise = NegAtom k
   swap (psi1 :/\: psi2) (i,j) = swap psi1 (i,j) :/\: swap psi2 (i,j)
   swap (psi1 :\/: psi2) (i,j) = swap psi1 (i,j) :\/: swap psi2 (i,j)
+
+supportFormula :: Formula -> [Name]
+supportFormula (Dir _)        = []
+supportFormula (Atom i)       = [i]
+supportFormula (NegAtom i)    = [i]
+supportFormula (phi :/\: psi) = supportFormula phi `union` supportFormula psi
+supportFormula (phi :\/: psi) = supportFormula phi `union` supportFormula psi
+
 
 face :: Nominal a => a -> Face -> a
 face = foldrWithKey (\i d a -> act a (i,Dir d))
@@ -441,8 +469,11 @@ transposeSystemAndList tss (u:us) =
 
 -- Now we ensure that the keys are incomparable
 instance Nominal a => Nominal (System a) where
-  support s = unions (map keys $ keys s)
-              `union` support (elems s)
+  -- support s = unions (map keys $ keys s)
+  --             `union` support (elems s)
+
+  occurs x s = x `elem` (concatMap Map.keys $ Map.keys s) ||
+               occurs x (Map.elems s)
 
   act s (i, phi) = addAssocs (assocs s)
     where

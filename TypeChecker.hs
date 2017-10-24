@@ -383,13 +383,13 @@ checkFormula :: Formula -> Typing ()
 checkFormula phi = do
   rho <- asks env
   let dom = domainEnv rho
-  unless (all (`elem` dom) (support phi)) $
+  unless (all (`elem` dom) (supportFormula phi)) $
     throwError $ "checkFormula: " ++ show phi
 
 checkFresh :: Name -> Typing ()
 checkFresh i = do
   rho <- asks env
-  when (i `elem` support rho)
+  when (i `occurs` rho)
     (throwError $ show i ++ " is already declared")
 
 -- Check that a term is a PLam and output the source and target

@@ -49,56 +49,86 @@ lookName i _ = error $ "lookName: not found " ++ show i
 -- Nominal instances
 
 instance Nominal Ctxt where
-  support _ = []
+--  support _ = []
+  occurs _ _ = False  
   act e _   = e
   swap e _  = e
 
 instance Nominal Env where
-  support (Env (rho,vs,fs,os)) = support (rho,vs,fs,os)
+--  support (Env (rho,vs,fs,os)) = support (rho,vs,fs,os)
+  occurs x (Env (rho,vs,fs,os)) = occurs x (rho,vs,fs,os)
   act (Env (rho,vs,fs,os)) iphi = Env $ act (rho,vs,fs,os) iphi
   swap (Env (rho,vs,fs,os)) ij = Env $ swap (rho,vs,fs,os) ij
 
 instance Nominal Val where
-  support v = case v of
-    VU                      -> []
-    Ter _ e                 -> support e
-    VPi u v                 -> support [u,v]
-    VPathP a v0 v1          -> support [a,v0,v1]
-    VPLam i v               -> i `delete` support v
-    VSigma u v              -> support (u,v)
-    VPair u v               -> support (u,v)
-    VFst u                  -> support u
-    VSnd u                  -> support u
-    VCon _ vs               -> support vs
-    VPCon _ a vs phis       -> support (a,vs,phis)
-    VHComp a u ts           -> support (a,u,ts)
-    VTrans a phi u          -> support (a,phi,u)
-    VVar _ v                -> support v
-    VOpaque _ v             -> support v
-    VApp u v                -> support (u,v)
-    VLam _ u v              -> support (u,v)
-    VAppFormula u phi       -> support (u,phi)
-    VSplit u v              -> support (u,v)
-    VGlue a ts              -> support (a,ts)
-    VGlueElem a ts          -> support (a,ts)
-    VUnGlueElem a b ts      -> support (a,b,ts)
-    VHCompU a ts            -> support (a,ts)
-    VUnGlueElemU a b es     -> support (a,b,es)
-    VIdPair u us            -> support (u,us)
-    VId a u v               -> support (a,u,v)
-    VIdJ a u c d x p        -> support [a,u,c,d,x,p]
+  -- support v = case v of
+  --   VU                      -> []
+  --   Ter _ e                 -> support e
+  --   VPi u v                 -> support [u,v]
+  --   VPathP a v0 v1          -> support [a,v0,v1]
+  --   VPLam i v               -> i `delete` support v
+  --   VSigma u v              -> support (u,v)
+  --   VPair u v               -> support (u,v)
+  --   VFst u                  -> support u
+  --   VSnd u                  -> support u
+  --   VCon _ vs               -> support vs
+  --   VPCon _ a vs phis       -> support (a,vs,phis)
+  --   VHComp a u ts           -> support (a,u,ts)
+  --   VTrans a phi u          -> support (a,phi,u)
+  --   VVar _ v                -> support v
+  --   VOpaque _ v             -> support v
+  --   VApp u v                -> support (u,v)
+  --   VLam _ u v              -> support (u,v)
+  --   VAppFormula u phi       -> support (u,phi)
+  --   VSplit u v              -> support (u,v)
+  --   VGlue a ts              -> support (a,ts)
+  --   VGlueElem a ts          -> support (a,ts)
+  --   VUnGlueElem a b ts      -> support (a,b,ts)
+  --   VHCompU a ts            -> support (a,ts)
+  --   VUnGlueElemU a b es     -> support (a,b,es)
+  --   VIdPair u us            -> support (u,us)
+  --   VId a u v               -> support (a,u,v)
+  --   VIdJ a u c d x p        -> support [a,u,c,d,x,p]
+  occurs x v = case v of
+    VU                      -> False
+    Ter _ e                 -> occurs x e
+    VPi u v                 -> occurs x (u,v)
+    VPathP a v0 v1          -> occurs x [a,v0,v1]
+    VPLam i v               -> if x == i then False else occurs x v
+    VSigma u v              -> occurs x (u,v)
+    VPair u v               -> occurs x (u,v)
+    VFst u                  -> occurs x u
+    VSnd u                  -> occurs x u
+    VCon _ vs               -> occurs x vs
+    VPCon _ a vs phis       -> occurs x (a,vs,phis)
+    VHComp a u ts           -> occurs x (a,u,ts)
+    VTrans a phi u          -> occurs x (a,phi,u)
+    VVar _ v                -> occurs x v
+    VOpaque _ v             -> occurs x v
+    VApp u v                -> occurs x (u,v)
+    VLam _ u v              -> occurs x (u,v)
+    VAppFormula u phi       -> occurs x (u,phi)
+    VSplit u v              -> occurs x (u,v)
+    VGlue a ts              -> occurs x (a,ts)
+    VGlueElem a ts          -> occurs x (a,ts)
+    VUnGlueElem a b ts      -> occurs x (a,b,ts)
+    VHCompU a ts            -> occurs x (a,ts)
+    VUnGlueElemU a b es     -> occurs x (a,b,es)
+    VIdPair u us            -> occurs x (u,us)
+    VId a u v               -> occurs x (a,u,v)
+    VIdJ a u c d y p        -> occurs x [a,u,c,d,y,p]
 
-  act u (i, phi) =
+  act u (i, phi) | not (occurs i u) = u
+                 | otherwise =
     let acti :: Nominal a => a -> a
-        acti u = act u (i, phi)
-        sphi = support phi
+        acti u = act u (i, phi)                   
     in case u of
          VU           -> VU
          Ter t e      -> Ter t (acti e)
          VPi a f      -> VPi (acti a) (acti f)
          VPathP a u v -> VPathP (acti a) (acti u) (acti v)
          VPLam j v | j == i -> u
-                   | j `notElem` sphi -> VPLam j (acti v)
+                   | not (j `occurs` phi) -> VPLam j (acti v)
                    | otherwise -> VPLam k (acti (v `swap` (j,k)))
               where k = fresh (v,Atom i,phi)
          VSigma a f              -> VSigma (acti a) (acti f)
@@ -108,7 +138,7 @@ instance Nominal Val where
          VCon c vs               -> VCon c (acti vs)
          VPCon c a vs phis       -> pcon c (acti a) (acti vs) (acti phis)
          VHComp a u us           -> hCompLine (acti a) (acti u) (acti us)
-         VTrans a phi u          -> transLine (acti a) (acti phi) (acti u)
+         VTrans a psi u          -> transLine (acti a) (acti psi) (acti u)
          VVar x v                -> VVar x (acti v)
          VOpaque x v             -> VOpaque x (acti v)
          VAppFormula u psi       -> acti u @@ acti psi

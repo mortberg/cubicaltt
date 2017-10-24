@@ -88,8 +88,7 @@ instance Nominal Val where
     VId a u v               -> support (a,u,v)
     VIdJ a u c d x p        -> support [a,u,c,d,x,p]
 
-  act u (i, phi) | i `notElem` support u = u -- This is a huge time optimization, but what about space? Computing the support is expensive...
-                 | otherwise =
+  act u (i, phi) =
     let acti :: Nominal a => a -> a
         acti u = act u (i, phi)
         sphi = support phi

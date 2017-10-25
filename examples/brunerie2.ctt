@@ -679,66 +679,39 @@ setbool : set bool = split
     true -> \(p q : Path bool true true) ->
             <j i> rem2 (p @ i) (q @ i) (<k> p @ i /\ k) (<k> q @ i /\ k) @ j
 
-caseNat (A : U) (a0 aS : A) : nat -> A = split
-  zero -> a0
-  suc n -> aS
-
-znots (n : nat) : not (Path nat zero (suc n)) =
-  \(h : Path nat zero (suc n)) -> subst nat (caseNat U nat N0) zero (suc n) h zero
-
-snotz (n : nat) : not (Path nat (suc n) zero) =
-  \(h : Path nat (suc n) zero) -> znots n (<i> h @ -i)
 
 pred : nat -> nat = split
   zero -> zero
   suc n -> n
 
-sucInj (m n : nat) (p : Path nat (suc m) (suc n)) : Path nat m n =
-  <i> pred (p @ i)
+invP : (n m : nat) (p : Path nat n m) -> U = split
+  zero  -> split@((m : nat) (p : Path nat zero m) -> U) with
+    zero  -> \(p : Path nat zero zero) -> 
+               Path (Path nat zero zero) p (<_> zero)
+    suc m -> \(p : Path nat zero (suc m)) -> N0
+  suc n -> split@((m : nat) (p : Path nat (suc n) m) -> U) with
+    zero  -> \(p : Path nat (suc n) zero) -> N0
+    suc m -> \(p : Path nat (suc n) (suc m)) ->
+               Path (Path nat (suc n) (suc m)) p (<i> suc (pred (p @ i)))
 
-foo : (m n : nat) (r : Path nat (suc m) (suc n)) ->
-      Path (Path nat (suc m) (suc n))
-           (<j> suc (pred (r @ j))) r = undefined
+-- using J for now
+pinv : (n m : nat) (p : Path nat n m) -> invP n m p = split
+  zero  -> J nat zero (invP zero) (<_ _> zero)
+  suc n -> J nat (suc n) (invP (suc n)) (<_ _> suc n)
 
--- Direct proof that nat is a set:
-setnat : set nat = split
- zero -> rem
-  where
-  rem1 : (y : nat) (p : Path nat zero y) -> Path nat zero y = split
-    zero -> \(p : Path nat zero zero) -> <_> zero
-    suc n -> \(p : Path nat zero (suc n)) -> p
+lem : (n : nat) (p : Path nat n n) -> Path (Path nat n n) p (<_> n) = split
+  zero  -> pinv zero zero
+  suc n -> \(p : Path nat (suc n) (suc n)) ->
+               compPath (Path nat (suc n) (suc n)) p (<i> suc (pred (p @ i))) (<_> suc n)
+                 (pinv (suc n) (suc n) p)
+                 (<i j> suc (lem n (<k> pred (p @ k)) @ i @ j))
 
-  rem2 : (x y : nat) (p : Path nat zero x)
-         (q : Path nat zero y) -> Path nat x y = split
-    zero -> \(y : nat) (p : Path nat zero zero) (q : Path nat zero y) -> rem1 y q
-    suc n -> \(y : nat) (p : Path nat zero (suc n)) (q : Path nat zero y) ->
-             efq (Path nat (suc n) y) (znots n p)
+natset' (n : nat) : (m : nat) (p q : Path nat n m) -> Path (Path nat n m) q p = 
+  J nat n (\(m : nat)(p : Path nat n m) ->
+            (q : Path nat n m) -> Path (Path nat n m) q p)
+    (lem n)
   
-  rem : (y : nat) (p q : Path nat zero y) -> Path (Path nat zero y) p q = split
-    zero -> \(p q : Path nat zero zero) ->
-             <j i> rem2 (p @ i) (q @ i) (<k> p @ i /\ k) (<k> q @ i /\ k) @ j
-    suc n -> \(p q : Path nat zero (suc n)) -> 
-             efq (Path (Path nat zero (suc n)) p q) (znots n p)
-
- suc m -> rem
-  where
-  rem : (y : nat) (p q : Path nat (suc m) y) -> Path (Path nat (suc m) y) p q = split
-    zero -> \(p q : Path nat (suc m) zero) ->
-            efq (Path (Path nat (suc m) zero) p q) (snotz m p)
-    suc n -> \(p q : Path nat (suc m) (suc n)) ->
-      let ih : (p q : Path nat m n) -> Path (Path nat m n) p q = setnat m n
-          ih2 : Path (Path nat m n) (sucInj m n p) (sucInj m n q) =
-                  ih (sucInj m n p) (sucInj m n q)
-          ih3 : Path (Path nat (suc m) (suc n))
-                     (<j> suc (pred (p @ j)))
-                     (<j> suc (pred (q @ j))) = <i j> suc (ih2 @ i @ j)
-          goal : Path (Path nat (suc m) (suc n)) p q =
-            <j i> hcomp nat (ih3 @ j @ i) [ (j = 0) -> <k> foo m n p @ k @ i
-                                          , (j = 1) -> <k> foo m n q @ k @ i
-                                          , (i = 0) -> <_> suc m
-                                          , (i = 1) -> <_> suc n
-                                          ]
-      in goal
+setnat (n m : nat) (p q : Path nat n m) : Path (Path nat n m) p q = natset' n m q p
 
 -- We can now define Z as this and get a direct proof that it is a set:
 ZZ : U = (_ : bool) * nat
@@ -830,10 +803,6 @@ znots (n : nat) : not (Path nat zero (suc n)) =
 
 snotz (n : nat) : not (Path nat (suc n) zero) =
   \(h : Path nat (suc n) zero) -> znots n (<i> h @ -i)
-
-pred : nat -> nat = split
-  zero -> zero
-  suc n -> n
 
 sucInj (n m : nat) (p : Path nat (suc n) (suc m)) : Path nat n m =
  <i> pred (p @ i)

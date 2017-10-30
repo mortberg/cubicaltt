@@ -268,6 +268,42 @@ propOr (A B : U) (hA : prop A) (hB : prop B) (h : A -> neg B) : prop (or A B) = 
         inl b' -> efq (Path (or A B) (inr a') (inl b')) (h b' a')
         inr b' -> <i> inr (hB a' b' @ i)
 
+-- Direct proof that or A B is a set if A and B are:
+invOr (A B : U) : (u v : or A B) (p : Path (or A B) u v) -> U = split
+  inl a -> split@((v : or A B) -> (p : Path (or A B) (inl a) v) -> U) with
+    inl a' -> \(p : Path (or A B) (inl a) (inl a')) ->
+              (q : Path A a a') * (Path (Path (or A B) (inl a) (inl a')) p (<i> inl (q @ i)))
+    inr b' -> \(p : Path (or A B) (inl a) (inr b')) -> N0
+  inr b -> split@((v : or A B) -> (p : Path (or A B) (inr b) v) -> U) with
+    inl a' -> \(p : Path (or A B) (inr b) (inl a')) -> N0
+    inr b' -> \(p : Path (or A B) (inr b) (inr b')) ->
+              (q : Path B b b') * (Path (Path (or A B) (inr b) (inr b')) p (<i> inr (q @ i)))
+
+pinvOr (A B : U) : (u v : or A B) (p : Path (or A B) u v) -> invOr A B u v p = split
+  inl a -> J (or A B) (inl a) (invOr A B (inl a)) (<_> a,<_ _> inl a)
+  inr b -> J (or A B) (inr b) (invOr A B (inr b)) (<_> b,<_ _> inr b)
+
+lemOr (A B : U) (setA : set A) (setB : set B) :
+  (u : or A B) (p : Path (or A B) u u) -> Path (Path (or A B) u u) p (<_> u) = split
+  inl a -> \(p : Path (or A B) (inl a) (inl a)) -> 
+    let qa : invOr A B (inl a) (inl a) p = pinvOr A B (inl a) (inl a) p
+    in compPath (Path (or A B) (inl a) (inl a)) p (<i> inl (qa.1 @ i)) (<_> inl a) qa.2
+                (<i j> inl (setA a a qa.1 (<_> a) @ i @ j))
+  inr b -> \(p : Path (or A B) (inr b) (inr b)) -> 
+    let qb : invOr A B (inr b) (inr b) p = pinvOr A B (inr b) (inr b) p
+    in compPath (Path (or A B) (inr b) (inr b)) p (<i> inr (qb.1 @ i)) (<_> inr b) qb.2
+                (<i j> inr (setB b b qb.1 (<_> b) @ i @ j))
+
+orset' (A B : U) (setA : set A) (setB : set B) (u : or A B) :
+  (v : or A B) (p q : Path (or A B) u v) -> Path (Path (or A B) u v) q p =
+  J (or A B) u (\(v : or A B) (p : Path (or A B) u v) ->
+               (q : Path (or A B) u v) -> Path (Path (or A B) u v) q p)
+    (lemOr A B setA setB u)
+
+orset (A B : U) (setA : set A) (setB : set B) (u v : or A B) (p q : Path (or A B) u v) :
+  Path (Path (or A B) u v) p q = orset' A B setA setB u v q p
+
+
 stable (A:U) : U = neg (neg A) -> A
 
 const (A : U) (f : A -> A) : U = (x y : A) -> Path A (f x) (f y)

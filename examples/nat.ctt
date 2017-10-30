@@ -117,3 +117,33 @@ equalNat : nat -> nat -> bool = split
     suc m -> split@(nat -> bool) with
       zero  -> false
       suc n -> equalNat m n
+
+-- Direct proof that nat is a set:
+invP : (n m : nat) (p : Path nat n m) -> U = split
+  zero  -> split@((m : nat) (p : Path nat zero m) -> U) with
+    zero  -> \(p : Path nat zero zero) -> 
+               Path (Path nat zero zero) p (<_> zero)
+    suc m -> \(p : Path nat zero (suc m)) -> N0
+  suc n -> split@((m : nat) (p : Path nat (suc n) m) -> U) with
+    zero  -> \(p : Path nat (suc n) zero) -> N0
+    suc m -> \(p : Path nat (suc n) (suc m)) ->
+               Path (Path nat (suc n) (suc m)) p (<i> suc (pred (p @ i)))
+
+-- using J for now
+pinv : (n m : nat) (p : Path nat n m) -> invP n m p = split
+  zero  -> J nat zero (invP zero) (<_ _> zero)
+  suc n -> J nat (suc n) (invP (suc n)) (<_ _> suc n)
+
+lem : (n : nat) (p : Path nat n n) -> Path (Path nat n n) p (<_> n) = split
+  zero  -> pinv zero zero
+  suc n -> \(p : Path nat (suc n) (suc n)) ->
+               compPath (Path nat (suc n) (suc n)) p (<i> suc (pred (p @ i))) (<_> suc n)
+                 (pinv (suc n) (suc n) p)
+                 (<i j> suc (lem n (<k> pred (p @ k)) @ i @ j))
+
+natset' (n : nat) : (m : nat) (p q : Path nat n m) -> Path (Path nat n m) q p = 
+  J nat n (\(m : nat)(p : Path nat n m) ->
+            (q : Path nat n m) -> Path (Path nat n m) q p)
+    (lem n)
+  
+setnat (n m : nat) (p q : Path nat n m) : Path (Path nat n m) p q = natset' n m q p

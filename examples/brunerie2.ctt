@@ -11,6 +11,9 @@ data nat = zero | suc (n : nat)
 
 idfun (A : U) (a : A) : A = a
 
+pred : nat -> nat = split
+  zero -> zero
+  suc n -> n
 
 {- Z is represented as:
 
@@ -628,62 +631,7 @@ data N0 =
 not (A : U) : U = A -> N0
 efq (A : U) : N0 -> A = split {}
 
-caseBool (A : U) (f t : A) : bool -> A = split
- false -> f
- true  -> t
-
-falseNeqTrue : not (Path bool false true) =
-  \(h : Path bool false true) -> subst bool (caseBool U bool N0) false true h false
-
-trueNeqFalse : not (Path bool true false) =
-  \(h : Path bool true false) -> subst bool (caseBool U N0 bool) true false h true
-
----- attempt to give an alternative definition of Z with direct proof that it is a set
-
--- Direct proof that bool is a set:
-setbool : set bool = split
- false -> rem
-  where
-  rem1 : (y : bool) (p : Path bool false y) -> Path bool false y = split
-    false -> \(p : Path bool false false) -> <_> false
-    true -> \(p : Path bool false true) -> p
-
-  rem2 : (x y : bool) (p : Path bool false x)
-         (q : Path bool false y) -> Path bool x y = split
-    false -> \(y : bool) (p : Path bool false false) (q : Path bool false y) -> rem1 y q
-    true -> \(y : bool) (p : Path bool false true) (q : Path bool false y) ->
-            efq (Path bool true y) (falseNeqTrue p)
-  
-  rem : (y : bool) (p q : Path bool false y) -> Path (Path bool false y) p q = split
-    false -> \(p q : Path bool false false) ->
-             <j i> rem2 (p @ i) (q @ i) (<k> p @ i /\ k) (<k> q @ i /\ k) @ j
-    true -> \(p q : Path bool false true) ->
-            efq (Path (Path bool false true) p q) (falseNeqTrue p)
-
- true -> rem
-  where
-  rem1 : (y : bool) (p : Path bool true y) -> Path bool true y = split
-    false -> \ (p : Path bool true false) -> p
-    true -> \ (p : Path bool true true) -> <_> true
-
-  rem2 : (x y : bool)  (p : Path bool true x)
-         (q : Path bool true y) -> Path bool x y = split
-    false -> \(y : bool) (p : Path bool true false) (q : Path bool true y) ->
-             efq (Path bool false y) (trueNeqFalse p)
-    true -> \(y : bool) (p : Path bool true true) (q : Path bool true y) ->
-            rem1 y q
-
-  rem : (y : bool) (p q : Path bool true y) -> Path (Path bool true y) p q = split
-    false -> \(p q : Path bool true false) ->
-             efq (Path (Path bool true false) p q) (trueNeqFalse p)
-    true -> \(p q : Path bool true true) ->
-            <j i> rem2 (p @ i) (q @ i) (<k> p @ i /\ k) (<k> q @ i /\ k) @ j
-
-
-pred : nat -> nat = split
-  zero -> zero
-  suc n -> n
-
+-- Direct proof that Z is a set:
 invP : (n m : nat) (p : Path nat n m) -> U = split
   zero  -> split@((m : nat) (p : Path nat zero m) -> U) with
     zero  -> \(p : Path nat zero zero) -> 
@@ -713,61 +661,40 @@ natset' (n : nat) : (m : nat) (p q : Path nat n m) -> Path (Path nat n m) q p =
   
 setnat (n m : nat) (p q : Path nat n m) : Path (Path nat n m) p q = natset' n m q p
 
--- We can now define Z as this and get a direct proof that it is a set:
-ZZ : U = (_ : bool) * nat
+invZ : (u v : Z) (p : Path Z u v) -> U = split
+  pos a -> split@((v : Z) -> (p : Path Z (pos a) v) -> U) with
+    pos a' -> \(p : Path Z (pos a) (pos a')) ->
+              (q : Path nat a a') * (Path (Path Z (pos a) (pos a')) p (<i> pos (q @ i)))
+    neg b' -> \(p : Path Z (pos a) (neg b')) -> N0
+  neg b -> split@((v : Z) -> (p : Path Z (neg b) v) -> U) with
+    pos a' -> \(p : Path Z (neg b) (pos a')) -> N0
+    neg b' -> \(p : Path Z (neg b) (neg b')) ->
+              (q : Path nat b b') * (Path (Path Z (neg b) (neg b')) p (<i> neg (q @ i)))
 
-setZZ : set ZZ = goal
-  where
-  foo (a b : bool) (m n : nat)
-      (p q : Path ZZ (a,m) (b,n)) : Path (Path ZZ (a,m) (b,n)) p q =
-      let p1 : Path bool a b = <i> (p @ i).1
-          q1 : Path bool a b = <i> (q @ i).1
-          p2 : Path nat m n = <i> (p @ i).2
-          q2 : Path nat m n = <i> (q @ i).2
-          pq1 : Path (Path bool a b) p1 q1 = setbool a b p1 q1
-          pq2 : Path (Path nat m n) p2 q2 = setnat m n p2 q2
-      in <i j> (pq1 @ i @ j,pq2 @ i @ j)
-  goal (a b : ZZ) : (p q : Path ZZ a b) -> Path (Path ZZ a b) p q = foo a.1 b.1 a.2 b.2
+pinvZ : (u v : Z) (p : Path Z u v) -> invZ u v p = split
+  pos a -> J Z (pos a) (invZ (pos a)) (<_> a,<_ _> pos a)
+  neg b -> J Z (neg b) (invZ (neg b)) (<_> b,<_ _> neg b)
 
----- end of alternative definition of Z
+lemZ : (u : Z) (p : Path Z u u) -> Path (Path Z u u) p (<_> u) = split
+  pos a -> \(p : Path Z (pos a) (pos a)) -> 
+    let qa : invZ (pos a) (pos a) p = pinvZ (pos a) (pos a) p
+    in compPath (Path Z (pos a) (pos a)) p (<i> pos (qa.1 @ i)) (<_> pos a) qa.2
+                (<i j> pos (setnat a a qa.1 (<_> a) @ i @ j))
+  neg b -> \(p : Path Z (neg b) (neg b)) -> 
+    let qb : invZ (neg b) (neg b) p = pinvZ (neg b) (neg b) p
+    in compPath (Path Z (neg b) (neg b)) p (<i> neg (qb.1 @ i)) (<_> neg b) qb.2
+                (<i j> neg (setnat b b qb.1 (<_> b) @ i @ j))
 
--- Z is a set
+setZ' (u : Z) : (v : Z) (p q : Path Z u v) -> Path (Path Z u v) q p =
+  J Z u (\(v : Z) (p : Path Z u v) -> (q : Path Z u v) -> Path (Path Z u v) q p)
+    (lemZ u)
+
+setZ (u v : Z) (p q : Path Z u v) : Path (Path Z u v) p q = setZ' u v q p
+
+
+-- Z is a set using Hedberg
 data or (A B : U) = inl (a : A)
                   | inr (b : B)
-
-invOr (A B : U) : (u v : or A B) (p : Path (or A B) u v) -> U = split
-  inl a -> split@((v : or A B) -> (p : Path (or A B) (inl a) v) -> U) with
-    inl a' -> \(p : Path (or A B) (inl a) (inl a')) ->
-              (q : Path A a a') * (Path (Path (or A B) (inl a) (inl a')) p (<i> inl (q @ i)))
-    inr b' -> \(p : Path (or A B) (inl a) (inr b')) -> N0
-  inr b -> split@((v : or A B) -> (p : Path (or A B) (inr b) v) -> U) with
-    inl a' -> \(p : Path (or A B) (inr b) (inl a')) -> N0
-    inr b' -> \(p : Path (or A B) (inr b) (inr b')) ->
-              (q : Path B b b') * (Path (Path (or A B) (inr b) (inr b')) p (<i> inr (q @ i)))
-
-pinvOr (A B : U) : (u v : or A B) (p : Path (or A B) u v) -> invOr A B u v p = split
-  inl a -> J (or A B) (inl a) (invOr A B (inl a)) (<_> a,<_ _> inl a)
-  inr b -> J (or A B) (inr b) (invOr A B (inr b)) (<_> b,<_ _> inr b)
-
-lemOr (A B : U) (setA : set A) (setB : set B) :
-  (u : or A B) (p : Path (or A B) u u) -> Path (Path (or A B) u u) p (<_> u) = split
-  inl a -> \(p : Path (or A B) (inl a) (inl a)) -> 
-    let qa : invOr A B (inl a) (inl a) p = pinvOr A B (inl a) (inl a) p
-    in compPath (Path (or A B) (inl a) (inl a)) p (<i> inl (qa.1 @ i)) (<_> inl a) qa.2
-                (<i j> inl (setA a a qa.1 (<_> a) @ i @ j))
-  inr b -> \(p : Path (or A B) (inr b) (inr b)) -> 
-    let qb : invOr A B (inr b) (inr b) p = pinvOr A B (inr b) (inr b) p
-    in compPath (Path (or A B) (inr b) (inr b)) p (<i> inr (qb.1 @ i)) (<_> inr b) qb.2
-                (<i j> inr (setB b b qb.1 (<_> b) @ i @ j))
-
-orset' (A B : U) (setA : set A) (setB : set B) (u : or A B) :
-  (v : or A B) (p q : Path (or A B) u v) -> Path (Path (or A B) u v) q p =
-  J (or A B) u (\(v : or A B) (p : Path (or A B) u v) ->
-               (q : Path (or A B) u v) -> Path (Path (or A B) u v) q p)
-    (lemOr A B setA setB u)
-
-orset (A B : U) (setA : set A) (setB : set B) (u v : or A B) (p q : Path (or A B) u v) :
-  Path (Path (or A B) u v) p q = orset' A B setA setB u v q p
 
 data Unit = tt
 
@@ -933,89 +860,24 @@ gengoal (A : U) (hA : set A) (x y : A) (p : Path A x y) : (z : A) (r : Path A y 
   J A y (\(z : A) (r : Path A y z) -> (q : Path A x z) -> PathP (<i> Path A x (r @ i)) p q)
    (hA x y p)
 
-
-equivSucZ0 : isEquiv Z Z sucZ = goal
+-- Maybe we can make contr opaque?
+equivSucZ : isEquiv Z Z sucZ = \(y : Z) -> (ctr y,contr y)
   where
   ctr (y : Z) : fiber Z Z sucZ y = (predZ y,<i> sucpredZ y @ -i)
-  foo (y : Z) (y' : fiber Z Z sucZ y) : Path ((x : Z) * Path Z y (sucZ x)) (ctr y) y' =
-    let foo : Path Z (predZ y) (predZ (sucZ y'.1)) = <i> predZ (y'.2 @ i)
+  contr (y : Z) (y' : fiber Z Z sucZ y) : Path ((x : Z) * Path Z y (sucZ x)) (ctr y) y' =
+    let 
         p1 : Path Z (predZ y) y'.1 =
-          compPath Z (predZ y) (predZ (sucZ y'.1)) y'.1 foo (predsucZ y'.1)
+          compPath Z (predZ y) (predZ (sucZ y'.1)) y'.1
+                   (<i> predZ (y'.2 @ i)) (predsucZ y'.1)
         prf1 : Path Z (sucZ (predZ y)) (sucZ y'.1) = <i> sucZ (p1 @ i)
         prf2 : Path Z y (sucZ (predZ y)) = <i> sucpredZ y @ -i
-        prf3 : Path Z y (sucZ y'.1) = y'.2
-        -- this almost follows from the fact that Z is a set...
         p2 : PathP (<i> Path Z y (prf1 @ i)) prf2 y'.2 =
-          gengoal Z ZSet y (sucZ (predZ y)) prf2 (sucZ y'.1) prf1 prf3
+          gengoal Z ZSet y (sucZ (predZ y)) prf2 (sucZ y'.1) prf1 y'.2
     in <i> (p1 @ i,p2 @ i)
-  goal (y : Z) : isContr (fiber Z Z sucZ y) = (ctr y,foo y)
+    
+sucPathZ : Path U Z Z = ua Z Z (sucZ,equivSucZ)
 
-sucPathZ0 : Path U Z Z = ua Z Z (sucZ,equivSucZ0)
-
--- end of alternative attempt to prove that sucZ is an equiv
-
-lemIso (A B : U) (f : A -> B) (g : B -> A)
-       (s : (y : B) -> Path B (f (g y)) y)
-       (t : (x : A) -> Path A (g (f x)) x)
-       (y : B) (x0 x1 : A) (p0 : Path B y (f x0)) (p1 : Path B y (f x1)) :
-       Path (fiber A B f y) (x0,p0) (x1,p1) = <i> (p @ i,sq1 @ i)
-  where
-    rem0 : Path A (g y) x0 =
-      <i> hcomp A (g (p0 @ i)) [ (i = 1) -> t x0, (i = 0) -> <k> g y ]
-
-    rem1 : Path A (g y) x1 =
-      <i> hcomp A (g (p1 @ i)) [ (i = 1) -> t x1, (i = 0) -> <k> g y ]
-
-    p : Path A x0 x1 =
-     <i> hcomp A (g y) [ (i = 0) -> rem0
-                            , (i = 1) -> rem1 ]
-
-    fill0 : Square A (g y) (g (f x0)) (g y) x0
-                     (<i> g (p0 @ i)) rem0 (<i> g y) (t x0)  =
-      <i j> hcomp A (g (p0 @ i)) [ (i = 1) -> <k> t x0 @ j /\ k
-                                      , (i = 0) -> <k> g y
-                                      , (j = 0) -> <k> g (p0 @ i) ]
-
-    fill1 : Square A (g y) (g (f x1)) (g y) x1
-                     (<i> g (p1 @ i)) rem1 (<i> g y) (t x1) =
-      <i j> hcomp A (g (p1 @ i)) [ (i = 1) -> <k> t x1 @ j /\ k
-                                      , (i = 0) -> <k> g y
-                                      , (j = 0) -> <k> g (p1 @ i) ]
-
-    fill2 : Square A (g y) (g y) x0 x1
-                     (<k> g y) p rem0 rem1 =
-      <i j> hcomp A (g y) [ (i = 0) -> <k> rem0 @ j /\ k
-                               , (i = 1) -> <k> rem1 @ j /\ k
-                               , (j = 0) -> <k> g y ]
-
-    sq : Square A (g y) (g y) (g (f x0)) (g (f x1))
-                  (<i> g y) (<i> g (f (p @ i)))
-                  (<j> g (p0 @ j)) (<j> g (p1 @ j)) =
-      <i j> hcomp A (fill2 @ i @ j) [ (i = 0) -> <k> fill0 @ j @ -k
-                                         , (i = 1) -> <k> fill1 @ j @ -k
-                                         , (j = 0) -> <k> g y
-                                         , (j = 1) -> <k> t (p @ i) @ -k ]
-
-    sq1 : Square B y y (f x0) (f x1)
-                   (<k>y) (<i> f (p @ i)) p0 p1 =
-      <i j> hcomp B (f (sq @ i @j)) [ (i = 0) -> s (p0 @ j)
-                                         , (i = 1) -> s (p1 @ j)
-                                         , (j = 1) -> s (f (p @ i))
-                                         , (j = 0) -> s y ]
-
-gradLemma (A B : U) (f : A -> B) (g : B -> A)
-       (s : (y : B) -> Path B (f (g y)) y)
-       (t : (x : A) -> Path A (g (f x)) x) : isEquiv A B f =
-  \(y:B) -> ((g y,<i>s y@-i),\ (z:fiber A B f y) ->
-    lemIso A B f g s t y (g y) z.1 (<i>s y@-i) z.2)
-
-isoPath (A B : U) (f : A -> B) (g : B -> A)
-      (s : (y : B) -> Path B (f (g y)) y)
-      (t : (x : A) -> Path A (g (f x)) x) : Path U A B =
-       <i> Glue B [ (i = 0) -> (A,f,gradLemma A B f g s t)
-                  , (i = 1) -> (B,idfun B,idIsEquiv B) ]
-
-sucPathZ : Path U Z Z = isoPath Z Z sucZ predZ sucpredZ predsucZ
+-- sucPathZ : Path U Z Z = isoPath Z Z sucZ predZ sucpredZ predsucZ
 
 helix : S1 -> U = split
   base1 -> Z
@@ -1645,6 +1507,68 @@ univalence (A X : U) : isEquiv (Path U X A) (equiv X A) (transEquiv' A X) =
 
 corrUniv (A B : U) : Path U (Path U A B) (equiv A B) =
   ua (Path U A B) (equiv A B) (transEquiv' B A,univalence B A)
+
+lemIso (A B : U) (f : A -> B) (g : B -> A)
+       (s : (y : B) -> Path B (f (g y)) y)
+       (t : (x : A) -> Path A (g (f x)) x)
+       (y : B) (x0 x1 : A) (p0 : Path B y (f x0)) (p1 : Path B y (f x1)) :
+       Path (fiber A B f y) (x0,p0) (x1,p1) = <i> (p @ i,sq1 @ i)
+  where
+    rem0 : Path A (g y) x0 =
+      <i> hcomp A (g (p0 @ i)) [ (i = 1) -> t x0, (i = 0) -> <k> g y ]
+
+    rem1 : Path A (g y) x1 =
+      <i> hcomp A (g (p1 @ i)) [ (i = 1) -> t x1, (i = 0) -> <k> g y ]
+
+    p : Path A x0 x1 =
+     <i> hcomp A (g y) [ (i = 0) -> rem0
+                            , (i = 1) -> rem1 ]
+
+    fill0 : Square A (g y) (g (f x0)) (g y) x0
+                     (<i> g (p0 @ i)) rem0 (<i> g y) (t x0)  =
+      <i j> hcomp A (g (p0 @ i)) [ (i = 1) -> <k> t x0 @ j /\ k
+                                      , (i = 0) -> <k> g y
+                                      , (j = 0) -> <k> g (p0 @ i) ]
+
+    fill1 : Square A (g y) (g (f x1)) (g y) x1
+                     (<i> g (p1 @ i)) rem1 (<i> g y) (t x1) =
+      <i j> hcomp A (g (p1 @ i)) [ (i = 1) -> <k> t x1 @ j /\ k
+                                      , (i = 0) -> <k> g y
+                                      , (j = 0) -> <k> g (p1 @ i) ]
+
+    fill2 : Square A (g y) (g y) x0 x1
+                     (<k> g y) p rem0 rem1 =
+      <i j> hcomp A (g y) [ (i = 0) -> <k> rem0 @ j /\ k
+                               , (i = 1) -> <k> rem1 @ j /\ k
+                               , (j = 0) -> <k> g y ]
+
+    sq : Square A (g y) (g y) (g (f x0)) (g (f x1))
+                  (<i> g y) (<i> g (f (p @ i)))
+                  (<j> g (p0 @ j)) (<j> g (p1 @ j)) =
+      <i j> hcomp A (fill2 @ i @ j) [ (i = 0) -> <k> fill0 @ j @ -k
+                                         , (i = 1) -> <k> fill1 @ j @ -k
+                                         , (j = 0) -> <k> g y
+                                         , (j = 1) -> <k> t (p @ i) @ -k ]
+
+    sq1 : Square B y y (f x0) (f x1)
+                   (<k>y) (<i> f (p @ i)) p0 p1 =
+      <i j> hcomp B (f (sq @ i @j)) [ (i = 0) -> s (p0 @ j)
+                                         , (i = 1) -> s (p1 @ j)
+                                         , (j = 1) -> s (f (p @ i))
+                                         , (j = 0) -> s y ]
+
+gradLemma (A B : U) (f : A -> B) (g : B -> A)
+       (s : (y : B) -> Path B (f (g y)) y)
+       (t : (x : A) -> Path A (g (f x)) x) : isEquiv A B f =
+  \(y:B) -> ((g y,<i>s y@-i),\ (z:fiber A B f y) ->
+    lemIso A B f g s t y (g y) z.1 (<i>s y@-i) z.2)
+
+isoPath (A B : U) (f : A -> B) (g : B -> A)
+      (s : (y : B) -> Path B (f (g y)) y)
+      (t : (x : A) -> Path A (g (f x)) x) : Path U A B =
+       <i> Glue B [ (i = 0) -> (A,f,gradLemma A B f g s t)
+                  , (i = 1) -> (B,idfun B,idIsEquiv B) ]
+
 
 pi (A:U) (P:A->U) : U = (x:A) -> P x
 

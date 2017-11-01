@@ -53,24 +53,6 @@ data S3 = base3
 
 loopS1 : U = Path S1 base1 base1
 loopP : loopS1 = <i> loop1{S1} @ i
-invLoop : loopS1 = <i> loopP @ -i
-compS1 : loopS1 -> loopS1 -> loopS1 = compPath S1 base1 base1 base1
-
-triv : loopS1 = <i> base1
-oneTurn (l : loopS1) : loopS1 = compS1 l loopP
-backTurn (l : loopS1) : loopS1 = compS1 l invLoop
-
-itLoop : nat -> loopS1 = split
- zero -> triv
- suc n -> oneTurn (itLoop n)
-
-itLoopNeg : nat -> loopS1 = split
- zero -> invLoop
- suc n -> backTurn (itLoopNeg n)
-
-loopIt : Z -> loopS1 = split
- pos n -> itLoop n
- neg n -> itLoopNeg n
 
 -- Pointed types
 ptType : U = (A : U) * A
@@ -689,132 +671,132 @@ setZ' (u : Z) : (v : Z) (p q : Path Z u v) -> Path (Path Z u v) q p =
   J Z u (\(v : Z) (p : Path Z u v) -> (q : Path Z u v) -> Path (Path Z u v) q p)
     (lemZ u)
 
-setZ (u v : Z) (p q : Path Z u v) : Path (Path Z u v) p q = setZ' u v q p
+ZSet (u v : Z) (p q : Path Z u v) : Path (Path Z u v) p q = setZ' u v q p
 
 
 -- Z is a set using Hedberg
-data or (A B : U) = inl (a : A)
-                  | inr (b : B)
+-- data or (A B : U) = inl (a : A)
+--                   | inr (b : B)
 
-data Unit = tt
+-- data Unit = tt
 
-stable (A : U) : U = not (not A) -> A
-const (A : U) (f : A -> A) : U = (x y : A) -> Path A (f x) (f y)
+-- stable (A : U) : U = not (not A) -> A
+-- const (A : U) (f : A -> A) : U = (x y : A) -> Path A (f x) (f y)
 
-exConst (A : U) : U = (f:A -> A) * const A f
-propN0 : prop N0 = \ (x y:N0) -> efq (Path N0 x y) x
+-- exConst (A : U) : U = (f:A -> A) * const A f
+-- propN0 : prop N0 = \ (x y:N0) -> efq (Path N0 x y) x
 
-propNot (A : U) : prop (not A) = \ (f g:not A) -> <i>\(x:A) -> (propN0 (f x) (g x))@i
+-- propNot (A : U) : prop (not A) = \ (f g:not A) -> <i>\(x:A) -> (propN0 (f x) (g x))@i
 
-dNot (A : U) (a : A) : not (not A) = \ (h : not A) -> h a
+-- dNot (A : U) (a : A) : not (not A) = \ (h : not A) -> h a
 
-stableConst (A : U) (sA : stable A) : exConst A =
- (\ (x:A) -> sA (dNot A x),\ (x y:A) -> <i>sA (propNot (not A) (dNot A x) (dNot A y) @ i))
+-- stableConst (A : U) (sA : stable A) : exConst A =
+--  (\ (x:A) -> sA (dNot A x),\ (x y:A) -> <i>sA (propNot (not A) (dNot A x) (dNot A y) @ i))
 
-dec (A : U) : U = or A (not A)
+-- dec (A : U) : U = or A (not A)
 
-decEqCong (A B : U) (f : A -> B) (g : B -> A) : dec A -> dec B = split
-  inl a -> inl (f a)
-  inr h -> inr (\ (b:B) -> h (g b))
+-- decEqCong (A B : U) (f : A -> B) (g : B -> A) : dec A -> dec B = split
+--   inl a -> inl (f a)
+--   inr h -> inr (\ (b:B) -> h (g b))
 
-decStable (A : U) : dec A -> stable A = split
- inl a -> \ (h :not (not A)) -> a
- inr b -> \ (h :not (not A)) -> efq A (h b)
+-- decStable (A : U) : dec A -> stable A = split
+--  inl a -> \ (h :not (not A)) -> a
+--  inr b -> \ (h :not (not A)) -> efq A (h b)
 
-discrete (A : U) : U = (a b : A) -> dec (Path A a b)
+-- discrete (A : U) : U = (a b : A) -> dec (Path A a b)
 
-hedbergLemma (A: U) (a b:A) (f : (x : A) -> Path A a x -> Path A a x) (p : Path A a b) :
-            Square A a a a b (<_> a) p (f a (<_> a)) (f b p) =
- comp (<i> Square A a a a (p @ i) (<_> a) (<j> p @ i /\ j)
-                 (f a (<_> a)) (f (p @ i) (<j> p @ i /\ j)))
-      (<i> f a (<_> a)) []
+-- hedbergLemma (A: U) (a b:A) (f : (x : A) -> Path A a x -> Path A a x) (p : Path A a b) :
+--             Square A a a a b (<_> a) p (f a (<_> a)) (f b p) =
+--  comp (<i> Square A a a a (p @ i) (<_> a) (<j> p @ i /\ j)
+--                  (f a (<_> a)) (f (p @ i) (<j> p @ i /\ j)))
+--       (<i> f a (<_> a)) []
 
-hedbergStable (A : U) (a b : A) (h : (x : A) -> stable (Path A a x))
-        (p q : Path A a b) : Path (Path A a b) p q =
- <j i> comp (<_> A) a [ (j = 0) -> rem2 @ i
-                      , (j = 1) -> rem3 @ i
-                      , (i = 0) -> r
-                      , (i = 1) -> rem4 @ j]
- where
-   rem1 (x : A) : exConst (Path A a x) = stableConst (Path A a x) (h x)
-   f (x : A) : Path A a x -> Path A a x  = (rem1 x).1
-   fIsConst (x : A) : const (Path A a x) (f x) = (rem1 x).2
-   rem4 : Square A a a b b (<_> a) (<_> b) (f b p) (f b q)  = fIsConst b p q
-   r : Path A a a = f a (<_> a)
-   rem2 : Square A a a a b (<_> a) p r (f b p) = hedbergLemma A a b f p
-   rem3 : Square A a a a b (<_> a) q r (f b q) = hedbergLemma A a b f q
+-- hedbergStable (A : U) (a b : A) (h : (x : A) -> stable (Path A a x))
+--         (p q : Path A a b) : Path (Path A a b) p q =
+--  <j i> comp (<_> A) a [ (j = 0) -> rem2 @ i
+--                       , (j = 1) -> rem3 @ i
+--                       , (i = 0) -> r
+--                       , (i = 1) -> rem4 @ j]
+--  where
+--    rem1 (x : A) : exConst (Path A a x) = stableConst (Path A a x) (h x)
+--    f (x : A) : Path A a x -> Path A a x  = (rem1 x).1
+--    fIsConst (x : A) : const (Path A a x) (f x) = (rem1 x).2
+--    rem4 : Square A a a b b (<_> a) (<_> b) (f b p) (f b q)  = fIsConst b p q
+--    r : Path A a a = f a (<_> a)
+--    rem2 : Square A a a a b (<_> a) p r (f b p) = hedbergLemma A a b f p
+--    rem3 : Square A a a a b (<_> a) q r (f b q) = hedbergLemma A a b f q
 
-hedbergS (A : U) (h : (a x : A) -> stable (Path A a x)) : set A =
- \(a b : A) -> hedbergStable A a b (h a)
+-- hedbergS (A : U) (h : (a x : A) -> stable (Path A a x)) : set A =
+--  \(a b : A) -> hedbergStable A a b (h a)
 
-hedberg (A : U) (h : discrete A) : set A =
- \(a b : A) -> hedbergStable A a b (\(b : A) -> decStable (Path A a b) (h a b))
+-- hedberg (A : U) (h : discrete A) : set A =
+--  \(a b : A) -> hedbergStable A a b (\(b : A) -> decStable (Path A a b) (h a b))
 
-caseNat (A : U) (a0 aS : A) : nat -> A = split
- zero -> a0
- suc n -> aS
+-- caseNat (A : U) (a0 aS : A) : nat -> A = split
+--  zero -> a0
+--  suc n -> aS
 
-caseDNat (P:nat -> U) (a0 :P zero) (aS : (n:nat) -> P (suc n))
-            : (n:nat) -> P n = split
- zero -> a0
- suc n -> aS n
+-- caseDNat (P:nat -> U) (a0 :P zero) (aS : (n:nat) -> P (suc n))
+--             : (n:nat) -> P n = split
+--  zero -> a0
+--  suc n -> aS n
 
-znots (n : nat) : not (Path nat zero (suc n)) =
-  \(h : Path nat zero (suc n)) -> subst nat (caseNat U nat N0) zero (suc n) h zero
+-- znots (n : nat) : not (Path nat zero (suc n)) =
+--   \(h : Path nat zero (suc n)) -> subst nat (caseNat U nat N0) zero (suc n) h zero
 
-snotz (n : nat) : not (Path nat (suc n) zero) =
-  \(h : Path nat (suc n) zero) -> znots n (<i> h @ -i)
+-- snotz (n : nat) : not (Path nat (suc n) zero) =
+--   \(h : Path nat (suc n) zero) -> znots n (<i> h @ -i)
 
-sucInj (n m : nat) (p : Path nat (suc n) (suc m)) : Path nat n m =
- <i> pred (p @ i)
+-- sucInj (n m : nat) (p : Path nat (suc n) (suc m)) : Path nat n m =
+--  <i> pred (p @ i)
 
-discreteNat : discrete nat = split
- zero -> caseDNat (\(m : nat) -> dec (Path nat zero m)) (inl (<_> zero)) (\(m : nat) -> inr (znots m))
- suc n -> caseDNat (\(m : nat) -> dec (Path nat (suc n) m)) (inr (snotz n))
-   (\(m : nat) -> decEqCong (Path nat n m) (Path nat (suc n) (suc m)) (\(p : Path nat n m) -> <i> suc (p @ i))
-                  (sucInj n m) (discreteNat n m))
+-- discreteNat : discrete nat = split
+--  zero -> caseDNat (\(m : nat) -> dec (Path nat zero m)) (inl (<_> zero)) (\(m : nat) -> inr (znots m))
+--  suc n -> caseDNat (\(m : nat) -> dec (Path nat (suc n) m)) (inr (snotz n))
+--    (\(m : nat) -> decEqCong (Path nat n m) (Path nat (suc n) (suc m)) (\(p : Path nat n m) -> <i> suc (p @ i))
+--                   (sucInj n m) (discreteNat n m))
 
-posNotneg (a b : nat) (h : Path Z (pos a) (neg b)) : N0 = subst Z T (pos a) (neg b) h tt
-  where
-  T : Z -> U = split
-       pos _ -> Unit
-       neg _ -> N0
+-- posNotneg (a b : nat) (h : Path Z (pos a) (neg b)) : N0 = subst Z T (pos a) (neg b) h tt
+--   where
+--   T : Z -> U = split
+--        pos _ -> Unit
+--        neg _ -> N0
 
-negNotpos (a b : nat) (h : Path Z (neg b) (pos a)) : N0 = subst Z T (neg b) (pos a) h tt
-  where
-  T : Z -> U = split
-       pos _ -> N0
-       neg _ -> Unit
+-- negNotpos (a b : nat) (h : Path Z (neg b) (pos a)) : N0 = subst Z T (neg b) (pos a) h tt
+--   where
+--   T : Z -> U = split
+--        pos _ -> N0
+--        neg _ -> Unit
 
-injPos (a b : nat) (h : Path Z (pos a) (pos b)) : Path nat a b =
- subst Z T (pos a) (pos b) h (<_> a)
- where
-   T : Z -> U = split
-        pos c -> Path nat a c
-        neg _ -> N0
+-- injPos (a b : nat) (h : Path Z (pos a) (pos b)) : Path nat a b =
+--  subst Z T (pos a) (pos b) h (<_> a)
+--  where
+--    T : Z -> U = split
+--         pos c -> Path nat a c
+--         neg _ -> N0
 
-injNeg (a b : nat) (h : Path Z (neg a) (neg b)) : Path nat a b =
-  subst Z T (neg a) (neg b) h (<_> a)
-  where
-    T : Z -> U = split
-         pos _ -> N0
-         neg c -> Path nat a c
+-- injNeg (a b : nat) (h : Path Z (neg a) (neg b)) : Path nat a b =
+--   subst Z T (neg a) (neg b) h (<_> a)
+--   where
+--     T : Z -> U = split
+--          pos _ -> N0
+--          neg c -> Path nat a c
 
-discreteZ : discrete Z = split
-  pos a -> split@((z1 : Z) -> dec (Path Z (pos a) z1)) with
-             pos a1 -> let rem : dec (Path nat a a1) -> dec (Path Z (pos a) (pos a1)) = split
-                             inl p -> inl (<i> pos (p @ i))
-                             inr h -> inr (\(p : Path Z (pos a) (pos a1)) -> h (injPos a a1 p))
-                       in rem (discreteNat a a1)
-             neg b -> inr (posNotneg a b)
-  neg b -> split@((z1 : Z) -> dec (Path Z (neg b) z1)) with
-             pos a -> inr (negNotpos a b)
-             neg b1 -> let rem : dec (Path nat b b1) -> dec (Path Z (neg b) (neg b1)) = split
-                             inl p -> inl (<i> neg (p @ i))
-                             inr h -> inr (\(p : Path Z (neg b) (neg b1)) -> h (injNeg b b1 p))
-                       in rem (discreteNat b b1)
+-- discreteZ : discrete Z = split
+--   pos a -> split@((z1 : Z) -> dec (Path Z (pos a) z1)) with
+--              pos a1 -> let rem : dec (Path nat a a1) -> dec (Path Z (pos a) (pos a1)) = split
+--                              inl p -> inl (<i> pos (p @ i))
+--                              inr h -> inr (\(p : Path Z (pos a) (pos a1)) -> h (injPos a a1 p))
+--                        in rem (discreteNat a a1)
+--              neg b -> inr (posNotneg a b)
+--   neg b -> split@((z1 : Z) -> dec (Path Z (neg b) z1)) with
+--              pos a -> inr (negNotpos a b)
+--              neg b1 -> let rem : dec (Path nat b b1) -> dec (Path Z (neg b) (neg b1)) = split
+--                              inl p -> inl (<i> neg (p @ i))
+--                              inr h -> inr (\(p : Path Z (neg b) (neg b1)) -> h (injNeg b b1 p))
+--                        in rem (discreteNat b b1)
 
-ZSet : set Z = hedberg Z discreteZ
+-- ZSet : set Z = hedberg Z discreteZ
 
 -- opaque ZSet
 
@@ -855,18 +837,17 @@ sucpredZ : (x : Z) -> Path Z (sucZ (predZ x)) x = split
 
 -- alternative proof that sucZ is an equiv, not using the "grad lemma"
 
+-- Maybe we can generalize the notion of being a set to allow
+-- arbitrary paths on the sides and not just refl?
 gengoal (A : U) (hA : set A) (x y : A) (p : Path A x y) : (z : A) (r : Path A y z) (q : Path A x z) ->
   PathP (<i> Path A x (r @ i)) p q =
   J A y (\(z : A) (r : Path A y z) -> (q : Path A x z) -> PathP (<i> Path A x (r @ i)) p q)
    (hA x y p)
 
--- Maybe we can make contr opaque?
-equivSucZ : isEquiv Z Z sucZ = \(y : Z) -> (ctr y,contr y)
-  where
-  ctr (y : Z) : fiber Z Z sucZ y = (predZ y,<i> sucpredZ y @ -i)
-  contr (y : Z) (y' : fiber Z Z sucZ y) : Path ((x : Z) * Path Z y (sucZ x)) (ctr y) y' =
-    let 
-        p1 : Path Z (predZ y) y'.1 =
+ctr (y : Z) : fiber Z Z sucZ y = (predZ y,<i> sucpredZ y @ -i)
+
+contr (y : Z) (y' : fiber Z Z sucZ y) : Path ((x : Z) * Path Z y (sucZ x)) (ctr y) y' =
+    let p1 : Path Z (predZ y) y'.1 =
           compPath Z (predZ y) (predZ (sucZ y'.1)) y'.1
                    (<i> predZ (y'.2 @ i)) (predsucZ y'.1)
         prf1 : Path Z (sucZ (predZ y)) (sucZ y'.1) = <i> sucZ (p1 @ i)
@@ -874,18 +855,49 @@ equivSucZ : isEquiv Z Z sucZ = \(y : Z) -> (ctr y,contr y)
         p2 : PathP (<i> Path Z y (prf1 @ i)) prf2 y'.2 =
           gengoal Z ZSet y (sucZ (predZ y)) prf2 (sucZ y'.1) prf1 y'.2
     in <i> (p1 @ i,p2 @ i)
+
+-- This doesn't sem to affect "fibContrHopfThree' (<_ _ _> base2)"...
+-- opaque contr
+
+equivSucZ : isEquiv Z Z sucZ = \(y : Z) -> (ctr y,contr y)
     
 sucPathZ : Path U Z Z = ua Z Z (sucZ,equivSucZ)
 
+-- Old version using "grad lemma":
 -- sucPathZ : Path U Z Z = isoPath Z Z sucZ predZ sucpredZ predsucZ
 
+-- We now prove that "decode x (encode x p) = p" so that we get that
+-- loopS1 is a retract of Z
+
+-- Covering space of the circle
 helix : S1 -> U = split
   base1 -> Z
   loop1 @ i -> sucPathZ @ i
 
 encode (x : S1) (p : Path S1 base1 x) : helix x = subst S1 helix base1 x p zeroZ
 
-lem1ItPos : (n:nat) -> Path loopS1 (loopIt (sucZ (pos n))) (oneTurn ((loopIt (pos n)))) = split
+invLoop : loopS1 = <i> loopP @ -i
+
+compS1 : loopS1 -> loopS1 -> loopS1 = compPath S1 base1 base1 base1
+
+-- Maybe put l in the end?
+oneTurn (l : loopS1) : loopS1 = compS1 l loopP
+backTurn (l : loopS1) : loopS1 = compS1 l invLoop
+
+itLoop : nat -> loopS1 = split
+ zero -> <_> base1
+ suc n -> oneTurn (itLoop n)
+
+itLoopNeg : nat -> loopS1 = split
+ zero -> invLoop
+ suc n -> backTurn (itLoopNeg n)
+
+-- Maybe don't compose with <_> base1 in the positive case?
+loopIt : Z -> loopS1 = split
+ pos n -> itLoop n
+ neg n -> itLoopNeg n
+
+lem1ItPos : (n : nat) -> Path loopS1 (loopIt (sucZ (pos n))) (oneTurn (loopIt (pos n))) = split
  zero -> <_> oneTurn (<_> base1)
  suc p -> <i> oneTurn (lem1ItPos p @ i)
 
@@ -908,6 +920,8 @@ lem1ItNeg : (n:nat) -> Path loopS1 (loopIt (sucZ (neg n))) (oneTurn (loopIt (neg
  zero -> compInvS1
  suc p -> compInv S1 base1 base1 (loopIt (neg p)) base1 invLoop
 
+-- shift : (n : Int) -> (loop ∘ (loop^ (pred n))) ≃ loop^ n
+-- is not the same as:  
 lem1It : (n:Z) -> Path loopS1 (loopIt (sucZ n)) (oneTurn (loopIt n)) = split
   pos n -> lem1ItPos n
   neg n -> lem1ItNeg n
@@ -972,12 +986,15 @@ decode : (x:S1) -> helix x -> Path S1 base1 x = split
                           (loopIt (testHelix @ i x))) (rem3 x) []
    rem : PathP p loopIt loopIt = corFib1 S1 helix G base1 loopIt loopIt loopP rem1
 
+-- This is just J?
 encodeDecode (x : S1) (p : Path S1 base1 x) : Path (Path S1 base1 x) (decode x (encode x p)) p =
   transGen (<i> Path (Path S1 base1 (p @ i))
             (decode (p @ i) (encode (p @ i) (<j> p @ i /\ j))) (<j> p @ i /\ j)) 0
-            (<_> triv)
+            (<_ _> base1)
 
-setLoop : set loopS1 = retractSet loopS1 Z (encode base1) (decode base1) (encodeDecode base1) ZSet
+-- Can we get a direct proof that Path S1 base1 x is a set instead?
+setLoop : set loopS1 =
+  retractSet loopS1 Z (encode base1) (decode base1) (encodeDecode base1) ZSet
 
 -- opaque setLoop
 

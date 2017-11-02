@@ -1,10 +1,16 @@
 module brunerie2 where
 
-
 Path (A : U) (a0 a1 : A) : U = PathP (<i> A) a0 a1
 
 compPath (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
   <i> hcomp A (p @ i) [ (i =0) -> <j> a, (i = 1) -> q ]
+
+compInvPath (A : U) (a b : A) (p : Path A a b) :
+  Path (Path A b b) (compPath A b a b (<i> p @ -i) p)  (<_> b) =
+   <j i> hcomp A (p @ -i \/ j)
+                 [ (i = 0) -> <_> b
+                 , (j = 1) -> <_> b
+                 , (i = 1) -> <k> p @ j \/ k ]
 
 data bool = false | true
 data nat = zero | suc (n : nat)
@@ -32,7 +38,6 @@ zeroZ : Z = pos zero
 moneZ : Z = neg zero
 mtwoZ : Z = neg (suc zero)
 
-
 data S1 = base1
         | loop1 <i> [ (i=0) -> base1
                     , (i=1) -> base1 ]
@@ -52,7 +57,7 @@ data S3 = base3
                         , (k=1) -> base3]
 
 loopS1 : U = Path S1 base1 base1
-loopP : loopS1 = <i> loop1{S1} @ i
+loop : loopS1 = <i> loop1{S1} @ i
 
 -- Pointed types
 ptType : U = (A : U) * A
@@ -158,7 +163,7 @@ sqsq' (A : U) (a b : A) (p : Path A a b) :
                 ]
 
 cubealpha' : PathP (<k> PathP (<i> Path (join S1 S1)
-                                       (pushP S1 S1 (loopP @ i) base1 @ k)
+                                       (pushP S1 S1 (loop @ i) base1 @ k)
                                        (pushP S1 S1 base1 base1 @ -k))
                              (<l> sq' (join S1 S1) (inl base1) (inr base1) (inl base1)
                                                   (pushP S1 S1 base1 base1)
@@ -166,17 +171,17 @@ cubealpha' : PathP (<k> PathP (<i> Path (join S1 S1)
                              (<l> sq' (join S1 S1) (inl base1) (inr base1) (inl base1)
                                                   (pushP S1 S1 base1 base1)
                                                   (<w> pushP S1 S1 base1 base1 @ -w) @ l @ k))
-                   (<i l> pushP S1 S1 (loopP @ i) base1 @ l)
+                   (<i l> pushP S1 S1 (loop @ i) base1 @ l)
                    (<i l> pushP S1 S1 base1 base1 @ -l) =
   <k i l> sq' (join S1 S1)
-              (inl (loopP @ i)) (inr base1) (inl base1)
-              (pushP S1 S1 (loopP @ i) base1)
+              (inl (loop @ i)) (inr base1) (inl base1)
+              (pushP S1 S1 (loop @ i) base1)
               (<w> pushP S1 S1 base1 base1 @ -w) @ l @ k
 
 -- sqsq' (A : U) (a b : A) (p : Path A a b) :
 
 cubealpha : PathP (<k> PathP (<i> Path (join S1 S1)
-                                       (pushP S1 S1 (loopP @ i) base1 @ k)
+                                       (pushP S1 S1 (loop @ i) base1 @ k)
                                        (pushP S1 S1 base1 base1 @ -k))
                              (<l> sq (join S1 S1) (inl base1) (inr base1) (inr base1)
                                                   (pushP S1 S1 base1 base1)
@@ -184,20 +189,20 @@ cubealpha : PathP (<k> PathP (<i> Path (join S1 S1)
                              (<l> sq (join S1 S1) (inl base1) (inr base1) (inr base1)
                                                   (pushP S1 S1 base1 base1)
                                                   (<w> pushP S1 S1 base1 base1 @ -w) @ l @ k))
-                   (<i l> pushP S1 S1 (loopP @ i) base1 @ l)
+                   (<i l> pushP S1 S1 (loop @ i) base1 @ l)
                    (<i l> pushP S1 S1 base1 base1 @ -l) =
   <k i l> hcomp (join S1 S1)
                 (cubealpha' @ k @ i @ l)
-                [ (k=0) -> <w> pushP S1 S1 (loopP @ i) base1 @ l
+                [ (k=0) -> <w> pushP S1 S1 (loop @ i) base1 @ l
                 , (k=1) -> <w> pushP S1 S1 base1 base1 @ -l
                 , (i=0) -> <w> sqsq' (join S1 S1) (inl base1) (inr base1) (pushP S1 S1 base1 base1) @ w @ k @ l
                 , (i=1) -> <w> sqsq' (join S1 S1) (inl base1) (inr base1) (pushP S1 S1 base1 base1) @ w @ k @ l
-                , (l=0) -> <w> pushP S1 S1 (loopP @ i) base1 @ k
+                , (l=0) -> <w> pushP S1 S1 (loop @ i) base1 @ k
                 , (l=1) -> <w> pushP S1 S1 base1 base1 @ -k
                 ]
 
 cubebeta : PathP (<k> PathP (<j> Path (join S1 S1)
-                                      (pushP S1 S1 base1 (loopP @ j) @ k)
+                                      (pushP S1 S1 base1 (loop @ j) @ k)
                                       (pushP S1 S1 base1 base1 @ -k))
                             (<l> sq (join S1 S1) (inl base1) (inr base1) (inr base1)
                                                  (pushP S1 S1 base1 base1)
@@ -206,10 +211,10 @@ cubebeta : PathP (<k> PathP (<j> Path (join S1 S1)
                                                  (pushP S1 S1 base1 base1)
                                                  (<w> pushP S1 S1 base1 base1 @ -w) @ l @ k))
                    (<j l> pushP S1 S1 base1 base1 @ l)
-                   (<j l> pushP S1 S1 base1 (loopP @ j) @ -l) =
+                   (<j l> pushP S1 S1 base1 (loop @ j) @ -l) =
   <k j l> sq (join S1 S1)
-             (inl base1) (inr (loopP @ j)) (inr base1)
-             (pushP S1 S1 base1 (loopP @ j))
+             (inl base1) (inr (loop @ j)) (inr base1)
+             (pushP S1 S1 base1 (loop @ j))
              (<w> pushP S1 S1 base1 base1 @ -w) @ k @ l
 
 
@@ -221,13 +226,13 @@ cubestep1 : PathP (<k> Path (Path (join S1 S1)
                   (<_ _> inr base1)
                   (<_ _> inl base1) =
   <k j i> hcomp (join S1 S1)
-                (pushP S1 S1 (loopP @ i) (loopP @ j) @ k)
+                (pushP S1 S1 (loop @ i) (loop @ j) @ k)
                 [ (i=0) -> cubebeta  @ k @ j
                 , (i=1) -> cubebeta  @ k @ j
                 , (j=0) -> cubealpha @ k @ i
                 , (j=1) -> cubealpha @ k @ i
-                , (k=0) -> <w> pushP S1 S1 (loopP @ i) base1 @ w
-                , (k=1) -> <w> pushP S1 S1 base1 (loopP @ j) @ -w
+                , (k=0) -> <w> pushP S1 S1 (loop @ i) base1 @ w
+                , (k=1) -> <w> pushP S1 S1 base1 (loop @ j) @ -w
                 ]
 
 goalcube : Path (Path (Path (join S1 S1)
@@ -262,8 +267,8 @@ e : S3 -> join S1 S1 = split
 --         (<_> pushP S1 S1 base1 base1)
 --         (<_> pushP S1 S1 base1 base1) =
 --         <i j k> hcomp (join S1 S1)
---                       (pushP S1 S1 (loopP @ i) (loopP @ j) @ k)
---                       [ (i=0) -> <l> pushP S1 S1 base (loopP @ j) @ k /\ -l
+--                       (pushP S1 S1 (loop @ i) (loop @ j) @ k)
+--                       [ (i=0) -> <l> pushP S1 S1 base (loop @ j) @ k /\ -l
 --                       , (i=1) ->
 --                       , (j=0) ->
 --                       , (j=1) ->
@@ -374,9 +379,9 @@ groupoidIsProp (A : U) : prop (groupoid A) =
  \(f g : groupoid A) -> <i> \(a b :A) ->
    setIsProp (Path A a b) (f a b) (g a b) @ i
 
-propPi (A : U) (B : A -> U) (h : (x : A) -> prop (B x))
-       (f0 f1 : (x : A) -> B x) : Path ((x : A) -> B x) f0 f1
-  = <i> \ (x:A) -> (h x (f0 x) (f1 x)) @ i
+-- propPi (A : U) (B : A -> U) (h : (x : A) -> prop (B x))
+--        (f0 f1 : (x : A) -> B x) : Path ((x : A) -> B x) f0 f1
+--   = <i> \ (x:A) -> (h x (f0 x) (f1 x)) @ i
 
 propIsEquiv (A B : U) (f : A -> B) : prop (isEquiv A B f) =
   \(u0 u1 : isEquiv A B f) -> <i> \(y : B) -> propIsContr (fiber A B f y) (u0 y) (u1 y) @ i
@@ -399,16 +404,16 @@ rot : S1 -> S1 -> S1 = split
 
 rot_unit_r : (a : S1) -> Path S1 (rot a base1) a = split
    base1 -> <_> base1
-   loop1 @ i -> <_> loopP @ i
+   loop1 @ i -> <_> loop @ i
 
 lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a0 a1 :A)
          (p : Path A a0 a1) (b0 : P a0) (b1 : P a1) : PathP (<i> P (p @ i)) b0 b1 =
   <i> pP (p @ i) (comp (<j> P (p @ i/\ j)) b0 [ (i=0) -> <_> b0])
                  (comp (<j> P (p @ i\/ -j)) b1 [ (i=1) -> <_> b1]) @ i
 
-rotIsEquiv_loop : PathP (<i> isEquiv S1 S1 (rot (loopP @ i))) (idIsEquiv S1) (idIsEquiv S1) =
+rotIsEquiv_loop : PathP (<i> isEquiv S1 S1 (rot (loop @ i))) (idIsEquiv S1) (idIsEquiv S1) =
   lemPropF S1 (\(a : S1) -> isEquiv S1 S1 (rot a))
-           (\(a : S1) -> propIsEquiv S1 S1 (rot a)) base1 base1 loopP
+           (\(a : S1) -> propIsEquiv S1 S1 (rot a)) base1 base1 loop
            (idIsEquiv S1) (idIsEquiv S1)
 
 rotIsEquiv : (a : S1) -> isEquiv S1 S1 (rot a) = split
@@ -424,7 +429,7 @@ goal (A : U) : Path (Path U A A) (ua A A (idEquiv A)) (<_> A) =
 
 Hopf : S2 -> U = split
   base2 -> S1
-  loop2 @ i j -> hcomp U (rotpath (loopP @ i) @ j)
+  loop2 @ i j -> hcomp U (rotpath (loop @ i) @ j)
                        [ (i=0) -> <k> goal S1 @ k @ j
                        , (i=1) -> <k> goal S1 @ k @ j
                        , (j=0) -> <_> S1
@@ -540,7 +545,6 @@ truncFibOmega' (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B))
 
 -- end of alternative attempt
 
-
 -- transport doens't give something simpler:
 -- truncFibOmega0 (B : ptType) (P : B.1 -> U) (f : P (pt B))
 --   (tr : (x y : P (pt B)) -> Path (P (pt B)) x y) (p : (Omega B).1) : fibOmega B P f p =
@@ -558,51 +562,6 @@ truncFibOmega' (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B))
 -- set this is also set. Previously the proof transported the proof
 -- that Z is a set to loopS1 along the equivalence loopS1 ~= Z,
 -- hopefully this proof will compute faster.
-
-retract (A B : U) (f : A -> B) (g : B -> A) : U =
-  (a : A) -> Path A (g (f a)) a
-
-compUp (A : U) (a a' b b' : A) (p : Path A a a') (q : Path A b b')
-  (r : Path A a b) : Path A a' b' =
-    <i> hcomp A (r @ i) [(i = 0) -> p, (i = 1) -> q]
-
-lemRetract (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g)
-  (x y : A) : Path A (g (f x)) (g (f y)) -> Path A x y =
-    compUp A (g (f x)) x (g (f y)) y (rfg x) (rfg y)
-
-retractProp (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g)
-  (pB : prop B) (x y : A) : Path A x y =
-    lemRetract A B f g rfg x y (<i> g (pB (f x) (f y) @ i))
-
-retractInv (A B : U)  (f : A -> B) (g : B -> A) (rfg : retract A B f g)
-  (x y : A) (q : Path B (f x) (f y)) : Path A x y =
-    <i> hcomp A (g (q @ i)) [(i = 0) -> rfg x, (i = 1) -> rfg y]
-
-lemRSquare (A B : U) (f : A -> B) (g : B -> A)
-           (rfg : (a : A) -> Path A (g (f a)) a)
-           (x y : A) (p : Path A x y) :
-  Square A (g (f x)) (g (f y)) x y
-           (<i> g (f (p @ i)))
-           (<i> hcomp A (g (f (p @ i))) [(i = 0) -> rfg x, (i = 1) -> rfg y])
-           (rfg x)
-           (rfg y) =
-           <i j> hcomp A (g (f (p @ i))) [ (i = 0) -> <k> rfg x @ j /\ k
-                                         , (i = 1) -> <k> rfg y @ j /\ k
-                                         , (j = 0) -> <k> g (f (p @ i)) ]
-
-retractPath (A B : U)(f : A -> B) (g : B -> A) (rfg : retract A B f g) (x y :A) (p:Path A x y) :
-  Path (Path A x y) (retractInv A B f g rfg x y (<i> f (p@ i))) p =
-    <i j> hcomp A (g (f (p @ j)))
-                  [ (j=0) -> rfg x
-                  , (j=1) -> rfg y
-                  , (i=0) -> lemRSquare A B f g rfg x y p @ j
-                  , (i=1) -> rfg (p @ j) ]
-
-
-retractSet (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g)
-           (sB : set B) (x y : A) : prop (Path A x y) =
-  retractProp (Path A x y) (Path B (f x) (f y)) (\(p : Path A x y) -> <i> f (p @ i))
-              (retractInv A B f g rfg x y) (retractPath A B f g rfg x y) (sB (f x) (f y))
 
 -- This not needed!
 -- loopS1equalsZ : Path U loopS1 Z =
@@ -869,161 +828,303 @@ sucPathZ : Path U Z Z = ua Z Z (sucZ,equivSucZ)
 -- We now prove that "decode x (encode x p) = p" so that we get that
 -- loopS1 is a retract of Z
 
+-- Below is a direct definition of decode:
+
 -- Covering space of the circle
 helix : S1 -> U = split
   base1 -> Z
   loop1 @ i -> sucPathZ @ i
 
-encode (x : S1) (p : Path S1 base1 x) : helix x = subst S1 helix base1 x p zeroZ
-
-invLoop : loopS1 = <i> loopP @ -i
-
 compS1 : loopS1 -> loopS1 -> loopS1 = compPath S1 base1 base1 base1
+invLoop : loopS1 = <i> loop @ -i
 
--- Maybe put l in the end?
-oneTurn (l : loopS1) : loopS1 = compS1 l loopP
-backTurn (l : loopS1) : loopS1 = compS1 l invLoop
+encode (x : S1) (p : Path S1 base1 x) : helix x =
+  subst S1 helix base1 x p zeroZ
 
-itLoop : nat -> loopS1 = split
- zero -> <_> base1
- suc n -> oneTurn (itLoop n)
+-- loop^n
+loopos : nat -> loopS1 = split
+  zero -> <_> base1
+  suc n -> compS1 (loopos n) loop
 
-itLoopNeg : nat -> loopS1 = split
- zero -> invLoop
- suc n -> backTurn (itLoopNeg n)
+loopNeg : nat -> loopS1 = split
+  zero -> invLoop
+  suc n -> compS1 (loopNeg n) invLoop
 
--- Maybe don't compose with <_> base1 in the positive case?
-loopIt : Z -> loopS1 = split
- pos n -> itLoop n
- neg n -> itLoopNeg n
+loopIt : (n : Z) -> loopS1 = split
+  pos n -> loopos n
+  neg n -> loopNeg n
 
-lem1ItPos : (n : nat) -> Path loopS1 (loopIt (sucZ (pos n))) (oneTurn (loopIt (pos n))) = split
- zero -> <_> oneTurn (<_> base1)
- suc p -> <i> oneTurn (lem1ItPos p @ i)
+shiftPos : (n : nat) -> Path loopS1 (compS1 (loopIt (predZ (pos n))) loop) (loopIt (pos n)) = split
+  zero -> compInvPath S1 base1 base1 loop
+  suc n -> <_ i> hcomp S1 (loopos n @ i) [ (i = 0) -> <_> base1, (i = 1) -> loop ]
 
--- todo: clean
-compInv (A:U) (a:A) : (x:A) (p:Path A a x) -> Path (Path A x x) (<_>x) (compPath A x a x (<i>p@-i) p) =
- J A a (\  (x:A) (p:Path A a x) -> Path (Path A x x) (<_>x) (compPath A x a x (<i>p@-i) p)) rem
- where rem : Path (Path A a a) (<_>a) (<i>hcomp A a [(i=0) -> <_>a,(i=1) -> <_>a]) =
-        <j i>hcomp A a [(j=0) -> <_>a,(i=0) -> <_>a,(i=1) -> <_>a]
+shiftNeg (n : nat) : Path loopS1 (compS1 (loopIt (predZ (neg n))) loop) (loopIt (neg n)) =
+  <j i> hcomp S1 (hfill S1 (loopNeg n @ i) [ (i = 0) -> <_> base1, (i = 1) -> <j> loop @ -j ] @ -j)
+                  [ (i = 0) -> <_> base1
+                  , (i = 1) -> <k> loop @ j \/ k
+                  , (j = 1) -> <k> loopNeg n @ i ]
 
-compInvS1 : Path loopS1 (<_> base1) (compS1 invLoop loopP) = compInv S1 base1 base1 loopP
+-- it is important that the loop is appended as this is what the subst will do below
+shift : (n : Z) -> Path loopS1 (compS1 (loopIt (predZ n)) loop) (loopIt n) = split
+  pos n -> shiftPos n
+  neg n -> shiftNeg n
 
--- todo: why this one with the same name? clean!
-compInv (A:U) (a b:A) (q:Path A a b) : (x:A) (p:Path A b x) -> Path (Path A a b) q (compPath A a x b (compPath A a b x q p) (<i>p@-i)) =
- J A b (\ (x:A) (p:Path A b x) -> Path (Path A a b) q (compPath A a x b (compPath A a b x q p) (<i>p@-i))) rem
- where rem : Path (Path A a b) q
-                           (<i>hcomp A (hcomp A (q@i) [(i=0) -> <_>a,(i=1) -> <_>b]) [(i=0) -> <_>a,(i=1) -> <_>b]) =
-          <j i>hcomp A (hcomp A (q@i) [(j=0) -> <_>q@i,(i=0) -> <_>a,(i=1) -> <_>b]) [(j=0) -> <_>q@i,(i=0) -> <_>a,(i=1) -> <_>b]
+-- Compose 3 paths. This is a little bit more compact than doing 2 compPath
+comp3 (A : U) (a b c d : A) (p : Path A a b) (q : Path A b c) (r : Path A c d) : Path A a d =
+  <i> hcomp A (q @ i) [ (i = 0) -> <j> p @ -j, (i = 1) -> r ]
 
-lem1ItNeg : (n:nat) -> Path loopS1 (loopIt (sucZ (neg n))) (oneTurn (loopIt (neg n))) = split
- zero -> compInvS1
- suc p -> compInv S1 base1 base1 (loopIt (neg p)) base1 invLoop
+hcompbase (p : loopS1) : loopS1 =
+  <i> hcomp S1 (p @ i) [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ]
+  
+hcompbaseeq (p : loopS1) : Path loopS1 (hcompbase p) p =
+  <j i> hcomp S1 (p @ i /\ -j) [ (i = 0) -> <_> base1
+                               , (i = 1) -> <k> p @ -j \/ k
+                               , (j = 1) -> <k> p @ i /\ k ]
 
--- shift : (n : Int) -> (loop ∘ (loop^ (pred n))) ≃ loop^ n
--- is not the same as:  
-lem1It : (n:Z) -> Path loopS1 (loopIt (sucZ n)) (oneTurn (loopIt n)) = split
-  pos n -> lem1ItPos n
-  neg n -> lem1ItNeg n
+-- This is quite ugly, but we need to remove 4 hcomp's with base on both sides...
+hcompbaseeq4 (p : loopS1) : Path loopS1 (hcompbase (hcompbase (hcompbase (hcompbase p)))) p = 
+  let sq1 : Path loopS1 (hcompbase p) p = hcompbaseeq p
+      sq2 : Path loopS1 (hcompbase (hcompbase p)) (hcompbase p) =
+              hcompbaseeq (hcompbase p)
+      sq3 : Path loopS1 (hcompbase (hcompbase (hcompbase p))) (hcompbase (hcompbase p)) =
+              hcompbaseeq (hcompbase (hcompbase p))
+      sq4 : Path loopS1 (hcompbase (hcompbase (hcompbase (hcompbase p)))) (hcompbase (hcompbase (hcompbase p))) =
+              hcompbaseeq (hcompbase (hcompbase (hcompbase p)))
+  in compPath loopS1
+       (hcompbase (hcompbase (hcompbase (hcompbase p)))) (hcompbase (hcompbase (hcompbase p))) p sq4
+       (<i> hcomp loopS1 (sq2 @ i) [ (i = 0) -> <j> sq3 @ -j, (i = 1) -> sq1 ])
 
-lemFib1 (A:U) (F G : A -> U) (a:A) (fa : F a -> G a) :
-   (x:A) (p : Path A a x) -> (fx : F x -> G x) ->
-     Path U (Path (F a -> G x) (\(u : F a) -> subst A G a x p (fa u))
-                               (\(u : F a) -> fx (subst A F a x p u)))
-            (PathP (<i> F (p @ i) -> G (p @ i)) fa fx) =
-  J A a (\(x : A) (p : Path A a x) -> (fx : F x -> G x) ->
-     Path U (Path (F a -> G x) (\(u : F a) -> subst A G a x p (fa u))
-                               (\(u : F a) -> fx (subst A F a x p u)))
-            (PathP (<i>F (p@i) -> G (p@i)) fa fx)) rem
-  where
-  rem (ga : F a -> G a) :
-    Path U (Path (F a -> G a) (\(u : F a) -> transGen (<_> G a) 0 (fa u))
-                              (\(u : F a) -> ga (transGen (<_> F a) 0 u)))
-           (PathP (<_> F a -> G a) fa ga) =
-      <j> Path (F a -> G a) (\(u : F a) -> lemTransGen0 (G a) (fa u) @ j)
-                            (\(u : F a) -> ga (lemTransGen0 (F a) u @ j))
+-- This proof requires that "transGen (<_> nat) 0 n == n" judgmentally as it is done now
+-- This proof requires that "transGen (<_> S1) 0 n == n" judgmentally as it is done now
+decodeLoop (n : Z) :
+  Path (Path S1 base1 base1)
+  (subst S1 (\(x : S1) -> helix x -> Path S1 base1 x) base1 base1 loop loopIt n)
+  (loopIt n) = 
+      let T (p : loopS1) : loopS1 =
+            (<i> hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1
+--                 (transGen0 S1 (transGen0 S1 (transGen0 S1 (p @ i))))  <-- This is not needed with hack in Eval that makes transGen (<_> S1) 0 x reduce away
+                 (p @ i)
+                      [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ])
+                      [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ])
+                      [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ])
+                      [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ])
+                      [ (i = 0) -> <_> base1, (i = 1) -> loop ])
+          key (p : loopS1) : Path loopS1 (T p) (compS1 p loop) =
+            <i> compS1 (hcompbaseeq4 p @ i) loop
+          goal : Path loopS1 (T (loopIt (predZ n))) (loopIt n) =
+                      compPath loopS1 (T (loopIt (predZ n)))
+                        (compS1 (loopIt (predZ n)) loop) (loopIt n)
+                        (key (loopIt (predZ n))) (shift n)
+      in goal
 
-corFib1 (A:U) (F G : A -> U) (a:A) (fa ga : F a -> G a) (p:Path A a a)
-  (h : (u:F a) -> Path (G a) (subst A G a a p (fa u)) (ga (subst A F a a p u))) :
-  PathP (<i> F (p @ i) -> G (p @ i)) fa ga =
-    comp (lemFib1 A F G a fa a p ga) (<i> \(u : F a) -> h u @ i) []
+-- Specialized version of pathSIntro for S1
+pathSIntroS1 (C : S1 -> U) (c : C base1)
+           (w : Path (C base1) (subst S1 C base1 base1 loop c) c) :
+  PathP (<i> C (loop @ i)) c c =
+  transGen (<j> PathP (<i> C (loop @ -j \/ i))
+                      (transGen (<i> C (loop @ -j /\ i)) j c) c) 0 w
 
-testHelix : Path (Z->Z) sucZ (subst S1 helix base1 base1 loopP) =
-  let rem (x : Z) : Path Z (sucZ x) (hcomp Z (hcomp Z (transGen (<!0> Z) 0 (sucZ x)) []) []) =
-        compPath Z (sucZ x)
-                   (hcomp Z (transGen (<!0> Z) 0 (sucZ x)) [])
-                   (hcomp Z (hcomp Z (transGen (<!0> Z) 0 (sucZ x)) []) [])
-                   (fill (<_> Z) (sucZ x) [])
-                   (hfill Z (hcomp Z (transGen (<!0> Z) 0 (sucZ x)) []) [])
-  in <i> \(x : Z) -> rem x @ i
+s1elim (C : S1 -> U) (c : C base1) (p : Path (C base1) (subst S1 C base1 base1 loop c) c) :
+  (x : S1) -> C x = split
+  base1 -> c
+  loop1 @ i -> pathSIntroS1 C c p @ i
 
-decode : (x:S1) -> helix x -> Path S1 base1 x = split
-  base1 -> loopIt
-  loop1 @ i -> rem @ i
-   where
-   T : U = Z -> loopS1
-   G (x:S1) : U =  Path S1 base1 x
-   p : Path U T T = <j> helix (loopP @ j) -> Path S1 base1 (loopP@j)
-   rem2 (x:Z) :
-      Path loopS1 (oneTurn (loopIt x))
-                  (loopIt (sucZ x)) = <i> lem1It x @ -i
-   rem4 (x : Z) : Path (Path S1 base1 base1)
-        (<i> hcomp S1 (transGen0 S1 (loopIt x @ i))
-                       [ (i = 0) -> <_> base1
-                       , (i = 1) -> loopP ])
-        (<i> hcomp S1 (loopIt x @ i)
-                       [ (i = 0) -> <_> base1
-                       , (i = 1) -> loopP ]) = <j i> hcomp S1 (transGen (<_> S1) j (loopIt x @ i)) [ (i = 0) -> <_> base1, (i = 1) -> loopP ]
-   rem3 (x : Z) :
-     Path loopS1 (subst S1 G base1 base1 loopP (loopIt x))
-                 (loopIt (sucZ x)) =
-       compPath loopS1 (subst S1 G base1 base1 loopP (loopIt x))
-         (oneTurn (loopIt x)) (loopIt (sucZ x))
-         (rem4 x) (rem2 x)
-   rem1 (x:Z) : Path loopS1 (subst S1 G base1 base1 loopP (loopIt x))
-                           (loopIt (subst S1 helix base1 base1 loopP x)) =
-    comp (<i> Path loopS1 (subst S1 G base1 base1 loopP (loopIt x))
-                          (loopIt (testHelix @ i x))) (rem3 x) []
-   rem : PathP p loopIt loopIt = corFib1 S1 helix G base1 loopIt loopIt loopP rem1
+-- Can we do this directly without s1elim and pathSIntroS1?
+decode : (x : S1) -> helix x -> Path S1 base1 x =
+  s1elim (\(x : S1) -> helix x -> Path S1 base1 x) loopIt (<i> \(x : Z) -> decodeLoop x @ i)
+
+-- End of direct definition of decode
+
+-- Old version of decode:
+
+-- -- Maybe put l in the end?
+-- oneTurn (l : loopS1) : loopS1 = compS1 l loop
+-- backTurn (l : loopS1) : loopS1 = compS1 l invLoop
+
+-- itLoop : nat -> loopS1 = split
+--  zero -> <_> base1
+--  suc n -> oneTurn (itLoop n)
+
+-- itLoopNeg : nat -> loopS1 = split
+--  zero -> invLoop
+--  suc n -> backTurn (itLoopNeg n)
+
+-- -- Maybe don't compose with <_> base1 in the positive case?
+-- loopIt : Z -> loopS1 = split
+--  pos n -> itLoop n
+--  neg n -> itLoopNeg n
+
+-- lem1ItPos : (n : nat) -> Path loopS1 (loopIt (sucZ (pos n))) (oneTurn (loopIt (pos n))) = split
+--  zero -> <_> oneTurn (<_> base1)
+--  suc p -> <i> oneTurn (lem1ItPos p @ i)
+
+-- -- todo: clean
+-- compInv (A:U) (a:A) : (x:A) (p:Path A a x) -> Path (Path A x x) (<_>x) (compPath A x a x (<i>p@-i) p) =
+--  J A a (\  (x:A) (p:Path A a x) -> Path (Path A x x) (<_>x) (compPath A x a x (<i>p@-i) p)) rem
+--  where rem : Path (Path A a a) (<_>a) (<i>hcomp A a [(i=0) -> <_>a,(i=1) -> <_>a]) =
+--         <j i>hcomp A a [(j=0) -> <_>a,(i=0) -> <_>a,(i=1) -> <_>a]
+
+-- compInvS1 : Path loopS1 (<_> base1) (compS1 invLoop loop) = compInv S1 base1 base1 loop
+
+-- -- todo: why this one with the same name? clean!
+-- compInv (A:U) (a b:A) (q:Path A a b) : (x:A) (p:Path A b x) -> Path (Path A a b) q (compPath A a x b (compPath A a b x q p) (<i>p@-i)) =
+--  J A b (\ (x:A) (p:Path A b x) -> Path (Path A a b) q (compPath A a x b (compPath A a b x q p) (<i>p@-i))) rem
+--  where rem : Path (Path A a b) q
+--                            (<i>hcomp A (hcomp A (q@i) [(i=0) -> <_>a,(i=1) -> <_>b]) [(i=0) -> <_>a,(i=1) -> <_>b]) =
+--           <j i>hcomp A (hcomp A (q@i) [(j=0) -> <_>q@i,(i=0) -> <_>a,(i=1) -> <_>b]) [(j=0) -> <_>q@i,(i=0) -> <_>a,(i=1) -> <_>b]
+
+-- lem1ItNeg : (n:nat) -> Path loopS1 (loopIt (sucZ (neg n))) (oneTurn (loopIt (neg n))) = split
+--  zero -> compInvS1
+--  suc p -> compInv S1 base1 base1 (loopIt (neg p)) base1 invLoop
+
+-- -- shift : (n : Int) -> (loop ∘ (loop^ (pred n))) ≃ loop^ n
+-- -- is not the same as:  
+-- lem1It : (n:Z) -> Path loopS1 (loopIt (sucZ n)) (oneTurn (loopIt n)) = split
+--   pos n -> lem1ItPos n
+--   neg n -> lem1ItNeg n
+
+-- lemFib1 (A:U) (F G : A -> U) (a:A) (fa : F a -> G a) :
+--    (x:A) (p : Path A a x) -> (fx : F x -> G x) ->
+--      Path U (Path (F a -> G x) (\(u : F a) -> subst A G a x p (fa u))
+--                                (\(u : F a) -> fx (subst A F a x p u)))
+--             (PathP (<i> F (p @ i) -> G (p @ i)) fa fx) =
+--   J A a (\(x : A) (p : Path A a x) -> (fx : F x -> G x) ->
+--      Path U (Path (F a -> G x) (\(u : F a) -> subst A G a x p (fa u))
+--                                (\(u : F a) -> fx (subst A F a x p u)))
+--             (PathP (<i>F (p@i) -> G (p@i)) fa fx)) rem
+--   where
+--   rem (ga : F a -> G a) :
+--     Path U (Path (F a -> G a) (\(u : F a) -> transGen (<_> G a) 0 (fa u))
+--                               (\(u : F a) -> ga (transGen (<_> F a) 0 u)))
+--            (PathP (<_> F a -> G a) fa ga) =
+--       <j> Path (F a -> G a) (\(u : F a) -> lemTransGen0 (G a) (fa u) @ j)
+--                             (\(u : F a) -> ga (lemTransGen0 (F a) u @ j))
+
+-- corFib1 (A:U) (F G : A -> U) (a:A) (fa ga : F a -> G a) (p:Path A a a)
+--   (h : (u:F a) -> Path (G a) (subst A G a a p (fa u)) (ga (subst A F a a p u))) :
+--   PathP (<i> F (p @ i) -> G (p @ i)) fa ga =
+--     comp (lemFib1 A F G a fa a p ga) (<i> \(u : F a) -> h u @ i) []
+
+-- testHelix : Path (Z->Z) sucZ (subst S1 helix base1 base1 loop) =
+--   let rem (x : Z) : Path Z (sucZ x) (hcomp Z (hcomp Z (transGen (<!0> Z) 0 (sucZ x)) []) []) =
+--         compPath Z (sucZ x)
+--                    (hcomp Z (transGen (<!0> Z) 0 (sucZ x)) [])
+--                    (hcomp Z (hcomp Z (transGen (<!0> Z) 0 (sucZ x)) []) [])
+--                    (fill (<_> Z) (sucZ x) [])
+--                    (hfill Z (hcomp Z (transGen (<!0> Z) 0 (sucZ x)) []) [])
+--   in <i> \(x : Z) -> rem x @ i
+
+-- decode : (x:S1) -> helix x -> Path S1 base1 x = split
+--   base1 -> loopIt
+--   loop1 @ i -> rem @ i
+--    where
+--    T : U = Z -> loopS1
+--    G (x:S1) : U =  Path S1 base1 x
+--    p : Path U T T = <j> helix (loop @ j) -> Path S1 base1 (loop@j)
+--    rem2 (x:Z) :
+--       Path loopS1 (oneTurn (loopIt x))
+--                   (loopIt (sucZ x)) = <i> lem1It x @ -i
+--    rem4 (x : Z) : Path (Path S1 base1 base1)
+--         (<i> hcomp S1 (transGen0 S1 (loopIt x @ i))
+--                        [ (i = 0) -> <_> base1
+--                        , (i = 1) -> loop ])
+--         (<i> hcomp S1 (loopIt x @ i)
+--                        [ (i = 0) -> <_> base1
+--                        , (i = 1) -> loop ]) = <j i> hcomp S1 (transGen (<_> S1) j (loopIt x @ i)) [ (i = 0) -> <_> base1, (i = 1) -> loop ]
+--    rem3 (x : Z) :
+--      Path loopS1 (subst S1 G base1 base1 loop (loopIt x))
+--                  (loopIt (sucZ x)) =
+--        compPath loopS1 (subst S1 G base1 base1 loop (loopIt x))
+--          (oneTurn (loopIt x)) (loopIt (sucZ x))
+--          (rem4 x) (rem2 x)
+--    rem1 (x:Z) : Path loopS1 (subst S1 G base1 base1 loop (loopIt x))
+--                            (loopIt (subst S1 helix base1 base1 loop x)) =
+--     comp (<i> Path loopS1 (subst S1 G base1 base1 loop (loopIt x))
+--                           (loopIt (testHelix @ i x))) (rem3 x) []
+--    rem : PathP p loopIt loopIt = corFib1 S1 helix G base1 loopIt loopIt loop rem1
+
+-- End of old version of decode
 
 -- This is just J?
-encodeDecode (x : S1) (p : Path S1 base1 x) : Path (Path S1 base1 x) (decode x (encode x p)) p =
-  transGen (<i> Path (Path S1 base1 (p @ i))
-            (decode (p @ i) (encode (p @ i) (<j> p @ i /\ j))) (<j> p @ i /\ j)) 0
-            (<_ _> base1)
+encodeDecode (x : S1) (p : Path S1 base1 x) :
+  Path (Path S1 base1 x) (decode x (encode x p)) p =
+    transGen (<i> Path (Path S1 base1 (p @ i))
+              (decode (p @ i) (encode (p @ i) (<j> p @ i /\ j))) (<j> p @ i /\ j)) 0
+              (<_ _> base1)
 
--- Can we get a direct proof that Path S1 base1 x is a set instead?
+-- a retract of a set is also a retract
+retract (A B : U) (f : A -> B) (g : B -> A) : U =
+  (a : A) -> Path A (g (f a)) a
+
+compUp (A : U) (a a' b b' : A) (p : Path A a a') (q : Path A b b')
+  (r : Path A a b) : Path A a' b' =
+    <i> hcomp A (r @ i) [(i = 0) -> p, (i = 1) -> q]
+
+lemRetract (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g)
+  (x y : A) : Path A (g (f x)) (g (f y)) -> Path A x y =
+    compUp A (g (f x)) x (g (f y)) y (rfg x) (rfg y)
+
+retractProp (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g)
+  (pB : prop B) (x y : A) : Path A x y =
+    lemRetract A B f g rfg x y (<i> g (pB (f x) (f y) @ i))
+
+retractInv (A B : U)  (f : A -> B) (g : B -> A) (rfg : retract A B f g)
+  (x y : A) (q : Path B (f x) (f y)) : Path A x y =
+    <i> hcomp A (g (q @ i)) [(i = 0) -> rfg x, (i = 1) -> rfg y]
+
+lemRSquare (A B : U) (f : A -> B) (g : B -> A)
+           (rfg : (a : A) -> Path A (g (f a)) a)
+           (x y : A) (p : Path A x y) :
+  Square A (g (f x)) (g (f y)) x y
+           (<i> g (f (p @ i)))
+           (<i> hcomp A (g (f (p @ i))) [(i = 0) -> rfg x, (i = 1) -> rfg y])
+           (rfg x)
+           (rfg y) =
+           <i j> hcomp A (g (f (p @ i))) [ (i = 0) -> <k> rfg x @ j /\ k
+                                         , (i = 1) -> <k> rfg y @ j /\ k
+                                         , (j = 0) -> <k> g (f (p @ i)) ]
+
+retractPath (A B : U)(f : A -> B) (g : B -> A) (rfg : retract A B f g) (x y :A) (p:Path A x y) :
+  Path (Path A x y) (retractInv A B f g rfg x y (<i> f (p@ i))) p =
+    <i j> hcomp A (g (f (p @ j)))
+                  [ (j=0) -> rfg x
+                  , (j=1) -> rfg y
+                  , (i=0) -> lemRSquare A B f g rfg x y p @ j
+                  , (i=1) -> rfg (p @ j) ]
+
+retractSet (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g)
+           (sB : set B) (x y : A) : prop (Path A x y) =
+  retractProp (Path A x y) (Path B (f x) (f y)) (\(p : Path A x y) -> <i> f (p @ i))
+              (retractInv A B f g rfg x y) (retractPath A B f g rfg x y) (sB (f x) (f y))
+
 setLoop : set loopS1 =
   retractSet loopS1 Z (encode base1) (decode base1) (encodeDecode base1) ZSet
 
 -- opaque setLoop
 
-lemPropFib (P : S1 -> U) (pP : (x : S1) -> prop (P x)) (bP : P base1) : (x : S1) -> P x = split
- base1 -> bP
- loop1 @ i -> lemPropF S1 P pP base1 base1 loopP bP bP @ i
+-- lemPropFib (P : S1 -> U) (pP : (x : S1) -> prop (P x)) (bP : P base1) : (x : S1) -> P x = split
+--  base1 -> bP
+--  loop1 @ i -> lemPropF S1 P pP base1 base1 loop bP bP @ i
 
-isGroupoidS1 : groupoid S1 = lem
- where
-  lem2 : (y : S1) -> set (Path S1 base1 y)
-    = lemPropFib (\(y : S1) -> set (Path S1 base1 y)) (\(y : S1) -> setIsProp (Path S1 base1 y)) setLoop
+-- isGroupoidS1 : groupoid S1 = lem
+--  where
+--   lem2 : (y : S1) -> set (Path S1 base1 y)
+--     = lemPropFib (\(y : S1) -> set (Path S1 base1 y)) (\(y : S1) -> setIsProp (Path S1 base1 y)) setLoop
 
-  lem : (x y : S1) -> set (Path S1 x y)
-   = lemPropFib (\(x : S1) -> (y : S1) -> set (Path S1 x y)) pP lem2
-     where
-       pP (x : S1) : prop ((y : S1) -> set (Path S1 x y)) =
-        propPi S1 (\(y : S1) -> set (Path S1 x y)) (\(y : S1) -> setIsProp (Path S1 x y))
-
--- opaque isGroupoidS1
+--   lem : (x y : S1) -> set (Path S1 x y)
+--    = lemPropFib (\(x : S1) -> (y : S1) -> set (Path S1 x y)) pP lem2
+--      where
+--        pP (x : S1) : prop ((y : S1) -> set (Path S1 x y)) =
+--         propPi S1 (\(y : S1) -> set (Path S1 x y)) (\(y : S1) -> setIsProp (Path S1 x y))
 
 one : nat = suc zero
 two : nat = suc one
-three : nat = suc two
-
 
 -- alternative approach:
-temp0' : inhOrTrunc (HopfOne' (<_> base2)) two =
-  truncFibOmega' two S2pt Hopf base1 isGroupoidS1 (<_> base2)
-  
+temp0' : inhOrTrunc (HopfOne' (<_> base2)) two = setLoop
+  -- isGroupoidS1 base1 base1
+  -- truncFibOmega' two S2pt Hopf base1 isGroupoidS1 (<_> base2)
+
 temp1' : inhOrTrunc (HopfTwo' (<_ _> base2)) one =
   truncFibOmega' one (Omega S2pt) HopfOne' (ptFibOmega' S2pt Hopf base1) temp0' (<_ _> base2)
 

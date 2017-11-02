@@ -1,0 +1,317 @@
+module loops1 where
+
+idfun (A : U) (a : A) : A = a
+
+Path (A : U) (a0 a1 : A) : U = PathP (<i> A) a0 a1
+
+fiber (A B : U) (f : A -> B) (y : B) : U =
+  (x : A) * Path B y (f x)
+isContr (A : U) : U = (x : A) * ((y : A) -> Path A x y)
+prop (A : U) : U = (a b : A) -> Path A a b
+set (A : U) : U = (a b : A) -> prop (Path A a b)
+
+isEquiv (A B : U) (f : A -> B) : U = (y : B) -> isContr (fiber A B f y)
+
+equiv (A B : U) : U = (f : A -> B) * isEquiv A B f
+
+contrSingl (A : U) (a b : A) (p : Path A a b) :
+  Path ((x : A) * Path A a x) (a,<_>a) (b,p) = <i> (p @ i,<j> p @ i/\j)
+
+idIsEquiv (A : U) : isEquiv A A (idfun A) =
+  \(a : A) -> ((a,<_>a),\(z : (x : A) * Path A a x) -> contrSingl A a z.1 z.2)
+
+idEquiv (A : U) : equiv A A = (idfun A,idIsEquiv A)
+
+ua (A B : U) (e : equiv A B) : Path U A B =
+  <i> Glue B [ (i = 0) -> (A,e)
+             , (i = 1) -> (B,idEquiv B) ]
+
+subst (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
+  transGen (<i> P (p @ i)) 0 e
+
+J (A : U) (a : A) (C : (x : A) -> Path A a x -> U)
+  (d : C a (<_> a)) (x : A) (p : Path A a x) : C x p =
+    subst ((x : A) * Path A a x) T (a,<_> a) (x, p) (contrSingl A a x p) d
+      where T (z : (x : A) * Path A a x) : U = C (z.1) (z.2)
+
+compPath (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
+  <i> hcomp A (p @ i) [ (i =0) -> <j> a, (i = 1) -> q ]
+
+
+compInvPath (A : U) (a b : A) (p : Path A a b) :
+  Path (Path A b b) (compPath A b a b (<i> p @ -i) p)  (<_> b) =
+   <j i> hcomp A (p @ -i \/ j)
+                 [ (i = 0) -> <_> b
+                 , (j = 1) -> <_> b
+                 , (i = 1) -> <k> p @ j \/ k ]
+
+data nat = zero | suc (n : nat)
+
+idfun (A : U) (a : A) : A = a
+
+pred : nat -> nat = split
+  zero -> zero
+  suc n -> n
+
+
+{- Z is represented as:
+
+  +2 = pos (suc (suc zero))
+  +1 = pos (suc zero)
+   0 = pos zero
+  -1 = neg zero
+  -2 = neg (suc zero)
+
+-}
+data Z = pos (n : nat) | neg (n : nat)
+
+zeroZ : Z = pos zero
+
+data N0 =
+
+not (A : U) : U = A -> N0
+efq (A : U) : N0 -> A = split {}
+
+-- Direct proof that Z is a set:
+invP : (n m : nat) (p : Path nat n m) -> U = split
+  zero  -> split@((m : nat) (p : Path nat zero m) -> U) with
+    zero  -> \(p : Path nat zero zero) -> 
+               Path (Path nat zero zero) p (<_> zero)
+    suc m -> \(p : Path nat zero (suc m)) -> N0
+  suc n -> split@((m : nat) (p : Path nat (suc n) m) -> U) with
+    zero  -> \(p : Path nat (suc n) zero) -> N0
+    suc m -> \(p : Path nat (suc n) (suc m)) ->
+               Path (Path nat (suc n) (suc m)) p (<i> suc (pred (p @ i)))
+
+-- using J for now
+pinv : (n m : nat) (p : Path nat n m) -> invP n m p = split
+  zero  -> J nat zero (invP zero) (<_ _> zero)
+  suc n -> J nat (suc n) (invP (suc n)) (<_ _> suc n)
+
+lem : (n : nat) (p : Path nat n n) -> Path (Path nat n n) p (<_> n) = split
+  zero  -> pinv zero zero
+  suc n -> \(p : Path nat (suc n) (suc n)) ->
+               compPath (Path nat (suc n) (suc n)) p (<i> suc (pred (p @ i))) (<_> suc n)
+                 (pinv (suc n) (suc n) p)
+                 (<i j> suc (lem n (<k> pred (p @ k)) @ i @ j))
+
+natset' (n : nat) : (m : nat) (p q : Path nat n m) -> Path (Path nat n m) q p = 
+  J nat n (\(m : nat)(p : Path nat n m) ->
+            (q : Path nat n m) -> Path (Path nat n m) q p)
+    (lem n)
+  
+setnat (n m : nat) (p q : Path nat n m) : Path (Path nat n m) p q = natset' n m q p
+
+invZ : (u v : Z) (p : Path Z u v) -> U = split
+  pos a -> split@((v : Z) -> (p : Path Z (pos a) v) -> U) with
+    pos a' -> \(p : Path Z (pos a) (pos a')) ->
+              (q : Path nat a a') * (Path (Path Z (pos a) (pos a')) p (<i> pos (q @ i)))
+    neg b' -> \(p : Path Z (pos a) (neg b')) -> N0
+  neg b -> split@((v : Z) -> (p : Path Z (neg b) v) -> U) with
+    pos a' -> \(p : Path Z (neg b) (pos a')) -> N0
+    neg b' -> \(p : Path Z (neg b) (neg b')) ->
+              (q : Path nat b b') * (Path (Path Z (neg b) (neg b')) p (<i> neg (q @ i)))
+
+pinvZ : (u v : Z) (p : Path Z u v) -> invZ u v p = split
+  pos a -> J Z (pos a) (invZ (pos a)) (<_> a,<_ _> pos a)
+  neg b -> J Z (neg b) (invZ (neg b)) (<_> b,<_ _> neg b)
+
+lemZ : (u : Z) (p : Path Z u u) -> Path (Path Z u u) p (<_> u) = split
+  pos a -> \(p : Path Z (pos a) (pos a)) -> 
+    let qa : invZ (pos a) (pos a) p = pinvZ (pos a) (pos a) p
+    in compPath (Path Z (pos a) (pos a)) p (<i> pos (qa.1 @ i)) (<_> pos a) qa.2
+                (<i j> pos (setnat a a qa.1 (<_> a) @ i @ j))
+  neg b -> \(p : Path Z (neg b) (neg b)) -> 
+    let qb : invZ (neg b) (neg b) p = pinvZ (neg b) (neg b) p
+    in compPath (Path Z (neg b) (neg b)) p (<i> neg (qb.1 @ i)) (<_> neg b) qb.2
+                (<i j> neg (setnat b b qb.1 (<_> b) @ i @ j))
+
+setZ' (u : Z) : (v : Z) (p q : Path Z u v) -> Path (Path Z u v) q p =
+  J Z u (\(v : Z) (p : Path Z u v) -> (q : Path Z u v) -> Path (Path Z u v) q p)
+    (lemZ u)
+
+ZSet (u v : Z) (p q : Path Z u v) : Path (Path Z u v) p q = setZ' u v q p
+
+-- sucZ is an equiv:
+
+sucZ : Z -> Z = split
+  pos u -> pos (suc u)
+  neg v -> auxsucZ v
+    where
+    auxsucZ : nat -> Z = split
+      zero  -> pos zero
+      suc n -> neg n
+
+auxpredZ : nat -> Z = split
+  zero  -> neg zero
+  suc n -> pos n
+
+predZ : Z -> Z = split
+  pos u -> auxpredZ u
+  neg v -> neg (suc v)
+
+predsucZ : (x : Z) -> Path Z (predZ (sucZ x)) x = split
+  pos u -> <_> pos u
+  neg v -> lem v
+   where
+    lem : (u : nat) -> Path Z (predZ (sucZ (neg u))) (neg u) = split
+      zero  -> <_> neg zero
+      suc n -> <_> neg (suc n)
+
+sucpredZ : (x : Z) -> Path Z (sucZ (predZ x)) x = split
+  pos u -> lem u
+   where
+    lem : (u : nat) -> Path Z (sucZ (predZ (pos u))) (pos u) = split
+      zero  -> <_> pos zero
+      suc n -> <_> pos (suc n)
+  neg v -> <_> neg v
+
+-- Maybe we can generalize the notion of being a set to allow
+-- arbitrary paths on the sides and not just refl?
+gengoal (A : U) (hA : set A) (x y : A) (p : Path A x y) : (z : A) (r : Path A y z) (q : Path A x z) ->
+  PathP (<i> Path A x (r @ i)) p q =
+  J A y (\(z : A) (r : Path A y z) -> (q : Path A x z) -> PathP (<i> Path A x (r @ i)) p q)
+   (hA x y p)
+
+ctr (y : Z) : fiber Z Z sucZ y = (predZ y,<i> sucpredZ y @ -i)
+
+contr (y : Z) (y' : fiber Z Z sucZ y) : Path ((x : Z) * Path Z y (sucZ x)) (ctr y) y' =
+    let p1 : Path Z (predZ y) y'.1 =
+          compPath Z (predZ y) (predZ (sucZ y'.1)) y'.1
+                   (<i> predZ (y'.2 @ i)) (predsucZ y'.1)
+        prf1 : Path Z (sucZ (predZ y)) (sucZ y'.1) = <i> sucZ (p1 @ i)
+        prf2 : Path Z y (sucZ (predZ y)) = <i> sucpredZ y @ -i
+        p2 : PathP (<i> Path Z y (prf1 @ i)) prf2 y'.2 =
+          gengoal Z ZSet y (sucZ (predZ y)) prf2 (sucZ y'.1) prf1 y'.2
+    in <i> (p1 @ i,p2 @ i)
+
+-- Maybe make this opaque?
+-- opaque contr
+
+equivSucZ : isEquiv Z Z sucZ = \(y : Z) -> (ctr y,contr y)
+    
+sucPathZ : Path U Z Z = ua Z Z (sucZ,equivSucZ)
+
+-- We now prove that "decode x (encode x p) = p" so that we get that
+-- loopS1 is a retract of Z
+
+data S1 = base1
+        | loop1 <i> [ (i=0) -> base1
+                    , (i=1) -> base1 ]
+loopS1 : U = Path S1 base1 base1
+loop : loopS1 = <i> loop1{S1} @ i
+invLoop : loopS1 = <i> loop @ -i
+compS1 : loopS1 -> loopS1 -> loopS1 = compPath S1 base1 base1 base1
+
+-- Covering space of the circle
+helix : S1 -> U = split
+  base1 -> Z
+  loop1 @ i -> sucPathZ @ i
+
+encode (x : S1) (p : Path S1 base1 x) : helix x =
+  subst S1 helix base1 x p zeroZ
+
+-- loop^n
+loopPos : nat -> loopS1 = split
+  zero -> <_> base1
+  suc n -> compS1 (loopPos n) loop
+
+loopNeg : nat -> loopS1 = split
+  zero -> invLoop
+  suc n -> compS1 (loopNeg n) invLoop
+
+loopIt : (n : Z) -> loopS1 = split
+  pos n -> loopPos n
+  neg n -> loopNeg n
+
+shiftPos : (n : nat) -> Path loopS1 (compS1 (loopIt (predZ (pos n))) loop) (loopIt (pos n)) = split
+  zero -> compInvPath S1 base1 base1 loop
+  suc n -> <_ i> hcomp S1 (loopPos n @ i) [ (i = 0) -> <_> base1, (i = 1) -> loop ]
+
+shiftNeg (n : nat) : Path loopS1 (compS1 (loopIt (predZ (neg n))) loop) (loopIt (neg n)) =
+  <j i> hcomp S1 (hfill S1 (loopNeg n @ i) [ (i = 0) -> <_> base1, (i = 1) -> <j> loop @ -j ] @ -j)
+                  [ (i = 0) -> <_> base1
+                  , (i = 1) -> <k> loop @ j \/ k
+                  , (j = 1) -> <k> loopNeg n @ i ]
+
+-- it is important that the loop is appended as this is what the subst will do below
+shift : (n : Z) -> Path loopS1 (compS1 (loopIt (predZ n)) loop) (loopIt n) = split
+  pos n -> shiftPos n
+  neg n -> shiftNeg n
+
+-- Compose 3 paths. This is a little bit more compact than doing 2 compPath
+comp3 (A : U) (a b c d : A) (p : Path A a b) (q : Path A b c) (r : Path A c d) : Path A a d =
+  <i> hcomp A (q @ i) [ (i = 0) -> <j> p @ -j, (i = 1) -> r ]
+
+hcompbase (p : loopS1) : loopS1 =
+  <i> hcomp S1 (p @ i) [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ]
+  
+hcompbaseeq (p : loopS1) : Path loopS1 (hcompbase p) p =
+  <j i> hcomp S1 (p @ i /\ -j) [ (i = 0) -> <_> base1
+                               , (i = 1) -> <k> p @ -j \/ k
+                               , (j = 1) -> <k> p @ i /\ k ]
+
+-- This is quite ugly, but we need to remove 4 hcomp's with base on both sides...
+hcompbaseeq4 (p : loopS1) : Path loopS1 (hcompbase (hcompbase (hcompbase (hcompbase p)))) p = 
+  let sq1 : Path loopS1 (hcompbase p) p = hcompbaseeq p
+      sq2 : Path loopS1 (hcompbase (hcompbase p)) (hcompbase p) =
+              hcompbaseeq (hcompbase p)
+      sq3 : Path loopS1 (hcompbase (hcompbase (hcompbase p))) (hcompbase (hcompbase p)) =
+              hcompbaseeq (hcompbase (hcompbase p))
+      sq4 : Path loopS1 (hcompbase (hcompbase (hcompbase (hcompbase p)))) (hcompbase (hcompbase (hcompbase p))) =
+              hcompbaseeq (hcompbase (hcompbase (hcompbase p)))
+  in compPath loopS1
+       (hcompbase (hcompbase (hcompbase (hcompbase p)))) (hcompbase (hcompbase (hcompbase p))) p sq4
+       (<i> hcomp loopS1 (sq2 @ i) [ (i = 0) -> <j> sq3 @ -j, (i = 1) -> sq1 ])
+
+-- This proof requires that "transGen (<_> nat) 0 n == n" judgmentally as it is done now
+-- This proof requires that "transGen (<_> S1) 0 n == n" judgmentally as it is done now
+decodeLoop (n : Z) :
+  Path (Path S1 base1 base1)
+  (subst S1 (\(x : S1) -> helix x -> Path S1 base1 x) base1 base1 loop loopIt n)
+  (loopIt n) = 
+      let T (p : loopS1) : loopS1 =
+            (<i> hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1
+--                 (transGen0 S1 (transGen0 S1 (transGen0 S1 (p @ i))))  <-- This is not needed with hack in Eval that makes transGen (<_> S1) 0 x reduce away
+                 (p @ i)
+                      [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ])
+                      [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ])
+                      [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ])
+                      [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ])
+                      [ (i = 0) -> <_> base1, (i = 1) -> loop ])
+          key (p : loopS1) : Path loopS1 (T p) (compS1 p loop) =
+            <i> compS1 (hcompbaseeq4 p @ i) loop
+          goal : Path loopS1 (T (loopIt (predZ n))) (loopIt n) =
+                      compPath loopS1 (T (loopIt (predZ n)))
+                        (compS1 (loopIt (predZ n)) loop) (loopIt n)
+                        (key (loopIt (predZ n))) (shift n)
+      in goal
+
+-- Specialized version of pathSIntro for S1
+pathSIntroS1 (C : S1 -> U) (c : C base1)
+           (w : Path (C base1) (subst S1 C base1 base1 loop c) c) :
+  PathP (<i> C (loop @ i)) c c =
+  transGen (<j> PathP (<i> C (loop @ -j \/ i))
+                      (transGen (<i> C (loop @ -j /\ i)) j c) c) 0 w
+
+-- Old complicated normal form of pathSIntro using eqSubstSig:
+-- > :n pathSIntroS1
+-- NORMEVAL: \(C : S1 -> U) -> \(c : C base1) -> \(w : PathP (<i53031> C base1) (transGen (<i53034> C (loop1 {S1} @ i53034)) 0 c) c) -> <i53135> hcomp (C (loop1 {S1} @ i53135)) (hcomp (C (loop1 {S1} @ i53135)) (transGen (<i53145> C (loop1 {S1} @ (i53145 /\ i53135))) 0 (hcomp (C base1) (hcomp (C base1) (transGen (<i53158> C base1) 0 (hcomp (C base1) (transGen (<i53171> C (loop1 {S1} @ -i53171)) 0 (w @ i53135)) [ (i53135 = 0) -> <i53163> transGen (<i53164> C (loop1 {S1} @ (-i53163 /\ -i53164))) i53163 (transGen (<i53165> C (loop1 {S1} @ (-i53163 /\ i53165))) 0 (transGen (<i53166> C base1) -i53163 c)), (i53135 = 1) -> <i53163> transGen (<i53169> C (loop1 {S1} @ (-i53163 /\ -i53169))) i53163 (transGen (<i53170> C (loop1 {S1} @ (-i53163 \/ -i53170))) -i53163 c) ])) [ (i53135 = 0) -> <i53153> transGen (<i53154> C base1) i53153 (transGen (<i53155> C base1) i53153 (transGen (<i53010> C base1) 0 c)), (i53135 = 1) -> <i53153> transGen (<i53157> C base1) i53153 (transGen (<i52997> C (loop1 {S1} @ -i52997)) 0 c) ]) [ (i53135 = 0) -> <i53149> transGen (<i53010> C base1) 0 c, (i53135 = 1) -> <i53149> transGen (<i52997> C (loop1 {S1} @ -i52997)) 0 c ])) [ (i53135 = 0) -> <i53139> transGen (<i53140> C base1) i53139 (transGen (<i53141> C base1) i53139 c), (i53135 = 1) -> <i53139> transGen (<i53143> C (loop1 {S1} @ (i53139 \/ i53143))) i53139 (transGen (<i53144> C (loop1 {S1} @ (i53139 \/ -i53144))) i53139 c) ]) [ (i53135 = 0) -> <i53005> c, (i53135 = 1) -> <i53005> c ]
+
+-- New simpler normal form:
+-- > :n pathSIntroS1
+-- NORMEVAL: \(C : S1 -> U) -> \(c : C base1) -> \(w : PathP (<i105153> C base1) (transGen (<i105156> C (loop1 {S1} @ i105156)) 0 c) c) -> <i105157> hcomp (C (loop1 {S1} @ i105157)) (transGen (<i105158> C (loop1 {S1} @ (-i105158 \/ i105157))) 0 (w @ i105157)) [ (i105157 = 0) -> <i105159> transGen (<i105158> C (loop1 {S1} @ (-i105159 /\ -i105158))) i105159 (transGen (<i105163> C (loop1 {S1} @ (-i105159 /\ i105163))) i105159 c), (i105157 = 1) -> <i105159> transGen (<i105158> C base1) i105159 c ]
+
+s1elim (C : S1 -> U) (c : C base1) (p : Path (C base1) (subst S1 C base1 base1 loop c) c) :
+  (x : S1) -> C x = split
+  base1 -> c
+  loop1 @ i -> pathSIntroS1 C c p @ i
+
+-- Can we do this directly without s1elim and pathSIntroS1?
+decode : (x : S1) -> helix x -> Path S1 base1 x =
+  s1elim (\(x : S1) -> helix x -> Path S1 base1 x) loopIt (<i> \(x : Z) -> decodeLoop x @ i)
+
+encodeDecode (x : S1) (p : Path S1 base1 x) : Path (Path S1 base1 x) (decode x (encode x p)) p =
+  transGen (<i> Path (Path S1 base1 (p @ i))
+            (decode (p @ i) (encode (p @ i) (<j> p @ i /\ j))) (<j> p @ i /\ j)) 0
+            (<_ _> base1)

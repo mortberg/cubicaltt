@@ -415,9 +415,14 @@ supportFormula (NegAtom i)    = [i]
 supportFormula (phi :/\: psi) = supportFormula phi `union` supportFormula psi
 supportFormula (phi :\/: psi) = supportFormula phi `union` supportFormula psi
 
-
+-- foldrWithKey (\i d a -> act a (i,Dir d))
 face :: Nominal a => a -> Face -> a
-face = foldrWithKey (\i d a -> act a (i,Dir d))
+face x f = faceloop x (assocs f)
+  where
+  faceloop x [] = x
+  faceloop x ((i,d):xs) -- | not (i `occurs` x) = faceloop x xs
+                        | otherwise =
+                        faceloop (act x (i,Dir d)) xs
 
 -- the faces should be incomparable
 type System a = Map Face a

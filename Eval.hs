@@ -490,12 +490,16 @@ trans i a phi u = case a of
     transGlue i b equivs phi u
   VHCompU b es | not (eps `notMember` (es `face` (i ~> 0)) && isNeutral u) ->
     transHCompU i b es phi u
-  Ter (Sum _ _ nass) env -> case u of
+  Ter (Sum _ n nass) env
+    | n `elem` ["nat","Z","bool"] -> u -- hardcode hack
+    | otherwise -> case u of
     VCon n us -> case lookupLabel n nass of
       Just tele -> VCon n (transps i tele env phi us)
       Nothing -> error $ "trans: missing constructor in sum " ++ n
     _ -> VTrans (VPLam i a) phi u
-  Ter (HSum _ _ nass) env -> case u of
+  Ter (HSum _ n nass) env
+    | n `elem` ["S1","S2","S3"] -> u
+    | otherwise -> case u of
     VCon n us -> case lookupLabel n nass of
       Just tele -> VCon n (transps i tele env phi us)
       Nothing -> error $ "trans: missing constructor in hsum " ++ n

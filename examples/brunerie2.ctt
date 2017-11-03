@@ -400,8 +400,6 @@ rot : S1 -> S1 -> S1 = split
   base1 -> \(y : S1) -> y
   loop1 @ i -> \(y : S1) -> rotLoop y @ i
 
-
-
 rot_unit_r : (a : S1) -> Path S1 (rot a base1) a = split
    base1 -> <_> base1
    loop1 @ i -> <_> loop @ i
@@ -507,6 +505,7 @@ truncFibOmega (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B))
 
 -- alternative attempt:
 
+-- The general versions of "looping a fibration":
 fibOmega' (B : ptType) (P : B.1 -> U) (f : P (pt B)) (p : (Omega B).1) : U =
   Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f
 
@@ -522,8 +521,13 @@ ptItFibOmega2' (B : ptType) (P : B.1 -> U) (f : P (pt B)) : itFibOmega2' B P f (
 itFibOmega3' (B : ptType) (P : B.1 -> U) (f : P (pt B)) : (Omega3 B).1 -> U =
   fibOmega' (Omega2 B) (itFibOmega2' B P f) (ptItFibOmega2' B P f)
 
-ptItFibOmega3' (B : ptType) (P : B.1 -> U) (f : P (pt B)) : itFibOmega3' B P f (<_ _ _> B.2) =
-  ptFibOmega' (Omega2 B) (itFibOmega2' B P f) (ptItFibOmega2' B P f)
+-- Maybe we only need these when B is S2pt, P is Hopf and f is
+-- base1. In this case they have simpler definitions because of the
+-- computation rule "transGen (<_> S1) 0 a = a" (which has been
+-- hard-coded):
+--
+-- itFibOmega2'' : (Omega2 S2pt).1 -> U =
+--   fibOmega' (Omega S2pt) (fibOmega' S2pt Hopf base1) (<_> base1)
 
 -- itTotalFibOmega3' (B : ptType) (P : B.1 -> U) (f : P (pt B))
 --   (x : Sigma (Omega3 B).1 (itFibOmega3' B P f)) : (Omega3 (Sigma B.1 P, (pt B, f))).1 =
@@ -937,7 +941,7 @@ decode : (x : S1) -> helix x -> Path S1 base1 x =
 
 -- Old version of decode:
 
--- -- Maybe put l in the end?
+-- Maybe put l in the end?
 -- oneTurn (l : loopS1) : loopS1 = compS1 l loop
 -- backTurn (l : loopS1) : loopS1 = compS1 l invLoop
 
@@ -1046,6 +1050,7 @@ decode : (x : S1) -> helix x -> Path S1 base1 x =
 -- End of old version of decode
 
 -- This is just J?
+-- Maybe prove it by induction on x? This could compute better...
 encodeDecode (x : S1) (p : Path S1 base1 x) :
   Path (Path S1 base1 x) (decode x (encode x p)) p =
     transGen (<i> Path (Path S1 base1 (p @ i))
@@ -1053,54 +1058,65 @@ encodeDecode (x : S1) (p : Path S1 base1 x) :
               (<_ _> base1)
 
 -- a retract of a set is also a retract
-retract (A B : U) (f : A -> B) (g : B -> A) : U =
-  (a : A) -> Path A (g (f a)) a
+-- retract (A B : U) (f : A -> B) (g : B -> A) : U =
+--   (a : A) -> Path A (g (f a)) a
 
-compUp (A : U) (a a' b b' : A) (p : Path A a a') (q : Path A b b')
-  (r : Path A a b) : Path A a' b' =
-    <i> hcomp A (r @ i) [(i = 0) -> p, (i = 1) -> q]
+-- compUp (A : U) (a a' b b' : A) (p : Path A a a') (q : Path A b b')
+--   (r : Path A a b) : Path A a' b' =
+--     <i> hcomp A (r @ i) [(i = 0) -> p, (i = 1) -> q]
 
-lemRetract (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g)
-  (x y : A) : Path A (g (f x)) (g (f y)) -> Path A x y =
-    compUp A (g (f x)) x (g (f y)) y (rfg x) (rfg y)
+-- lemRetract (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g)
+--   (x y : A) : Path A (g (f x)) (g (f y)) -> Path A x y =
+--     compUp A (g (f x)) x (g (f y)) y (rfg x) (rfg y)
 
-retractProp (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g)
-  (pB : prop B) (x y : A) : Path A x y =
-    lemRetract A B f g rfg x y (<i> g (pB (f x) (f y) @ i))
+-- retractProp (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g)
+--   (pB : prop B) (x y : A) : Path A x y =
+--     lemRetract A B f g rfg x y (<i> g (pB (f x) (f y) @ i))
 
-retractInv (A B : U)  (f : A -> B) (g : B -> A) (rfg : retract A B f g)
-  (x y : A) (q : Path B (f x) (f y)) : Path A x y =
-    <i> hcomp A (g (q @ i)) [(i = 0) -> rfg x, (i = 1) -> rfg y]
+-- retractInv (A B : U)  (f : A -> B) (g : B -> A) (rfg : retract A B f g)
+--   (x y : A) (q : Path B (f x) (f y)) : Path A x y =
+--     <i> hcomp A (g (q @ i)) [(i = 0) -> rfg x, (i = 1) -> rfg y]
 
-lemRSquare (A B : U) (f : A -> B) (g : B -> A)
-           (rfg : (a : A) -> Path A (g (f a)) a)
-           (x y : A) (p : Path A x y) :
-  Square A (g (f x)) (g (f y)) x y
-           (<i> g (f (p @ i)))
-           (<i> hcomp A (g (f (p @ i))) [(i = 0) -> rfg x, (i = 1) -> rfg y])
-           (rfg x)
-           (rfg y) =
-           <i j> hcomp A (g (f (p @ i))) [ (i = 0) -> <k> rfg x @ j /\ k
-                                         , (i = 1) -> <k> rfg y @ j /\ k
-                                         , (j = 0) -> <k> g (f (p @ i)) ]
+-- lemRSquare (A B : U) (f : A -> B) (g : B -> A)
+--            (rfg : (a : A) -> Path A (g (f a)) a)
+--            (x y : A) (p : Path A x y) :
+--   Square A (g (f x)) (g (f y)) x y
+--            (<i> g (f (p @ i)))
+--            (<i> hcomp A (g (f (p @ i))) [(i = 0) -> rfg x, (i = 1) -> rfg y])
+--            (rfg x)
+--            (rfg y) =
+--            <i j> hcomp A (g (f (p @ i))) [ (i = 0) -> <k> rfg x @ j /\ k
+--                                          , (i = 1) -> <k> rfg y @ j /\ k
+--                                          , (j = 0) -> <k> g (f (p @ i)) ]
 
-retractPath (A B : U)(f : A -> B) (g : B -> A) (rfg : retract A B f g) (x y :A) (p:Path A x y) :
-  Path (Path A x y) (retractInv A B f g rfg x y (<i> f (p@ i))) p =
-    <i j> hcomp A (g (f (p @ j)))
-                  [ (j=0) -> rfg x
-                  , (j=1) -> rfg y
-                  , (i=0) -> lemRSquare A B f g rfg x y p @ j
-                  , (i=1) -> rfg (p @ j) ]
+-- retractPath (A B : U)(f : A -> B) (g : B -> A) (rfg : retract A B f g) (x y :A) (p:Path A x y) :
+--   Path (Path A x y) (retractInv A B f g rfg x y (<i> f (p@ i))) p =
+--     <i j> hcomp A (g (f (p @ j)))
+--                   [ (j=0) -> rfg x
+--                   , (j=1) -> rfg y
+--                   , (i=0) -> lemRSquare A B f g rfg x y p @ j
+--                   , (i=1) -> rfg (p @ j) ]
 
-retractSet (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g)
-           (sB : set B) (x y : A) : prop (Path A x y) =
-  retractProp (Path A x y) (Path B (f x) (f y)) (\(p : Path A x y) -> <i> f (p @ i))
-              (retractInv A B f g rfg x y) (retractPath A B f g rfg x y) (sB (f x) (f y))
+-- retractSet (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g)
+--            (sB : set B) (x y : A) : prop (Path A x y) =
+--   retractProp (Path A x y) (Path B (f x) (f y)) (\(p : Path A x y) -> <i> f (p @ i))
+--               (retractInv A B f g rfg x y) (retractPath A B f g rfg x y) (sB (f x) (f y))
 
-setLoop : set loopS1 =
-  retractSet loopS1 Z (encode base1) (decode base1) (encodeDecode base1) ZSet
+-- -- This calls encodeDecode 12 times
+-- setLoop' : set loopS1 = retractSet loopS1 Z (encode base1) (decode base1) (encodeDecode base1) ZSet
 
--- opaque setLoop
+-- This direct proof only calls encodeDecode 4 times:
+setLoop (p q : loopS1) (r s : Path loopS1 p q) : Path (Path loopS1 p q) r s =
+  let f : loopS1 -> Z = encode base1
+      g : Z -> loopS1 = decode base1
+  in <j i> hcomp loopS1 (g (ZSet (f p) (f q) (<i> f (r @ i)) (<i> f (s @ i)) @ j @ i))
+                        [ (i = 0) -> encodeDecode base1 p
+                        , (i = 1) -> encodeDecode base1 q
+                        , (j = 0) -> encodeDecode base1 (r @ i)
+                        , (j = 1) -> encodeDecode base1 (s @ i) ]
+
+
+-- We actually never need the full isGroupoidS1 as setLoop suffices!
 
 -- lemPropFib (P : S1 -> U) (pP : (x : S1) -> prop (P x)) (bP : P base1) : (x : S1) -> P x = split
 --  base1 -> bP
@@ -1121,12 +1137,12 @@ one : nat = suc zero
 two : nat = suc one
 
 -- alternative approach:
-temp0' : inhOrTrunc (HopfOne' (<_> base2)) two = setLoop
+-- temp0' : inhOrTrunc (HopfOne' (<_> base2)) two = setLoop
   -- isGroupoidS1 base1 base1
   -- truncFibOmega' two S2pt Hopf base1 isGroupoidS1 (<_> base2)
 
 temp1' : inhOrTrunc (HopfTwo' (<_ _> base2)) one =
-  truncFibOmega' one (Omega S2pt) HopfOne' (ptFibOmega' S2pt Hopf base1) temp0' (<_ _> base2)
+  truncFibOmega' one (Omega S2pt) HopfOne' (ptFibOmega' S2pt Hopf base1) setLoop (<_ _> base2)
 
 fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p =
   truncFibOmega' zero (Omega2 S2pt) HopfTwo' point temp1' p
@@ -1883,7 +1899,7 @@ testShortcut4To5 : Z = f11 (f10 (f9 (f8 (f7 (f6 (f3 test0To2))))))
 testShortcutf11 : Z = f11 (f10 (sinc (<i j> loop2{S2} @ i @ j)))
 testShortcutf11' : Z = f11 (f10 (f9 (<i> ginc (<j> loop2{S2} @ i @ j))))
 
-transparent propIsEquiv
+-- transparent propIsEquiv
 
 -- does this terminate? (with opaque propIsEquiv it does, but it isn't a numeral...)
 testShortcutf11'' : Z = f11 (f10 (f9 (f8 (<i j> g2inc (loop2{S2} @ i @ j)))))

@@ -242,7 +242,7 @@ writing the comp after a path-abstraction). The direction j that we
 are doing the composition in is implicit, more about this below.
 
 -}
-trans (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
+compPath (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
   <i> comp (<_> A) (p @ i)
                    [ (i = 0) -> <j> a
                    , (i = 1) -> q ]

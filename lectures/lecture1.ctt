@@ -261,6 +261,13 @@ or : bool -> bool -> bool = split
 -- appear in the rest of the term (in particular one cannot refer to a
 -- variable called _).
 
+-- Note also that the syntax is indentation sensitive (like in
+-- Haskell), so the following does not parse:
+--
+-- foo : bool = let output : bool =
+--                  true
+--              in output
+
 -- Sigma types are built-in and written as (x : A) * B:
 Sigma (A : U) (B : A -> U) : U = (x : A) * B x
 
@@ -491,7 +498,7 @@ That's all for the first lecture. Next time we will look at:
   elimination principle for Path types. In particular how to prove
   transitivity of path types:
 
-  trans (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
+  compPath (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
 
   and that we can substitute Path equal elements:
 

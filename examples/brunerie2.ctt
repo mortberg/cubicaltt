@@ -541,35 +541,36 @@ truncFibOmega (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B))
 fibOmega' (B : ptType) (P : B.1 -> U) (f : P (pt B)) (p : (Omega B).1) : U =
   Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f
 
-itFibOmega1' (p : (Omega S2pt).1) : U = fibOmega' S2pt Hopf base1 p
+-- itFibOmega1' (p : (Omega S2pt).1) : U = fibOmega' S2pt Hopf base1 p
 
--- I hardcode this to be the simplest thing possible, same for
--- itFibOmega3'. Is this ok? If not uncomment commented code...
-itFibOmega2' (p : (Omega2 S2pt).1) : U =
-  fibOmega' (Omega S2pt) itFibOmega1' (<_> base1) p
---  Path loopS1 (<j> transGen (<k> Hopf (p @ j @ k)) 0 base1) (<_> base1)
+-- itFibOmega2' (p : (Omega2 S2pt).1) : U =
+  -- fibOmega' (Omega S2pt) itFibOmega1' (<_> base1) p
+--   Path loopS1 (<j> transGen (<k> Hopf (p @ j @ k)) 0 base1) (<_> base1)
 
-itFibOmega3eq : Path loopS1 (<i> hcomp S1 base1 [(i=0) -> <_> base1,(i=1) -> <_> base1]) (<i> base1) =
-  <i> hfill loopS1 (<_> base1) [] @ -i
+-- itFibOmega3eq : Path loopS1 (<i> hcomp S1 base1 [(i=0) -> <_> base1,(i=1) -> <_> base1]) (<i> base1) =
+--   <i> hfill loopS1 (<_> base1) [] @ -i
 
+
+-- I hardcode this to be the simplest thing possible. Is this ok? If
+-- not uncomment commented code...
 itFibOmega3' (p : (Omega3 S2pt).1) : U =
-  -- Path (Path loopS1 (<_> base1) (<_> base1))
-  --      (<j k> transGen (<l> Hopf (p @ k @ j @ l)) 0 base1)
-  --      (<_ _> base1)
-  fibOmega' (Omega2 S2pt) itFibOmega2' itFibOmega3eq p
+  Path (Path loopS1 (<_> base1) (<_> base1))
+       (<j k> transGen (<l> Hopf (p @ k @ j @ l)) 0 base1)
+       (<_ _> base1)
+  -- fibOmega' (Omega2 S2pt) itFibOmega2' itFibOmega3eq p
 
 
 -- B.8.3 Looping the Hopf fibration
 
 -- The normal form of these are not too bad
 
-HopfOne' : (Omega S2pt).1 -> U = fibOmega' S2pt Hopf base1
-HopfTwo' : (Omega2 S2pt).1 -> U = itFibOmega2'
+-- HopfOne' : (Omega S2pt).1 -> U = fibOmega' S2pt Hopf base1
+-- HopfTwo' : (Omega2 S2pt).1 -> U = itFibOmega2'
 HopfThree' : (Omega3 S2pt).1 -> U = itFibOmega3'
 
 -- This is now trivial!
-truncFibOmega' (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B))
-  (tr : inhOrTrunc (P (pt B)) (suc n)) (p : (Omega B).1) : inhOrTrunc (fibOmega' B P f p) n = tr (subst B.1 P (pt B) (pt B) p f) f
+-- truncFibOmega' (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B))
+--   (tr : inhOrTrunc (P (pt B)) (suc n)) (p : (Omega B).1) : inhOrTrunc (fibOmega' B P f p) n = tr (subst B.1 P (pt B) (pt B) p f) f
 
 
 -- end of alternative attempt
@@ -1165,16 +1166,16 @@ one : nat = suc zero
 two : nat = suc one
 
 -- alternative approach:
-temp1' : inhOrTrunc (HopfTwo' (<_ _> base2)) one =
-  truncFibOmega' one (Omega S2pt) HopfOne' (<_> base1) setLoop (<_ _> base2)
+-- temp1' : inhOrTrunc (HopfTwo' (<_ _> base2)) one =
+--   truncFibOmega' one (Omega S2pt) HopfOne' (<_> base1) setLoop (<_ _> base2)
 
 -- I hardcode this as the smallest thing possible. The fact that we
 -- are calling setLoop with refl should make it possible to simplify
 -- it even further as decodeEncode with refl is proved by refl.
 fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p =
-  truncFibOmega' zero (Omega2 S2pt) HopfTwo' itFibOmega3eq temp1' p
-  -- setLoop (<_> base1) (<_> base1)
-  --         (<j k> transGen (<l> Hopf (p @ k @ j @ l)) 0 base1) (<_ _> base1)
+  -- truncFibOmega' zero (Omega2 S2pt) HopfTwo' itFibOmega3eq temp1' p
+  setLoop (<_> base1) (<_> base1)
+          (<j k> transGen (<l> Hopf (p @ k @ j @ l)) 0 base1) (<_ _> base1)
 
 -- > :n temp1'
 -- Time: 0m1.875s

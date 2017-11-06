@@ -63,7 +63,7 @@
   "Operations for cubical.")
 
 (defvar cubicaltt-special
-  '("undefined" "primitive")
+  '("undefined")
   "Special operators for cubical.")
 
 (defvar cubicaltt-keywords-regexp

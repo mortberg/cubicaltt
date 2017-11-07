@@ -555,7 +555,7 @@ fibOmega' (B : ptType) (P : B.1 -> U) (f : P (pt B)) (p : (Omega B).1) : U =
 -- not uncomment commented code...
 itFibOmega3' (p : (Omega3 S2pt).1) : U =
   Path (Path loopS1 (<_> base1) (<_> base1))
-       (<j k> transGen (<l> Hopf (p @ k @ j @ l)) 0 base1)
+       (<j k> transGen (<l> Hopf (p @ j @ k @ l)) 0 base1)
        (<_ _> base1)
   -- fibOmega' (Omega2 S2pt) itFibOmega2' itFibOmega3eq p
 
@@ -1162,8 +1162,8 @@ setLoop (p q : loopS1) (r s : Path loopS1 p q) : Path (Path loopS1 p q) r s =
 --        pP (x : S1) : prop ((y : S1) -> set (Path S1 x y)) =
 --         propPi S1 (\(y : S1) -> set (Path S1 x y)) (\(y : S1) -> setIsProp (Path S1 x y))
 
-one : nat = suc zero
-two : nat = suc one
+-- one : nat = suc zero
+-- two : nat = suc one
 
 -- alternative approach:
 -- temp1' : inhOrTrunc (HopfTwo' (<_ _> base2)) one =
@@ -1172,10 +1172,12 @@ two : nat = suc one
 -- I hardcode this as the smallest thing possible. The fact that we
 -- are calling setLoop with refl should make it possible to simplify
 -- it even further as decodeEncode with refl is proved by refl.
+arg3 (p : (Omega3 S2pt).1) : Path loopS1 (<_> base1) (<_> base1) =
+  <j k> transGen (<l> Hopf (p @ j @ k @ l)) 0 base1
+
 fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p =
   -- truncFibOmega' zero (Omega2 S2pt) HopfTwo' itFibOmega3eq temp1' p
-  setLoop (<_> base1) (<_> base1)
-          (<j k> transGen (<l> Hopf (p @ k @ j @ l)) 0 base1) (<_ _> base1)
+  setLoop (<_> base1) (<_> base1) (arg3 p) (<_ _> base1)
 
 -- > :n temp1'
 -- Time: 0m1.875s

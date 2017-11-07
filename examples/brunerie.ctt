@@ -2486,3 +2486,7 @@ testShortcut3To6 : Z = f11 (f10 (f9 (f8 (f7 (f2 (f1 test0To0))))))
 
 -- ?
 testShortcut4To5 : Z = f11 (f10 (f9 (f8 (f7 (f6 (f3 (f2 (f1 test0To0))))))))
+
+
+arg3 (p : (Omega3 S2pt).1) : Path loopS1 (<_> base) (<_> base) =
+  <j k> transGen (<l> Hopf (p @ j @ k @ l)) 0 base

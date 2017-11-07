@@ -134,7 +134,7 @@ joinpt (A : ptType) (B : U) : ptType = (join A.1 B,inl (pt A))
 Square (A : U) (a0 a1 b0 b1 : A)
                (u : Path A a0 a1) (v : Path A b0 b1)
                (r0 : Path A a0 b0) (r1 : Path A a1 b1) : U
-  = PathP (<i> (PathP (<j> A) (u @ i) (v @ i))) r0 r1
+  = PathP (<i> (Path A (u @ i) (v @ i))) r0 r1
 
 sq (A : U) (a b c : A) (p : Path A a b) (q : Path A c a) :
   Square A a b c a p q (<i> q @ -i) (<i> p @ -i) =
@@ -177,8 +177,6 @@ cubealpha' : PathP (<k> PathP (<i> Path (join S1 S1)
               (inl (loop @ i)) (inr base1) (inl base1)
               (pushP S1 S1 (loop @ i) base1)
               (<w> pushP S1 S1 base1 base1 @ -w) @ l @ k
-
--- sqsq' (A : U) (a b : A) (p : Path A a b) :
 
 cubealpha : PathP (<k> PathP (<i> Path (join S1 S1)
                                        (pushP S1 S1 (loop @ i) base1 @ k)
@@ -249,32 +247,57 @@ goalcube : Path (Path (Path (join S1 S1)
                 , (i=1) -> <l> pushP S1 S1 base1 base1 @ -k /\ -l
                 ]
 
+
+-- Alternative definition of goalcube using an equality in the
+-- universe. This seems to give a simpler test0To4!
+
+-- The first type:
+T1 : U = PathP (<i> PathP (<j> Path (join S1 S1)
+                                    (inl (loop @ i)) (inr (loop @ j)))
+                          (<j> pushP S1 S1 (loop @ i) base1 @ j)
+                          (<j> pushP S1 S1 (loop @ i) base1 @ j))
+               (<i j> pushP S1 S1 base1 (loop @ i) @ j)
+               (<i j> pushP S1 S1 base1 (loop @ i) @ j)
+
+-- The second type without loop:
+T2 : U = PathP (<i> PathP (<j> Path (join S1 S1)
+                                    (inl base1) (inr base1))
+                          (<j> pushP S1 S1 base1 base1 @ j)
+                          (<j> pushP S1 S1 base1 base1 @ j))
+               (<i j> pushP S1 S1 base1 base1 @ j)
+               (<i j> pushP S1 S1 base1 base1 @ j)
+
+-- Direct equality in the universe:
+T12 : Path U T1 T2 = <k> 
+         PathP (<i> PathP (<j> Path (join S1 S1)
+                                    (inl (loop @ i /\ -k)) (inr (loop @ j /\ -k)))
+                          (<j> pushP S1 S1 (loop @ i /\ -k) base1 @ j)
+                          (<j> pushP S1 S1 (loop @ i /\ -k) (loop @ -k) @ j))
+               (<i j> pushP S1 S1 base1 (loop @ i /\ -k) @ j)
+               (<i j> pushP S1 S1 (loop @ -k) (loop @ i /\ -k) @ j)
+
+-- Let cubicaltt do the job for us:
+cubestep1' : T2 = transGen T12 0 (<i j k> pushP S1 S1 (loop @ i) (loop @ j) @ k)
+
+-- Finish it up by hand:
+goalcube' : Path (Path (Path (join S1 S1)
+                            (inl base1) (inl base1))
+                      (<_> inl base1) (<_> inl base1))
+                (<_ _> inl base1) (<_ _> inl base1) =
+  <i j k> hcomp (join S1 S1)
+                (cubestep1' @ i @ j @ k)
+                [ (k=0) -> <l> inl base1
+                , (k=1) -> <l> pushP S1 S1 base1 base1 @ -l
+                , (j=0) -> <l> pushP S1 S1 base1 base1 @ k /\ -l
+                , (j=1) -> <l> pushP S1 S1 base1 base1 @ k /\ -l
+                , (i=0) -> <l> pushP S1 S1 base1 base1 @ k /\ -l
+                , (i=1) -> <l> pushP S1 S1 base1 base1 @ k /\ -l
+                ]
+
+
 e : S3 -> join S1 S1 = split
   base3 -> inl base1
-  loop3 @ i j k -> goalcube @ i @ j @ k
-
--- hcomp (join S1 S1) (push{join S1 S1} (loop1{S1} @ i) (loop1{S1} @ j) @ k)
---                          [ (i=0) -> <l> push{join S1 S1} base1 base1
---                          , (i=1) ->
---                          , (j=0) ->
---                          , (j=1) ->
---                          , (k=0) -> <l> inl base1
---                          , (k=1) -> <l> push{join S1 S1} base1 base1 @ l]
-
--- cube1 : Path (Path (Path (join S1 S1) (inl base1) (inr base1))
---              (pushP S1 S1 base1 base1)
---              (pushP S1 S1 base1 base1))
---         (<_> pushP S1 S1 base1 base1)
---         (<_> pushP S1 S1 base1 base1) =
---         <i j k> hcomp (join S1 S1)
---                       (pushP S1 S1 (loop @ i) (loop @ j) @ k)
---                       [ (i=0) -> <l> pushP S1 S1 base (loop @ j) @ k /\ -l
---                       , (i=1) ->
---                       , (j=0) ->
---                       , (j=1) ->
---                       , (k=0) ->
---                       , (k=1) ->
---                       ]
+  loop3 @ i j k -> goalcube' @ i @ j @ k
 
 eInvAux2 : S1 -> Path (Path S3 base3 base3) (<_> base3) (<_> base3) = split
   base1 -> <_ _> base3

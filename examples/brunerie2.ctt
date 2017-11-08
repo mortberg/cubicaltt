@@ -1198,15 +1198,27 @@ one : nat = suc zero
 -- alternative approach:
 temp1' : inhOrTrunc (HopfTwo' (<_ _> base2)) one =
   truncFibOmega' one (Omega S2pt) HopfOne' (<_> base1) setLoop (<_ _> base2)
+  -- = setLoop (<_> base1) (transGen (<i> (HopfOne' (<_> base2))) 0 (<_> base1))
 
--- I hardcode this as the smallest thing possible. The fact that we
--- are calling setLoop with refl should make it possible to simplify
--- it even further as decodeEncode with refl is proved by refl.
-arg3 (p : (Omega3 S2pt).1) : Path loopS1 (<_> base1) (<_> base1) =
-  <j k> transGen (<l> Hopf (p @ j @ k @ l)) 0 base1
+-- Obsolete now
+-- -- I hardcode this as the smallest thing possible. The fact that we
+-- -- are calling setLoop with refl should make it possible to simplify
+-- -- it even further as decodeEncode with refl is proved by refl.
+-- arg3 (p : (Omega3 S2pt).1) : Path loopS1 (<_> base1) (<_> base1) =
+--   <j k> transGen (<l> Hopf (p @ j @ k @ l)) 0 base1
+
+arg4 (p : (Omega3 S2pt).1) : Path loopS1 (<_> base1) (transGen (<_> loopS1) 0 (<_> base1)) =
+  transGen (<i> Path loopS1 (<_> base1)
+                            (transGen (<j> Path S1 base1 (transGen (<k> Hopf (p @ i @ j @ k)) 0 base1))
+                                      0 (<_> base1)))
+           0 (<i> hfill loopS1 (<_> base1) [] @ i)
 
 fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p =
-  truncFibOmega' zero (Omega2 S2pt) HopfTwo' HopfTwo'pt temp1' p
+  setLoop (<_> base1)
+          (transGen (<_> loopS1) 0 (<_> base1))
+          (<i> hfill loopS1 (<_> base1) [] @ i)
+          (arg4 p)
+  -- truncFibOmega' zero (Omega2 S2pt) HopfTwo' HopfTwo'pt temp1' p
   -- setLoop (<_> base1) (<_> base1) (arg3 p) (<_ _> base1)
 
 -- > :n temp1'

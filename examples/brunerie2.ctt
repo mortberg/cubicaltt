@@ -562,7 +562,7 @@ truncFibOmega (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B))
 
 -- The simple general versions of "looping a fibration":
 fibOmega' (B : ptType) (P : B.1 -> U) (f : P (pt B)) (p : (Omega B).1) : U =
-  Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f
+  Path (P (pt B)) f (subst B.1 P (pt B) (pt B) p f)
 
 -- itFibOmega1' (p : (Omega S2pt).1) : U = fibOmega' S2pt Hopf base1 p
 
@@ -587,13 +587,20 @@ itFibOmega3' (p : (Omega3 S2pt).1) : U =
 
 -- The normal form of these are not too bad
 
--- HopfOne' : (Omega S2pt).1 -> U = fibOmega' S2pt Hopf base1
--- HopfTwo' : (Omega2 S2pt).1 -> U = itFibOmega2'
-HopfThree' : (Omega3 S2pt).1 -> U = itFibOmega3'
+-- -- HopfOne' : (Omega S2pt).1 -> U = fibOmega' S2pt Hopf base1
+-- -- HopfTwo' : (Omega2 S2pt).1 -> U = itFibOmega2'
+-- HopfThree' : (Omega3 S2pt).1 -> U = itFibOmega3'
+
+HopfOne'    (p : (Omega S2pt).1)  : U = Path S1      base1         (transGen (<i> Hopf (p @ i))     0 base1)
+HopfTwo'    (p : (Omega2 S2pt).1) : U = Path loopS1  (<_> base1)   (transGen (<j> HopfOne' (p @ j)) 0 (<_> base1))
+HopfTwo'pt : HopfTwo' (<_ _> base2) = <i> hfill loopS1 (<_> base1) [] @ i
+HopfThree'  (p : (Omega3 S2pt).1) : U = Path (HopfTwo' (<_ _> base2))
+                                                     HopfTwo'pt    (transGen (<k> HopfTwo' (p @ k)) 0 HopfTwo'pt)
+
 
 -- This is now trivial!
--- truncFibOmega' (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B))
---   (tr : inhOrTrunc (P (pt B)) (suc n)) (p : (Omega B).1) : inhOrTrunc (fibOmega' B P f p) n = tr (subst B.1 P (pt B) (pt B) p f) f
+truncFibOmega' (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B))
+  (tr : inhOrTrunc (P (pt B)) (suc n)) (p : (Omega B).1) : inhOrTrunc (fibOmega' B P f p) n = tr f (subst B.1 P (pt B) (pt B) p f)
 
 
 -- end of alternative attempt
@@ -1185,12 +1192,12 @@ setLoop (p q : loopS1) (r s : Path loopS1 p q) : Path (Path loopS1 p q) r s =
 --        pP (x : S1) : prop ((y : S1) -> set (Path S1 x y)) =
 --         propPi S1 (\(y : S1) -> set (Path S1 x y)) (\(y : S1) -> setIsProp (Path S1 x y))
 
--- one : nat = suc zero
+one : nat = suc zero
 -- two : nat = suc one
 
 -- alternative approach:
--- temp1' : inhOrTrunc (HopfTwo' (<_ _> base2)) one =
---   truncFibOmega' one (Omega S2pt) HopfOne' (<_> base1) setLoop (<_ _> base2)
+temp1' : inhOrTrunc (HopfTwo' (<_ _> base2)) one =
+  truncFibOmega' one (Omega S2pt) HopfOne' (<_> base1) setLoop (<_ _> base2)
 
 -- I hardcode this as the smallest thing possible. The fact that we
 -- are calling setLoop with refl should make it possible to simplify
@@ -1199,8 +1206,8 @@ arg3 (p : (Omega3 S2pt).1) : Path loopS1 (<_> base1) (<_> base1) =
   <j k> transGen (<l> Hopf (p @ j @ k @ l)) 0 base1
 
 fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p =
-  -- truncFibOmega' zero (Omega2 S2pt) HopfTwo' itFibOmega3eq temp1' p
-  setLoop (<_> base1) (<_> base1) (arg3 p) (<_ _> base1)
+  truncFibOmega' zero (Omega2 S2pt) HopfTwo' HopfTwo'pt temp1' p
+  -- setLoop (<_> base1) (<_> base1) (arg3 p) (<_ _> base1)
 
 -- > :n temp1'
 -- Time: 0m1.875s

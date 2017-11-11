@@ -16,6 +16,28 @@ propIsEquiv (A B : U) (f : A -> B)
   \ (u0 u1:isEquiv A B f) ->
      <i> \ (y:B) -> propIsContr (fiber A B f y) (u0 y) (u1 y) @ i
 
+propIsEquivDirect (A B : U) (f : A -> B) : prop (isEquiv A B f) =
+  \(p q : isEquiv A B f) ->
+  <i> \(y : B) ->
+    let p0 : A = (p y).1.1
+        p1 : Path B y (f p0) = (p y).1.2
+        p2 : (w1 : fiber A B f y) -> Path (fiber A B f y) (p0,p1) w1 =
+         (p y).2
+        q0 : A = (q y).1.1
+        q1 : Path B y (f q0) = (q y).1.2
+        q2 : (w1 : fiber A B f y) -> Path (fiber A B f y) (q0,q1) w1 =
+         (q y).2
+    in (p2 (q0,q1) @ i,
+       \(w : fiber A B f y) ->
+          let sq : PathP (<j> Path (fiber A B f y) (p2 (q0,q1) @ j) w) (p2 w) (q2 w) = 
+                     <i j> comp (<_> fiber A B f y) (p2 w @ i \/ j)
+                                 [ (i = 0) -> <k> p2 w @ j
+                                 , (i = 1) -> <k> q2 w @ j \/ -k
+                                 , (j = 0) -> <k> p2 (q2 w @ -k) @ i
+                                 , (j = 1) -> <k> w ]
+          in sq @ i)
+
+
 equivLemma (A B : U)
   : (v w : equiv A B) -> Path (A -> B) v.1 w.1 -> Path (equiv A B) v w
   = lemSig (A -> B) (isEquiv A B) (propIsEquiv A B)

@@ -268,7 +268,7 @@ T2 : U = PathP (<i> PathP (<j> Path (join S1 S1)
                (<i j> pushP S1 S1 base1 base1 @ j)
 
 -- Direct equality in the universe:
-T12 : Path U T1 T2 = <k> 
+T12 : Path U T1 T2 = <k>
          PathP (<i> PathP (<j> Path (join S1 S1)
                                     (inl (loop @ i /\ -k)) (inr (loop @ j /\ -k)))
                           (<j> pushP S1 S1 (loop @ i /\ -k) base1 @ j)
@@ -359,21 +359,6 @@ idIsEquiv (A : U) : isEquiv A A (idfun A) =
 
 idEquiv (A : U) : equiv A A = (idfun A,idIsEquiv A)
 
-propIsContr (A : U) (z0 z1 : isContr A) : Path (isContr A) z0 z1 =
- <j> (p0 a1 @ j
-     ,\(x : A) -> <i> hcomp A (lem1 x@i@j)
-                              [ (i=0) -> <k> p0 a1 @ j
-                              , (i=1) -> <k> p0 x @ j \/ k
-                              , (j=0) -> <k> p0 x @ i/\ k
-                              , (j=1) -> <k> p1 x @ i ])
- where
-  a0 : A = z0.1
-  p0 : (x : A) -> Path A a0 x = z0.2
-  a1 : A = z1.1
-  p1 : (x : A) -> Path A a1 x = z1.2
-  lem1 (x : A) : PathP (<i> Path A a0 (p1 x @ i)) (p0 a1) (p0 x) =
-    <i j> p0 (p1 x @ i) @ j
-
 propSet (A : U) (h : prop A) : set A =
  \(a b : A) (p q : Path A a b) ->
    <j i> hcomp A a [ (i=0) -> h a a
@@ -405,6 +390,21 @@ groupoidIsProp (A : U) : prop (groupoid A) =
 -- propPi (A : U) (B : A -> U) (h : (x : A) -> prop (B x))
 --        (f0 f1 : (x : A) -> B x) : Path ((x : A) -> B x) f0 f1
 --   = <i> \ (x:A) -> (h x (f0 x) (f1 x)) @ i
+
+propIsContr (A : U) (z0 z1 : isContr A) : Path (isContr A) z0 z1 =
+ <j> (p0 a1 @ j
+     ,\(x : A) -> <i> hcomp A (lem1 x@i@j)
+                              [ (i=0) -> <k> p0 a1 @ j
+                              , (i=1) -> <k> p0 x @ j \/ k
+                              , (j=0) -> <k> p0 x @ i/\ k
+                              , (j=1) -> <k> p1 x @ i ])
+ where
+  a0 : A = z0.1
+  p0 : (x : A) -> Path A a0 x = z0.2
+  a1 : A = z1.1
+  p1 : (x : A) -> Path A a1 x = z1.2
+  lem1 (x : A) : PathP (<i> Path A a0 (p1 x @ i)) (p0 a1) (p0 x) =
+    <i j> p0 (p1 x @ i) @ j
 
 propIsEquiv (A B : U) (f : A -> B) : prop (isEquiv A B f) =
   \(u0 u1 : isEquiv A B f) -> <i> \(y : B) -> propIsContr (fiber A B f y) (u0 y) (u1 y) @ i
@@ -478,8 +478,6 @@ propIsEquivDirect' (A B : U) (f : A -> B) : prop (isEquiv A B f) =
                                  ]
           in <j> (sq1 @ i @ j,sq2 @ i @ j))
 
--- opaque propIsEquiv
-
 ua (A B : U) (e : equiv A B) : Path U A B =
   <i> Glue B [ (i = 0) -> (A,e)
              , (i = 1) -> (B,idEquiv B) ]
@@ -498,17 +496,63 @@ rot_unit_r : (a : S1) -> Path S1 (rot a base1) a = split
 
 lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a0 a1 :A)
          (p : Path A a0 a1) (b0 : P a0) (b1 : P a1) : PathP (<i> P (p @ i)) b0 b1 =
-  <i> pP (p @ i) (comp (<j> P (p @ i/\ j)) b0 [ (i=0) -> <_> b0])
-                 (comp (<j> P (p @ i\/ -j)) b1 [ (i=1) -> <_> b1]) @ i
+  <i> pP (p @ i) (comp (<j> P (p @ i /\ j)) b0 [ (i=0) -> <_> b0])
+                 (comp (<j> P (p @ i \/ -j)) b1 [ (i=1) -> <_> b1]) @ i
+
+-- Specialized version for S1:
+lemPropFS1 (P : S1 -> U) (pP : (x : S1) -> prop (P x)) 
+         (b0 : P base1) : PathP (<i> P (loop @ i)) b0 b0 =
+  <i> pP (loop @ i) (comp (<j> P (loop @ i /\ j)) b0 [ (i=0) -> <_> b0])
+                    (comp (<j> P (loop @ i \/ -j)) b0 [ (i=1) -> <_> b0]) @ i
+
+-- -- Alternative version of lemPropFS1 that generates smaller input
+-- -- to propIsEquiv, but it seems to blow up memory consumption...
+
+-- subst (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
+--   transGen (<i> P (p @ i)) 0 e
+
+-- pathSIntroS1 (C : S1 -> U) (c : C base1)
+--            (w : Path (C base1) (subst S1 C base1 base1 loop c) c) :
+--   PathP (<i> C (loop @ i)) c c =
+--   transGen (<j> PathP (<i> C (loop @ -j \/ i))
+--                       (transGen (<i> C (loop @ -j /\ i)) j c) c) 0 w
+
+-- lemPropFS1' (P : S1 -> U) (pP : (x : S1) -> prop (P x)) 
+--            (b0 : P base1) : PathP (<i> P (loop @ i)) b0 b0 =
+--   pathSIntroS1 P b0 (pP base1 (transGen (<i795625> P (loop1 {S1} @ i795625)) 0 b0) b0)
 
 rotIsEquiv_loop : PathP (<i> isEquiv S1 S1 (rot (loop @ i))) (idIsEquiv S1) (idIsEquiv S1) =
-  lemPropF S1 (\(a : S1) -> isEquiv S1 S1 (rot a))
-           (\(a : S1) -> propIsEquiv S1 S1 (rot a)) base1 base1 loop
-           (idIsEquiv S1) (idIsEquiv S1)
+  lemPropFS1 (\(a : S1) -> isEquiv S1 S1 (rot a))
+             (\(a : S1) -> propIsEquivDirect' S1 S1 (rot a)) 
+             (idIsEquiv S1) 
 
 rotIsEquiv : (a : S1) -> isEquiv S1 S1 (rot a) = split
    base1 -> idIsEquiv S1
    loop1 @ i -> rotIsEquiv_loop @ i
+
+-- Alternative: seems to compute very badly
+-- subst (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
+--   transGen (<i> P (p @ i)) 0 e
+
+-- pathSIntroS1 (C : S1 -> U) (c : C base1)
+--            (w : Path (C base1) (subst S1 C base1 base1 loop c) c) :
+--   PathP (<i> C (loop @ i)) c c =
+--   transGen (<j> PathP (<i> C (loop @ -j \/ i))
+--                       (transGen (<i> C (loop @ -j /\ i)) j c) c) 0 w
+
+-- s1elim (C : S1 -> U) (c : C base1) (p : Path (C base1) (subst S1 C base1 base1 loop c) c) :
+--   (x : S1) -> C x = split
+--   base1 -> c
+--   loop1 @ i -> pathSIntroS1 C c p @ i
+
+-- rotIsEquiv' : (a : S1) -> isEquiv S1 S1 (rot a) =
+--   s1elim (\(x : S1) -> isEquiv S1 S1 (rot x))
+--          (idIsEquiv S1)
+--          p
+--    where
+--    p : Path (isEquiv S1 S1 (rot base1))
+--             (subst S1 (\(x : S1) -> isEquiv S1 S1 (rot x)) base1 base1 loop (idIsEquiv S1)) (idIsEquiv S1) = propIsEquivDirect' S1 S1 (rot base1) (subst S1 (\(x : S1) -> isEquiv S1 S1 (rot x)) base1 base1 loop (idIsEquiv S1)) (idIsEquiv S1)
+--
 
 rotpath (x : S1) : Path U S1 S1 = ua S1 S1 (rot x, rotIsEquiv x)
 
@@ -520,6 +564,32 @@ goal (A : U) : Path (Path U A A) (ua A A (idEquiv A)) (<_> A) =
 Hopf : S2 -> U = split
   base2 -> S1
   loop2 @ i j -> hcomp U (rotpath (loop @ i) @ j)
+                       [ (i=0) -> <k> goal S1 @ k @ j
+                       , (i=1) -> <k> goal S1 @ k @ j
+                       , (j=0) -> <_> S1
+                       , (j=1) -> <_> S1 ]
+
+-- Alternative Hopf, doesn't seem to compute differently
+lemSig (A : U) (B : A -> U) (pB : (x : A) -> prop (B x))
+       (u v : (x:A) * B x) (p : Path A u.1 v.1) :
+       Path ((x:A) * B x) u v = <i> (p @ i, lemPropF A B pB u.1 v.1 p u.2 v.2 @ i)
+
+equivEq (A B : U) (v w : equiv A B) (p : Path (A -> B) v.1 w.1) : Path (equiv A B) v w =
+  lemSig (A -> B) (isEquiv A B) (propIsEquivDirect' A B) v w p
+
+mu : S1 -> equiv S1 S1 = split
+  base1 -> idEquiv S1
+  loop1 @ i ->
+    let f : (x : S1) -> Path S1 x x = split
+          base1 -> loop
+          loop1 @ i -> constSquare S1 base1 loop @ i
+        goal : Path (equiv S1 S1) (idEquiv S1) (idEquiv S1) =
+          equivEq S1 S1 (idEquiv S1) (idEquiv S1) (<j> \(x : S1) -> f x @ j)
+    in goal @ i
+
+Hopf' : S2 -> U = split
+  base2 -> S1
+  loop2 @ i j -> hcomp U (ua S1 S1 (mu (loop @ i)) @ j)
                        [ (i=0) -> <k> goal S1 @ k @ j
                        , (i=1) -> <k> goal S1 @ k @ j
                        , (j=0) -> <_> S1
@@ -551,6 +621,11 @@ lemTransGen0 (A : U) (a : A) : Path A (transGen0 A a) a =
   <i> hcomp A (hfill A (transGen (<_> A) 0 a) [] @ i)
            [ (i = 0) -> <_> transGen0 A a
            , (i = 1) -> <j> fill (<_> A) a [] @ -j ]
+
+-- This is a bit weird
+-- lemTransGen0' (A : U) (a : A) : Path A (transGen0 A a) (hcomp A a []) =
+--   let rem : Path A a (hcomp A a []) = hfill A a []
+--   in compPath A (transGen0 A a) a (hcomp A a []) (lemTransGen0 A a) rem
 
 -- Define these directly and unfolded makes the definition of itTotalFibOmega3 extremely simple
 fibOmega (B : ptType) (P : B.1 -> U) (f : P (pt B)) (p : (Omega B).1) : U =
@@ -885,8 +960,6 @@ ZSet (u v : Z) (p q : Path Z u v) : Path (Path Z u v) p q = setZ' u v q p
 --                        in rem (discreteNat b b1)
 
 -- ZSet : set Z = hedberg Z discreteZ
-
--- opaque ZSet
 
 -- No need for substituting in the universe here
 -- setLoop : set loopS1 = subst U set Z loopS1 (<i> loopS1equalsZ @ -i) ZSet
@@ -1290,6 +1363,8 @@ fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p =
   -- truncFibOmega' zero (Omega2 S2pt) HopfTwo' HopfTwo'pt temp1' p
   -- setLoop (<_> base1) (<_> base1) (arg3 p) (<_ _> base1)
 
+-- opaque setLoop
+
 -- > :n temp1'
 -- Time: 0m1.875s
 -- temp1' : inhOrTrunc (HopfTwo' (<_ _> base2)) one =
@@ -1631,7 +1706,7 @@ multEquivBase2 : isEquiv trS2 trS2 (multTwoTilde base2) =
 multTwoTildeEquiv : (x : S2) -> isEquiv trS2 trS2 (multTwoTilde x) =
   lemPropS2
     (\(x : S2) -> isEquiv trS2 trS2 (multTwoTilde x))
-    (\(x : S2) -> propIsEquiv trS2 trS2 (multTwoTilde x))
+    (\(x : S2) -> propIsEquivDirect' trS2 trS2 (multTwoTilde x))
     multEquivBase2
 
 opaque multTwoTildeEquiv
@@ -1644,14 +1719,14 @@ goal2 (A : U) (e : equiv A A) (p : Path (equiv A A) (idEquiv A) e) : Path (Path 
 
 goal3 : Path (equiv trS2 trS2) (idEquiv trS2) (multTwoTilde base2, multTwoTildeEquiv base2)
   = <i> (multBase2EqPath @ i
-        , lemPropF (trS2 -> trS2) (isEquiv trS2 trS2) (propIsEquiv trS2 trS2)
+        , lemPropF (trS2 -> trS2) (isEquiv trS2 trS2) (propIsEquivDirect' trS2 trS2)
                    (\ (x : trS2) -> x) (multTwoTilde base2) multBase2EqPath
                    (idIsEquiv trS2) (multTwoTildeEquiv base2) @ i)
 
 eee : equiv trS2 trS2 =
   (multTwoTilde base2, multTwoTildeEquiv base2)
 
-opaque propIsEquiv
+opaque propIsEquivDirect'
 
 tHopf3 : S3 -> U = split
   base3 -> trS2
@@ -1663,7 +1738,7 @@ tHopf3 : S3 -> U = split
                          , (k=0) -> <_> trS2
                          , (k=1) -> <_> trS2]
 
-transparent propIsEquiv
+transparent propIsEquivDirect'
 
 pi3S3 : (Omega3 S3pt).1 -> (Omega2 (g2Truncpt S2pt)).1 =
   mapOmegaRefl2 (Omega S3pt) trS2 pi3S3'
@@ -1928,7 +2003,7 @@ lemSigProp (A:U) (B:A-> U) (pB : (x:A) -> prop (B x)) (t u : Sigma A B) : Path U
 
 eqEquivFst (A B : U) : (t u : equiv A B) ->
      Path U (Path (equiv A B) t u) (Path (A -> B) t.1 u.1)
-   = lemSigProp (A -> B) (isEquiv A B) (propIsEquiv A B)
+   = lemSigProp (A -> B) (isEquiv A B) (propIsEquivDirect' A B)
 
 groupoidPi (A : U) (B : A -> U) (h : (x : A) -> groupoid (B x)) (f g : pi A B) :
   set (Path (pi A B) f g) = subst U set T (Path (pi A B) f g) (<i> idPi A B f g @ -i) rem1
@@ -2055,6 +2130,8 @@ testShortcut4To5 : Z = f11 (f10 (f9 (f8 (f7 (f6 (f3 test0To2))))))
 -- Various simple tests:
 testShortcutf11 : Z = f11 (f10 (sinc (<i j> loop2{S2} @ i @ j)))
 testShortcutf11' : Z = f11 (f10 (f9 (<i> ginc (<j> loop2{S2} @ i @ j))))
+
+-- opaque propIsEquivDirect'
 
 -- does this terminate? (with opaque propIsEquiv it does, but it isn't a numeral...)
 testShortcutf11'' : Z = f11 (f10 (f9 (f8 (<i j> g2inc (loop2{S2} @ i @ j)))))

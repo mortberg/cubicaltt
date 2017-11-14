@@ -409,7 +409,30 @@ groupoidIsProp (A : U) : prop (groupoid A) =
 propIsEquiv (A B : U) (f : A -> B) : prop (isEquiv A B f) =
   \(u0 u1 : isEquiv A B f) -> <i> \(y : B) -> propIsContr (fiber A B f y) (u0 y) (u1 y) @ i
 
-propIsEquivReallyDirect (A B : U) (f : A -> B) : prop (isEquiv A B f) =
+-- Direct proof, not much better than propIsEquiv...
+propIsEquivDirect (A B : U) (f : A -> B) : prop (isEquiv A B f) =
+  \(p q : isEquiv A B f) ->
+  <i> \(y : B) ->
+    let p0 : A = (p y).1.1
+        p1 : Path B y (f p0) = (p y).1.2
+        p2 : (w1 : fiber A B f y) -> Path (fiber A B f y) (p0,p1) w1 =
+         (p y).2
+        q0 : A = (q y).1.1
+        q1 : Path B y (f q0) = (q y).1.2
+        q2 : (w1 : fiber A B f y) -> Path (fiber A B f y) (q0,q1) w1 =
+         (q y).2
+    in (p2 (q0,q1) @ i,
+       \(w : fiber A B f y) ->
+          let sq : PathP (<j> Path (fiber A B f y) (p2 (q0,q1) @ j) w) (p2 w) (q2 w) = 
+                     <i j> hcomp (fiber A B f y) (p2 w @ i \/ j)
+                                 [ (i = 0) -> <k> p2 w @ j
+                                 , (i = 1) -> <k> q2 w @ j \/ -k
+                                 , (j = 0) -> <k> p2 (q2 w @ -k) @ i
+                                 , (j = 1) -> <k> w ]
+          in sq @ i)
+
+-- Unfolded direct proof. This has a simpler normal form without transGen's!
+propIsEquivDirect' (A B : U) (f : A -> B) : prop (isEquiv A B f) =
   \(p q : isEquiv A B f) ->
   <i> \(y : B) ->
     let p0 : A = (p y).1.1
@@ -438,7 +461,6 @@ propIsEquivReallyDirect (A B : U) (f : A -> B) : prop (isEquiv A B f) =
                                  , (i = 1) -> <k> q2w1 @ j \/ -k
                                  , (j = 0) -> <k> (p2 (q2 w @ -k) @ i).1
                                  , (j = 1) -> <k> x ]
-                                 
               sq2 : PathP (<i> PathP (<j> Path B y (f (sq1 @ i @ j)))
                                      (alpha2 @ i) wx)
                           p2w2 q2w2 =
@@ -454,58 +476,6 @@ propIsEquivReallyDirect (A B : U) (f : A -> B) : prop (isEquiv A B f) =
                                                         , (j = 0) -> <k> (p2 (q2 w @ -k) @ i).1
                                                         , (j = 1) -> <k> x ] @ k)
                                  ]
-              -- -- base
-              -- p2w2' : PathP (<i> Path B (f (p2w1 @ i)) (f x)) (<i> f (p2w1 @ i)) (<_> f x) =
-              --   -- <i j> p2w2 @ i \/ j @ 1
-              --   <i j> f (p2 w @ i \/ j).1
-
-              -- -- i=0
-              -- fi0 : PathP (<j> Path B (f (p2w1 @ j)) (f (p2w1 @ j))) (<_> f p0) (<_> f x) =
-              -- -- <j k> p2w2 @ j @ 1
-              --    <i _> f (p2 w @ i).1
-                 
-              -- -- i=1
-              -- fi1 : PathP (<j> Path B (f x) (f (q2w1 @ j))) (<k> f (q2w1 @ -k)) (<_> f x) =
-              -- -- <j k> q2w2 @ j \/ -k @ 1
-              --    <i j> f (q2 w @ i \/ -j).1
-
-              -- -- j=0              
-              -- -- moo01 : Path B (p1 @ 1) (p1 @ 1) = <k> (p2 (q2 w @ -k) @ 0).2 @ 1
-              -- moo01 : Path B (f p0) (f p0) = -- <k> (p2 (q2 w @ -k) @ 0).2 @ 1
-              --   <_> f p0
-              -- -- moo11 : Path B (wx @ 1) (q1 @ 1) = <k> (p2 (q2 w @ -k) @ 1).2 @ 1
-              -- moo11 : Path B (f x) (f q0) = -- <k> (p2 (q2 w @ -k) @ 1).2 @ 1
-              --   <i> f (q2 w @ -i).1
-               
-              -- fj0 : PathP (<i> Path B (f (p2w1 @ i)) (f (alpha1 @ i))) moo01 moo11 =
-              --   -- <i k> (p2 (q2 w @ -k) @ i).2 @ 1
-              --   <i j> f (p2 (q2 w @ -j) @ i).1
-                
-              -- -- j=1
-              -- fj1 : Path (Path B (f x) (f x)) (<_> f x) (<_> f x) =
-              --   -- <i k> wx @ 1
-              --   <_ _> f x
-
-              -- -- Without f:
-              -- -- k=0
-              -- p2w2' : PathP (<i> Path A (p2w1 @ i) x) p2w1 (<_> x) =
-              --   <i j> (p2 w @ i \/ j).1
-
-              -- -- i=0
-              -- fi0 : PathP (<j> Path A (p2w1 @ j) (p2w1 @ j)) (<_> p0) (<_> x) =
-              --    <j k> (p2 w @ j).1
-                 
-              -- -- i=1
-              -- fi1 : PathP (<j> Path A x (q2w1 @ j)) (<k> q2w1 @ -k) (<_> x) =
-              --    <j k> (q2 w @ j \/ -k).1
-
-              -- -- j=0              
-              -- fj0 : PathP (<k> Path A (p2w1 @ k) (alpha1 @ k)) (<k> p0) (<k> q2w1 @ -k) =
-              --   <i k> (p2 (q2 w @ -k) @ i).1
-                
-              -- -- j=1
-              -- fj1 : Path (Path A x x) (<k> x) (<k> x) =
-              --   <i k> x
           in <j> (sq1 @ i @ j,sq2 @ i @ j))
 
 -- opaque propIsEquiv
@@ -1681,6 +1651,8 @@ goal3 : Path (equiv trS2 trS2) (idEquiv trS2) (multTwoTilde base2, multTwoTildeE
 eee : equiv trS2 trS2 =
   (multTwoTilde base2, multTwoTildeEquiv base2)
 
+opaque propIsEquiv
+
 tHopf3 : S3 -> U = split
   base3 -> trS2
   loop3 @ i j k -> hcomp U (ua trS2 trS2 (multTwoTilde (loop2{S2} @ i @ j),multTwoTildeEquiv (loop2{S2} @ i @ j)) @ k)
@@ -1690,6 +1662,8 @@ tHopf3 : S3 -> U = split
                          , (j=1) -> <l> goal2 trS2 eee goal3 @ l @ k
                          , (k=0) -> <_> trS2
                          , (k=1) -> <_> trS2]
+
+transparent propIsEquiv
 
 pi3S3 : (Omega3 S3pt).1 -> (Omega2 (g2Truncpt S2pt)).1 =
   mapOmegaRefl2 (Omega S3pt) trS2 pi3S3'
@@ -2081,8 +2055,6 @@ testShortcut4To5 : Z = f11 (f10 (f9 (f8 (f7 (f6 (f3 test0To2))))))
 -- Various simple tests:
 testShortcutf11 : Z = f11 (f10 (sinc (<i j> loop2{S2} @ i @ j)))
 testShortcutf11' : Z = f11 (f10 (f9 (<i> ginc (<j> loop2{S2} @ i @ j))))
-
--- transparent propIsEquiv
 
 -- does this terminate? (with opaque propIsEquiv it does, but it isn't a numeral...)
 testShortcutf11'' : Z = f11 (f10 (f9 (f8 (<i j> g2inc (loop2{S2} @ i @ j)))))

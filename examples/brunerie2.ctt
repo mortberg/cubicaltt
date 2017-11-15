@@ -505,22 +505,6 @@ lemPropFS1 (P : S1 -> U) (pP : (x : S1) -> prop (P x))
   <i> pP (loop @ i) (comp (<j> P (loop @ i /\ j)) b0 [ (i=0) -> <_> b0])
                     (comp (<j> P (loop @ i \/ -j)) b0 [ (i=1) -> <_> b0]) @ i
 
--- -- Alternative version of lemPropFS1 that generates smaller input
--- -- to propIsEquiv, but it seems to blow up memory consumption...
-
--- subst (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
---   transGen (<i> P (p @ i)) 0 e
-
--- pathSIntroS1 (C : S1 -> U) (c : C base1)
---            (w : Path (C base1) (subst S1 C base1 base1 loop c) c) :
---   PathP (<i> C (loop @ i)) c c =
---   transGen (<j> PathP (<i> C (loop @ -j \/ i))
---                       (transGen (<i> C (loop @ -j /\ i)) j c) c) 0 w
-
--- lemPropFS1' (P : S1 -> U) (pP : (x : S1) -> prop (P x)) 
---            (b0 : P base1) : PathP (<i> P (loop @ i)) b0 b0 =
---   pathSIntroS1 P b0 (pP base1 (transGen (<i795625> P (loop1 {S1} @ i795625)) 0 b0) b0)
-
 rotIsEquiv_loop : PathP (<i> isEquiv S1 S1 (rot (loop @ i))) (idIsEquiv S1) (idIsEquiv S1) =
   lemPropFS1 (\(a : S1) -> isEquiv S1 S1 (rot a))
              (\(a : S1) -> propIsEquivDirect' S1 S1 (rot a)) 
@@ -530,31 +514,37 @@ rotIsEquiv : (a : S1) -> isEquiv S1 S1 (rot a) = split
    base1 -> idIsEquiv S1
    loop1 @ i -> rotIsEquiv_loop @ i
 
--- Alternative: seems to compute very badly
--- subst (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
---   transGen (<i> P (p @ i)) 0 e
+-- Alternative version of rotIsEquiv that generates smaller input
+-- to propIsEquivDirect' and seems to terminate faster:
+subst (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
+  transGen (<i> P (p @ i)) 0 e
 
--- pathSIntroS1 (C : S1 -> U) (c : C base1)
---            (w : Path (C base1) (subst S1 C base1 base1 loop c) c) :
---   PathP (<i> C (loop @ i)) c c =
---   transGen (<j> PathP (<i> C (loop @ -j \/ i))
---                       (transGen (<i> C (loop @ -j /\ i)) j c) c) 0 w
+pathSIntroS1 (C : S1 -> U) (c : C base1)
+           (w : Path (C base1) (subst S1 C base1 base1 loop c) c) :
+  PathP (<i> C (loop @ i)) c c =
+  transGen (<j> PathP (<i> C (loop @ -j \/ i))
+                      (transGen (<i> C (loop @ -j /\ i)) j c) c) 0 w
 
--- s1elim (C : S1 -> U) (c : C base1) (p : Path (C base1) (subst S1 C base1 base1 loop c) c) :
---   (x : S1) -> C x = split
---   base1 -> c
---   loop1 @ i -> pathSIntroS1 C c p @ i
+s1elim (C : S1 -> U) (c : C base1) (p : Path (C base1) (subst S1 C base1 base1 loop c) c) :
+  (x : S1) -> C x = split
+  base1 -> c
+  loop1 @ i -> pathSIntroS1 C c p @ i
 
--- rotIsEquiv' : (a : S1) -> isEquiv S1 S1 (rot a) =
---   s1elim (\(x : S1) -> isEquiv S1 S1 (rot x))
---          (idIsEquiv S1)
---          p
---    where
---    p : Path (isEquiv S1 S1 (rot base1))
---             (subst S1 (\(x : S1) -> isEquiv S1 S1 (rot x)) base1 base1 loop (idIsEquiv S1)) (idIsEquiv S1) = propIsEquivDirect' S1 S1 (rot base1) (subst S1 (\(x : S1) -> isEquiv S1 S1 (rot x)) base1 base1 loop (idIsEquiv S1)) (idIsEquiv S1)
---
+-- We can also use this, but it doesn't seem faster than the version with s1elim
+-- lemPropFS1' (P : S1 -> U) (pP : (x : S1) -> prop (P x)) 
+--            (b0 : P base1) : PathP (<i> P (loop @ i)) b0 b0 =
+--   pathSIntroS1 P b0 (pP base1 (transGen (<i795625> P (loop1 {S1} @ i795625)) 0 b0) b0)
 
-rotpath (x : S1) : Path U S1 S1 = ua S1 S1 (rot x, rotIsEquiv x)
+rotIsEquiv' : (a : S1) -> isEquiv S1 S1 (rot a) =
+  s1elim (\(x : S1) -> isEquiv S1 S1 (rot x))
+         (idIsEquiv S1) p
+   where
+   p : Path (isEquiv S1 S1 (rot base1))
+            (subst S1 (\(x : S1) -> isEquiv S1 S1 (rot x)) base1 base1 loop (idIsEquiv S1)) (idIsEquiv S1) =
+              propIsEquivDirect' S1 S1 (rot base1) (subst S1 (\(x : S1) -> isEquiv S1 S1 (rot x))
+                                 base1 base1 loop (idIsEquiv S1)) (idIsEquiv S1)
+
+rotpath (x : S1) : Path U S1 S1 = ua S1 S1 (rot x, rotIsEquiv' x)
 
 goal (A : U) : Path (Path U A A) (ua A A (idEquiv A)) (<_> A) =
   <j i> Glue A [ (i = 0) -> (A,idEquiv A)
@@ -2130,9 +2120,5 @@ testShortcut4To5 : Z = f11 (f10 (f9 (f8 (f7 (f6 (f3 test0To2))))))
 -- Various simple tests:
 testShortcutf11 : Z = f11 (f10 (sinc (<i j> loop2{S2} @ i @ j)))
 testShortcutf11' : Z = f11 (f10 (f9 (<i> ginc (<j> loop2{S2} @ i @ j))))
-
--- opaque propIsEquivDirect'
-
--- does this terminate? (with opaque propIsEquiv it does, but it isn't a numeral...)
 testShortcutf11'' : Z = f11 (f10 (f9 (f8 (<i j> g2inc (loop2{S2} @ i @ j)))))
 

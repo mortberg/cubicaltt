@@ -118,7 +118,7 @@ instance Nominal Val where
     VId a u v               -> occurs x (a,u,v)
     VIdJ a u c d y p        -> occurs x [a,u,c,d,y,p]
 
-  act u (i, phi) | not (occurs i u) = u
+  act u (i, phi) -- | not (occurs i u) = u
                  | otherwise =
     let acti :: Nominal a => a -> a
         acti u = act u (i, phi)                   

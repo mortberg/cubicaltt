@@ -275,11 +275,39 @@ cyril : eats bool = substEquiv eats bool bool notEquiv anders
 --------------------------------------------------------------------------
 -- Univalence
 
--- The file examples/univalence.ctt contains 3 proofs of univalence.
--- The simplest one is based on an idea of Dan Licata:
+-- The file examples/univalence.ctt contains 3 proofs of univalence
+-- that are all in the paper:
 --
---   https://groups.google.com/forum/#!topic/homotopytypetheory/j2KBIvDw53s
+-- 1. Direct proof that transEquiv : A = B -> equiv A B is an
+--    equivalence. Inverse map defined using Glue. Uses a higher
+--    dimensional Glue to prove one of the equalities.
+--
+-- 2. unglue is an equivalence. Conceptually the nicest. Very closely
+--    related to the proof that the universe is univalent in the
+--    simplicial set model (see theorem 3.4.1).
+--
+-- 3. ua + uabeta: sufficient condition as noted by Dan Licata on the
+--    HoTT google group (implicit in various earlier messages by
+--    Egbert Rijke and Martin Escardo):
+--
+--    https://groups.google.com/forum/#!topic/homotopytypetheory/j2KBIvDw53s
 
+-- In 2 and 3 we prove that (X : U) * equiv A X is contractible which
+-- is equivalent to:
+
+-- thmUniv (t : (X A : U) -> Path U X A -> equiv X A) (A : U) :
+--   (X : U) -> isEquiv (Path U X A) (equiv X A) (t X A) =
+
+-- In particular this implies the traditional formulation of
+-- univalence. I learned this from a post by Martin Escardo on the
+-- HoTT google group and the proof is now in the HoTT book. Note that
+-- this the above formulation is like contractible singletons for
+-- equivalences and hence implies the elimination principle for
+-- equivalences.
+
+
+-- Here is a sketch of proof 3:
+--
 -- The idea is to reduce univalence to two simple axioms:
 --
 --   ua (A B : U) (e : equiv A B) : Path U A B
@@ -295,8 +323,18 @@ uabeta (A B : U) (e : equiv A B) : Path (A -> B) (trans A B (ua A B e)) e.1 = un
 -- One could imagine this computation rule to hold judgmentally, but
 -- it doesn't as the algorithm for computation in the universe adds
 -- some compositions with the empty system.
--- Open problem: construct a type theory where this holds
--- judgmentally.
+
+-- Open problem: construct a type theory where this holds judgmentally.
+
+-- Once we have proved uabeta we have that equiv A B is a retract of Path U A B.
+--
+-- So    (X : U) * equiv A X    is a retract of   (X : U) * Path U A X
+--
+-- But   (X : U) * Path U A X   is contractible
+--
+-- So    (X : U) * equiv A X    is contractible as well.
+
+
 
 -- A further reduction of these axioms to even simpler axioms have
 -- recently been found by Ian Orton and Andrew Pitts:
@@ -332,8 +370,10 @@ flipbeta (A B : U) (C : A -> B -> U) (a : A) (b : B) (c : C a b) :
 What I didn't talk about:
 
   o Id types: we can define a type from Path types for which the
-    computation rule for J holds judgmentally. See
-    examples/idtypes.ctt
+    computation rule for J holds judgmentally. We call these types Id
+    types and they are equivalent to Path types, so we get univalence
+    for them as well and cubicaltt+Id is an extension of MLTT+UA.
+    For details see examples/idtypes.ctt
 
   o Higher inductive types: we can define some higher inductive types
     directly in the system. Non-recursive HITs like the circle or the

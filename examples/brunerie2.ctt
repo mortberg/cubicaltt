@@ -406,30 +406,30 @@ propIsContr (A : U) (z0 z1 : isContr A) : Path (isContr A) z0 z1 =
   lem1 (x : A) : PathP (<i> Path A a0 (p1 x @ i)) (p0 a1) (p0 x) =
     <i j> p0 (p1 x @ i) @ j
 
-propIsEquiv (A B : U) (f : A -> B) : prop (isEquiv A B f) =
-  \(u0 u1 : isEquiv A B f) -> <i> \(y : B) -> propIsContr (fiber A B f y) (u0 y) (u1 y) @ i
+-- propIsEquiv (A B : U) (f : A -> B) : prop (isEquiv A B f) =
+--   \(u0 u1 : isEquiv A B f) -> <i> \(y : B) -> propIsContr (fiber A B f y) (u0 y) (u1 y) @ i
 
--- Direct proof, not much better than propIsEquiv...
-propIsEquivDirect (A B : U) (f : A -> B) : prop (isEquiv A B f) =
-  \(p q : isEquiv A B f) ->
-  <i> \(y : B) ->
-    let p0 : A = (p y).1.1
-        p1 : Path B y (f p0) = (p y).1.2
-        p2 : (w1 : fiber A B f y) -> Path (fiber A B f y) (p0,p1) w1 =
-         (p y).2
-        q0 : A = (q y).1.1
-        q1 : Path B y (f q0) = (q y).1.2
-        q2 : (w1 : fiber A B f y) -> Path (fiber A B f y) (q0,q1) w1 =
-         (q y).2
-    in (p2 (q0,q1) @ i,
-       \(w : fiber A B f y) ->
-          let sq : PathP (<j> Path (fiber A B f y) (p2 (q0,q1) @ j) w) (p2 w) (q2 w) = 
-                     <i j> hcomp (fiber A B f y) (p2 w @ i \/ j)
-                                 [ (i = 0) -> <k> p2 w @ j
-                                 , (i = 1) -> <k> q2 w @ j \/ -k
-                                 , (j = 0) -> <k> p2 (q2 w @ -k) @ i
-                                 , (j = 1) -> <k> w ]
-          in sq @ i)
+-- -- Direct proof, not much better than propIsEquiv...
+-- propIsEquivDirect (A B : U) (f : A -> B) : prop (isEquiv A B f) =
+--   \(p q : isEquiv A B f) ->
+--   <i> \(y : B) ->
+--     let p0 : A = (p y).1.1
+--         p1 : Path B y (f p0) = (p y).1.2
+--         p2 : (w1 : fiber A B f y) -> Path (fiber A B f y) (p0,p1) w1 =
+--          (p y).2
+--         q0 : A = (q y).1.1
+--         q1 : Path B y (f q0) = (q y).1.2
+--         q2 : (w1 : fiber A B f y) -> Path (fiber A B f y) (q0,q1) w1 =
+--          (q y).2
+--     in (p2 (q0,q1) @ i,
+--        \(w : fiber A B f y) ->
+--           let sq : PathP (<j> Path (fiber A B f y) (p2 (q0,q1) @ j) w) (p2 w) (q2 w) = 
+--                      <i j> hcomp (fiber A B f y) (p2 w @ i \/ j)
+--                                  [ (i = 0) -> <k> p2 w @ j
+--                                  , (i = 1) -> <k> q2 w @ j \/ -k
+--                                  , (j = 0) -> <k> p2 (q2 w @ -k) @ i
+--                                  , (j = 1) -> <k> w ]
+--           in sq @ i)
 
 -- Unfolded direct proof. This has a simpler normal form without transGen's!
 propIsEquivDirect' (A B : U) (f : A -> B) : prop (isEquiv A B f) =
@@ -519,6 +519,7 @@ rotIsEquiv : (a : S1) -> isEquiv S1 S1 (rot a) = split
 subst (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
   transGen (<i> P (p @ i)) 0 e
 
+-- Specialized version of pathSIntro for S1
 pathSIntroS1 (C : S1 -> U) (c : C base1)
            (w : Path (C base1) (subst S1 C base1 base1 loop c) c) :
   PathP (<i> C (loop @ i)) c c =
@@ -560,30 +561,30 @@ Hopf : S2 -> U = split
                        , (j=1) -> <_> S1 ]
 
 -- Alternative Hopf, doesn't seem to compute differently
-lemSig (A : U) (B : A -> U) (pB : (x : A) -> prop (B x))
-       (u v : (x:A) * B x) (p : Path A u.1 v.1) :
-       Path ((x:A) * B x) u v = <i> (p @ i, lemPropF A B pB u.1 v.1 p u.2 v.2 @ i)
+-- lemSig (A : U) (B : A -> U) (pB : (x : A) -> prop (B x))
+--        (u v : (x:A) * B x) (p : Path A u.1 v.1) :
+--        Path ((x:A) * B x) u v = <i> (p @ i, lemPropF A B pB u.1 v.1 p u.2 v.2 @ i)
 
-equivEq (A B : U) (v w : equiv A B) (p : Path (A -> B) v.1 w.1) : Path (equiv A B) v w =
-  lemSig (A -> B) (isEquiv A B) (propIsEquivDirect' A B) v w p
+-- equivEq (A B : U) (v w : equiv A B) (p : Path (A -> B) v.1 w.1) : Path (equiv A B) v w =
+--   lemSig (A -> B) (isEquiv A B) (propIsEquivDirect' A B) v w p
 
-mu : S1 -> equiv S1 S1 = split
-  base1 -> idEquiv S1
-  loop1 @ i ->
-    let f : (x : S1) -> Path S1 x x = split
-          base1 -> loop
-          loop1 @ i -> constSquare S1 base1 loop @ i
-        goal : Path (equiv S1 S1) (idEquiv S1) (idEquiv S1) =
-          equivEq S1 S1 (idEquiv S1) (idEquiv S1) (<j> \(x : S1) -> f x @ j)
-    in goal @ i
+-- mu : S1 -> equiv S1 S1 = split
+--   base1 -> idEquiv S1
+--   loop1 @ i ->
+--     let f : (x : S1) -> Path S1 x x = split
+--           base1 -> loop
+--           loop1 @ i -> constSquare S1 base1 loop @ i
+--         goal : Path (equiv S1 S1) (idEquiv S1) (idEquiv S1) =
+--           equivEq S1 S1 (idEquiv S1) (idEquiv S1) (<j> \(x : S1) -> f x @ j)
+--     in goal @ i
 
-Hopf' : S2 -> U = split
-  base2 -> S1
-  loop2 @ i j -> hcomp U (ua S1 S1 (mu (loop @ i)) @ j)
-                       [ (i=0) -> <k> goal S1 @ k @ j
-                       , (i=1) -> <k> goal S1 @ k @ j
-                       , (j=0) -> <_> S1
-                       , (j=1) -> <_> S1 ]
+-- Hopf' : S2 -> U = split
+--   base2 -> S1
+--   loop2 @ i j -> hcomp U (ua S1 S1 (mu (loop @ i)) @ j)
+--                        [ (i=0) -> <k> goal S1 @ k @ j
+--                        , (i=1) -> <k> goal S1 @ k @ j
+--                        , (j=0) -> <_> S1
+--                        , (j=1) -> <_> S1 ]
 
 -----
 subst (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
@@ -646,17 +647,17 @@ funDepTr (A : U) (P : A -> U) (a0 a1 : A) (p : Path A a0 a1) (u0 : P a0) (u1 : P
                 (Path (P a1) (subst A P a0 a1 p u0) u1) =
   <j> PathP (<i> P (p @ j \/ i)) (transGen (<i> P (p @ j /\ i)) (-j) u0) u1
 
-truncFibOmega (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B))
-  (tr : inhOrTrunc (P (pt B)) (suc n)) (p : (Omega B).1) : inhOrTrunc (fibOmega B P f p) n =
-  let trf : inhOrTrunc (Path (P B.2) (subst B.1 P (pt B) (pt B) p f) f) n =
-        tr (subst B.1 P (pt B) (pt B) p f) f
-      eq : Path U (Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f)
-                  (PathP (<i> P (p @ i)) f f) =
-                    <i> funDepTr B.1 P (pt B) (pt B) p f f @ -i
-  in subst U (\(X : U) -> inhOrTrunc X n)
-             (Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f)
-             (PathP (<i> P (p @ i)) f f)
-             eq trf
+-- truncFibOmega (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B))
+--   (tr : inhOrTrunc (P (pt B)) (suc n)) (p : (Omega B).1) : inhOrTrunc (fibOmega B P f p) n =
+--   let trf : inhOrTrunc (Path (P B.2) (subst B.1 P (pt B) (pt B) p f) f) n =
+--         tr (subst B.1 P (pt B) (pt B) p f) f
+--       eq : Path U (Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f)
+--                   (PathP (<i> P (p @ i)) f f) =
+--                     <i> funDepTr B.1 P (pt B) (pt B) p f f @ -i
+--   in subst U (\(X : U) -> inhOrTrunc X n)
+--              (Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f)
+--              (PathP (<i> P (p @ i)) f f)
+--              eq trf
 
 -- alternative attempt:
 
@@ -767,6 +768,7 @@ not (A : U) : U = A -> N0
 efq (A : U) : N0 -> A = split {}
 
 -- Direct proof that Z is a set:
+-- This seems to compute worse than the version with Hedberg, see comment below
 invP : (n m : nat) (p : Path nat n m) -> U = split
   zero  -> split@((m : nat) (p : Path nat zero m) -> U) with
     zero  -> \(p : Path nat zero zero) ->
@@ -824,130 +826,133 @@ setZ' (u : Z) : (v : Z) (p q : Path Z u v) -> Path (Path Z u v) q p =
   J Z u (\(v : Z) (p : Path Z u v) -> (q : Path Z u v) -> Path (Path Z u v) q p)
     (lemZ u)
 
+-- This version seems to compute bad! Try
+-- > setLoop (<_> base1) (transGen (<_> loopS1) 0 (<_> base1)) (<i> hfill loopS1 (<_> base1) [] @ i) (arg4 test0To4)
+-- with arg4 opaque!
 ZSet (u v : Z) (p q : Path Z u v) : Path (Path Z u v) p q = setZ' u v q p
 
 
 -- Z is a set using Hedberg
--- data or (A B : U) = inl (a : A)
---                   | inr (b : B)
+data or (A B : U) = inl (a : A)
+                  | inr (b : B)
 
--- data Unit = tt
+data Unit = tt
 
--- stable (A : U) : U = not (not A) -> A
--- const (A : U) (f : A -> A) : U = (x y : A) -> Path A (f x) (f y)
+stable (A : U) : U = not (not A) -> A
+const (A : U) (f : A -> A) : U = (x y : A) -> Path A (f x) (f y)
 
--- exConst (A : U) : U = (f:A -> A) * const A f
--- propN0 : prop N0 = \ (x y:N0) -> efq (Path N0 x y) x
+exConst (A : U) : U = (f:A -> A) * const A f
+propN0 : prop N0 = \ (x y:N0) -> efq (Path N0 x y) x
 
--- propNot (A : U) : prop (not A) = \ (f g:not A) -> <i>\(x:A) -> (propN0 (f x) (g x))@i
+propNot (A : U) : prop (not A) = \ (f g:not A) -> <i>\(x:A) -> (propN0 (f x) (g x))@i
 
--- dNot (A : U) (a : A) : not (not A) = \ (h : not A) -> h a
+dNot (A : U) (a : A) : not (not A) = \ (h : not A) -> h a
 
--- stableConst (A : U) (sA : stable A) : exConst A =
---  (\ (x:A) -> sA (dNot A x),\ (x y:A) -> <i>sA (propNot (not A) (dNot A x) (dNot A y) @ i))
+stableConst (A : U) (sA : stable A) : exConst A =
+ (\ (x:A) -> sA (dNot A x),\ (x y:A) -> <i>sA (propNot (not A) (dNot A x) (dNot A y) @ i))
 
--- dec (A : U) : U = or A (not A)
+dec (A : U) : U = or A (not A)
 
--- decEqCong (A B : U) (f : A -> B) (g : B -> A) : dec A -> dec B = split
---   inl a -> inl (f a)
---   inr h -> inr (\ (b:B) -> h (g b))
+decEqCong (A B : U) (f : A -> B) (g : B -> A) : dec A -> dec B = split
+  inl a -> inl (f a)
+  inr h -> inr (\ (b:B) -> h (g b))
 
--- decStable (A : U) : dec A -> stable A = split
---  inl a -> \ (h :not (not A)) -> a
---  inr b -> \ (h :not (not A)) -> efq A (h b)
+decStable (A : U) : dec A -> stable A = split
+ inl a -> \ (h :not (not A)) -> a
+ inr b -> \ (h :not (not A)) -> efq A (h b)
 
--- discrete (A : U) : U = (a b : A) -> dec (Path A a b)
+discrete (A : U) : U = (a b : A) -> dec (Path A a b)
 
--- hedbergLemma (A: U) (a b:A) (f : (x : A) -> Path A a x -> Path A a x) (p : Path A a b) :
---             Square A a a a b (<_> a) p (f a (<_> a)) (f b p) =
---  comp (<i> Square A a a a (p @ i) (<_> a) (<j> p @ i /\ j)
---                  (f a (<_> a)) (f (p @ i) (<j> p @ i /\ j)))
---       (<i> f a (<_> a)) []
+hedbergLemma (A: U) (a b:A) (f : (x : A) -> Path A a x -> Path A a x) (p : Path A a b) :
+            Square A a a a b (<_> a) p (f a (<_> a)) (f b p) =
+ comp (<i> Square A a a a (p @ i) (<_> a) (<j> p @ i /\ j)
+                 (f a (<_> a)) (f (p @ i) (<j> p @ i /\ j)))
+      (<i> f a (<_> a)) []
 
--- hedbergStable (A : U) (a b : A) (h : (x : A) -> stable (Path A a x))
---         (p q : Path A a b) : Path (Path A a b) p q =
---  <j i> comp (<_> A) a [ (j = 0) -> rem2 @ i
---                       , (j = 1) -> rem3 @ i
---                       , (i = 0) -> r
---                       , (i = 1) -> rem4 @ j]
---  where
---    rem1 (x : A) : exConst (Path A a x) = stableConst (Path A a x) (h x)
---    f (x : A) : Path A a x -> Path A a x  = (rem1 x).1
---    fIsConst (x : A) : const (Path A a x) (f x) = (rem1 x).2
---    rem4 : Square A a a b b (<_> a) (<_> b) (f b p) (f b q)  = fIsConst b p q
---    r : Path A a a = f a (<_> a)
---    rem2 : Square A a a a b (<_> a) p r (f b p) = hedbergLemma A a b f p
---    rem3 : Square A a a a b (<_> a) q r (f b q) = hedbergLemma A a b f q
+hedbergStable (A : U) (a b : A) (h : (x : A) -> stable (Path A a x))
+        (p q : Path A a b) : Path (Path A a b) p q =
+ <j i> comp (<_> A) a [ (j = 0) -> rem2 @ i
+                      , (j = 1) -> rem3 @ i
+                      , (i = 0) -> r
+                      , (i = 1) -> rem4 @ j]
+ where
+   rem1 (x : A) : exConst (Path A a x) = stableConst (Path A a x) (h x)
+   f (x : A) : Path A a x -> Path A a x  = (rem1 x).1
+   fIsConst (x : A) : const (Path A a x) (f x) = (rem1 x).2
+   rem4 : Square A a a b b (<_> a) (<_> b) (f b p) (f b q)  = fIsConst b p q
+   r : Path A a a = f a (<_> a)
+   rem2 : Square A a a a b (<_> a) p r (f b p) = hedbergLemma A a b f p
+   rem3 : Square A a a a b (<_> a) q r (f b q) = hedbergLemma A a b f q
 
--- hedbergS (A : U) (h : (a x : A) -> stable (Path A a x)) : set A =
---  \(a b : A) -> hedbergStable A a b (h a)
+hedbergS (A : U) (h : (a x : A) -> stable (Path A a x)) : set A =
+ \(a b : A) -> hedbergStable A a b (h a)
 
--- hedberg (A : U) (h : discrete A) : set A =
---  \(a b : A) -> hedbergStable A a b (\(b : A) -> decStable (Path A a b) (h a b))
+hedberg (A : U) (h : discrete A) : set A =
+ \(a b : A) -> hedbergStable A a b (\(b : A) -> decStable (Path A a b) (h a b))
 
--- caseNat (A : U) (a0 aS : A) : nat -> A = split
---  zero -> a0
---  suc n -> aS
+caseNat (A : U) (a0 aS : A) : nat -> A = split
+ zero -> a0
+ suc n -> aS
 
--- caseDNat (P:nat -> U) (a0 :P zero) (aS : (n:nat) -> P (suc n))
---             : (n:nat) -> P n = split
---  zero -> a0
---  suc n -> aS n
+caseDNat (P:nat -> U) (a0 :P zero) (aS : (n:nat) -> P (suc n))
+            : (n:nat) -> P n = split
+ zero -> a0
+ suc n -> aS n
 
--- znots (n : nat) : not (Path nat zero (suc n)) =
---   \(h : Path nat zero (suc n)) -> subst nat (caseNat U nat N0) zero (suc n) h zero
+znots (n : nat) : not (Path nat zero (suc n)) =
+  \(h : Path nat zero (suc n)) -> subst nat (caseNat U nat N0) zero (suc n) h zero
 
--- snotz (n : nat) : not (Path nat (suc n) zero) =
---   \(h : Path nat (suc n) zero) -> znots n (<i> h @ -i)
+snotz (n : nat) : not (Path nat (suc n) zero) =
+  \(h : Path nat (suc n) zero) -> znots n (<i> h @ -i)
 
--- sucInj (n m : nat) (p : Path nat (suc n) (suc m)) : Path nat n m =
---  <i> pred (p @ i)
+sucInj (n m : nat) (p : Path nat (suc n) (suc m)) : Path nat n m =
+ <i> pred (p @ i)
 
--- discreteNat : discrete nat = split
---  zero -> caseDNat (\(m : nat) -> dec (Path nat zero m)) (inl (<_> zero)) (\(m : nat) -> inr (znots m))
---  suc n -> caseDNat (\(m : nat) -> dec (Path nat (suc n) m)) (inr (snotz n))
---    (\(m : nat) -> decEqCong (Path nat n m) (Path nat (suc n) (suc m)) (\(p : Path nat n m) -> <i> suc (p @ i))
---                   (sucInj n m) (discreteNat n m))
+discreteNat : discrete nat = split
+ zero -> caseDNat (\(m : nat) -> dec (Path nat zero m)) (inl (<_> zero)) (\(m : nat) -> inr (znots m))
+ suc n -> caseDNat (\(m : nat) -> dec (Path nat (suc n) m)) (inr (snotz n))
+   (\(m : nat) -> decEqCong (Path nat n m) (Path nat (suc n) (suc m)) (\(p : Path nat n m) -> <i> suc (p @ i))
+                  (sucInj n m) (discreteNat n m))
 
--- posNotneg (a b : nat) (h : Path Z (pos a) (neg b)) : N0 = subst Z T (pos a) (neg b) h tt
---   where
---   T : Z -> U = split
---        pos _ -> Unit
---        neg _ -> N0
+posNotneg (a b : nat) (h : Path Z (pos a) (neg b)) : N0 = subst Z T (pos a) (neg b) h tt
+  where
+  T : Z -> U = split
+       pos _ -> Unit
+       neg _ -> N0
 
--- negNotpos (a b : nat) (h : Path Z (neg b) (pos a)) : N0 = subst Z T (neg b) (pos a) h tt
---   where
---   T : Z -> U = split
---        pos _ -> N0
---        neg _ -> Unit
+negNotpos (a b : nat) (h : Path Z (neg b) (pos a)) : N0 = subst Z T (neg b) (pos a) h tt
+  where
+  T : Z -> U = split
+       pos _ -> N0
+       neg _ -> Unit
 
--- injPos (a b : nat) (h : Path Z (pos a) (pos b)) : Path nat a b =
---  subst Z T (pos a) (pos b) h (<_> a)
---  where
---    T : Z -> U = split
---         pos c -> Path nat a c
---         neg _ -> N0
+injPos (a b : nat) (h : Path Z (pos a) (pos b)) : Path nat a b =
+ subst Z T (pos a) (pos b) h (<_> a)
+ where
+   T : Z -> U = split
+        pos c -> Path nat a c
+        neg _ -> N0
 
--- injNeg (a b : nat) (h : Path Z (neg a) (neg b)) : Path nat a b =
---   subst Z T (neg a) (neg b) h (<_> a)
---   where
---     T : Z -> U = split
---          pos _ -> N0
---          neg c -> Path nat a c
+injNeg (a b : nat) (h : Path Z (neg a) (neg b)) : Path nat a b =
+  subst Z T (neg a) (neg b) h (<_> a)
+  where
+    T : Z -> U = split
+         pos _ -> N0
+         neg c -> Path nat a c
 
--- discreteZ : discrete Z = split
---   pos a -> split@((z1 : Z) -> dec (Path Z (pos a) z1)) with
---              pos a1 -> let rem : dec (Path nat a a1) -> dec (Path Z (pos a) (pos a1)) = split
---                              inl p -> inl (<i> pos (p @ i))
---                              inr h -> inr (\(p : Path Z (pos a) (pos a1)) -> h (injPos a a1 p))
---                        in rem (discreteNat a a1)
---              neg b -> inr (posNotneg a b)
---   neg b -> split@((z1 : Z) -> dec (Path Z (neg b) z1)) with
---              pos a -> inr (negNotpos a b)
---              neg b1 -> let rem : dec (Path nat b b1) -> dec (Path Z (neg b) (neg b1)) = split
---                              inl p -> inl (<i> neg (p @ i))
---                              inr h -> inr (\(p : Path Z (neg b) (neg b1)) -> h (injNeg b b1 p))
---                        in rem (discreteNat b b1)
+discreteZ : discrete Z = split
+  pos a -> split@((z1 : Z) -> dec (Path Z (pos a) z1)) with
+             pos a1 -> let rem : dec (Path nat a a1) -> dec (Path Z (pos a) (pos a1)) = split
+                             inl p -> inl (<i> pos (p @ i))
+                             inr h -> inr (\(p : Path Z (pos a) (pos a1)) -> h (injPos a a1 p))
+                       in rem (discreteNat a a1)
+             neg b -> inr (posNotneg a b)
+  neg b -> split@((z1 : Z) -> dec (Path Z (neg b) z1)) with
+             pos a -> inr (negNotpos a b)
+             neg b1 -> let rem : dec (Path nat b b1) -> dec (Path Z (neg b) (neg b1)) = split
+                             inl p -> inl (<i> neg (p @ i))
+                             inr h -> inr (\(p : Path Z (neg b) (neg b1)) -> h (injNeg b b1 p))
+                       in rem (discreteNat b b1)
 
 -- ZSet : set Z = hedberg Z discreteZ
 
@@ -1108,18 +1113,6 @@ decodeLoop (n : Z) :
                         (compS1 (loopIt (predZ n)) loop) (loopIt n)
                         (key (loopIt (predZ n))) (shift n)
       in goal
-
--- Specialized version of pathSIntro for S1
-pathSIntroS1 (C : S1 -> U) (c : C base1)
-           (w : Path (C base1) (subst S1 C base1 base1 loop c) c) :
-  PathP (<i> C (loop @ i)) c c =
-  transGen (<j> PathP (<i> C (loop @ -j \/ i))
-                      (transGen (<i> C (loop @ -j /\ i)) j c) c) 0 w
-
-s1elim (C : S1 -> U) (c : C base1) (p : Path (C base1) (subst S1 C base1 base1 loop c) c) :
-  (x : S1) -> C x = split
-  base1 -> c
-  loop1 @ i -> pathSIntroS1 C c p @ i
 
 -- Can we do this directly without s1elim and pathSIntroS1?
 decode : (x : S1) -> helix x -> Path S1 base1 x =
@@ -1295,6 +1288,7 @@ decodeEncodeRefl : Path loopS1 (decode base1 (encode base1 (<_> base1))) (<_> ba
 -- -- This calls decodeEncode 12 times
 -- setLoop' : set loopS1 = retractSet loopS1 Z (encode base1) (decode base1) (decodeEncode base1) ZSet
 
+
 -- This direct proof only calls decodeEncode 4 times:
 setLoop (p q : loopS1) (r s : Path loopS1 p q) : Path (Path loopS1 p q) r s =
   let f : loopS1 -> Z = encode base1
@@ -1304,6 +1298,7 @@ setLoop (p q : loopS1) (r s : Path loopS1 p q) : Path (Path loopS1 p q) r s =
                         , (i = 1) -> decodeEncode base1 q
                         , (j = 0) -> decodeEncode base1 (r @ i)
                         , (j = 1) -> decodeEncode base1 (s @ i) ]
+
 
 --  setLoop (<i> hcomp S1 base1 [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ]) (<_> base1)
 
@@ -1328,8 +1323,8 @@ one : nat = suc zero
 -- two : nat = suc one
 
 -- alternative approach:
-temp1' : inhOrTrunc (HopfTwo' (<_ _> base2)) one =
-  truncFibOmega' one (Omega S2pt) HopfOne' (<_> base1) setLoop (<_ _> base2)
+-- temp1' : inhOrTrunc (HopfTwo' (<_ _> base2)) one =
+--   truncFibOmega' one (Omega S2pt) HopfOne' (<_> base1) setLoop (<_ _> base2)
   -- = setLoop (<_> base1) (transGen (<i> (HopfOne' (<_> base2))) 0 (<_> base1))
 
 -- Obsolete now
@@ -1352,8 +1347,6 @@ fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p =
           (arg4 p)
   -- truncFibOmega' zero (Omega2 S2pt) HopfTwo' HopfTwo'pt temp1' p
   -- setLoop (<_> base1) (<_> base1) (arg3 p) (<_ _> base1)
-
--- opaque setLoop
 
 -- > :n temp1'
 -- Time: 0m1.875s

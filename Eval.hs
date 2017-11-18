@@ -304,7 +304,8 @@ app u v = case (u,v) of
                    -- a should be constant
                in comp j (app f (hFill j a w wsj)) w' ws'
     _ -> error $ "app: Split annotation not a Pi type " ++ show u
-  (Ter Split{} _,_) | isNeutral v -> VSplit u v
+  (Ter Split{} _,_) -- | isNeutral v
+                    -> VSplit u v
   (VTrans (VPLam i (VPi a f)) phi u0, v) ->
     let j = fresh (u,v)
         (aij,fij) = (a,f) `swap` (i,j)
@@ -315,16 +316,16 @@ app u v = case (u,v) of
     let i = fresh (u,v)
     in hComp i (app f v) (app u0 v)
           (mapWithKey (\al ual -> app (ual @@ i) (v `face` al)) us)
-  _ | isNeutral u       -> VApp u v
-  _                     -> error $ "app \n  " ++ show u ++ "\n  " ++ show v
+--  _ | isNeutral u       -> VApp u v
+  _                     -> VApp u v -- error $ "app \n  " ++ show u ++ "\n  " ++ show v
 
 fstVal, sndVal :: Val -> Val
 fstVal (VPair a b)     = a
-fstVal u | isNeutral u = VFst u
-fstVal u               = error $ "fstVal: " ++ show u ++ " is not neutral."
+-- fstVal u | isNeutral u = VFst u
+fstVal u               = VFst u -- error $ "fstVal: " ++ show u ++ " is not neutral."
 sndVal (VPair a b)     = b
-sndVal u | isNeutral u = VSnd u
-sndVal u               = error $ "sndVal: " ++ show u ++ " is not neutral."
+-- sndVal u | isNeutral u = VSnd u
+sndVal u               = VSnd u -- error $ "sndVal: " ++ show u ++ " is not neutral."
 
 -- infer the type of a neutral value
 inferType :: Val -> Val
@@ -364,11 +365,12 @@ inferType v = case v of
   Dir d -> act True u (i,Dir d)
   x -> act False u (i,x)
 v@(Ter Hole{} _) @@ phi    = VAppFormula v (toFormula phi)
-v @@ phi | isNeutral v     = case (inferType v,toFormula phi) of
+v @@ phi -- | isNeutral v
+         = case (inferType v,toFormula phi) of
   (VPathP _ a0 _,Dir 0) -> a0
   (VPathP _ _ a1,Dir 1) -> a1
   _                    -> VAppFormula v (toFormula phi)
-v @@ phi                   = error $ "(@@): " ++ show v ++ " should be neutral."
+-- v @@ phi                   = error $ "(@@): " ++ show v ++ " should be neutral."
 
 -- Applying a *fresh* name.
 (@@@) :: Val -> Name -> Val
@@ -406,7 +408,7 @@ hComp i a u us = case a of
   VU -> hCompUniv u (Map.map (VPLam i) us)
   -- TODO: neutrality tests in the next two cases could be removed
   -- since there are neutral values for unglue and unglueU
-  VGlue b equivs | not (isNeutralGlueHComp equivs u us) ->
+  VGlue b equivs -> -- | not (isNeutralGlueHComp equivs u us) ->
     let wts = mapWithKey (\al wal ->
                   app (equivFun wal)
                     (hFill i (equivDom wal) (u `face` al) (us `face` al)))
@@ -418,7 +420,7 @@ hComp i a u us = case a of
                us
         v1 = hComp i b v (vs `unionSystem` wts)
     in glueElem v1 t1s
-  VHCompU b es | not (isNeutralGlueHComp es u us) ->
+  VHCompU b es -> -- | not (isNeutralGlueHComp es u us) ->
     let wts = mapWithKey (\al eal ->
                   eqFun eal
                     (hFill i (eal @@ One) (u `face` al) (us `face` al)))
@@ -519,9 +521,9 @@ trans i a phi u = case a of
   VU -> u
   -- TODO: neutrality tests in the next two cases could be removed
   -- since there are neutral values for unglue and unglueU
-  VGlue b equivs | not (eps `notMember` (equivs `face` (i ~> 0)) && isNeutral u) ->
+  VGlue b equivs -> -- | not (eps `notMember` (equivs `face` (i ~> 0)) && isNeutral u) ->
     transGlue i b equivs phi u
-  VHCompU b es | not (eps `notMember` (es `face` (i ~> 0)) && isNeutral u) ->
+  VHCompU b es -> -- | not (eps `notMember` (es `face` (i ~> 0)) && isNeutral u) ->
     transHCompU i b es phi u
   Ter (Sum _ n nass) env
     | n `elem` ["nat","Z","bool"] -> u -- hardcode hack
@@ -660,11 +662,11 @@ unGlue w a equivs | eps `member` equivs = app (equivFun (equivs ! eps)) w
                                             VGlueElem v us -> v
                                             _ -> VUnGlueElem w a equivs
 
-isNeutralGlueHComp :: System Val -> Val -> System Val -> Bool
-isNeutralGlueHComp equivs u us =
-  (eps `notMember` equivs && isNeutral u) ||
-  any (\(alpha,uAlpha) -> eps `notMember` (equivs `face` alpha)
-        && isNeutral uAlpha) (assocs us)
+-- isNeutralGlueHComp :: System Val -> Val -> System Val -> Bool
+-- isNeutralGlueHComp equivs u us =
+--   (eps `notMember` equivs && isNeutral u) ||
+--   any (\(alpha,uAlpha) -> eps `notMember` (equivs `face` alpha)
+--         && isNeutral uAlpha) (assocs us)
 
 -- Extend the system ts to a total element in b given q : isContr b
 extend :: Val -> Val -> System Val -> Val

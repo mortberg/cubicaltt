@@ -50,14 +50,14 @@ lookName i _ = error $ "lookName: not found " ++ show i
 
 instance Nominal Ctxt where
 --  support _ = []
-  occurs _ _ = False  
-  act e _   = e
+  occurs _ _ = False
+  act b e _   = e
   swap e _  = e
 
 instance Nominal Env where
 --  support (Env (rho,vs,fs,os)) = support (rho,vs,fs,os)
   occurs x (Env (rho,vs,fs,os)) = occurs x (rho,vs,fs,os)
-  act (Env (rho,vs,fs,os)) iphi = Env $ act (rho,vs,fs,os) iphi
+  act b (Env (rho,vs,fs,os)) iphi = Env $ act b (rho,vs,fs,os) iphi
   swap (Env (rho,vs,fs,os)) ij = Env $ swap (rho,vs,fs,os) ij
 
 instance Nominal Val where
@@ -118,42 +118,71 @@ instance Nominal Val where
     VId a u v               -> occurs x (a,u,v)
     VIdJ a u c d y p        -> occurs x [a,u,c,d,y,p]
 
-  act u (i, phi) -- | not (occurs i u) = u
-                 | otherwise =
-    let acti :: Nominal a => a -> a
-        acti u = act u (i, phi)                   
-    in case u of
+  act b u (i, phi)
+    | b = case u of
          VU           -> VU
-         Ter t e      -> Ter t (acti e)
-         VPi a f      -> VPi (acti a) (acti f)
-         VPathP a u v -> VPathP (acti a) (acti u) (acti v)
+         Ter t e      -> Ter t (act b e (i,phi))
+         VPi a f      -> VPi (act b a (i,phi)) (act b f (i,phi))
+         VPathP a u v -> VPathP (act b a (i,phi)) (act b u (i,phi)) (act b v (i,phi))
          VPLam j v | j == i -> u
-                   | not (j `occurs` phi) -> VPLam j (acti v)
-                   | otherwise -> VPLam k (acti (v `swap` (j,k)))
+                   | not (j `occurs` phi) -> VPLam j (act b v (i,phi))
+                   | otherwise -> VPLam k (act b (v `swap` (j,k)) (i,phi))
               where k = fresh (v,Atom i,phi)
-         VSigma a f              -> VSigma (acti a) (acti f)
-         VPair u v               -> VPair (acti u) (acti v)
-         VFst u                  -> fstVal (acti u)
-         VSnd u                  -> sndVal (acti u)
-         VCon c vs               -> VCon c (acti vs)
-         VPCon c a vs phis       -> pcon c (acti a) (acti vs) (acti phis)
-         VHComp a u us           -> hCompLine (acti a) (acti u) (acti us)
-         VTrans a psi u          -> transLine (acti a) (acti psi) (acti u)
-         VVar x v                -> VVar x (acti v)
-         VOpaque x v             -> VOpaque x (acti v)
-         VAppFormula u psi       -> acti u @@ acti psi
-         VApp u v                -> app (acti u) (acti v)
-         VLam x t u              -> VLam x (acti t) (acti u)
-         VSplit u v              -> app (acti u) (acti v)
-         VGlue a ts              -> glue (acti a) (acti ts)
-         VGlueElem a ts          -> glueElem (acti a) (acti ts)
-         VUnGlueElem a b ts      -> unGlue (acti a) (acti b) (acti ts)
-         VUnGlueElemU a b es     -> unGlueU (acti a) (acti b) (acti es)
-         VHCompU a ts            -> hCompUniv (acti a) (acti ts)
-         VIdPair u us            -> VIdPair (acti u) (acti us)
-         VId a u v               -> VId (acti a) (acti u) (acti v)
+         VSigma a f              -> VSigma (act b a (i,phi)) (act b f (i,phi))
+         VPair u v               -> VPair (act b u (i,phi)) (act b v (i,phi))
+         VFst u                  -> fstVal (act b u (i,phi))
+         VSnd u                  -> sndVal (act b u (i,phi))
+         VCon c vs               -> VCon c (act b vs (i,phi))
+         VPCon c a vs phis       -> pcon c (act b a (i,phi)) (act b vs (i,phi)) (act b phis (i,phi))
+         VHComp a u us           -> hCompLine (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
+         VTrans a psi u          -> transLine (act b a (i,phi)) (act b psi (i,phi)) (act b u (i,phi))
+         VVar x v                -> VVar x (act b v (i,phi))
+         VOpaque x v             -> VOpaque x (act b v (i,phi))
+         VAppFormula u psi       -> act b u (i,phi) @@ act b psi (i,phi)
+         VApp u v                -> app (act b u (i,phi)) (act b v (i,phi))
+         VLam x t u              -> VLam x (act b t (i,phi)) (act b u (i,phi))
+         VSplit u v              -> app (act b u (i,phi)) (act b v (i,phi))
+         VGlue a ts              -> glue (act b a (i,phi)) (act b ts (i,phi))
+         VGlueElem a ts          -> glueElem (act b a (i,phi)) (act b ts (i,phi))
+         VUnGlueElem a bb ts      -> unGlue (act b a (i,phi)) (act b bb (i,phi)) (act b ts (i,phi))
+         VUnGlueElemU a bb es     -> unGlueU (act b a (i,phi)) (act b bb (i,phi)) (act b es (i,phi))
+         VHCompU a ts            -> hCompUniv (act b a (i,phi)) (act b ts (i,phi))
+         VIdPair u us            -> VIdPair (act b u (i,phi)) (act b us (i,phi))
+         VId a u v               -> VId (act b a (i,phi)) (act b u (i,phi)) (act b v (i,phi))
          VIdJ a u c d x p        ->
-           idJ (acti a) (acti u) (acti c) (acti d) (acti x) (acti p)
+           idJ (act b a (i,phi)) (act b u (i,phi)) (act b c (i,phi)) (act b d (i,phi)) (act b x (i,phi)) (act b p (i,phi))
+    | otherwise = case u of
+         VU           -> VU
+         Ter t e      -> Ter t (act b e (i,phi))
+         VPi a f      -> VPi (act b a (i,phi)) (act b f (i,phi))
+         VPathP a u v -> VPathP (act b a (i,phi)) (act b u (i,phi)) (act b v (i,phi))
+         VPLam j v | j == i -> u
+                   | not (j `occurs` phi) -> VPLam j (act b v (i,phi))
+                   | otherwise -> VPLam k (act b (v `swap` (j,k)) (i,phi))
+              where k = fresh (v,Atom i,phi)
+         VSigma a f              -> VSigma (act b a (i,phi)) (act b f (i,phi))
+         VPair u v               -> VPair (act b u (i,phi)) (act b v (i,phi))
+         VFst u                  -> VFst (act b u (i,phi))
+         VSnd u                  -> VSnd (act b u (i,phi))
+         VCon c vs               -> VCon c (act b vs (i,phi))
+         VPCon c a vs phis       -> VPCon c (act b a (i,phi)) (act b vs (i,phi)) (act b phis (i,phi))
+         VHComp a u us           -> VHComp (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
+         VTrans a psi u          -> VTrans (act b a (i,phi)) (act b psi (i,phi)) (act b u (i,phi))
+         VVar x v                -> VVar x (act b v (i,phi))
+         VOpaque x v             -> VOpaque x (act b v (i,phi))
+         VAppFormula u psi       -> VAppFormula (act b u (i,phi)) (act b psi (i,phi))
+         VApp u v                -> VApp (act b u (i,phi)) (act b v (i,phi))
+         VLam x t u              -> VLam x (act b t (i,phi)) (act b u (i,phi))
+         VSplit u v              -> VSplit (act b u (i,phi)) (act b v (i,phi))
+         VGlue a ts              -> VGlue (act b a (i,phi)) (act b ts (i,phi))
+         VGlueElem a ts          -> VGlueElem (act b a (i,phi)) (act b ts (i,phi))
+         VUnGlueElem a bb ts     -> VUnGlueElem (act b a (i,phi)) (act b bb (i,phi)) (act b ts (i,phi))
+         VUnGlueElemU a bb es    -> VUnGlueElemU (act b a (i,phi)) (act b bb (i,phi)) (act b es (i,phi))
+         VHCompU a ts            -> VHCompU (act b a (i,phi)) (act b ts (i,phi))
+         VIdPair u us            -> VIdPair (act b u (i,phi)) (act b us (i,phi))
+         VId a u v               -> VId (act b a (i,phi)) (act b u (i,phi)) (act b v (i,phi))
+         VIdJ a u c d x p        ->
+           VIdJ (act b a (i,phi)) (act b u (i,phi)) (act b c (i,phi)) (act b d (i,phi)) (act b x (i,phi)) (act b p (i,phi))
 
   -- This increases efficiency as it won't trigger computation.
   swap u ij@(i,j) =
@@ -329,7 +358,9 @@ inferType v = case v of
   _ -> error $ "inferType: not neutral " ++ show v
 
 (@@) :: ToFormula a => Val -> a -> Val
-(VPLam i u) @@ phi         = u `act` (i,toFormula phi)
+(VPLam i u) @@ phi         = case toFormula phi of
+  Dir d -> act True u (i,Dir d)
+  x -> act False u (i,x)
 v@(Ter Hole{} _) @@ phi    = VAppFormula v (toFormula phi)
 v @@ phi | isNeutral v     = case (inferType v,toFormula phi) of
   (VPathP _ a0 _,Dir 0) -> a0
@@ -422,7 +453,7 @@ hComps _ _ _ _ = error "hComps: different lengths of types and values"
 -- For i:II |- a, phi # i, u : a (i/phi) we get fwd i a phi u : a(i/1)
 -- such that fwd i a 1 u = u.   Note that i gets bound.
 fwd :: Name -> Val -> Formula -> Val -> Val
-fwd i a phi u = trans i (a `act` (i,phi `orFormula` Atom i)) phi u
+fwd i a phi u = trans i (act False a (i,phi `orFormula` Atom i)) phi u
 
 comp :: Name -> Val -> Val -> System Val -> Val
 -- comp i a u us = hComp i (a `face` (i ~> 1)) (fwd i a (Dir Zero) u) fwdius

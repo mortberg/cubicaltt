@@ -829,7 +829,7 @@ setZ' (u : Z) : (v : Z) (p q : Path Z u v) -> Path (Path Z u v) q p =
 -- This version seems to compute bad! Try
 -- > setLoop (<_> base1) (transGen (<_> loopS1) 0 (<_> base1)) (<i> hfill loopS1 (<_> base1) [] @ i) (arg4 test0To4)
 -- with arg4 opaque!
-ZSet (u v : Z) (p q : Path Z u v) : Path (Path Z u v) p q = setZ' u v q p
+-- ZSet (u v : Z) (p q : Path Z u v) : Path (Path Z u v) p q = setZ' u v q p
 
 
 -- Z is a set using Hedberg
@@ -954,7 +954,7 @@ discreteZ : discrete Z = split
                              inr h -> inr (\(p : Path Z (neg b) (neg b1)) -> h (injNeg b b1 p))
                        in rem (discreteNat b b1)
 
--- ZSet : set Z = hedberg Z discreteZ
+ZSet : set Z = hedberg Z discreteZ
 
 -- No need for substituting in the universe here
 -- setLoop : set loopS1 = subst U set Z loopS1 (<i> loopS1equalsZ @ -i) ZSet
@@ -1230,12 +1230,36 @@ decode : (x : S1) -> helix x -> Path S1 base1 x =
 
 -- End of old version of decode
 
--- This is just J?
+-- This is just J
 decodeEncode (x : S1) (p : Path S1 base1 x) :
   Path (Path S1 base1 x) (decode x (encode x p)) p =
     transGen (<i> Path (Path S1 base1 (p @ i))
-              (decode (p @ i) (encode (p @ i) (<j> p @ i /\ j))) (<j> p @ i /\ j)) 0
+                       (decode (p @ i) (encode (p @ i) (<j> p @ i /\ j)))
+                       (<j> p @ i /\ j))
+              0
               (<_ _> base1)
+
+
+-- Can this be simplified?
+decodeEncode' (x : S1) (p : Path S1 base1 x) :
+  Path (Path S1 base1 x) (decode x (encode x p)) p =
+--   J S1 base1
+--     (\(x : S1) (p : Path S1 base1 x) -> Path (Path S1 base1 x) (decode x (encode x p)) p)
+--     (<_ _> base1)
+  -- This is the normal form:
+  <i j> hcomp S1 (hcomp S1 base1 [ (j = 0) -> <_> base1
+                                 , (j = 1) -> p ])
+                 [ (i = 0) -> <k> hcomp S1 (decode (p @ k) (encode (p @ k) (<l> p @ k /\ l)) @ j)
+                                           [ (j = 0) -> <_> base1
+                                           , (j = 1) -> <l> p @ k \/ l
+                                           , (k = 1) -> <_> decode x (encode x p) @ j ]
+                 , (i = 1) -> <k> hcomp S1 (p @ j /\ k)
+                                           [ (j = 0) -> <_> base1
+                                           , (j = 1) -> <l> p @ k \/ l
+                                           , (k = 1) -> <_> p @ j ]
+                 , (j = 0) -> <_> base1
+                 , (j = 1) -> <_> x ]
+
 
 decodeEncodeRefl : Path loopS1 (decode base1 (encode base1 (<_> base1))) (<_> base1) =
   <_ _> base1
@@ -1299,7 +1323,6 @@ setLoop (p q : loopS1) (r s : Path loopS1 p q) : Path (Path loopS1 p q) r s =
                         , (j = 0) -> decodeEncode base1 (r @ i)
                         , (j = 1) -> decodeEncode base1 (s @ i) ]
 
-
 --  setLoop (<i> hcomp S1 base1 [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ]) (<_> base1)
 
 -- We actually never need the full isGroupoidS1 as setLoop suffices!
@@ -1331,14 +1354,33 @@ one : nat = suc zero
 -- -- I hardcode this as the smallest thing possible. The fact that we
 -- -- are calling setLoop with refl should make it possible to simplify
 -- -- it even further as decodeEncode with refl is proved by refl.
--- arg3 (p : (Omega3 S2pt).1) : Path loopS1 (<_> base1) (<_> base1) =
---   <j k> transGen (<l> Hopf (p @ j @ k @ l)) 0 base1
+
+arg3 (p : (Omega3 S2pt).1) : Path loopS1 (<_> base1) (<_> base1) =
+  <j k> transGen (<l> Hopf (p @ j @ k @ l)) 0 base1
 
 arg4 (p : (Omega3 S2pt).1) : Path loopS1 (<_> base1) (transGen (<_> loopS1) 0 (<_> base1)) =
-  transGen (<i> Path loopS1 (<_> base1)
-                            (transGen (<j> Path S1 base1 (transGen (<k> Hopf (p @ i @ j @ k)) 0 base1))
-                                      0 (<_> base1)))
-           0 (<i> hfill loopS1 (<_> base1) [] @ i)
+  -- transGen (<i> Path loopS1 (<_> base1)
+  --                           (transGen (<j> Path S1 base1 (transGen (<k> Hopf (p @ i @ j @ k)) 0 base1))
+  --                                     0 (<_> base1)))
+  --          0 (<i> hfill loopS1 (<_> base1) [] @ i)
+  -- Unfolded:
+  <i j> hcomp S1 (hcomp S1 (hcomp S1 base1 [ (i = 0) -> <_> base1
+                                           , (j = 0) -> <_> base1
+                                           , (j = 1) -> <_> base1 ])
+                           [ (j = 0) -> <_> base1
+                           , (j = 1) -> <_> base1 ])
+                 [ (i = 0) -> <k> hcomp S1 base1 [ (j = 0) -> <_> base1
+                                                 , (j = 1) -> <_> base1
+                                                 , (k = 1) -> <_> base1 ]
+                 , (i = 1) -> <k> hcomp S1 (hcomp S1 base1 [ (j = 0) -> <_> base1
+                                                           , (j = 1) -> <l> arg3 p @ k @ l ])
+                                                 [ (j = 0) -> <_> base1
+                                                 , (j = 1) -> <_> base1
+                                                 , (k = 1) -> <_> hcomp S1 base1 [ (j = 0) -> <_> base1
+                                                                                 , (j = 1) -> <_> base1 ]
+                                                 ]
+                 , (j = 0) -> <_> base1
+                 , (j = 1) -> <_> base1 ]
 
 fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p =
   setLoop (<_> base1)
@@ -1347,6 +1389,7 @@ fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p =
           (arg4 p)
   -- truncFibOmega' zero (Omega2 S2pt) HopfTwo' HopfTwo'pt temp1' p
   -- setLoop (<_> base1) (<_> base1) (arg3 p) (<_ _> base1)
+  
 
 -- > :n temp1'
 -- Time: 0m1.875s
@@ -2115,3 +2158,70 @@ testShortcutf11 : Z = f11 (f10 (sinc (<i j> loop2{S2} @ i @ j)))
 testShortcutf11' : Z = f11 (f10 (f9 (<i> ginc (<j> loop2{S2} @ i @ j))))
 testShortcutf11'' : Z = f11 (f10 (f9 (f8 (<i j> g2inc (loop2{S2} @ i @ j)))))
 
+
+-- opaque ZSet
+-- opaque decodeEncode
+-- opaque encode
+-- opaque decode
+
+
+-- attempts to compute parts of fibContrHopfThree':
+
+-- This is the fourth argument to ZSet:
+arg4' (p : (Omega3 S2pt).1) : Path Z (pos zero) (pos zero) = 
+  -- <i> encode base1 (arg4 p @ i)
+  -- Unfolded version:
+  -- The problematic part in the innermost transGen
+  <i> hcomp Z (hcomp Z (pos zero)
+                       [ (i = 0) -> <_> pos zero
+                       , (i = 1) -> <j> hcomp Z (hcomp Z (hcomp Z (hcomp Z (hcomp Z (hcomp Z (hcomp Z (hcomp Z (pos zero)
+                                                                     [ (j = 0) -> <_> pos zero
+                                                                     , (j = 1) -> <k> transGen (<l> helix (arg3 p @ -k @ -l)) 0 (pos zero) ])
+                                                                                                      [ (j = 0) -> <_> pos zero
+                                                                                                      , (j = 1) -> <_> pos zero
+                                                                                                      ])
+                                                                                             [ (j = 0) -> <_> pos zero
+                                                                                             , (j = 1) -> <_> pos zero
+                                                                                             ])
+                                                                                    [ (j = 0) -> <_> pos zero
+                                                                                    , (j = 1) -> <_> pos zero
+                                                                                    ])
+                                                                            [ (j = 1) -> <_> pos zero ])
+                                                                     [ (j = 1) -> <_> pos zero ])
+                                                             [ (j = 1) -> <_> pos zero ])
+                                                   [ (j = 1) -> <_> pos zero ]
+                       ])
+               [ (i = 0) -> <_> pos zero
+               , (i = 1) -> <_> pos zero ]
+
+  
+bsq (p : (Omega3 S2pt).1) :
+ Path (Path Z (pos zero) (pos zero)) (<_> pos zero) (arg4' p) =
+   ZSet (pos zero) (pos zero) (<_> pos zero) (arg4' p)
+
+--opaque Hopf
+
+fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p = 
+  -- Path (Path loopS1 (<_> base1) (transGen (<_> loopS1) 0 (<_> base1)))
+  --      (<i> hfill loopS1 (<_> base1) [] @ i) (arg4 p) =
+  -- setLoop (<_> base1)
+  --         (transGen (<_> loopS1) 0 (<_> base1))
+  --         (<i> hfill loopS1 (<_> base1) [] @ i)
+  --         (arg4 p)
+
+  -- Unfolded version:
+  <i j k> hcomp S1 (decode base1 (bsq p @ i @ j) @ k)
+              [ (i = 0) -> <l> decodeEncode base1 (<m> hcomp S1 base1 [ (j = 0) -> <_> base1
+                                                                      , (m = 0) -> <_> base1
+                                                                      , (m = 1) -> <_> base1 ]) @ l @ k
+              , (i = 1) -> <l> decodeEncode base1 (arg4 p @ j) @ l @ k
+              , (j = 0) -> <l> decodeEncode base1 (<_> base1) @ l @ k
+              , (j = 1) -> <l> decodeEncode base1 (<m> hcomp S1 base1 [ (m = 0) -> <_> base1
+                                                                      , (m = 1) -> <_> base1 ]) @ l @ k
+              , (k = 0) -> <_> base1
+              , (k = 1) -> <_> base1 ]
+
+-- opaque arg4'
+-- opaque arg4
+-- opaque Hopf
+-- opaque bsq

@@ -524,11 +524,58 @@ propPi (A : U) (B : A -> U) (h : (x : A) -> prop (B x))
        (f0 f1 : (x : A) -> B x) : Path ((x : A) -> B x) f0 f1
   = <i> \ (x:A) -> (h x (f0 x) (f1 x)) @ i
 
-propIsEquiv (A B : U) (f : A -> B) : prop (isEquiv A B f) =
-  \(u0 u1 : isEquiv A B f) -> <i> \(y : B) -> propIsContr (fiber A B f y) (u0 y) (u1 y) @ i
+-- propIsEquiv (A B : U) (f : A -> B) : prop (isEquiv A B f) =
+--   \(u0 u1 : isEquiv A B f) -> <i> \(y : B) -> propIsContr (fiber A B f y) (u0 y) (u1 y) @ i
 
 -- This opaque makes typechecking mu below faster, not sure if it breaks computation
-opaque propIsEquiv
+-- opaque propIsEquiv
+
+propIsEquivDirect' (A B : U) (f : A -> B) : prop (isEquiv A B f) =
+  \(p q : isEquiv A B f) ->
+  <i> \(y : B) ->
+    let p0 : A = (p y).1.1
+        p1 : Path B y (f p0) = (p y).1.2
+        p2 : (w1 : fiber A B f y) -> Path (fiber A B f y) (p0,p1) w1 =
+         (p y).2
+        q0 : A = (q y).1.1
+        q1 : Path B y (f q0) = (q y).1.2
+        q2 : (w1 : fiber A B f y) -> Path (fiber A B f y) (q0,q1) w1 =
+         (q y).2
+        alpha : Path (fiber A B f y) (p0,p1) (q0,q1) = p2 (q0,q1)
+    in (alpha @ i,
+       \(w : fiber A B f y) ->
+          let x : A = w.1
+              wx : Path B y (f x) = w.2
+              alpha1 : Path A p0 q0 = <i> (alpha @ i).1
+              alpha2 : PathP (<i> Path B y (f (alpha1 @ i))) p1 q1 =
+                <i> (alpha @ i).2
+              p2w1 : Path A p0 x = <i> (p2 w @ i).1
+              q2w1 : Path A q0 x = <i> (q2 w @ i).1
+              p2w2 : PathP (<i> Path B y (f (p2w1 @ i))) p1 wx = <i> (p2 w @ i).2
+              q2w2 : PathP (<i> Path B y (f (q2w1 @ i))) q1 wx = <i> (q2 w @ i).2
+              sq1 : PathP (<j> Path A (alpha1 @ j) x) p2w1 q2w1 =
+                    <i j> hcomp A (p2w1 @ i \/ j)
+                                 [ (i = 0) -> <k> p2w1 @ j
+                                 , (i = 1) -> <k> q2w1 @ j \/ -k
+                                 , (j = 0) -> <k> (p2 (q2 w @ -k) @ i).1
+                                 , (j = 1) -> <k> x ]
+              sq2 : PathP (<i> PathP (<j> Path B y (f (sq1 @ i @ j)))
+                                     (alpha2 @ i) wx)
+                          p2w2 q2w2 =
+                     <i j l> hcomp B (p2w2 @ i \/ j @ l)
+                                 [ (i = 0) -> <k> p2w2 @ j @ l
+                                 , (i = 1) -> <k> q2w2 @ j \/ -k @ l
+                                 , (j = 0) -> <k> (p2 (q2 w @ -k) @ i).2 @ l
+                                 , (j = 1) -> <k> wx @ l
+                                 , (l = 0) -> <k> y
+                                 , (l = 1) -> <k> f (hfill A (p2w1 @ i \/ j)
+                                                        [ (i = 0) -> <k> p2w1 @ j
+                                                        , (i = 1) -> <k> q2w1 @ j \/ -k
+                                                        , (j = 0) -> <k> (p2 (q2 w @ -k) @ i).1
+                                                        , (j = 1) -> <k> x ] @ k)
+                                 ]
+          in <j> (sq1 @ i @ j,sq2 @ i @ j))
+
 
 lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a0 a1 :A)
          (p : Path A a0 a1) (b0 : P a0) (b1 : P a1) : PathP (<i> P (p @ i)) b0 b1 =
@@ -590,7 +637,7 @@ rot_unit_r : (a : S1) -> Path S1 (rot a base) a = split
 
 rotIsEquiv_loop : PathP (<i> isEquiv S1 S1 (rot (loopP @ i))) (idIsEquiv S1) (idIsEquiv S1) =
   lemPropF S1 (\(a : S1) -> isEquiv S1 S1 (rot a))
-           (\(a : S1) -> propIsEquiv S1 S1 (rot a)) base base loopP
+           (\(a : S1) -> propIsEquivDirect' S1 S1 (rot a)) base base loopP
            (idIsEquiv S1) (idIsEquiv S1)
 
 rotIsEquiv : (a : S1) -> isEquiv S1 S1 (rot a) = split
@@ -2044,7 +2091,7 @@ lem3Trunc (A B : U) (hB : twogroupoid B) (g h : g2Trunc A -> B)
 multTwoTildeEquiv : (x : S2) -> isEquiv trS2 trS2 (multTwoTilde x) =
   lemPropS2
     (\(x : S2) -> isEquiv trS2 trS2 (multTwoTilde x))
-    (\(x : S2) -> propIsEquiv trS2 trS2 (multTwoTilde x))
+    (\(x : S2) -> propIsEquivDirect' trS2 trS2 (multTwoTilde x))
     multEquivNorth
   where multNorthEqPath : Path (trS2 -> trS2) (\(x : trS2) -> x) (multTwoTilde north) =
           <i> \(x : trS2) -> lem3Trunc S2 trS2 (g2TruncTwoGroupoid S2) (idfun trS2)
@@ -2265,7 +2312,7 @@ lemSigProp (A:U) (B:A-> U) (pB : (x:A) -> prop (B x)) (t u : Sigma A B) : Path U
 
 eqEquivFst (A B : U) : (t u : equiv A B) ->
      Path U (Path (equiv A B) t u) (Path (A -> B) t.1 u.1)
-   = lemSigProp (A -> B) (isEquiv A B) (propIsEquiv A B)
+   = lemSigProp (A -> B) (isEquiv A B) (propIsEquivDirect' A B)
 
 groupoidPi (A : U) (B : A -> U) (h : (x : A) -> groupoid (B x)) (f g : pi A B) :
   set (Path (pi A B) f g) = subst U set T (Path (pi A B) f g) (<i> idPi A B f g @ -i) rem1
@@ -2419,7 +2466,7 @@ test0To3 : (Omega3 (joinpt S1pt S1)).1 = f3 test0To2
 test0To4 : (Omega3 S2pt).1 = f4 test0To3
 
 -- Not sure?
-testFibContrHopf3 : HopfThree test0To4 = fibContrHopfThree test0To4
+-- testFibContrHopf3 : HopfThree test0To4 = fibContrHopfThree test0To4
 
 transparent isGroupoidS1
 

@@ -219,7 +219,7 @@ uabeta (A B : U) (e : equiv A B) : Path (A -> B) (trans A B (ua A B e)) e.1 =
 uaret (A B : U) : retract (equiv A B) (Path U A B) (ua A B) (transEquiv A B) =
   \(e : equiv A B) ->
   let rem (a : A) : Path B ((transEquiv A B (ua A B e)).1 a) (e.1 a) =
-        <i> fill (<_> B) (fill (<_> B) (e.1 (fill (<_> A) a [] @ -i)) [] @ -i) [] @ -i
+        <i> (uabeta A B e @ i) (fill (<_> A) a [] @ -i)
   in equivLemma A B (transEquiv A B (ua A B e)) e (<i> \(a : A) -> rem a @ i)
 
 -- So  (B:U) x equiv A B    is a retract of    (B:U) x Path U A B

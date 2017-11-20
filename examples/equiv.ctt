@@ -84,9 +84,10 @@ propIsEquivDirect' (A B : U) (f : A -> B) : prop (isEquiv A B f) =
                                                         , (j = 1) -> <k> x ] @ k) ]
           in <j> (sq1 @ i @ j,sq2 @ i @ j))
 
+-- Using propIsEquivDirect here makes this a lot faster to use later
 equivLemma (A B : U)
   : (v w : equiv A B) -> Path (A -> B) v.1 w.1 -> Path (equiv A B) v w
-  = lemSig (A -> B) (isEquiv A B) (propIsEquiv A B)
+  = lemSig (A -> B) (isEquiv A B) (propIsEquivDirect A B)
 
 idIsEquiv (A : U) : isEquiv A A (idfun A) =
   \(a : A) -> ((a, refl A a)
@@ -131,7 +132,7 @@ lemSinglContr (A:U) (a:A) : isContr ((x:A) * Path A a x) =
 idEquiv (A:U) : equiv A A = (\ (x:A) -> x, lemSinglContr A)
 
 transEquiv (A X:U) (p:Path U A X) : equiv A X =
- substTrans U (equiv A) A X p (idEquiv A)
+ subst U (equiv A) A X p (idEquiv A)
 
 transDelta (A:U) : equiv A A = transEquiv A A (<i>A)
 

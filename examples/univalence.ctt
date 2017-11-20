@@ -207,30 +207,27 @@ ua (A B : U) (e : equiv A B) : Path U A B =
 -- have been the identity function (i.e. if the computation rule for J
 -- would be definitional) this proof would be trivial.
 uabeta (A B : U) (e : equiv A B) : Path (A -> B) (trans A B (ua A B e)) e.1 =
-  <i> \(a : A) ->
-      let b : B = trans B B (<_> B) (e.1 a)
-          rem1 : Path B b (e.1 a) = <i> fill (<_> B) (e.1 a) [] @ -i
-          rem2 : Path B (trans B B (<_> B) b) b = <i> fill (<_> B) b [] @ -i
-          goal : Path B (trans B B (<_> B) b) (e.1 a) =
-            compPath B (trans B B (<_> B) b) b (e.1 a) rem2 rem1
-      in goal @ i
+  <i> \(a : A) -> fill (<_> B) (fill (<_> B) (e.1 a) [] @ -i) [] @ -i
 
 -- uabeta implies that equiv A B is a retract of Path U A B
-uaret (A B : U) : retract (equiv A B) (Path U A B) (ua A B) (transEquivDirect A B) =
-  \(e : equiv A B) ->
-    equivLemma A B (transEquivDirect A B (ua A B e)) e (uabeta A B e)
 
+-- We don't have to use transEquivDirect:
+-- uaret (A B : U) : retract (equiv A B) (Path U A B) (ua A B) (transEquivDirect A B) =
+--   \(e : equiv A B) ->
+--     equivLemma A B (transEquivDirect A B (ua A B e)) e (uabeta A B e)
+
+uaret (A B : U) : retract (equiv A B) (Path U A B) (ua A B) (transEquiv A B) =
+  \(e : equiv A B) ->
+  let rem (a : A) : Path B ((transEquiv A B (ua A B e)).1 a) (e.1 a) =
+        <i> fill (<_> B) (fill (<_> B) (e.1 (fill (<_> A) a [] @ -i)) [] @ -i) [] @ -i
+  in equivLemma A B (transEquiv A B (ua A B e)) e (<i> \(a : A) -> rem a @ i)
 
 -- So  (B:U) x equiv A B    is a retract of    (B:U) x Path U A B
-opaque uaret
-
 f1 (A : U) (p : (B : U) * equiv A B) : ((B : U) * Path U A B) = (p.1,ua A p.1 p.2)
-f2 (A : U) (p : (B : U) * Path U A B) : ((B : U) * equiv A B) = (p.1,transEquivDirect A p.1 p.2)
+f2 (A : U) (p : (B : U) * Path U A B) : ((B : U) * equiv A B) = (p.1,transEquiv A p.1 p.2)
 
 uaretsig (A : U) : retract ((B : U) * equiv A B) ((B : U) * Path U A B) (f1 A) (f2 A) =
   \(p : (B : U) * equiv A B) -> <i> (p.1,uaret A p.1 p.2 @ i)
-
-transparent uaret
 
 -- But   (B : U) x Path U A B   is contractible
 isContrPath (A : U) : isContr ((B : U) * Path U A B) =

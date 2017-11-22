@@ -449,6 +449,7 @@ showVal v = case v of
   VPair u v         -> parens (showVal u <> comma <> showVal v)
   VSigma a b@VLam{} -> char '(' <> showBinder v
   VSigma u v        -> text "Sigma" <+> showVals [u,v]
+  VApp u@VLam{} v   -> parens (showVal u) <+> showVal1 v
   VApp u v          -> showVal u <+> showVal1 v
   VLam{}            -> text "\\(" <> showBinder v
   VPLam{}           -> char '<' <> showPLam v

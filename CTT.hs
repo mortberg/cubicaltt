@@ -454,7 +454,7 @@ showVal v = case v of
   VPLam{}           -> char '<' <> showPLam v
   VSplit u v        -> showVal u <+> showVal1 v
   VVar x _          -> text x
-  VOpaque x _       -> text ('#':x)
+  VOpaque x _       -> text x
   VFst u            -> showVal1 u <> text ".1"
   VSnd u            -> showVal1 u <> text ".2"
   VPathP v0 v1 v2   -> text "PathP" <+> showVals [v0,v1,v2]

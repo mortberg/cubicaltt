@@ -1,0 +1,291 @@
+module param where
+
+id (A : U) (a : A) : A = a
+
+idT : U = (A : U) (a : A) -> A
+
+pidT : (X : (A : U) -> (a : A) -> A) -> U =
+  \(X : (A : U) -> (a : A) -> A) -> (A : U) -> (A' : A -> U) -> (a : A) -> (a' : A' a) -> A' (X A a)
+
+-- rhs is :p id
+test : pidT id = \(A : U) -> \(A' : A -> U) -> \(a : A) -> \(a' : A' a) -> a'
+
+
+app (A B : U) (f : A -> B) (a : A) : B = f a
+
+appT : U = (A B : U) (f : A -> B) (a : A) -> B
+
+pappT : (X : (A B : U) -> (f : A -> B) -> (a : A) -> B) -> U =
+  \(X : (A B : U) -> (f : A -> B) -> (a : A) -> B) ->
+   (A : U) -> (A' : A -> U) -> (B : U) ->
+   (B' : B -> U) -> (f : A -> B) -> (f' : (x : A) -> (x' : A' x) -> B' (f x)) -> (a : A) -> (a' : A' a) -> B' (X A B f a)
+
+-- rhs is :p app
+test2 : pappT app = \(A : U) -> \(A' : A -> U) -> \(B : U) -> \(B' : B -> U) -> \(f : A -> B) -> \(f' : (x : A) -> (x' : A' x) -> B' (f x)) -> \(a : A) -> \(a' : A' a) -> f' a a'
+
+
+
+Pi (A : U) (F : (x : A) -> U) : U = (x : A) -> F x
+
+Sigma (A : U) (F : (x : A) -> U) : U = (x : A) * F x
+
+SigmaT : U = (A : U) (F : (x : A) -> U) -> U 
+
+pair (A : U) (F : (x : A) -> U) (a : A) (b : F a) : (x : A) * F x = (a,b)
+
+pairT : U = (A : U) (F : (x : A) -> U) (a : A) (b : F a) -> (x : A) * F x
+
+ppairT : (X : (A : U) -> (F : (x : A) -> U) -> (a : A) -> (b : F a) -> Sigma A (\(x : A) -> F x)) -> U =
+  \(X : (A : U) -> (F : (x : A) -> U) -> (a : A) -> (b : F a) -> Sigma A (\(x : A) -> F x)) ->
+  (A : U) -> (A' : A -> U) ->
+  (F : (x : A) -> U) -> (F' : (x : A) -> (x' : A' x) -> (F x) -> U) ->
+  (a : A) -> (a' : A' a) ->
+  (b : F a) -> (b' : F' a a' b) -> 
+  Sigma (A' (X A F a b).1)
+        (\(x' : A' (X A F a b).1) -> F' (X A F a b).1 x' (X A F a b).2)
+
+testpair : ppairT pair =
+  \(A : U) -> \(A' : A -> U) ->
+  \(F : (x : A) -> U) -> \(F' : (x : A) -> (x' : A' x) -> (F x) -> U) ->
+  \(a : A) -> \(a' : A' a) -> \(b : F a) -> \(b' : F' a a' b) ->
+  (a',b')
+
+Path (A : U) (a b : A) : U = PathP (<_> A) a b
+
+PathT : U = (A : U) (a b : A) -> U
+
+pPathT (X : (A : U) -> (a b : A) -> U) : U =
+  (A : U) -> (A' : A -> U) ->
+  (a : A) -> (a' : A' a) ->
+  (b : A) -> (b' : A' b) -> (X A a b) -> U
+
+testpath : pPathT Path =
+  \(A : U) -> \(A' : A -> U) ->
+  \(a : A) -> \(a' : A' a) ->
+  \(b : A) -> \(b' : A' b) ->
+  \(X : PathP (<!0> A) a b) ->
+  PathP (<!0> A' (X @ !0)) a' b'
+
+
+refl (A : U) (a : A) : Path A a a = <i> a
+
+reflT : U = (A : U) (a : A) -> Path A a a
+
+preflT (X : (A : U) -> (a : A) -> PathP (<!0> A) a a) : U =
+  (A : U) -> (A' : A -> U) ->
+  (a : A) -> (a' : A' a) ->
+  PathP (<!0> A' (X A a @ !0)) a' a'
+
+testrefl : preflT refl =
+  \(A : U) -> \(A' : A -> U) ->
+  \(a : A) -> \(a' : A' a) ->
+  <!0> a'
+
+ev0 (A : U) (a b : A) (p : Path A a b) : A = p @ 0
+
+ev0T : U = (A : U) (a b : A) (p : Path A a b) -> A
+
+pev0T (X : (A : U) -> (a b : A) -> (p : PathP (<!0> A) a b) -> A) : U =
+  (A : U) -> (A' : A -> U) ->
+  (a : A) -> (a' : A' a) ->
+  (b : A) -> (b' : A' b) ->
+  (p : PathP (<!0> A) a b) -> (p' : PathP (<!0> A' (p @ !0)) a' b') ->
+  A' (X A a b p)
+
+testev0 : pev0T ev0 =
+  \(A : U) -> \(A' : A -> U) ->
+  \(a : A) -> \(a' : A' a) ->
+  \(b : A) -> \(b' : A' b) ->
+  \(p : PathP (<!0> A) a b) -> \(p' : PathP (<!0> A' (p @ !0)) a' b') ->
+  a'
+
+-- Hmm, okay, not interesting at all, p@0 just computes to a...
+
+sym (A : U) (a b : A) (p : Path A a b) : Path A b a = <i> p @ -i
+
+symT : U = (A : U) (a b : A) (p : Path A a b) -> Path A b a
+
+psymT (X : (A : U) -> (a b : A) -> (p : PathP (<!0> A) a b) -> PathP (<!0> A) b a) : U =
+  (A : U) -> (A' : A -> U) ->
+  (a : A) -> (a' : A' a) ->
+  (b : A) -> (b' : A' b) ->
+  (p : PathP (<!0> A) a b) -> (p' : PathP (<!0> A' (p @ !0)) a' b') ->
+  PathP (<!0> A' (X A a b p @ !0)) b' a'
+
+testsym : psymT sym =
+   \(A : U) -> \(A' : A -> U) ->
+   \(a : A) -> \(a' : A' a) ->
+   \(b : A) -> \(b' : A' b) ->
+   \(p : PathP (<!0> A) a b) -> \(p' : PathP (<!0> A' (p @ !0)) a' b') ->
+   <!0> p' @ -!0
+
+cbool : U = (Z : U) -> Z -> Z -> Z
+
+church : U = (Y : U) -> Y -> (Y -> Y) -> Y
+
+zero : church = \(Y:U) (z : Y) (s : Y -> Y) -> z
+
+-- :p zero
+-- \(Y : U) -> \(Y' : Y -> U) ->
+-- \(z : Y) -> \(z' : Y' z) ->
+-- \(s : Y -> Y) -> \(s' : (x : Y) -> (x' : Y' x) -> Y' (s x))
+-- -> z'
+
+
+pchurch (X : (Y : U) -> Y -> ((Y -> Y) -> Y)) : U =
+  (Y : U) -> (Y' : Y -> U) ->
+  (x : Y) -> (x' : Y' x) ->
+  (x0 : Y -> Y) ->
+  (x0' : (x1 : Y) -> (x0' : Y' x1) -> Y' (x0 x1)) ->
+  Y' (X Y x x0)
+
+pzero : pchurch zero =
+  \(Y : U) -> \(Y' : Y -> U) ->
+  \(z : Y) -> \(z' : Y' z) ->
+  \(s : Y -> Y) -> \(s' : (x : Y) -> (x' : Y' x) -> Y' (s x))
+  -> z'
+
+--------------------------------------------------------------------------------
+
+isContr (A : U) : U = (x : A) * ((y : A) -> Path A x y)
+
+-- :p isContr
+-- \(A : U) -> \(A' : A -> U) ->
+-- \(X : Sigma A (\(x : A) ->(y : A) -> PathP (<!0> A) x y)) ->
+--   Sigma (A' X.1) (\(x' : A' X.1) ->
+-- (y : A) -> (y' : A' y) ->
+-- PathP (<!0> A' (X.2 y @ !0)) x' y')
+
+fiber (A B : U) (f : A -> B) (y : B) : U =
+  (x : A) * Path B y (f x)
+
+isEquiv (A B : U) (f : A -> B) : U = (y : B) -> isContr (fiber A B f y)
+
+equiv (A B : U) : U = (f : A -> B) * isEquiv A B f
+
+equivT : U = (A B : U) -> U
+
+pequivT (X : (A B : U) -> U) : U =
+  (A : U) -> (A' : A -> U) -> (B : U) -> (B' : B -> U) -> (X A B) -> U
+
+testequiv : pequivT equiv =
+  \(A : U) -> \(A' : A -> U) -> \(B : U) -> \(B' : B -> U) -> \(X : Sigma (A -> B) (\(f : A -> B) -> (y : B) -> Sigma (Sigma A (\(x : A) -> PathP (<!0> B) y (f x))) (\(x : Sigma A (\(x : A) -> PathP (<!0> B) y (f x))) -> (y0 : Sigma A (\(x0 : A) -> PathP (<!0> B) y (f x0))) -> PathP (<!0> Sigma A (\(x0 : A) -> PathP (<!0> B) y (f x0))) x y0))) -> Sigma ((x : A) -> (x' : A' x) -> B' (X.1 x)) (\(f' : (x : A) -> (x' : A' x) -> B' (X.1 x)) -> (y : B) -> (y' : B' y) -> Sigma (Sigma (A' (X.2 y).1.1) (\(x' : A' (X.2 y).1.1) -> PathP (<!0> B' ((X.2 y).1.2 @ !0)) y' (f' (X.2 y).1.1 x'))) (\(x' : Sigma (A' (X.2 y).1.1) (\(x' : A' (X.2 y).1.1) -> PathP (<!0> B' ((X.2 y).1.2 @ !0)) y' (f' (X.2 y).1.1 x'))) -> (y0 : Sigma A (\(x0 : A) -> PathP (<!0> B) y (X.1 x0))) -> (y0' : Sigma (A' y0.1) (\(x0' : A' y0.1) -> PathP (<!0> B' (y0.2 @ !0)) y' (f' y0.1 x0'))) -> PathP (<!0> Sigma (A' ((X.2 y).2 y0 @ !0).1) (\(x0' : A' ((X.2 y).2 y0 @ !0).1) -> PathP (<!1> B' (((X.2 y).2 y0 @ !0).2 @ !1)) y' (f' ((X.2 y).2 y0 @ !0).1 x0'))) x' y0'))
+
+
+
+-- A : U = undefined
+-- A' : A -> U = undefined
+-- B : U = undefined
+-- B' : B -> U = undefined
+-- opaque A
+-- opaque B
+-- w : equiv A B = undefined
+-- opaque w
+
+top : U = (A : U) (a : A) -> A 
+tt : top = id
+
+bar (A B : U) (w : equiv A B) : top = tt
+
+{-
+\(A : U) -> \(A' : A -> U) ->
+\(B : U) -> \(B' : B -> U) ->
+
+\(w : (f : A -> B) *
+      (y : B) -> 
+      (x : (x : A) * PathP (<i0> B) y (f x)) *
+      (y0 : (x0 : A) * PathP (<i0> B) y (f x0)) ->
+      PathP (<i0> (x0 : A) * PathP (<i0> B) y (f x0)) x y0) ->
+
+\(w' : (f' : (x : A) -> (x' : A' x) -> B' (w.1 x)) *
+       (y : B) ->
+       (y' : B' y) ->
+       (x' : (x' : A' (w.2 y).1.1) *
+             PathP (<i0> B' ((w.2 y).1.2 @ i0)) y' (f' (w.2 y).1.1 x')) *
+       (y0 : (x0 : A) *
+             PathP (<i0> B) y (w.1 x0)) ->
+       (y0' : (x0' : A' y0.1) *
+              PathP (<i0> B' (y0.2 @ i0)) y' (f' y0.1 x0')) ->
+       PathP (<i0> (x0' : A' ((w.2 y).2 y0 @ i0).1) * 
+                   PathP (<i1> B' (((w.2 y).2 y0 @ i0).2 @ i1))
+                         y' (f' ((w.2 y).2 y0 @ i0).1 x0'))
+             x' y0')
+
+-- -> \(A0 : U) -> \(A0' : A0 -> U) -> \(a : A0) -> \(a' : A0' a) -> a'  
+
+-- w : equiv A B
+-- w' : (equiv A B)' w
+-- a : A, so w.1 a : B
+-- for a' : A' a, we have w'.1 a a' : B' (w.1 a)
+-- We want that w'.1 a is an equivalence between A' a and B' (w.1 a)
+
+
+
+-}
+
+baz (A B : U) (f : A -> B) (e : isEquiv A B f) : top = tt
+
+{-
+
+ \(A : U) -> \(A' : A -> U) ->
+ \(B : U) -> \(B' : B -> U) ->
+ \(f : A -> B) ->
+ \(f' : (x : A) -> (x' : A' x) -> B' (f x)) -> 
+ \(e : (y : B) -> (x : (x : A) * PathP (<!0> B) y (f x)) *
+      (y0 : (x0 : A) * PathP (<!0> B) y (f x0)) ->
+      PathP (<!0> (x0 : A) * PathP (<!0> B) y (f x0)) x y0) ->
+ \(e' : (y : B) -> (y' : B' y) ->
+        (x' : (x' : A' (e y).1.1) * 
+              PathP (<!0> B' ((e y).1.2 @ !0)) y' (f' (e y).1.1 x')) *
+              (y0 : (x0 : A) * PathP (<!0> B) y (f x0)) -> 
+              (y0' : (x0' : A' y0.1) * 
+                     PathP (<!0> B' (y0.2 @ !0)) y' (f' y0.1 x0')) ->
+              PathP (<!0> (x0' : A' ((e y).2 y0 @ !0).1) *
+                      PathP (<!1> B' (((e y).2 y0 @ !0).2 @ !1))
+                        y' (f' ((e y).2 y0 @ !0).1 x0'))
+                x' y0')
+
+--  -> \(A0 : U) -> \(A0' : A0 -> U) -> \(a : A0) -> \(a' : A0' a) -> a'
+
+-}
+
+-- Let's try to calculate some instances
+calc (A : U) (A' : A -> U)
+     (B : U) (B' : B -> U)
+     (f : A -> B)
+     (f' : (x : A) -> (x' : A' x) -> B' (f x))
+     (e : isEquiv A B f) 
+     (y : B) (y' : B' y) : U
+  =
+        (x' : (x' : A' (e y).1.1) * 
+              PathP (<!0> B' ((e y).1.2 @ !0)) y' (f' (e y).1.1 x')) *
+              (y0 : (x0 : A) * PathP (<!0> B) y (f x0)) -> 
+              (y0' : (x0' : A' y0.1) * 
+                     PathP (<!0> B' (y0.2 @ !0)) y' (f' y0.1 x0')) ->
+              PathP (<!0> (x0' : A' ((e y).2 y0 @ !0).1) *
+                      PathP (<!1> B' (((e y).2 y0 @ !0).2 @ !1))
+                        y' (f' ((e y).2 y0 @ !0).1 x0'))
+                x' y0'
+
+-- Some generic vals
+ 
+A : U = undefined
+opaque A
+A' : A -> U = undefined
+opaque A'
+B : U = undefined
+opaque B
+B' : B -> U = undefined
+opaque B'
+f : A -> B = undefined
+opaque f
+e : isEquiv A B f = undefined
+opaque e
+f' : (x : A) -> (x' : A' x) -> B' (f x) = undefined
+opaque f'
+a : A = undefined
+opaque a
+y' : B' (f a) = undefined
+opaque y'
+
+calc1 : U = calc A A' B B' f f' e (f a) y'

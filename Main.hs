@@ -140,6 +140,12 @@ loop flags f names tenv = do
               ("TYPE: ",str, \ty _ -> ty)
             (':':'n':'t':' ':str) ->
               ("NORM TYPE: ",str, \ty _ -> E.normal [] ty)
+            (':':'p':' ':str) ->
+              ("PARAM: ",str,const $ E.param [] [] [])
+            (':':'f':'t':' ':str) ->
+              ("FREETHM: ",str, \ty val -> E.paramT [] [] [] ty val)-- (E.normSubst [] [] val))
+            (':':'f':'t':'g':' ':str) ->
+              ("FREETHMGEN: ",str, \ty val -> E.paramT [] [] [] ty (VVar "GEN" ty))-- (E.normSubst [] [] val))
             str -> ("EVAL: ",str,\_ val -> val)
       in case pExp (lexer str) of
       Bad err -> outputStrLn ("Parse error: " ++ err) >> loop flags f names tenv

@@ -12,6 +12,7 @@ import qualified Data.Set as Set
 import Connections
 import CTT
 
+import Debug.Trace
 
 
 -----------------------------------------------------------------------
@@ -901,3 +902,119 @@ instance (Normal a,Normal b,Normal c,Normal d) => Normal (a,b,c,d) where
 
 instance Normal a => Normal [a] where
   normal ns = map (normal ns)
+
+
+-------------------------------------------------------------------------------
+-- | Parametric interpretation
+
+-- class Normal a => Param a where
+--   -- given t of type A, calculate t' of type A' t
+--   param :: [(String,String)] -> a -> a
+--   -- given A and a : A, calculate A' a
+--   paramT :: [(String,String)] -> a -> a -> a
+
+
+mkVarNiceP :: [String] -> String -> Val -> Val
+mkVarNiceP xs x = VVar (head (ys \\ xs))
+  where ys = map (++ "'") $ x:map (\n -> x ++ show n) [0..]
+
+-- some default name instead of underscores
+notUS ('_':s) = "x"
+notUS s = s
+
+normSubst :: [String] -> [(String,Val)] -> Val -> Val
+normSubst ns mvs v = case v of
+  VVar x t            -> case lookup x mvs of
+    Just u -> u
+    Nothing -> VVar x (normSubst ns mvs t)
+  VU                  -> VU
+  Ter (Lam x t u) e   ->
+    let w = eval e t
+        v@(VVar n _) = mkVarNice ns x w
+    in VLam n (normSubst ns mvs w) $ normSubst (n:ns) mvs (eval (upd (x,v) e) u)
+  -- Ter t e             -> Ter t (normSubst ns mvs e)
+  VPi u v             -> VPi (normSubst ns mvs u) (normSubst ns mvs v)
+  VSigma u v          -> VSigma (normSubst ns mvs u) (normSubst ns mvs v)
+  VPair u v           -> VPair (normSubst ns mvs u) (normSubst ns mvs v)
+  -- VCon n us           -> VCon n (map (normSubst ns mvs us)
+  -- VPCon n u us phis   -> VPCon n (normSubst ns mvs u) (normSubst ns mvs us) phis
+  VPathP a u0 u1      -> VPathP (normSubst ns mvs a) (normSubst ns mvs u0) (normSubst ns mvs u1)
+  VPLam i u           -> VPLam i (normSubst ns mvs u)
+--  VTrans a phi u      -> VTrans (normSubst ns mvs a) (normSubst ns mvs phi) (normSubst ns mvs u)
+  -- VHComp u v vs       -> VHComp (normSubst ns mvs u) (normSubst ns mvs v) (normSubst ns mvs vs)
+  -- VGlue u equivs      -> VGlue (normSubst ns mvs u) (normSubst ns mvs equivs)
+  -- VGlueElem u us      -> VGlueElem (normSubst ns mvs u) (normSubst ns mvs us)
+  -- VUnGlueElem v u us  -> VUnGlueElem (normSubst ns mvs v) (normSubst ns mvs u) (normSubst ns mvs us)
+  -- VUnGlueElemU e u us -> VUnGlueElemU (normSubst ns mvs e) (normSubst ns mvs u) (normSubst ns mvs us)
+  -- VHCompU a ts        -> VHCompU (normSubst ns mvs a) (normSubst ns mvs ts)
+  VFst t              -> VFst (normSubst ns mvs t)
+  VSnd t              -> VSnd (normSubst ns mvs t)
+  VSplit u t          -> VSplit (normSubst ns mvs u) (normSubst ns mvs t)
+  VApp u v            -> VApp (normSubst ns mvs u) (normSubst ns mvs v)
+  VAppFormula u r     -> VAppFormula (normSubst ns mvs u) r
+  -- VId a u v           -> VId (normSubst ns mvs a) (normSubst ns mvs u) (normSubst ns mvs v)
+  -- VIdPair u us        -> VIdPair (normSubst ns mvs u) (normSubst ns mvs us)
+  -- VIdJ a u c d x p    -> VIdJ (normSubst ns mvs a) (normSubst ns mvs u) (normSubst ns mvs c)
+  --                             (normSubst ns mvs d) (normSubst ns mvs x) (normSubst ns mvs p)
+  _                   -> v
+
+
+--instance Param Val where
+paramT :: [String] -> [(String,String)] -> [(String,Val)] -> Val -> Val -> Val
+paramT np nps mvs ty v = --let np = map fst nps ++ map snd nps in
+  case ty of
+    VU -> VPi v (VLam "_" v VU)
+    VPi u (Ter (Lam x _ b) rho) ->
+      let nu = normSubst np mvs u
+          xv@(VVar xf _) = mkVarNice np (notUS x) nu
+          pu = paramT (xf:np) nps mvs u xv
+          xv'@(VVar xfp _) = mkVarNiceP (xf:np) (notUS x) pu
+          bv = eval (upd (x,xv) rho) b
+      in VPi nu $ VLam xf nu $ VPi pu $ VLam xfp pu $
+         paramT (xf:xfp:np) ((xf,xfp):nps) mvs bv (VApp v xv)
+    VSigma u (Ter (Lam x _ b) rho) ->
+      let nu = normSubst np mvs u
+          xv@(VVar xf _) = mkVarNice np (notUS x) nu
+          pu = paramT (xf:np) nps mvs u (fstVal v)
+          xv'@(VVar xfp _) = mkVarNiceP (xf:np) (notUS x) pu
+          bv = eval (upd (x,xv) rho) b
+      in VSigma pu $ VLam xfp pu $
+         paramT (xf:xfp:np) ((xf,xfp):nps) ((xf,fstVal v):mvs) bv (sndVal v)
+    VPathP (VPLam i a) u0 u1 ->
+      let j = fresh (ty,map snd mvs,v)
+      in VPathP (VPLam j (paramT np nps
+                           (map (\(m,w) -> (m,w `swap` (i,j))) mvs)
+                           (a `swap` (i,j)) (v @@@ j)))
+                (param np nps mvs u0) (param np nps mvs u1)
+    ty -> trace ("paramT catch all: \nty =\n" ++ show ty ++ "\nv =\n " ++ show v)
+          VApp (param np nps mvs ty) (normSubst np mvs v)
+
+param :: [String] -> [(String,String)] -> [(String,Val)] -> Val -> Val
+param np nps mvs v = -- let np = map fst nps ++ map snd nps in
+  case v of
+    VVar n ty -> case lookup n nps of
+      --Just p -> VVar p (paramT np nps mvs ty v)
+      Just p -> case lookup p mvs of
+        Just v  -> v
+        Nothing -> VVar p (paramT np nps mvs ty v)
+      Nothing -> error $ "param: variable not found " ++ show v
+    Ter (Lam x a t) rho ->
+      let u = eval rho a
+          xv@(VVar xf _) = mkVarNice np (notUS x) u
+          pu = paramT (xf:np) nps mvs u xv
+          xv'@(VVar xfp _) = mkVarNiceP (xf:np) (notUS x) pu
+          tv = eval (upd (x,xv) rho) t
+      in VLam xf (normSubst np mvs u) $ VLam xfp pu $ param (xf:xfp:np) ((xf,xfp):nps) mvs tv
+    VApp f u -> trace "param app"
+      VApp (VApp (param np nps mvs f) (normSubst np mvs u)) (param np nps mvs u)
+    VPair l r -> VPair (param np nps mvs l) (param np nps mvs r)
+    VFst u -> VFst (param np nps mvs u)
+    VSnd u -> VSnd (param np nps mvs u)
+    VPLam i u ->
+      let j = fresh (v,map snd mvs)
+      in VPLam j (param np nps (map (\(m,w) -> (m,w `swap` (i,j))) mvs) (u `swap` (i,j)))
+    VAppFormula u r ->
+      VAppFormula (param np nps mvs u) r
+    v -> let xv@(VVar xf nv) = mkVarNice np "X" (normSubst np mvs v)
+         in trace ("param catch all: v = " ++ show v)
+            VLam xf nv $ paramT (xf:np) nps mvs v xv

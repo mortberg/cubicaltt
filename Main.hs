@@ -135,8 +135,12 @@ loop flags f names tenv = do
     Just str'  ->
       let (msg,str,mod) = case str' of
             (':':'n':' ':str) ->
-              ("NORMEVAL: ",str,E.normal [])
-            str -> ("EVAL: ",str,id)
+              ("NORMEVAL: ",str,\_ val -> E.normal [] val)
+            (':':'t':' ':str) ->
+              ("TYPE: ",str, \ty _ -> ty)
+            (':':'n':'t':' ':str) ->
+              ("NORM TYPE: ",str, \ty _ -> E.normal [] ty)
+            str -> ("EVAL: ",str,\_ val -> val)
       in case pExp (lexer str) of
       Bad err -> outputStrLn ("Parse error: " ++ err) >> loop flags f names tenv
       Ok  exp ->
@@ -148,9 +152,9 @@ loop flags f names tenv = do
             case x of
               Left err -> do outputStrLn ("Could not type-check: " ++ err)
                              loop flags f names tenv
-              Right _  -> do
+              Right typ  -> do
                 start <- liftIO getCurrentTime
-                let e = mod $ E.eval (TC.env tenv) body
+                let e = mod typ $ E.eval (TC.env tenv) body
                 -- Let's not crash if the evaluation raises an error:
                 liftIO $ catch (putStrLn (msg ++ shrink (show e)))
                                -- (writeFile "examples/nunivalence3.ctt" (show e))
@@ -198,6 +202,8 @@ help :: String
 help = "\nAvailable commands:\n" ++
        "  <statement>     infer type and evaluate statement\n" ++
        "  :n <statement>  normalize statement\n" ++
+       "  :t <statement>  infer type of statement\n" ++
+       "  :nt <statement> infer and normalize type of statement\n" ++
        "  :q              quit\n" ++
        "  :l <filename>   loads filename (and resets environment before)\n" ++
        "  :cd <path>      change directory to path\n" ++

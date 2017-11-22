@@ -444,12 +444,13 @@ showVal v = case v of
                        <+> showVal1 v0
   VPi a l@(VLam x t b)
     | "_" `isPrefixOf` x -> showVal1 a <+> text "->" <+> showVal1 b
-    | otherwise          -> char '(' <> showLam v
+    | otherwise          -> char '(' <> showBinder v
   VPi a b           -> text "Pi" <+> showVals [a,b]
   VPair u v         -> parens (showVal u <> comma <> showVal v)
+  VSigma a b@VLam{} -> char '(' <> showBinder v
   VSigma u v        -> text "Sigma" <+> showVals [u,v]
   VApp u v          -> showVal u <+> showVal1 v
-  VLam{}            -> text "\\(" <> showLam v
+  VLam{}            -> text "\\(" <> showBinder v
   VPLam{}           -> char '<' <> showPLam v
   VSplit u v        -> showVal u <+> showVal1 v
   VVar x _          -> text x
@@ -474,21 +475,27 @@ showPLam e = case e of
   VPLam i a         -> text (show i) <> char '>' <+> showVal a
   _                 -> showVal e
 
--- Merge lambdas of the same type
-showLam :: Val -> Doc
-showLam e = case e of
+-- Merge binders of the same type
+showBinder :: Val -> Doc
+showBinder e = case e of
   VLam x t a@(VLam _ t' _)
-    | t == t'   -> text x <+> showLam a
+    | t == t'   -> text x <+> showBinder a
     | otherwise ->
       text x <+> colon <+> showVal t <> char ')' <+> text "->" <+> showVal a
   VPi _ (VLam x t a@(VPi _ (VLam _ t' _)))
-    | t == t'   -> text x <+> showLam a
+    | t == t'   -> text x <+> showBinder a
     | otherwise ->
       text x <+> colon <+> showVal t <> char ')' <+> text "->" <+> showVal a
+  VSigma _ (VLam x t a@(VSigma _ (VLam _ t' _)))
+    | t == t'   -> text x <+> showBinder a
+    | otherwise ->
+      text x <+> colon <+> showVal t <> char ')' <+> text "*" <+> showVal a
   VLam x t e         ->
     text x <+> colon <+> showVal t <> char ')' <+> text "->" <+> showVal e
   VPi _ (VLam x t e) ->
     text x <+> colon <+> showVal t <> char ')' <+> text "->" <+> showVal e
+  VSigma _ (VLam x t e) ->
+    text x <+> colon <+> showVal t <> char ')' <+> text "*" <+> showVal e
   _ -> showVal e
 
 showVal1 :: Val -> Doc

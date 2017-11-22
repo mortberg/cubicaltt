@@ -505,6 +505,7 @@ showVal1 v = case v of
   VVar{}            -> showVal v
   VFst{}            -> showVal v
   VSnd{}            -> showVal v
+  VOpaque{}         -> showVal v
   Ter t rho | isEmpty (showEnv False rho) -> showTer1 t
   _                 -> parens (showVal v)
 

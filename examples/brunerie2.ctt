@@ -2226,6 +2226,7 @@ fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p =
 -- opaque Hopf
 -- opaque bsq
 
-problem (p : (Omega3 S2pt).1) : Path Z (pos zero) (pos zero) =
-  <i> transGen (<j> helix (transGen (<k> Hopf (p @ i @ j @ k)) 0 base1)) 0 (pos zero)
+-- This path does not terminate. The innermost transGen does though
+problem : Path Z (pos zero) (pos zero) =
+  <i> transGen (<j> helix (transGen (<k> Hopf (test0To4 @ i @ j @ k)) 0 base1)) 0 (pos zero)
 

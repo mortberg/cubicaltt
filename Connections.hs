@@ -421,8 +421,8 @@ face x f = faceloop x (assocs f)
   where
   faceloop x [] = x
   faceloop x ((i,d):xs) -- | not (i `occurs` x) = faceloop x xs
-                        | otherwise =
-                        faceloop (act True x (i,Dir d)) xs
+                        -- | otherwise =
+                        = faceloop (act True x (i,Dir d)) xs
 
 -- the faces should be incomparable
 type System a = Map Face a
@@ -437,10 +437,11 @@ showSystem :: Show a => System a -> String
 showSystem = showListSystem . toList
 
 insertSystem :: Face -> a -> System a -> System a
-insertSystem alpha v ts
-  | any (leq alpha) (keys ts) = ts
-  | otherwise = Map.insert alpha v
-                (Map.filterWithKey (\gamma _ -> not (gamma `leq` alpha)) ts)
+insertSystem alpha v ts =
+  -- | any (leq alpha) (keys ts) = ts
+--  | otherwise =
+    Map.insert alpha v ts
+                -- (Map.filterWithKey (\gamma _ -> not (gamma `leq` alpha)) ts)
 
 insertsSystem :: [(Face, a)] -> System a -> System a
 insertsSystem faces us = foldr (uncurry insertSystem) us faces
@@ -527,11 +528,12 @@ alpha `leqSystem` us =
 
 -- assumes alpha <= shape us
 proj :: (Nominal a, Show a) => System a -> Face -> a
-proj us alpha | eps `member` usalpha = usalpha ! eps
-              | otherwise            =
-  error $ "proj: eps not in " ++ show usalpha ++ "\nwhich  is the "
-    ++ show alpha ++ "\nface of " ++ show us
-  where usalpha = us `face` alpha
+proj us alpha = us `face` alpha ! eps
+  --   | eps `member` usalpha = usalpha ! eps
+  --   | otherwise            =
+  -- error $ "proj: eps not in " ++ show usalpha ++ "\nwhich  is the "
+  --   ++ show alpha ++ "\nface of " ++ show us
+  -- where usalpha = us `face` alpha
 
 domain :: System a -> [Name]
 domain  = keys . Map.unions . keys

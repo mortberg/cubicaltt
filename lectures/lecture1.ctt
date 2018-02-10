@@ -351,9 +351,10 @@ where r is some element of the interval.
 -}
 
 
--- As in the Cubical Type Theory paper the type PathP (written Path in
--- the paper!) is heterogeneous. The homogeneous Path type can be
--- defined by:
+-- The type PathP is a heterogeneous path type and it corresponds to
+-- the Path type introduced in section 9.2 of the cubical type theory
+-- paper. The homogeneous Path type, corresponding to the one in
+-- section 3 of the paper, can then be defined by:
 Path (A : U) (a b : A) : U = PathP (<_> A) a b
 
 {-

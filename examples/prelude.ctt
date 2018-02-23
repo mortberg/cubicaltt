@@ -66,6 +66,19 @@ J (A : U) (a : A) (C : (x : A) -> Path A a x -> U)
     subst (singl A a) T (a, refl A a) (x, p) (contrSingl A a x p) d
       where T (z : singl A a) : U = C (z.1) (z.2)
 
+-- Normal form of J:
+-- comp (<i> C (p @ i) (<j> p @ i /\ j)) d []
+
+-- Alternative proof of J
+J' (A : U) (a : A) (C : (x : A) -> Path A a x -> U)
+   (d : C a (<_> a)) (x : A) (p : Path A a x) : C x p =
+   transport (<i> C (comp (<_> A) a [(i=0) -> <_> a,(i=1) -> p])
+                    (fill (<_> A) a [(i=0) -> <_> a,(i=1) -> p])) d
+
+-- Normal form of J':
+-- comp (<i> C (comp (<_> A) a [ (i=0) -> <_> a, (i=1) -> p ])
+--             (<j> comp (<_> A) a [ (i=0) -> <_> a, (i=1) -> <k> p @ j /\ k, (j=0) -> <_> a ])) d []
+
 JEq (A : U) (a : A) (C : (x : A) -> Path A a x -> U) (d : C a (refl A a))
   : Path (C a (refl A a)) d (J A a C d a (refl A a)) =
   substEq (singl A a) T (a, refl A a) d
@@ -74,7 +87,7 @@ JEq (A : U) (a : A) (C : (x : A) -> Path A a x -> U) (d : C a (refl A a))
 inv (A : U) (a b : A) (p : Path A a b) : Path A b a = <i> p @ -i
 
 compPath (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
-  <i> comp (<j>A) (p @ i) [ (i = 1) -> q, (i=0) -> <j> a ]
+  <i> comp (<j>A) (p @ i) [ (i=0) -> <j> a, (i=1) -> q ]
 
 compPath' (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
   subst A (Path A a) b c q p

@@ -39,6 +39,7 @@ loopZ2  : Z = winding (compS1 loop1 loop1)
 loopZ3  : Z = winding (compS1 loop1 (compS1 loop1 loop1))
 loopZN1 : Z = winding invLoop
 loopZ0  : Z = winding (compS1 loop1 invLoop)
+loopZ5  : Z = winding (compS1 loop1 (compS1 loop1 (compS1 loop1 (compS1 loop1 loop1))))
 
 mLoop : (x : S1) -> Path S1 x x = split
   base -> loop1

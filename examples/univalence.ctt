@@ -227,8 +227,12 @@ uaret (A B : U) : retract (equiv A B) (Path U A B) (ua A B) (transEquiv A B) =
 f1 (A : U) (p : (B : U) * equiv A B) : ((B : U) * Path U A B) = (p.1,ua A p.1 p.2)
 f2 (A : U) (p : (B : U) * Path U A B) : ((B : U) * equiv A B) = (p.1,transEquiv A p.1 p.2)
 
+opaque uaret
+
 uaretsig (A : U) : retract ((B : U) * equiv A B) ((B : U) * Path U A B) (f1 A) (f2 A) =
   \(p : (B : U) * equiv A B) -> <i> (p.1,uaret A p.1 p.2 @ i)
+
+transparent uaret
 
 -- But   (B : U) x Path U A B   is contractible
 isContrPath (A : U) : isContr ((B : U) * Path U A B) =

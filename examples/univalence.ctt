@@ -85,36 +85,34 @@ equivFunFib (A:U) (B C : A->U) (f : (x:A) -> B x -> C x) (cB : isContr (Sigma A 
 -- inlined). The formalization is due to Fabian Ruch.
 univalenceAlt (B : U) : isContr ((X : U) * equiv X B) =
  ((B,idEquiv B)
- ,\(w : (X : U) * equiv X B)
-    -> <i> let GlueB : U = Glue B [(i=0) -> (B,idEquiv B), (i=1) -> w]
-               unglueB (g : GlueB) : B =
-                 unglue g [(i=0) -> (B,idEquiv B)
-                          ,(i=1) -> w]
-           in (GlueB
-              ,unglueB
-              ,\(b : B)
-               -> let center : fiber GlueB B unglueB b
-                             = (glue (comp (<j> B) b [(i=0) -> <j> b
+ ,\(w : (X : U) * equiv X B) ->
+   <i> let GlueB : U = Glue B [(i=0) -> (B,idEquiv B)
+                              ,(i=1) -> w]
+           unglueB (g : GlueB) : B = unglue g [(i=0) -> (B,idEquiv B)
+                                              ,(i=1) -> w]
+           unglueEquiv : isEquiv GlueB B unglueB =
+              \(b : B)-> let ctr : fiber GlueB B unglueB b =
+                               (glue (comp (<j> B) b [(i=0) -> <j> b
                                                      ,(i=1) -> (w.2.2 b).1.2])
-                                         [(i=0) -> b
-                                         ,(i=1) -> (w.2.2 b).1.1]
+                                     [(i=0) -> b
+                                     ,(i=1) -> (w.2.2 b).1.1]
                                ,fill (<j> B) b [(i=0) -> <j> b
                                                ,(i=1) -> (w.2.2 b).1.2])
-                      contr (v : fiber GlueB B unglueB b)
-                            : Path (fiber GlueB B unglueB b) center v
-                            = <j> (glue (comp (<j> B) b [(i=0) -> <k> v.2 @ (j /\ k)
-                                                        ,(i=1) -> ((w.2.2 b).2 v @ j).2
-                                                        ,(j=0) -> fill (<j> B) b [(i=0) -> <j> b
-                                                                                     ,(i=1) -> (w.2.2 b).1.2]
-                                                        ,(j=1) -> v.2])
-                                            [(i=0) -> v.2 @ j
-                                            ,(i=1) -> ((w.2.2 b).2 v @ j).1]
-                                  ,fill (<j> B) b [(i=0) -> <l> v.2 @ (j /\ l)
-                                                  ,(i=1) -> ((w.2.2 b).2 v @ j).2
-                                                  ,(j=0) -> fill (<j> B) b [(i=0) -> <j> b
-                                                                           ,(i=1) -> (w.2.2 b).1.2]
-                                                  ,(j=1) -> v.2])
-                  in (center,contr)))
+                             contr (v : fiber GlueB B unglueB b) : Path (fiber GlueB B unglueB b) ctr v =
+                               <j> (glue (comp (<j> B) b [(i=0) -> <k> v.2 @ j /\ k
+                                                         ,(i=1) -> ((w.2.2 b).2 v @ j).2
+                                                         ,(j=0) -> fill (<j> B) b [(i=0) -> <j> b
+                                                                                  ,(i=1) -> (w.2.2 b).1.2]
+                                                         ,(j=1) -> v.2])
+                                         [(i=0) -> v.2 @ j
+                                         ,(i=1) -> ((w.2.2 b).2 v @ j).1]
+                                   ,fill (<j> B) b [(i=0) -> <l> v.2 @ j /\ l
+                                                   ,(i=1) -> ((w.2.2 b).2 v @ j).2
+                                                   ,(j=0) -> fill (<j> B) b [(i=0) -> <j> b
+                                                                            ,(i=1) -> (w.2.2 b).1.2]
+                                                   ,(j=1) -> v.2])
+                         in (ctr,contr)
+        in (GlueB,unglueB,unglueEquiv))
 
 contrSingl' (A : U) (a b : A) (p : Path A a b) :
   Path ((x:A) * Path A x b) (b,refl A b) (a,p) = <i> (p @ -i,<j> p @ -i\/j)

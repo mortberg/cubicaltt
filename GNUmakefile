@@ -3,9 +3,12 @@
 # files, so this is a poor match.  (By contrast, alex and happy do update their
 # output files.)  To defeat that, we touch the output files when trying to make them.
 
-GHC = ghc
+GHC ?= ghc
+ALEX ?= alex
+HAPPY ?= happy
+BNFC ?= bnfc
 # or:
-# GHC = cabal exec ghc -- 
+# GHC = cabal exec ghc --
 INPUT = CTT.hs Connections.hs Eval.hs Main.hs Resolver.hs TypeChecker.hs
 GRAMMAR = Exp.cf
 GRAMMAR_X_FILES = Exp/Lex.x
@@ -40,12 +43,12 @@ include Makefile
 	$(GHC) $(GHCOPTIONS) $<
 	@ touch $*.hi $*.o
 %.hs: %.y
-	happy -gca $<
+	$(HAPPY) -gca $<
 %.hs: %.x
-	alex -g $<
+	$(ALEX) -g $<
 
 bnfc $(GRAMMAR_FILES): Exp.cf
-	bnfc --haskell -d Exp.cf
+	$(BNFC) --haskell -d Exp.cf
 	@ touch $(GRAMMAR_FILES)
 
 TAGS:; hasktags --etags $(INPUT) $(GRAMMAR)

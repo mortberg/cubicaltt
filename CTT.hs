@@ -9,6 +9,7 @@ import qualified Data.Map as Map
 import Text.PrettyPrint as PP
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Prelude hiding ((<>))
 
 import Connections
 

@@ -90,8 +90,10 @@ initLoop :: [Flag] -> FilePath -> History -> IO ()
 initLoop flags f hist = do
   -- Parse and type check files
   (_,_,mods) <- E.catch (imports True ([],[],[]) f)
-                        (\e -> do putStrLn ("Exception: " ++ takeWhile (/='\n')
-                                           (show (e :: SomeException)))
+                        (\e -> do putStrLn $ unlines $
+                                    ("Exception: " :
+                                     (takeWhile (/= "CallStack (from HasCallStack):")
+                                                   (lines $ show (e :: SomeException))))
                                   return ([],[],[]))
   -- Translate to TT
   let res = runResolver $ resolveModules mods

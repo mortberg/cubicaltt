@@ -1,0 +1,37 @@
+module smash where
+
+Path (A : U) (a0 a1 : A) : U = PathP (<i> A) a0 a1
+
+ptType : U = (A : U) * A
+pt (A : ptType) : A.1 = A.2
+
+data smash (A B : ptType) = 
+    proj (a : A.1) (b : B.1)
+  | basel
+  | gluel (a : A.1) <i> [ (i=0) -> proj a (pt B), (i=1) -> basel ]
+  | baser
+  | gluer (b : B.1) <i> [ (i=0) -> proj (pt A) b, (i=1) -> baser ]
+
+gluelC (A B : ptType) (a : A.1) : Path (smash A B) (proj a (pt B)) basel =
+  <i> gluel{smash A B} a @ i
+
+gluerC (A B : ptType) (b : B.1) : Path (smash A B) (proj (pt A) b) baser =
+  <i> gluer{smash A B} b @ i
+
+-- Commutativity:
+comm (A B : ptType) : smash A B -> smash B A = split
+  proj a b -> proj b a
+  basel -> proj (pt B) (pt A)
+  gluel a @ i ->
+    hcomp (smash B A)
+          (gluerC B A a @ i)
+          [ (i=0) -> <_> proj (pt B) a
+          , (i=1) -> <j> gluerC B A (pt A) @ -j ]
+  baser -> proj (pt B) (pt A)
+  gluer b @ i ->
+    hcomp (smash B A)
+          (gluelC B A b @ i)
+          [ (i=0) -> <_> proj b (pt A)
+          , (i=1) -> <j> gluelC B A (pt B) @ -j ]
+
+commK (A B : ptType) : (x : smash A B) -> Path (smash A B) (comm B A (comm A B x)) x = undefined

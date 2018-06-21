@@ -5,7 +5,7 @@ Path (A : U) (a0 a1 : A) : U = PathP (<i> A) a0 a1
 ptType : U = (A : U) * A
 pt (A : ptType) : A.1 = A.2
 
-data smash (A B : ptType) = 
+data smash (A B : ptType) =
     proj (a : A.1) (b : B.1)
   | basel
   | gluel (a : A.1) <i> [ (i=0) -> proj a (pt B), (i=1) -> basel ]
@@ -34,4 +34,68 @@ comm (A B : ptType) : smash A B -> smash B A = split
           [ (i=0) -> <_> proj b (pt A)
           , (i=1) -> <j> gluelC B A (pt B) @ -j ]
 
-commK (A B : ptType) : (x : smash A B) -> Path (smash A B) (comm B A (comm A B x)) x = undefined
+
+--         u
+--    a0 -----> a1
+--    |         |
+-- r0 |         | r1
+--    |         |
+--    V         V
+--    b0 -----> b1
+--         v
+Square (A : U) (a0 a1 b0 b1 : A)
+               (u : Path A a0 a1) (v : Path A b0 b1)
+               (r0 : Path A a0 b0) (r1 : Path A a1 b1) : U
+  = PathP (<i> (PathP (<j> A) (u @ i) (v @ i))) r0 r1
+
+
+sq1 (A B : ptType) (a : A.1) :
+  Square (smash A B)
+         (proj a (pt B)) (proj (pt A) (pt B))
+         (proj a (pt B)) basel
+         (<i> comm B A (comm A B (gluelC A B a @ i)))
+         (gluelC A B a)
+         (<_> proj a (pt B))
+         (gluelC A B (pt A)) =
+  let goal : PathP (<i> Path (smash A B)
+                              (hcomp (smash A B)
+                                     (hcomp (smash A B)
+                                            (hcomp (smash A B)
+                                                   (gluel {smash A B} (transGen (<!1> A.1) 0 a) @ i)
+                                                   [ (i = 0) -> <!1> proj (transGen (<!2> A.1) -!1 (transGen (<!2> A.1) !1 a)) (transGen (<!2> B.1) -!1 B.2)
+                                                   , (i = 1) -> <!1> basel ])
+                                            [ (i = 0) -> <!1> proj (transGen (<!1> A.1) 0 a) (transGen (<!1> B.1) 0 B.2)
+                                            , (i = 1) -> <!1> hcomp (smash A B)
+                                                                    (gluel {smash A B} (transGen (<!1> A.1) 0 A.2) @ -!1)
+                                                                    [ (!1 = 0) -> <!2> basel
+                                                                    , (!1 = 1) -> <!2> proj (transGen (<!3> A.1) -!2 (transGen (<!3> A.1) !2 A.2)) (transGen (<!3> B.1) -!2 B.2) ]])
+                                     [ (i = 0) -> <!1> proj (transGen (<!2> A.1) !1 a) (transGen (<!2> B.1) !1 B.2)
+                                     , (i = 1) -> <!1> hcomp (smash A B)
+                                                             (hcomp (smash A B)
+                                                                    (gluel {smash A B} (transGen (<!2> A.1) !1 A.2) @ -!1)
+                                                                    [ (!1 = 0) -> <!2> basel
+                                                                    , (!1 = 1) -> <!2> proj A.2 B.2 ])
+                                                             [ (!1 = 0) -> <!2> hcomp (smash A B)
+                                                                                      (gluel {smash A B} (transGen (<!1> A.1) 0 A.2) @ -!2)
+                                                                                      [ (!2 = 0) -> <!3> basel
+                                                                                      , (!2 = 1) -> <!3> proj (transGen (<!4> A.1) -!3 (transGen (<!4> A.1) !3 A.2)) (transGen (<!4> B.1) -!3 B.2) ]
+                                                             , (!1 = 1) -> <!2> proj A.2 B.2 ] ])
+                              (gluel {smash A B} a @ i))
+                   (<_> proj a B.2) (gluelC A B A.2) = undefined
+  in goal
+
+sq2 (A B : ptType) (b : B.1) :
+  Square (smash A B)
+         (proj (pt A) b) (proj (pt A) (pt B))
+         (proj (pt A) b) baser
+         (<i> comm B A (comm A B (gluerC A B b @ i)))
+         (gluerC A B b)
+         (<_> proj (pt A) b)
+         (gluerC A B (pt B)) = undefined
+
+commK (A B : ptType) : (x : smash A B) -> Path (smash A B) (comm B A (comm A B x)) x = split
+  proj a b -> <_> proj a b
+  basel -> gluelC A B (pt A)
+  gluel a @ i -> sq1 A B a @ i
+  baser -> gluerC A B (pt B)
+  gluer b @ i -> sq2 A B b @ i

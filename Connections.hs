@@ -5,7 +5,7 @@ module Connections where
 import Control.Applicative
 import Data.List
 import Data.Map (Map,(!),keys,fromList,toList,mapKeys,elems,intersectionWith
-                ,unionWith,singleton,foldWithKey,assocs,mapWithKey
+                ,unionWith,singleton,foldrWithKey,assocs,mapWithKey
                 ,filterWithKey,member,notMember)
 import Data.Set (Set,isProperSubsetOf)
 import qualified Data.Map as Map
@@ -374,7 +374,7 @@ instance Nominal Formula where
   swap (psi1 :\/: psi2) (i,j) = swap psi1 (i,j) :\/: swap psi2 (i,j)
 
 face :: Nominal a => a -> Face -> a
-face = foldWithKey (\i d a -> act a (i,Dir d))
+face = foldrWithKey (\i d a -> act a (i,Dir d))
 
 -- the faces should be incomparable
 type System a = Map Face a

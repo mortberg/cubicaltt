@@ -462,9 +462,16 @@ fwd i a phi u = trans i (act False a (i,phi `orFormula` Atom i)) phi u
 comp :: Name -> Val -> Val -> System Val -> Val
 -- comp i a u us = hComp i (a `face` (i ~> 1)) (fwd i a (Dir Zero) u) fwdius
 --  where fwdius = mapWithKey (\al ual -> fwd i (a `face` al) (Atom i) ual) us
-comp i a u us = hComp j (a `face` (i ~> 1)) (fwd i a (Dir Zero) u) fwdius
-  where j = fresh (Atom i,a,u,us)
-        fwdius = mapWithKey (\al ual -> fwd i (a `face` al) (Atom j) (ual  `swap` (i,j))) us
+
+-- comp i a u ts | eps `member` ts = (ts ! eps) `face` (i ~> 1)
+comp i a u ts =
+  let j = fresh (Atom i,a,u,ts)
+  in case a of
+    -- VPathP p v0 v1 ->
+    --   VPLam j $ comp i (p @@ j) (u @@ j) $
+    --               insertsSystem [(j ~> 0,v0),(j ~> 1,v1)] (Map.map (@@ j) ts)
+    _ -> hComp j (a `face` (i ~> 1)) (fwd i a (Dir Zero) u)
+               (mapWithKey (\al ual -> fwd i (a `face` al) (Atom j) (ual  `swap` (i,j))) ts)
 
 compNeg :: Name -> Val -> Val -> System Val -> Val
 compNeg i a u ts = comp i (a `sym` i) u (ts `sym` i)

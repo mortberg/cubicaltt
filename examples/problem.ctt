@@ -1,4 +1,4 @@
-module brunerie3 where
+module problem where
 
 Path (A : U) (a0 a1 : A) : U = PathP (<i> A) a0 a1
 

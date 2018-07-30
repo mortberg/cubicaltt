@@ -432,6 +432,8 @@ hComp i a u us = case a of
                us
         v1 = hComp i b v (vs `unionSystem` wts)
     in glueElem v1 t1s
+  -- Ter (Sum _ "Z" nass) env -> u
+  -- Ter (Sum _ "nat" nass) env -> u  
   Ter (Sum _ _ nass) env | VCon n vs <- u, all isCon (elems us) ->
     case lookupLabel n nass of
       Just as -> let usvs = transposeSystemAndList (Map.map unCon us) vs

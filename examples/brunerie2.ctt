@@ -865,16 +865,16 @@ discrete (A : U) : U = (a b : A) -> dec (Path A a b)
 
 hedbergLemma (A: U) (a b:A) (f : (x : A) -> Path A a x -> Path A a x) (p : Path A a b) :
             Square A a a a b (<_> a) p (f a (<_> a)) (f b p) =
- comp (<i> Square A a a a (p @ i) (<_> a) (<j> p @ i /\ j)
+ transGen (<i> Square A a a a (p @ i) (<_> a) (<j> p @ i /\ j)
                  (f a (<_> a)) (f (p @ i) (<j> p @ i /\ j)))
-      (<i> f a (<_> a)) []
+          0 (<i> f a (<_> a))
 
 hedbergStable (A : U) (a b : A) (h : (x : A) -> stable (Path A a x))
         (p q : Path A a b) : Path (Path A a b) p q =
- <j i> comp (<_> A) a [ (j = 0) -> rem2 @ i
-                      , (j = 1) -> rem3 @ i
-                      , (i = 0) -> r
-                      , (i = 1) -> rem4 @ j]
+ <j i> hcomp A a [ (j = 0) -> rem2 @ i
+                 , (j = 1) -> rem3 @ i
+                 , (i = 0) -> r
+                 , (i = 1) -> rem4 @ j]
  where
    rem1 (x : A) : exConst (Path A a x) = stableConst (Path A a x) (h x)
    f (x : A) : Path A a x -> Path A a x  = (rem1 x).1

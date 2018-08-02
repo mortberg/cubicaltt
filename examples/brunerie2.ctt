@@ -2129,6 +2129,35 @@ f4 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S2pt).1 =
 
 test0To4 : (Omega3 S2pt).1 = f4 test0To3
 
+-- I think this is a correct simple version of test0To4
+test0To4_small : (Omega3 S2pt).1 = <i0 i1 i11> hcomp S2 (hcomp S2 (hcomp S2 (loop2 {S2} @ i1 @ i11) [ (i11 = 0) -> <i87> base2
+                                                                       , (i11 = 1) -> <i87> loop2 {S2} @ i0 @ i87 ])
+                                  [ (i0 = 0) -> <i54> hcomp S2 (loop2 {S2} @ (i1 /\ -i54) @ i11) [ (i11 = 0) -> <i55> base2
+                                                                                                 , (i11 = 1) -> <i55> base2 ]
+                                  , (i0 = 1) -> <i54> hcomp S2 (loop2 {S2} @ (i1 /\ -i54) @ i11) [ (i11 = 0) -> <i63> base2
+                                                                                                 , (i11 = 1) -> <i63> loop2 {S2} @ -i54 @ i63 ]
+                                  , (i1 = 0) -> <i54> hcomp S2 base2 [ (i11 = 0) -> <i71> base2
+                                                                     , (i11 = 1) -> <i71> loop2 {S2} @ (i0 /\ -i54) @ i71 ]
+                                  , (i1 = 1) -> <i54> hcomp S2 (loop2 {S2} @ -i54 @ i11) [ (i11 = 0) -> <i77> base2
+                                                                                         , (i11 = 1) -> <i77> loop2 {S2} @ (i0 /\ -i54) @ i77 ]
+                                  , (i11 = 0) -> <i54> base2
+                                  , (i11 = 1) -> <i54> base2 ])
+                            [ (i0 = 0) -> <i17> hcomp S2 base2 [ (i11 = 0) -> <i18> base2
+                                                               , (i11 = 1)(i17 = 0) -> <i18> base2
+                                                               , (i17 = 1) -> <i18> base2 ]
+                            , (i0 = 1) -> <i17> hcomp S2 base2 [ (i11 = 0) -> <i23> base2
+                                                               , (i11 = 1)(i17 = 0) -> <i23> base2
+                                                               , (i17 = 1) -> <i23> base2 ]
+                            , (i1 = 0) -> <i17> hcomp S2 base2 [ (i11 = 0) -> <i28> base2
+                                                               , (i11 = 1)(i17 = 0) -> <i28> base2
+                                                               , (i17 = 1) -> <i28> base2 ]
+                            , (i1 = 1) -> <i17> hcomp S2 base2 [ (i11 = 0) -> <i33> base2
+                                                               , (i11 = 1)(i17 = 0) -> <i33> base2
+                                                               , (i17 = 1) -> <i33> base2 ]
+                            , (i11 = 0) -> <i17> base2
+                            , (i11 = 1) -> <i17> hcomp S2 base2 [ (i17 = 0) -> <i38> base2
+                                                                , (i17 = 1) -> <i38> base2 ] ]
+
 -- Part of test0To5
 -- testFibContrHopf3 : HopfThree' test0To4 = fibContrHopfThree' test0To4
 -- testFibContrHopf3refl : HopfThree' (<_ _ _> base2) = fibContrHopfThree' (<_ _ _> base2)

@@ -173,6 +173,10 @@ data Val = VU
            -- Composition; the type is constant
          | VHComp Val Val (System Val)
 
+         -- Composition; the type is not constant
+         | VComp Val Val (System Val)
+         | VCompU Val (System Val)
+
            -- Generalized transport
          | VTrans Val Formula Val
 
@@ -441,6 +445,7 @@ showVal v = case v of
   VPCon c a us phis -> text c <+> braces (showVal a) <+> showVals us
                        <+> hsep (map ((char '@' <+>) . showFormula) phis)
   VHComp v0 v1 vs   -> text "hcomp" <+> showVals [v0,v1] <+> text (showSystem vs)
+  VComp v0 v1 vs    -> text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)
   VTrans u phi v0   -> text "transGen" <+> showVal1 u <+> showFormula phi
                        <+> showVal1 v0
   VPi a l@(VLam x t b)
@@ -465,6 +470,7 @@ showVal v = case v of
   VUnGlueElemU v b es -> text "unglue U" <+> showVals [v,b]
                          <+> text (showSystem es)
   VHCompU a ts        -> text "hcomp U" <+> showVal1 a <+> text (showSystem ts)
+  VCompU a ts         -> text "comp U" <+> showVal1 a <+> text (showSystem ts)
   VId a u v           -> text "Id" <+> showVals [a,u,v]
   VIdPair b ts        -> text "idC" <+> showVal1 b <+> text (showSystem ts)
   VIdJ a t c d x p    -> text "idJ" <+> showVals [a,t,c,d,x,p]

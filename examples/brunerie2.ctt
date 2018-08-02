@@ -1091,6 +1091,12 @@ hcompbaseeq4 (p : loopS1) : Path loopS1 (hcompbase (hcompbase (hcompbase (hcompb
        (hcompbase (hcompbase (hcompbase (hcompbase p)))) (hcompbase (hcompbase (hcompbase p))) p sq4
        (<i> hcomp loopS1 (sq2 @ i) [ (i = 0) -> <j> sq3 @ -j, (i = 1) -> sq1 ])
 
+hcompbaseeq2 (p : loopS1) : Path loopS1 (hcompbase (hcompbase p)) p =
+  let sq1 : Path loopS1 (hcompbase p) p = hcompbaseeq p
+      sq2 : Path loopS1 (hcompbase (hcompbase p)) (hcompbase p) =
+              hcompbaseeq (hcompbase p)
+  in compPath loopS1 (hcompbase (hcompbase p)) (hcompbase p) p sq2 sq1
+
 -- This proof requires that "transGen (<_> nat) 0 n == n" judgmentally as it is done now
 -- This proof requires that "transGen (<_> S1) 0 n == n" judgmentally as it is done now
 decodeLoop (n : Z) :
@@ -1098,16 +1104,16 @@ decodeLoop (n : Z) :
   (subst S1 (\(x : S1) -> helix x -> Path S1 base1 x) base1 base1 loop loopIt n)
   (loopIt n) =
       let T (p : loopS1) : loopS1 =
-            (<i> hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1
+            (<i> hcomp S1 (hcomp S1 (hcomp S1
 --                 (transGen0 S1 (transGen0 S1 (transGen0 S1 (p @ i))))  <-- This is not needed with hack in Eval that makes transGen (<_> S1) 0 x reduce away
                  (p @ i)
                       [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ])
                       [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ])
-                      [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ])
-                      [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ])
                       [ (i = 0) -> <_> base1, (i = 1) -> loop ])
+                      
           key (p : loopS1) : Path loopS1 (T p) (compS1 p loop) =
-            <i> compS1 (hcompbaseeq4 p @ i) loop
+            <i> compS1 (hcompbaseeq2 p @ i) loop
+
           goal : Path loopS1 (T (loopIt (predZ n))) (loopIt n) =
                       compPath loopS1 (T (loopIt (predZ n)))
                         (compS1 (loopIt (predZ n)) loop) (loopIt n)
@@ -1359,28 +1365,28 @@ arg3 (p : (Omega3 S2pt).1) : Path loopS1 (<_> base1) (<_> base1) =
   <j k> transGen (<l> Hopf (p @ j @ k @ l)) 0 base1
 
 arg4 (p : (Omega3 S2pt).1) : Path loopS1 (<_> base1) (transGen (<_> loopS1) 0 (<_> base1)) =
-  -- transGen (<i> Path loopS1 (<_> base1)
-  --                           (transGen (<j> Path S1 base1 (transGen (<k> Hopf (p @ i @ j @ k)) 0 base1))
-  --                                     0 (<_> base1)))
-  --          0 (<i> hfill loopS1 (<_> base1) [] @ i)
+  transGen (<i> Path loopS1 (<_> base1)
+                            (transGen (<j> Path S1 base1 (transGen (<k> Hopf (p @ i @ j @ k)) 0 base1))
+                                      0 (<_> base1)))
+           0 (<i> hfill loopS1 (<_> base1) [] @ i)
   -- Unfolded:
-  <i j> hcomp S1 (hcomp S1 (hcomp S1 base1 [ (i = 0) -> <_> base1
-                                           , (j = 0) -> <_> base1
-                                           , (j = 1) -> <_> base1 ])
-                           [ (j = 0) -> <_> base1
-                           , (j = 1) -> <_> base1 ])
-                 [ (i = 0) -> <k> hcomp S1 base1 [ (j = 0) -> <_> base1
-                                                 , (j = 1) -> <_> base1
-                                                 , (k = 1) -> <_> base1 ]
-                 , (i = 1) -> <k> hcomp S1 (hcomp S1 base1 [ (j = 0) -> <_> base1
-                                                           , (j = 1) -> <l> arg3 p @ k @ l ])
-                                                 [ (j = 0) -> <_> base1
-                                                 , (j = 1) -> <_> base1
-                                                 , (k = 1) -> <_> hcomp S1 base1 [ (j = 0) -> <_> base1
-                                                                                 , (j = 1) -> <_> base1 ]
-                                                 ]
-                 , (j = 0) -> <_> base1
-                 , (j = 1) -> <_> base1 ]
+  -- <i j> hcomp S1 (hcomp S1 (hcomp S1 base1 [ (i = 0) -> <_> base1
+  --                                          , (j = 0) -> <_> base1
+  --                                          , (j = 1) -> <_> base1 ])
+  --                          [ (j = 0) -> <_> base1
+  --                          , (j = 1) -> <_> base1 ])
+  --                [ (i = 0) -> <k> hcomp S1 base1 [ (j = 0) -> <_> base1
+  --                                                , (j = 1) -> <_> base1
+  --                                                , (k = 1) -> <_> base1 ]
+  --                , (i = 1) -> <k> hcomp S1 (hcomp S1 base1 [ (j = 0) -> <_> base1
+  --                                                          , (j = 1) -> <l> arg3 p @ k @ l ])
+  --                                                [ (j = 0) -> <_> base1
+  --                                                , (j = 1) -> <_> base1
+  --                                                , (k = 1) -> <_> hcomp S1 base1 [ (j = 0) -> <_> base1
+  --                                                                                , (j = 1) -> <_> base1 ]
+  --                                                ]
+  --                , (j = 0) -> <_> base1
+  --                , (j = 1) -> <_> base1 ]
 
 fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p =
   setLoop (<_> base1)
@@ -2125,7 +2131,7 @@ test0To4 : (Omega3 S2pt).1 = f4 test0To3
 
 -- Part of test0To5
 -- testFibContrHopf3 : HopfThree' test0To4 = fibContrHopfThree' test0To4
-testFibContrHopf3refl : HopfThree' (<_ _ _> base2) = fibContrHopfThree' (<_ _ _> base2)
+-- testFibContrHopf3refl : HopfThree' (<_ _ _> base2) = fibContrHopfThree' (<_ _ _> base2)
 
 f5 : (Omega3 S2pt).1 -> (Omega3 (joinpt S1pt S1)).1 = h
 
@@ -2169,57 +2175,54 @@ testShortcutf11'' : Z = f11 (f10 (f9 (f8 (<i j> g2inc (loop2{S2} @ i @ j)))))
 
 -- This is the fourth argument to ZSet:
 arg4' (p : (Omega3 S2pt).1) : Path Z (pos zero) (pos zero) = 
-  -- <i> encode base1 (arg4 p @ i)
+  <i> encode base1 (arg4 p @ i)
   -- Unfolded version:
   -- The problematic part in the innermost transGen
-  <i> hcomp Z (hcomp Z (pos zero)
-                       [ (i = 0) -> <_> pos zero
-                       , (i = 1) -> <j> hcomp Z (hcomp Z (hcomp Z (hcomp Z (hcomp Z (hcomp Z (hcomp Z (hcomp Z (pos zero)
-                                                                     [ (j = 0) -> <_> pos zero
-                                                                     , (j = 1) -> <k> transGen (<l> helix (arg3 p @ -k @ -l)) 0 (pos zero) ])
-                                                                                                      [ (j = 0) -> <_> pos zero
-                                                                                                      , (j = 1) -> <_> pos zero
-                                                                                                      ])
-                                                                                             [ (j = 0) -> <_> pos zero
-                                                                                             , (j = 1) -> <_> pos zero
-                                                                                             ])
-                                                                                    [ (j = 0) -> <_> pos zero
-                                                                                    , (j = 1) -> <_> pos zero
-                                                                                    ])
-                                                                            [ (j = 1) -> <_> pos zero ])
-                                                                     [ (j = 1) -> <_> pos zero ])
-                                                             [ (j = 1) -> <_> pos zero ])
-                                                   [ (j = 1) -> <_> pos zero ]
-                       ])
-               [ (i = 0) -> <_> pos zero
-               , (i = 1) -> <_> pos zero ]
+  -- <i> hcomp Z (hcomp Z (pos zero)
+  --                      [ (i = 0) -> <_> pos zero
+  --                      , (i = 1) -> <j> hcomp Z (hcomp Z (hcomp Z (hcomp Z (hcomp Z (hcomp Z (hcomp Z (hcomp Z (pos zero)
+  --                                                                    [ (j = 0) -> <_> pos zero
+  --                                                                    , (j = 1) -> <k> transGen (<l> helix (arg3 p @ -k @ -l)) 0 (pos zero) ])
+  --                                                                                                     [ (j = 0) -> <_> pos zero
+  --                                                                                                     , (j = 1) -> <_> pos zero
+  --                                                                                                     ])
+  --                                                                                            [ (j = 0) -> <_> pos zero
+  --                                                                                            , (j = 1) -> <_> pos zero
+  --                                                                                            ])
+  --                                                                                   [ (j = 0) -> <_> pos zero
+  --                                                                                   , (j = 1) -> <_> pos zero
+  --                                                                                   ])
+  --                                                                           [ (j = 1) -> <_> pos zero ])
+  --                                                                    [ (j = 1) -> <_> pos zero ])
+  --                                                            [ (j = 1) -> <_> pos zero ])
+  --                                                  [ (j = 1) -> <_> pos zero ]
+  --                      ])
+  --              [ (i = 0) -> <_> pos zero
+  --              , (i = 1) -> <_> pos zero ]
 
   
 bsq (p : (Omega3 S2pt).1) :
  Path (Path Z (pos zero) (pos zero)) (<_> pos zero) (arg4' p) =
    ZSet (pos zero) (pos zero) (<_> pos zero) (arg4' p)
 
---opaque Hopf
 
 fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p = 
-  -- Path (Path loopS1 (<_> base1) (transGen (<_> loopS1) 0 (<_> base1)))
-  --      (<i> hfill loopS1 (<_> base1) [] @ i) (arg4 p) =
-  -- setLoop (<_> base1)
-  --         (transGen (<_> loopS1) 0 (<_> base1))
-  --         (<i> hfill loopS1 (<_> base1) [] @ i)
-  --         (arg4 p)
+  setLoop (<_> base1)
+          (transGen (<_> loopS1) 0 (<_> base1))
+          (<i> hfill loopS1 (<_> base1) [] @ i)
+          (arg4 p)
 
   -- Unfolded version:
-  <i j k> hcomp S1 (decode base1 (bsq p @ i @ j) @ k)
-              [ (i = 0) -> <l> decodeEncode base1 (<m> hcomp S1 base1 [ (j = 0) -> <_> base1
-                                                                      , (m = 0) -> <_> base1
-                                                                      , (m = 1) -> <_> base1 ]) @ l @ k
-              , (i = 1) -> <l> decodeEncode base1 (arg4 p @ j) @ l @ k
-              , (j = 0) -> <l> decodeEncode base1 (<_> base1) @ l @ k
-              , (j = 1) -> <l> decodeEncode base1 (<m> hcomp S1 base1 [ (m = 0) -> <_> base1
-                                                                      , (m = 1) -> <_> base1 ]) @ l @ k
-              , (k = 0) -> <_> base1
-              , (k = 1) -> <_> base1 ]
+  -- <i j k> hcomp S1 (decode base1 (bsq p @ i @ j) @ k)
+  --             [ (i = 0) -> <l> decodeEncode base1 (<m> hcomp S1 base1 [ (j = 0) -> <_> base1
+  --                                                                     , (m = 0) -> <_> base1
+  --                                                                     , (m = 1) -> <_> base1 ]) @ l @ k
+  --             , (i = 1) -> <l> decodeEncode base1 (arg4 p @ j) @ l @ k
+  --             , (j = 0) -> <l> decodeEncode base1 (<_> base1) @ l @ k
+  --             , (j = 1) -> <l> decodeEncode base1 (<m> hcomp S1 base1 [ (m = 0) -> <_> base1
+  --                                                                     , (m = 1) -> <_> base1 ]) @ l @ k
+  --             , (k = 0) -> <_> base1
+  --             , (k = 1) -> <_> base1 ]
 
 -- opaque arg4'
 -- opaque arg4

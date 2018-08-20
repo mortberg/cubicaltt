@@ -1,0 +1,84 @@
+module pointedMaps where
+
+import bool
+
+-- Pointed types
+pType : U = (X : U) * X
+
+pt (Z : pType) : Z.1 = Z.2
+
+-- Maps between pointed types
+ppi' (A : pType) (B : A.1 -> U) (b0 : B (pt A)) : U = (f : (a : A.1) -> B a) * Path (B (pt A)) (f (pt A)) b0
+ppi (A : pType) (B : A.1 -> pType) : U = ppi' A (\(a : A.1) -> (B a).1) (pt (B (pt A)))
+pmap (A B : pType) : U = ppi A (\(a : A.1) -> B)
+
+pid (A : pType) : pmap A A = (\(a : A.1) -> a, <_> pt A)
+
+pcompose (A B C : pType) (g : pmap B C) (f : pmap A B) : pmap A C =
+  (\(a : A.1) -> (g.1 (f.1 a)), compPath C.1 (g.1 (f.1 (pt A))) (g.1 (pt B)) (pt C) (<i> g.1 (f.2 @ i)) g.2)
+
+-- constant pointed map
+pconst (A B : pType) : pmap A B = (\(a:A.1) -> pt B, <_> pt B )
+
+ppmap (A B : pType) : pType = (pmap A B, pconst A B)
+
+-- pointed equivalence
+pequiv (A B : pType) : U = (f : pmap A B) * isEquiv A.1 B.1 f.1
+
+pbool : pType = (bool, false)
+
+-- first test case: pointed maps from the booleans to A are the same as points in A
+ppmapBoolEquiv (A : pType) : pequiv (ppmap pbool A) A = (e, h) where
+  B : U = pmap pbool A
+  e1 : B -> A.1 = \(h : B) -> h.1 true
+  p : Path A.1 (e1 (pconst pbool A)) (pt A) = <_> pt A
+  e : pmap (ppmap pbool A) A = (e1, p)
+  inv : A.1 -> B = \(a : A.1) -> (caseBool A.1 (pt A) a, <_> (pt A))
+  q (a : A.1) : Path A.1 (e1 (inv a)) a = <_> a
+  r (f : B) : Path B (inv (e1 f)) f =
+    <i> (\(b : bool) -> indBool (\(b : bool) -> Path A.1 ((inv (e1 f)).1 b) (f.1 b))
+                                (<i> f.2 @ -i)
+                                (<_> f.1 true) b @ i,
+          <j> f.2 @ (-i \/ j))
+  h : isEquiv B A.1 e.1 = isoToEquiv B A.1 e.1 inv q r
+
+-- reversing the arguments of a binary pointed map
+revPpmap (A B C : pType) : pmap (ppmap A (ppmap B C)) (ppmap B (ppmap A C)) = (e1, e0) where
+  bc  : U = pmap B C
+  ac  : U = pmap A C
+  abc : U = pmap A (ppmap B C)
+  bac : U = pmap B (ppmap A C)
+  BC  : pType = ppmap B C
+  AC  : pType = ppmap A C
+  ABC : pType = ppmap A (ppmap B C)
+  BAC : pType = ppmap B (ppmap A C)
+  e111 (f : abc) (b : B.1) (a : A.1) : C.1 = (f.1 a).1 b
+  e110 (f : abc) (b : B.1) : Path C.1 (e111 f b (pt A)) (pt C) = <i> (f.2 @ i).1 b
+  e11 (f : abc) (b : B.1) : ac = (e111 f b, e110 f b)
+  e10 (f : abc) : Path ac (e11 f (pt B)) (pconst A C) =
+    <i> (\(a : A.1) -> (f.1 a).2 @ i, <j> (f.2 @ j).2 @ i)
+  e1 (f : abc) : bac = (e11 f, e10 f)
+  e0 : Path bac (e1 (pconst A BC)) (pconst B AC) =
+    <i> (\(b : B.1) -> (\(a : A.1) -> pt C, <_> pt C), <_> (\(a : A.1) -> pt C, <_> pt C))
+
+revRevPpmap (A B C : pType) (f : pmap A (ppmap B C)) :
+  Path (pmap A (ppmap B C)) ((revPpmap B A C).1 ((revPpmap A B C).1 f)) f = p where
+  bc  : U = pmap B C
+  ac  : U = pmap A C
+  abc : U = pmap A (ppmap B C)
+  bac : U = pmap B (ppmap A C)
+  BC  : pType = ppmap B C
+  AC  : pType = ppmap A C
+  ABC : pType = ppmap A (ppmap B C)
+  BAC : pType = ppmap B (ppmap A C)
+  e   : pmap ABC BAC = revPpmap A B C
+  ei  : pmap BAC ABC = revPpmap B A C
+  p1 (a : A.1) : Path bc ((ei.1 (e.1 f)).1 a) (f.1 a) =
+    <i> (\(b : B.1) -> (f.1 a).1 b, <j> (f.1 a).2 @ j)
+  p   : Path abc (ei.1 (e.1 f)) f =
+    <i> (\(a : A.1) -> p1 a @ i,
+      <j> (\(b : B.1) -> (f.2 @ j).1 b, <k> (f.2 @ j).2 @ k))
+
+symmPpmap (A B C : pType) : pequiv (ppmap A (ppmap B C)) (ppmap B (ppmap A C)) =
+  (revPpmap A B C, isoToEquiv (pmap A (ppmap B C)) (pmap B (ppmap A C))
+    (revPpmap A B C).1 (revPpmap B A C).1 (revRevPpmap B A C) (revRevPpmap A B C))

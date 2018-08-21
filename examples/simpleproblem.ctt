@@ -85,7 +85,6 @@ fiber (A B : U) (f : A -> B) (y : B) : U =
   (x : A) * Path B y (f x)
 isContr (A : U) : U = (x : A) * ((y : A) -> Path A x y)
 prop (A : U) : U = (a b : A) -> Path A a b
-set (A : U) : U = (a b : A) -> prop (Path A a b)
 
 isEquiv (A B : U) (f : A -> B) : U = (y : B) -> isContr (fiber A B f y)
 
@@ -183,16 +182,6 @@ rotIsEquiv : (a : S1) -> isEquiv S1 S1 (rot a) =
                                  base1 base1 loop (idIsEquiv S1)) (idIsEquiv S1)
 
 rotpath (x : S1) : Path U S1 S1 = ua S1 S1 (rot x, rotIsEquiv x)
-
-
--- Suspension
-data susp (A : U) = north
-                  | south
-                  | merid (a : A) <i> [ (i=0) -> north
-                                      , (i=1) -> south ]
-
-meridP (A : U) (a : A) : Path (susp A) north south =
-  <i> merid{susp A} a @ i
 
 HopfSquare (A : U) : Path (Path U A A) (ua A A (idEquiv A)) (<_> A) =
   <j i> Glue A [ (i = 0) -> (A,idEquiv A)

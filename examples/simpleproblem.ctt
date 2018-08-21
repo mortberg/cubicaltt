@@ -1,0 +1,343 @@
+module simpleproblem where
+
+Path (A : U) (a0 a1 : A) : U = PathP (<i> A) a0 a1
+
+compPath (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
+  <i> hcomp A (p @ i) [ (i =0) -> <j> a, (i = 1) -> q ]
+
+data bool = false | true
+data nat = zero | suc (n : nat)
+
+idfun (A : U) (a : A) : A = a
+
+pred : nat -> nat = split
+  zero -> zero
+  suc n -> n
+
+{- Z is represented as:
+
+  +2 = pos (suc (suc zero))
+  +1 = pos (suc zero)
+   0 = pos zero
+  -1 = neg zero
+  -2 = neg (suc zero)
+
+-}
+data Z = pos (n : nat) | neg (n : nat)
+
+data S1 = base1
+        | loop1 <i> [ (i=0) -> base1
+                    , (i=1) -> base1 ]
+
+data S2 = base2
+        | loop2 <i j> [ (i=0) -> base2
+                      , (i=1) -> base2
+                      , (j=0) -> base2
+                      , (j=1) -> base2]
+
+data S3 = base3
+        | loop3 <i j k> [ (i=0) -> base3
+                        , (i=1) -> base3
+                        , (j=0) -> base3
+                        , (j=1) -> base3
+                        , (k=0) -> base3
+                        , (k=1) -> base3]
+
+loopS1 : U = Path S1 base1 base1
+loop : loopS1 = <i> loop1{S1} @ i
+
+-- Pointed types
+ptType : U = (A : U) * A
+pt (A : ptType) : A.1 = A.2
+
+boolpt : ptType = (bool,true)
+S1pt : ptType = (S1,base1)
+S2pt : ptType = (S2,base2)
+S3pt : ptType = (S3,base3)
+
+-- The first 3 loop spaces of a pointed type.
+-- TODO: Maybe defined these by induction on n as in experiments/pointed.ctt?
+Omega (A : ptType) : ptType = (Path A.1 (pt A) (pt A),<_> pt A)
+Omega2 (A : ptType) : ptType = Omega (Omega A)
+Omega3 (A : ptType) : ptType = Omega2 (Omega A)
+
+--         v
+--    b0 -----> b1
+--    |         |
+--    |         |
+-- r0 |         | r1
+--    |         |
+--    a0 -----> a1
+--         u
+Square (A : U) (a0 a1 b0 b1 : A)
+               (u : Path A a0 a1) (v : Path A b0 b1)
+               (r0 : Path A a0 b0) (r1 : Path A a1 b1) : U
+  = PathP (<i> (Path A (u @ i) (v @ i))) r0 r1
+
+--
+constSquare (A : U) (a : A) (p : Path A a a) : Square A a a a a p p p p =
+  <i j> hcomp A a [ (i = 0) -> <k> p @ (j \/ - k)
+                  , (i = 1) -> <k> p @ (j /\ k)
+                  , (j = 0) -> <k> p @ (i \/ - k)
+                  , (j = 1) -> <k> p @ (i /\ k)]
+
+fiber (A B : U) (f : A -> B) (y : B) : U =
+  (x : A) * Path B y (f x)
+isContr (A : U) : U = (x : A) * ((y : A) -> Path A x y)
+prop (A : U) : U = (a b : A) -> Path A a b
+set (A : U) : U = (a b : A) -> prop (Path A a b)
+
+isEquiv (A B : U) (f : A -> B) : U = (y : B) -> isContr (fiber A B f y)
+
+equiv (A B : U) : U = (f : A -> B) * isEquiv A B f
+
+contrSingl (A : U) (a b : A) (p : Path A a b) :
+  Path ((x : A) * Path A a x) (a,<_>a) (b,p) = <i> (p @ i,<j> p @ i/\j)
+
+subst (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
+  transGen (<i> P (p @ i)) 0 e
+
+idIsEquiv (A : U) : isEquiv A A (idfun A) =
+  \(a : A) -> ((a,<_>a),\(z : (x : A) * Path A a x) -> contrSingl A a z.1 z.2)
+
+idEquiv (A : U) : equiv A A = (idfun A,idIsEquiv A)
+
+-- Unfolded direct proof. This has a simpler normal form without transGen's!
+propIsEquivDirect (A B : U) (f : A -> B) : prop (isEquiv A B f) =
+  \(p q : isEquiv A B f) ->
+  <i> \(y : B) ->
+    let p0 : A = (p y).1.1
+        p1 : Path B y (f p0) = (p y).1.2
+        p2 : (w1 : fiber A B f y) -> Path (fiber A B f y) (p0,p1) w1 =
+         (p y).2
+        q0 : A = (q y).1.1
+        q1 : Path B y (f q0) = (q y).1.2
+        q2 : (w1 : fiber A B f y) -> Path (fiber A B f y) (q0,q1) w1 =
+         (q y).2
+        alpha : Path (fiber A B f y) (p0,p1) (q0,q1) = p2 (q0,q1)
+    in (alpha @ i,
+       \(w : fiber A B f y) ->
+          let x : A = w.1
+              wx : Path B y (f x) = w.2
+              alpha1 : Path A p0 q0 = <i> (alpha @ i).1
+              alpha2 : PathP (<i> Path B y (f (alpha1 @ i))) p1 q1 =
+                <i> (alpha @ i).2
+              p2w1 : Path A p0 x = <i> (p2 w @ i).1
+              q2w1 : Path A q0 x = <i> (q2 w @ i).1
+              p2w2 : PathP (<i> Path B y (f (p2w1 @ i))) p1 wx = <i> (p2 w @ i).2
+              q2w2 : PathP (<i> Path B y (f (q2w1 @ i))) q1 wx = <i> (q2 w @ i).2
+              sq1 : PathP (<j> Path A (alpha1 @ j) x) p2w1 q2w1 =
+                    <i j> hcomp A (p2w1 @ i \/ j)
+                                 [ (i = 0) -> <k> p2w1 @ j
+                                 , (i = 1) -> <k> q2w1 @ j \/ -k
+                                 , (j = 0) -> <k> (p2 (q2 w @ -k) @ i).1
+                                 , (j = 1) -> <k> x ]
+              sq2 : PathP (<i> PathP (<j> Path B y (f (sq1 @ i @ j)))
+                                     (alpha2 @ i) wx)
+                          p2w2 q2w2 =
+                     <i j l> hcomp B (p2w2 @ i \/ j @ l)
+                                 [ (i = 0) -> <k> p2w2 @ j @ l
+                                 , (i = 1) -> <k> q2w2 @ j \/ -k @ l
+                                 , (j = 0) -> <k> (p2 (q2 w @ -k) @ i).2 @ l
+                                 , (j = 1) -> <k> wx @ l
+                                 , (l = 0) -> <k> y
+                                 , (l = 1) -> <k> f (hfill A (p2w1 @ i \/ j)
+                                                        [ (i = 0) -> <k> p2w1 @ j
+                                                        , (i = 1) -> <k> q2w1 @ j \/ -k
+                                                        , (j = 0) -> <k> (p2 (q2 w @ -k) @ i).1
+                                                        , (j = 1) -> <k> x ] @ k)
+                                 ]
+          in <j> (sq1 @ i @ j,sq2 @ i @ j))
+
+ua (A B : U) (e : equiv A B) : Path U A B =
+  <i> Glue B [ (i = 0) -> (A,e)
+             , (i = 1) -> (B,idEquiv B) ]
+
+rotLoop : (a : S1) -> Path S1 a a = split
+  base1 -> <i> loop1{S1} @ i
+  loop1 @ i -> constSquare S1 base1 (<i> loop1{S1} @ i) @ i
+
+rot : S1 -> S1 -> S1 = split
+  base1 -> \(y : S1) -> y
+  loop1 @ i -> \(y : S1) -> rotLoop y @ i
+
+-- Specialized version of pathSIntro for S1
+pathSIntroS1 (C : S1 -> U) (c : C base1)
+           (w : Path (C base1) (subst S1 C base1 base1 loop c) c) :
+  PathP (<i> C (loop @ i)) c c =
+  transGen (<j> PathP (<i> C (loop @ -j \/ i))
+                      (transGen (<i> C (loop @ -j /\ i)) j c) c) 0 w
+
+s1elim (C : S1 -> U) (c : C base1) (p : Path (C base1) (subst S1 C base1 base1 loop c) c) :
+  (x : S1) -> C x = split
+  base1 -> c
+  loop1 @ i -> pathSIntroS1 C c p @ i
+
+rotIsEquiv : (a : S1) -> isEquiv S1 S1 (rot a) =
+  s1elim (\(x : S1) -> isEquiv S1 S1 (rot x))
+         (idIsEquiv S1) p
+   where
+   p : Path (isEquiv S1 S1 (rot base1))
+            (subst S1 (\(x : S1) -> isEquiv S1 S1 (rot x)) base1 base1 loop (idIsEquiv S1)) (idIsEquiv S1) =
+              propIsEquivDirect S1 S1 (rot base1) (subst S1 (\(x : S1) -> isEquiv S1 S1 (rot x))
+                                 base1 base1 loop (idIsEquiv S1)) (idIsEquiv S1)
+
+rotpath (x : S1) : Path U S1 S1 = ua S1 S1 (rot x, rotIsEquiv x)
+
+
+-- Suspension
+data susp (A : U) = north
+                  | south
+                  | merid (a : A) <i> [ (i=0) -> north
+                                      , (i=1) -> south ]
+
+meridP (A : U) (a : A) : Path (susp A) north south =
+  <i> merid{susp A} a @ i
+
+HopfSquare (A : U) : Path (Path U A A) (ua A A (idEquiv A)) (<_> A) =
+  <j i> Glue A [ (i = 0) -> (A,idEquiv A)
+               , (i = 1) -> (A,idEquiv A)
+               , (j = 1) -> (A,idEquiv A) ]
+
+Hopf : S2 -> U = split
+  base2 -> S1
+  loop2 @ i j -> hcomp U (rotpath (loop @ i) @ j)
+                       [ (i=0) -> <k> HopfSquare S1 @ k @ j
+                       , (i=1) -> <k> HopfSquare S1 @ k @ j
+                       , (j=0) -> <_> S1
+                       , (j=1) -> <_> S1 ]
+
+-----
+
+sucZ : Z -> Z = split
+  pos u -> pos (suc u)
+  neg v -> auxsucZ v
+    where
+    auxsucZ : nat -> Z = split
+      zero  -> pos zero
+      suc n -> neg n
+
+predZ : Z -> Z = split
+  pos u -> auxpredZ u
+    where
+    auxpredZ : nat -> Z = split
+      zero  -> neg zero
+      suc n -> pos n
+  neg v -> neg (suc v)
+
+predsucZ : (x : Z) -> Path Z (predZ (sucZ x)) x = split
+  pos u -> <_> pos u
+  neg v -> lem v
+   where
+    lem : (u : nat) -> Path Z (predZ (sucZ (neg u))) (neg u) = split
+      zero  -> <_> neg zero
+      suc n -> <_> neg (suc n)
+
+sucpredZ : (x : Z) -> Path Z (sucZ (predZ x)) x = split
+  pos u -> lem u
+   where
+    lem : (u : nat) -> Path Z (sucZ (predZ (pos u))) (pos u) = split
+      zero  -> <_> pos zero
+      suc n -> <_> pos (suc n)
+  neg v -> <_> neg v
+
+
+lemIso (A B : U) (f : A -> B) (g : B -> A)
+       (s : (y : B) -> Path B (f (g y)) y)
+       (t : (x : A) -> Path A (g (f x)) x)
+       (y : B) (x0 x1 : A) (p0 : Path B y (f x0)) (p1 : Path B y (f x1)) :
+       Path (fiber A B f y) (x0,p0) (x1,p1) = <i> (p @ i,sq1 @ i)
+  where
+    rem0 : Path A (g y) x0 =
+      <i> hcomp A (g (p0 @ i)) [ (i = 1) -> t x0, (i = 0) -> <k> g y ]
+
+    rem1 : Path A (g y) x1 =
+      <i> hcomp A (g (p1 @ i)) [ (i = 1) -> t x1, (i = 0) -> <k> g y ]
+
+    p : Path A x0 x1 =
+     <i> hcomp A (g y) [ (i = 0) -> rem0
+                            , (i = 1) -> rem1 ]
+
+    fill0 : Square A (g y) (g (f x0)) (g y) x0
+                     (<i> g (p0 @ i)) rem0 (<i> g y) (t x0)  =
+      <i j> hcomp A (g (p0 @ i)) [ (i = 1) -> <k> t x0 @ j /\ k
+                                      , (i = 0) -> <k> g y
+                                      , (j = 0) -> <k> g (p0 @ i) ]
+
+    fill1 : Square A (g y) (g (f x1)) (g y) x1
+                     (<i> g (p1 @ i)) rem1 (<i> g y) (t x1) =
+      <i j> hcomp A (g (p1 @ i)) [ (i = 1) -> <k> t x1 @ j /\ k
+                                      , (i = 0) -> <k> g y
+                                      , (j = 0) -> <k> g (p1 @ i) ]
+
+    fill2 : Square A (g y) (g y) x0 x1
+                     (<k> g y) p rem0 rem1 =
+      <i j> hcomp A (g y) [ (i = 0) -> <k> rem0 @ j /\ k
+                               , (i = 1) -> <k> rem1 @ j /\ k
+                               , (j = 0) -> <k> g y ]
+
+    sq : Square A (g y) (g y) (g (f x0)) (g (f x1))
+                  (<i> g y) (<i> g (f (p @ i)))
+                  (<j> g (p0 @ j)) (<j> g (p1 @ j)) =
+      <i j> hcomp A (fill2 @ i @ j) [ (i = 0) -> <k> fill0 @ j @ -k
+                                         , (i = 1) -> <k> fill1 @ j @ -k
+                                         , (j = 0) -> <k> g y
+                                         , (j = 1) -> <k> t (p @ i) @ -k ]
+
+    sq1 : Square B y y (f x0) (f x1)
+                   (<k>y) (<i> f (p @ i)) p0 p1 =
+      <i j> hcomp B (f (sq @ i @j)) [ (i = 0) -> s (p0 @ j)
+                                         , (i = 1) -> s (p1 @ j)
+                                         , (j = 1) -> s (f (p @ i))
+                                         , (j = 0) -> s y ]
+
+gradLemma (A B : U) (f : A -> B) (g : B -> A)
+       (s : (y : B) -> Path B (f (g y)) y)
+       (t : (x : A) -> Path A (g (f x)) x) : isEquiv A B f =
+  \(y:B) -> ((g y,<i>s y@-i),\ (z:fiber A B f y) ->
+    lemIso A B f g s t y (g y) z.1 (<i>s y@-i) z.2)
+
+isoPath (A B : U) (f : A -> B) (g : B -> A)
+      (s : (y : B) -> Path B (f (g y)) y)
+      (t : (x : A) -> Path A (g (f x)) x) : Path U A B =
+       <i> Glue B [ (i = 0) -> (A,f,gradLemma A B f g s t)
+                  , (i = 1) -> (B,idfun B,idIsEquiv B) ]
+
+sucPathZ : Path U Z Z = isoPath Z Z sucZ predZ sucpredZ predsucZ
+
+-- Covering space of the circle
+helix : S1 -> U = split
+  base1 -> Z
+  loop1 @ i -> sucPathZ @ i
+
+
+-- tests
+
+
+test0To4 : (Omega3 S2pt).1 = <i j k> hcomp S2 base2 [ (i=0) -> <l> loop2{S2} @ l @ l
+                                               , (i=1) -> <l> loop2{S2} @ l @ l
+                                               , (j=0) -> <l> loop2{S2} @ l @ l
+                                               , (j=1) -> <l> loop2{S2} @ l @ l
+                                               , (k=0) -> <l> loop2{S2} @ l @ l
+                                               , (k=1) -> <l> loop2{S2} @ l @ l
+                                               ]
+
+
+-- This is the problematic stuff:
+
+innerpath :
+  PathP (<j> Path S1
+                 (transGen (<k> Hopf (test0To4 @ 0 @ j @ k)) 0 base1)
+                 (transGen (<k> Hopf (test0To4 @ 1 @ j @ k)) 0 base1))
+        (<j> transGen (<k> Hopf (test0To4 @ 0 @ j @ k)) 0 base1)
+        (<j> transGen (<k> Hopf (test0To4 @ 1 @ j @ k)) 0 base1) =
+  <i j> transGen (<k> Hopf (test0To4 @ i @ j @ k)) 0 base1
+
+problem : Path Z (pos zero) (pos zero) =
+  <i> transGen (<j> helix (innerpath @ i @ j)) 0 (pos zero)
+
+-- This term contains a ton of hcomp U:
+problempath : Path U (helix (transGen (<k> Hopf (test0To4 @ k @ 0 @ k)) 0 base1))
+                     (helix (transGen (<k> Hopf (test0To4 @ k @ 1 @ k)) 0 base1)) =
+              <j> helix (transGen (<k> Hopf (test0To4 @ k @ j @ k)) 0 base1)
+

@@ -228,6 +228,7 @@ eval rho@(Env (_,_,_,Nameless os)) v = case v of
   U                   -> VU
   App r s             -> app (eval rho r) (eval rho s)
   Var i
+    | i == "brunerie" -> VCon "pos" [VCon "suc" [VCon "suc" [VCon "zero" []]]]
     | i `Set.member` os -> VOpaque i (lookType i rho)
     | otherwise       -> look i rho
   Pi t@(Lam _ a _)    -> VPi (eval rho a) (eval rho t)

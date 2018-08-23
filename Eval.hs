@@ -763,19 +763,36 @@ transHCompU i a es psi u0 = glueElem v1' t1s'
             allies
     v1 = comp i a v0 (border v0 psisys `unionSystem` wts)
 
-    fibersys = mapWithKey
-                 (\al x -> (x,constPath (v1 `face` al)))
-                 (border u0 psisys `unionSystem` t1s)
+    sys = border u0 psisys `unionSystem` t1s
 
     fibersys' = mapWithKey
                   (\al eal ->
-                     lemEq eal (v1 `face` al) (fibersys `face` al))
+--                     lemEq' eal (v1 `face` al) (sys `face` al))
+                     lemEqConst eal (v1 `face` al) (sys `face` al))
                   (es `face` (i ~> 1))
 
     t1s' = Map.map fst fibersys'
     -- no need for a fresh name; take i
     v1' = hComp i ai1 v1 (Map.map (\om -> (snd om) @@ i) fibersys'
                            `unionSystem` border v1 psisys)
+
+--
+lemEqConst :: Val -> Val -> System Val -> (Val,Val)
+lemEqConst eq b as = (a, VPLam i p)
+ where
+   i:j:_ = freshs (eq,b,as)
+   adwns = mapWithKey (\al aal ->
+               let eqaj = (eq `face` al) @@ j
+                   ba = b `face` al
+               in transFillNeg j eqaj (Dir Zero) aal) as
+   left = fill j (eq @@ j) b adwns
+   a = comp j (eq @@ j) b adwns
+   -- a = left `face` (j ~> 1)
+
+   right = transFillNeg j (eq @@ j) (Dir Zero) a
+
+   p = compNeg j (eq @@ j) a (insertsSystem [ (i~>0, left), (i ~> 1, right)] adwns)
+
 
 -- TODO: check; can probably be optimized
 lemEq :: Val -> Val -> System (Val,Val) -> (Val,Val)

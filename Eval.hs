@@ -754,13 +754,16 @@ transHCompU i a es psi u0 = glueElem v1' t1s'
     ai1 = a `face` (i ~> 1)
     allies = allSystem i es
     psisys = invSystem psi One -- (psi = 1) : FF
+    allies' = mapWithKey (\al eal ->
+                (eal, eal @@ One, psi `face` al, u0 `face` al)) allies
+
     t1s = mapWithKey
-            (\al eal -> trans i (eal @@ One) (psi `face` al) (u0 `face` al))
-            allies
-    wts = mapWithKey (\al eal ->
-              eqFun eal
-                (transFill i (eal @@ One) (psi `face` al) (u0 `face` al)))
-            allies
+            (\al (_,eal1,psial,u0al) -> trans i eal1 psial u0al)
+            allies'
+    wts = mapWithKey (\al (eal,eal1,psial,u0al) ->
+              eqFun eal (transFill i eal1 psial u0al))
+            allies'
+
     v1 = comp i a v0 (border v0 psisys `unionSystem` wts)
 
     sys = border u0 psisys `unionSystem` t1s
@@ -768,19 +771,20 @@ transHCompU i a es psi u0 = glueElem v1' t1s'
     fibersys' = mapWithKey
                   (\al eal ->
 --                     lemEq' eal (v1 `face` al) (sys `face` al))
-                     lemEqConst eal (v1 `face` al) (sys `face` al))
+                     lemEqConst i eal (v1 `face` al) (sys `face` al))
                   (es `face` (i ~> 1))
 
     t1s' = Map.map fst fibersys'
-    -- no need for a fresh name; take i
-    v1' = hComp i ai1 v1 (Map.map (\om -> (snd om) @@ i) fibersys'
-                           `unionSystem` border v1 psisys)
 
---
-lemEqConst :: Val -> Val -> System Val -> (Val,Val)
-lemEqConst eq b as = (a, VPLam i p)
+    v1' = hComp i ai1 v1 (Map.map snd fibersys' `unionSystem` border v1 psisys)
+
+-- Extend a partial element (aalpha, <_> f aalpha) in the fiber over b
+-- to a total one where f is transNeg of eq.  Applies the second
+-- component to the fresh name i.
+lemEqConst :: Name -> Val -> Val -> System Val -> (Val,Val)
+lemEqConst i eq b as = (a, p)
  where
-   i:j:_ = freshs (eq,b,as)
+   j = fresh (eq,b,as)
    adwns = mapWithKey (\al aal ->
                let eqaj = (eq `face` al) @@ j
                    ba = b `face` al
@@ -794,32 +798,36 @@ lemEqConst eq b as = (a, VPLam i p)
    p = compNeg j (eq @@ j) a (insertsSystem [ (i~>0, left), (i ~> 1, right)] adwns)
 
 
--- TODO: check; can probably be optimized
-lemEq :: Val -> Val -> System (Val,Val) -> (Val,Val)
-lemEq eq b aps = (a,VPLam i (compNeg j (eq @@ j) p1 thetas'))
- where
-   i:j:_ = freshs (eq,b,aps)
-   ta = eq @@ One
-   p1s = mapWithKey (\alpha (aa,pa) ->
-              let eqaj = (eq `face` alpha) @@ j
-                  ba = b `face` alpha
-              in comp j eqaj (pa @@ i)
-                   (mkSystem [ (i~>0,transFill j eqaj (Dir Zero) ba)
-                             , (i~>1,transFillNeg j eqaj (Dir Zero) aa)])) aps
-   thetas = mapWithKey (\alpha (aa,pa) ->
-              let eqaj = (eq `face` alpha) @@ j
-                  ba = b `face` alpha
-              in fill j eqaj (pa @@ i)
-                   (mkSystem [ (i~>0,transFill j eqaj (Dir Zero) ba)
-                             , (i~>1,transFillNeg j eqaj (Dir Zero) aa)])) aps
 
-   a  = hComp i ta (trans i (eq @@ i) (Dir Zero) b) p1s
-   p1 = hFill i ta (trans i (eq @@ i) (Dir Zero) b) p1s
+-- -- TODO: check; can probably be optimized
+-- lemEq' :: Val -> Val -> System Val -> (Val,Val)
+-- lemEq' eq b as = (a,VPLam i (compNeg j (eq @@ j) p1 thetas'))
+--  where
+--    i:j:_ = freshs (eq,b,as)
+--    ta = eq @@ One
+--    p1s = mapWithKey (\alpha aa ->
+--               let eqaj = (eq `face` alpha) @@ j
+--                   pa = transNeg j eqaj (Dir Zero) aa
+--                   ba = b `face` alpha
+--               in comp j eqaj pa
+--                    (mkSystem [ (i~>0,transFill j eqaj (Dir Zero) ba)
+--                              , (i~>1,transFillNeg j eqaj (Dir Zero) aa)])) as
+--    thetas = mapWithKey (\alpha aa ->
+--               let eqaj = (eq `face` alpha) @@ j
+--                   pa = transNeg j eqaj (Dir Zero) aa
+--                   ba = b `face` alpha
+--               in fill j eqaj pa
+--                    (mkSystem [ (i~>0,transFill j eqaj (Dir Zero) ba)
+--                              , (i~>1,transFillNeg j eqaj (Dir Zero) aa)])) as
 
-   thetas' = insertsSystem
-               [ (i ~> 0,transFill j (eq @@ j) (Dir Zero) b)
-               , (i ~> 1,transFillNeg j (eq @@ j) (Dir Zero) a)]
-               thetas
+--    a  = hComp i ta (trans i (eq @@ i) (Dir Zero) b) p1s
+--    p1 = hFill i ta (trans i (eq @@ i) (Dir Zero) b) p1s
+
+--    thetas' = insertsSystem
+--                [ (i ~> 0,transFill j (eq @@ j) (Dir Zero) b)
+--                , (i ~> 1,transFillNeg j (eq @@ j) (Dir Zero) a)]
+--                thetas
+
 
 
 -------------------------------------------------------------------------------

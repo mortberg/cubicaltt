@@ -811,10 +811,15 @@ lemEq eq b aps = (a,VPLam i (compNeg j (eq @@ j) p1 thetas'))
 class Convertible a where
   conv :: [String] -> a -> a -> Bool
 
+conflictCompSystem :: (Nominal a, Convertible a) => [String] -> System a -> [(a,a)]
+conflictCompSystem ns ts =
+  [ (fa, fb) | (alpha,beta) <- allCompatible (keys ts),
+               let (fa,fb) = (getFace alpha beta, getFace beta alpha),
+               not (conv ns fa fb) ]
+  where getFace a b = face (ts ! a) (b `minus` a)
+
 isCompSystem :: (Nominal a, Convertible a) => [String] -> System a -> Bool
-isCompSystem ns ts = and [ conv ns (getFace alpha beta) (getFace beta alpha)
-                         | (alpha,beta) <- allCompatible (keys ts) ]
-    where getFace a b = face (ts ! a) (b `minus` a)
+isCompSystem ns ts = null (conflictCompSystem ns ts)
 
 instance Convertible Env where
   conv ns (Env (rho1,vs1,fs1,os1)) (Env (rho2,vs2,fs2,os2)) =

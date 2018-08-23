@@ -100,3 +100,18 @@ thm (A:U) : Path U (aLoop A) (S1 -> A) = isoPath T0 T1 f g t s
        s (x:T0) : Path T0 (g (f x)) x    = refl T0 x
        t : (y:T1) -> Path T1 (f (g y)) y = lem A
 
+bignumber : nat =
+ suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero))))))))))))))))))))))))))))))))))))))))))))))))))
+
+
+loopit : nat -> Path S1 base base = split
+  zero -> <_> base
+  suc n -> compS1 (loopit n) loop1
+
+-- fast: winding (loopit bignumber)
+
+loopit' : nat -> Path S1 base base = split
+  zero -> <_> base
+  suc n -> compS1 loop1 (loopit' n)
+
+-- slow: winding (loopit' bignumber)

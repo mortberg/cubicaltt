@@ -687,19 +687,25 @@ extend b q ts = hComp i b (fstVal q) ts'
 transGlue :: Name -> Val -> System Val -> Formula -> Val -> Val
 transGlue i a equivs psi u0 = glueElem v1' t1s'
   where
-    v0 = unGlue u0 (a `face` (i ~> 0)) (equivs `face` (i ~> 0))
-    ai1 = a `face` (i ~> 1)
+    (ai0,equivsi0) = (a,equivs) `face` (i ~> 0)
+    (ai1,equivsi1) = (a,equivs) `face` (i ~> 1)
+
+    v0 = unGlue u0 ai0 equivsi0
+
     alliequivs = allSystem i equivs
     psisys = invSystem psi One -- (psi = 1) : FF
-    t1s = mapWithKey
-            (\al wal -> trans i (equivDom wal) (psi `face` al) (u0 `face` al))
-            alliequivs
-    wts = mapWithKey (\al wal ->
-              app (equivFun wal)
-                (transFill i (equivDom wal) (psi `face` al) (u0 `face` al)))
-            alliequivs
+
+    alliequivs' =
+      mapWithKey (\al wal -> (equivFun wal,equivDom wal,psi `face` al,u0 `face` al))
+                 alliequivs
+
+    t1s = Map.map (\(_,dwal,psial,u0al) -> trans i dwal psial u0al) alliequivs'
+    wts = Map.map (\(fwal,dwal,psial,u0al) -> app fwal (transFill i dwal psial u0al)) alliequivs'
+
     v1 = comp i a v0 (border v0 psisys `unionSystem` wts)
 
+    -- TODO: v1 `face` al can be simplified by hand (it is constructed
+    -- using a system with the same face as the one in fibersys)
     fibersys = mapWithKey
                  (\al x -> VPair x (constPath (v1 `face` al)))
                  (border u0 psisys `unionSystem` t1s)
@@ -709,7 +715,7 @@ transGlue i a equivs psi u0 = glueElem v1' t1s'
                      extend (mkFiberType (ai1 `face` al) (v1 `face` al) wal)
                        (app (equivContr wal) (v1 `face` al))
                        (fibersys `face` al))
-                  (equivs `face` (i ~> 1))
+                  equivsi1
 
     t1s' = Map.map fstVal fibersys'
     -- no need for a fresh name; take i
@@ -761,11 +767,11 @@ transHCompU i a es psi u0 = glueElem v1' t1s'
     -- Preprocess allies to avoid recomputing the faces in t1s and wts
     allies' = mapWithKey (\al eal ->
                 (eal, eal @@ One, psi `face` al, u0 `face` al)) allies
-    t1s = mapWithKey
-            (\al (_,eal1,psial,u0al) -> trans i eal1 psial u0al)
+    t1s = Map.map
+            (\(_,eal1,psial,u0al) -> trans i eal1 psial u0al)
             allies'
-    wts = mapWithKey (\al (eal,eal1,psial,u0al) ->
-              eqFun eal (transFill i eal1 psial u0al))
+    wts = Map.map
+            (\(eal,eal1,psial,u0al) -> eqFun eal (transFill i eal1 psial u0al))
             allies'
 
     v1 = comp i a v0 (border v0 psisys `unionSystem` wts)

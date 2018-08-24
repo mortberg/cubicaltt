@@ -1,0 +1,97 @@
+module fiber where
+
+Path (A : U) (a0 a1 : A) : U = PathP (<i> A) a0 a1
+
+fiber (A B : U) (f : A -> B) (y : B) : U =
+  (x : A) * Path B y (f x)
+
+A : U = undefined
+B : U = undefined
+f : A -> B = undefined
+y : B = undefined
+opaque A
+opaque B
+opaque f
+opaque y
+
+b : fiber A B f y = undefined
+opaque b
+
+-- We first try with an empty system:
+
+hcomfiber : fiber A B f y = hcomp (fiber A B f y) b []
+
+-- If we normalize this we get:
+nhcompfiber : fiber A B f y = 
+  (hcomp A b.1 []
+  ,<i> hcomp B
+           (hcomp B (transGen (<_> B) 0 (b.2 @ i))
+                  [ (i = 0) -> <j> transGen (<_> B) j y
+                  , (i = 1) -> <j> transGen (<_> B) j (f (hfill A b.1 [] @ j)) ])
+           [ (i = 0) -> <_> y
+           , (i = 1) -> <_> f (hcomp A b.1 []) ])
+
+-- This simplest proof that should work is:
+betterhcompfiber : fiber A B f y =
+  (hcomp A b.1 []
+  ,<i> hcomp B (b.2 @ i)
+             [ (i = 0) -> <_> y
+             , (i = 1) -> <j> f (hfill A b.1 [] @ j) ] )
+
+{-
+
+nhcompfiber has 
+- 5 hcomp (counting hfill as hcomp)
+- 3 transGen
+
+betterhcompfiber has:
+- 3 hcomp
+- 0 transGen
+
+-}
+
+-- What happens if we have two things in the tubes?
+
+hcomfibertube : Path (fiber A B f y) b b =
+  <i> hcomp (fiber A B f y) b [ (i=0) -> <_> b, (i=1) -> <_> b]
+
+-- This is pretty bad:
+nhcomfibertube : Path (fiber A B f y) b b =
+  <i> (hcomp A b.1 [ (i = 0) -> <_> b.1, (i = 1) -> <_> b.1 ]
+      ,<j> hcomp B
+              (hcomp B (transGen (<_> B) 0 (b.2 @ j))
+                     [ (j = 0) -> <k> transGen (<_> B) k y
+                     , (j = 1) -> <k> transGen (<_> B) k (f (hfill A b.1 [ (i = 0) -> <_> b.1
+                                                                         , (i = 1) -> <_> b.1 ] @ k)) ])
+              [ (i = 0) -> <k> hcomp B (transGen (<_> B) 0 (b.2 @ j))
+                                       [ (j = 0) -> <l> transGen (<_> B) l y
+                                       , (j = 1) -> <l> transGen (<_> B) l (f b.1)
+                                       , (k = 1) -> <l> transGen (<_> B) l (b.2 @ j) ]
+              , (i = 1) -> <k> hcomp B (transGen (<_> B) 0 (b.2 @ j))
+                                       [ (j = 0) -> <l> transGen (<_> B) l y
+                                       , (j = 1) -> <l> transGen (<_> B) l (f b.1)
+                                       , (k = 1) -> <l> transGen (<_> B) l (b.2 @ j) ]
+              , (j = 0) -> <_> y
+              , (j = 1) -> <_> f (hcomp A b.1 [ (i = 0) -> <_> b.1, (i = 1) -> <_> b.1 ]) ])
+
+
+betterhcompfibertube : Path (fiber A B f y) b b =
+  <i> (hcomp A b.1 [(i = 0) -> <_> b.1, (i = 1) -> <_> b.1]
+      ,<j> hcomp B (b.2 @ j)
+                  [ (i = 0) -> <_> b.2 @ j
+                  , (i = 1) -> <_> b.2 @ j
+                  , (j = 0) -> <_> y
+                  , (j = 1) -> <k> f (hfill A b.1 [(i = 0) -> <_> b.1, (i = 1) -> <_> b.1] @ k) ] )
+
+{-
+
+nhcompfibertube has 
+- 7 hcomp (counting hfill as hcomp)
+- 11 transGen
+
+betterhcompfibertube has:
+- 3 hcomp
+- 0 transGen
+
+-}
+

@@ -750,13 +750,17 @@ hCompUniv b es | eps `Map.member` es = (es ! eps) @@ One
 transHCompU :: Name -> Val -> System Val -> Formula -> Val -> Val
 transHCompU i a es psi u0 = glueElem v1' t1s'
   where
-    v0 = unGlueU u0 (a `face` (i ~> 0)) (es `face` (i ~> 0))
-    ai1 = a `face` (i ~> 1)
+    (ai0,esi0) = (a,es) `face` (i ~> 0)
+    (ai1,esi1) = (a,es) `face` (i ~> 1)
+
+    v0 = unGlueU u0 ai0 esi0
+
     allies = allSystem i es
     psisys = invSystem psi One -- (psi = 1) : FF
+
+    -- Preprocess allies to avoid recomputing the faces in t1s and wts
     allies' = mapWithKey (\al eal ->
                 (eal, eal @@ One, psi `face` al, u0 `face` al)) allies
-
     t1s = mapWithKey
             (\al (_,eal1,psial,u0al) -> trans i eal1 psial u0al)
             allies'
@@ -772,7 +776,7 @@ transHCompU i a es psi u0 = glueElem v1' t1s'
                   (\al eal ->
 --                     lemEq' eal (v1 `face` al) (sys `face` al))
                      lemEqConst i eal (v1 `face` al) (sys `face` al))
-                  (es `face` (i ~> 1))
+                  esi1
 
     t1s' = Map.map fst fibersys'
 
@@ -782,20 +786,21 @@ transHCompU i a es psi u0 = glueElem v1' t1s'
 -- to a total one where f is transNeg of eq.  Applies the second
 -- component to the fresh name i.
 lemEqConst :: Name -> Val -> Val -> System Val -> (Val,Val)
-lemEqConst i eq b as = (a, p)
+lemEqConst i eq b as = (a,p)
  where
    j = fresh (eq,b,as)
+   eqj = eq @@ j
    adwns = mapWithKey (\al aal ->
-               let eqaj = (eq `face` al) @@ j
-                   ba = b `face` al
+               let -- eqaj = (eq `face` al) @@ j
+                   eqaj = eqj `face` al
                in transFillNeg j eqaj (Dir Zero) aal) as
-   left = fill j (eq @@ j) b adwns
-   a = comp j (eq @@ j) b adwns
+   left = fill j eqj b adwns
+   a = comp j eqj b adwns
    -- a = left `face` (j ~> 1)
 
-   right = transFillNeg j (eq @@ j) (Dir Zero) a
+   right = transFillNeg j eqj (Dir Zero) a
 
-   p = compNeg j (eq @@ j) a (insertsSystem [ (i~>0, left), (i ~> 1, right)] adwns)
+   p = compNeg j eqj a (insertsSystem [ (i ~> 0, left), (i ~> 1, right)] adwns)
 
 
 

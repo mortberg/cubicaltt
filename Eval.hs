@@ -677,13 +677,6 @@ unGlue w a equivs | eps `member` equivs = app (equivFun (equivs ! eps)) w
 --   any (\(alpha,uAlpha) -> eps `notMember` (equivs `face` alpha)
 --         && isNeutral uAlpha) (assocs us)
 
--- Extend the system ts to a total element in b given q : isContr b
-extend :: Val -> Val -> System Val -> Val
-extend b q ts = hComp i b (fstVal q) ts'
-  where i = fresh (b,q,ts)
-        ts' = mapWithKey
-                (\alpha tAlpha -> app ((sndVal q) `face` alpha) tAlpha @@ i) ts
-
 transGlue :: Name -> Val -> System Val -> Formula -> Val -> Val
 transGlue i a equivs psi u0 = glueElem v1' t1s'
   where
@@ -712,9 +705,14 @@ transGlue i a equivs psi u0 = glueElem v1' t1s'
 
     fibersys' = mapWithKey
                   (\al wal ->
-                     extend (mkFiberType (ai1 `face` al) (v1 `face` al) wal)
-                       (app (equivContr wal) (v1 `face` al))
-                       (fibersys `face` al))
+                    let (a,b,f,y) = (equivDom wal,ai1 `face` al,equivFun wal,v1 `face` al)
+                        c12 = app (equivContr wal) y
+                        (c1,c2) = (fstVal c12,sndVal c12)
+                        us = mapWithKey (\alpha tAlpha -> app (c2 `face` alpha) tAlpha @@ i) (fibersys `face` al)
+                    in hcompFiber i a b f y c1 us)
+                     -- extend (mkFiberType (ai1 `face` al) (v1 `face` al) wal)
+                     --        (app (equivContr wal) (v1 `face` al))
+                     --        (fibersys `face` al))
                   equivsi1
 
     t1s' = Map.map fstVal fibersys'
@@ -722,12 +720,35 @@ transGlue i a equivs psi u0 = glueElem v1' t1s'
     v1' = hComp i ai1 v1 (Map.map (\om -> (sndVal om) @@ i) fibersys'
                            `unionSystem` border v1 psisys)
 
-mkFiberType :: Val -> Val -> Val -> Val
-mkFiberType a x equiv = eval rho $
-  Sigma $ Lam "y" tt (PathP (PLam (Name "_") ta) tx (App tf ty))
-  where [ta,tx,ty,tf,tt] = map Var ["a","x","y","f","t"]
-        rho = upds [("a",a),("x",x),("f",equivFun equiv)
-                   ,("t",equivDom equiv)] emptyEnv
+-- Unfolded version of "hComp i (Fiber a b f y) u us" implementing:
+--
+-- hcomp^i (Fiber A B f y) [phi -> us] u =
+--   (hcomp^i A u.1 [phi -> us.1]
+--   ,<j> hcomp^i B (u.2 @@ i) [phi -> us.2 @ i, (j=0) -> y, (j=1) -> f (hfill^i A u.1 [phi -> us.1])])
+--
+hcompFiber :: Name -> Val -> Val -> Val -> Val -> Val -> System Val -> Val
+hcompFiber i a b f y u us =
+  let (u1,u2,us1,us2) = (fstVal u,sndVal u,Map.map fstVal us,Map.map sndVal us)
+      u1comp = hComp i a u1 us1
+      u1fill = hFill i a u1 us1
+      j = fresh ()
+  in VPair u1comp (VPLam j $ hComp i b (u2 @@ j)
+                                       (insertsSystem [(j~>0, y),(j~>1,app f u1fill)]
+                                                      (Map.map (@@ i) us2)))
+
+-- -- Extend the system ts to a total element in b given q : isContr b
+-- extend :: Val -> Val -> System Val -> Val
+-- extend b q ts = hComp i b (fstVal q) ts'
+--   where i = fresh (b,q,ts)
+--         ts' = mapWithKey
+--                 (\alpha tAlpha -> app ((sndVal q) `face` alpha) tAlpha @@ i) ts
+
+-- mkFiberType :: Val -> Val -> Val -> Val
+-- mkFiberType a x equiv = eval rho $
+--   Sigma $ Lam "y" tt (PathP (PLam (Name "_") ta) tx (App tf ty))
+--   where [ta,tx,ty,tf,tt] = map Var ["a","x","y","f","t"]
+--         rho = upds [("a",a),("x",x),("f",equivFun equiv)
+--                    ,("t",equivDom equiv)] emptyEnv
 
 -- -- Assumes u' : A is a solution of us + (i0 -> u0)
 -- -- The output is an L-path in A(i1) between comp i u0 us and u'(i1)

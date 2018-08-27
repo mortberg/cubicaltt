@@ -515,9 +515,6 @@ shape = border ()
 sym :: Nominal a => a -> Name -> a
 sym a i = act False a (i, NegAtom i)
 
-rename :: Nominal a => a -> (Name, Name) -> a
-rename a (i, j) = swap a (i,j)
-
 conj, disj :: Nominal a => a -> (Name, Name) -> a
 conj a (i, j) = act False a (i, Atom i :/\: Atom j)
 disj a (i, j) = act False a (i, Atom i :\/: Atom j)

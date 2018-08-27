@@ -60,7 +60,7 @@ instance Nominal Env where
   -- Strangely this definition seems to lead to a space leak:
   -- act b (Env (rho,vs,fs,os)) iphi = Env $ act b (rho,vs,fs,os) iphi
   act b (Env (rho,vs,fs,os)) iphi = Env (rho,act b vs iphi,act b fs iphi,os)
-  swap (Env (rho,vs,fs,os)) ij = Env $ swap (rho,vs,fs,os) ij
+  swap (Env (rho,vs,fs,os)) ij = Env (rho,swap vs ij,swap fs ij, os)
 
 instance Nominal Val where
   -- support v = case v of

@@ -100,3 +100,48 @@ thm (A:U) : Path U (aLoop A) (S1 -> A) = isoPath T0 T1 f g t s
        s (x:T0) : Path T0 (g (f x)) x    = refl T0 x
        t : (y:T1) -> Path T1 (f (g y)) y = lem A
 
+-- Some benchmarks:
+
+loopcap : nat -> Path S1 base base = split
+  zero -> <_> base
+  suc n -> <i> hcomp S1 (loopcap n @ i) [ (i=0) -> <_> base, (i=1) -> loop1 ]
+
+loopleft : nat -> Path S1 base base = split
+  zero -> <_> base
+  suc n -> <i> hcomp S1 (loop1 @ i) [ (i=0) -> <i> loopleft n @ -i, (i=1) -> <_> base ]
+
+loopright : nat -> Path S1 base base = split
+  zero -> <_> base
+  suc n -> <i> hcomp S1 (loop1 @ i) [ (i=0) -> <_> base, (i=1) -> loopright n ]
+
+nloopleft10 : Z = winding (loopleft n10)
+-- > nloopleft10
+-- EVAL: inr (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero))))))))))
+-- Time: 0m0.005s
+
+nloopcap10 : Z = winding (loopcap n10)
+-- > nloopcap10
+-- EVAL: inr (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero))))))))))
+-- Time: 0m0.019s
+
+nloopright10 : Z = winding (loopright n10)
+-- > nloopright10
+-- EVAL: inr (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero))))))))))
+-- Time: 0m1.342s
+
+
+nloopleft11 : Z = winding (loopleft n11)
+-- > nloopleft11
+-- EVAL: inr (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero)))))))))))
+-- Time: 0m0.010s
+
+nloopcap11 : Z = winding (loopcap n11)
+-- > nloopcap11
+-- EVAL: inr (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero)))))))))))
+-- Time: 0m0.021s
+
+nloopright11 : Z = winding (loopright n11)
+-- > nloopright11
+-- EVAL: inr (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero)))))))))))
+-- Time: 0m2.688s
+

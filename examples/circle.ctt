@@ -164,3 +164,25 @@ nloopcap1024 : Z = winding (loopcap n1024)
 -- > nloopcap1024
 -- EVAL: inr (suc ...)
 -- Time: 0m5.724s
+
+
+
+-- The following is very strange:
+
+-- The only difference to loopright is that the second branch has been
+-- eta-expanded:
+looprightSlow : nat -> Path S1 base base = split
+  zero -> <_> base
+  suc n -> <i> hcomp S1 (loop1 @ i) [ (i=0) -> <_> base, (i=1) -> <j> looprightSlow n @ j ]
+
+-- The following is not too bad:
+-- > loopright n256
+-- Time: 0m0.494s
+
+-- But the following is slow:
+-- > looprightSlow
+-- Time: 0m11.115s
+
+-- Working theory is that the generation of tons of names makes it
+-- slow (compare with yacctt where both of the examples takes 0m0.099s)
+-- We should probably eliminate the *Line functions from Eval

@@ -382,7 +382,7 @@ v @@@ j           = VAppFormula v (toFormula j)
 -- Composition and filling
 
 hCompLine :: Val -> Val -> System Val -> Val
-hCompLine a u us = hComp i a u (Map.map (@@ i) us)
+hCompLine a u us = hComp i a u (Map.map (@@@ i) us)
   where i = fresh (a,u,us)
 
 hFill :: Name -> Val -> Val -> System Val -> Val

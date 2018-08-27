@@ -104,14 +104,47 @@ bignumber : nat =
  suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero))))))))))))))))))))))))))))))))))))))))))))))))))
 
 
-loopit : nat -> Path S1 base base = split
+-- Some benchmarks:
+
+loopcap : nat -> Path S1 base base = split
   zero -> <_> base
-  suc n -> compS1 (loopit n) loop1
+  suc n -> <i> hcomp S1 (loopcap n @ i) [ (i=0) -> <_> base, (i=1) -> loop1 ]
 
--- fast: winding (loopit bignumber)
-
-loopit' : nat -> Path S1 base base = split
+loopleft : nat -> Path S1 base base = split
   zero -> <_> base
-  suc n -> compS1 loop1 (loopit' n)
+  suc n -> <i> hcomp S1 (loop1 @ i) [ (i=0) -> <i> loopleft n @ -i, (i=1) -> <_> base ]
 
--- slow: winding (loopit' bignumber)
+loopright : nat -> Path S1 base base = split
+  zero -> <_> base
+  suc n -> <i> hcomp S1 (loop1 @ i) [ (i=0) -> <_> base, (i=1) -> loopright n ]
+
+nloopleft10 : Z = winding (loopleft n10)
+-- > nloopleft10
+-- EVAL: inr (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero))))))))))
+-- Time: 0m0.005s
+
+nloopcap10 : Z = winding (loopcap n10)
+-- > nloopcap10
+-- EVAL: inr (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero))))))))))
+-- Time: 0m0.019s
+
+nloopright10 : Z = winding (loopright n10)
+-- > nloopright10
+-- EVAL: inr (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero))))))))))
+-- Time: 0m1.342s
+
+
+nloopleft11 : Z = winding (loopleft n11)
+-- > nloopleft11
+-- EVAL: inr (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero)))))))))))
+-- Time: 0m0.010s
+
+nloopcap11 : Z = winding (loopcap n11)
+-- > nloopcap11
+-- EVAL: inr (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero)))))))))))
+-- Time: 0m0.021s
+
+nloopright11 : Z = winding (loopright n11)
+-- > nloopright11
+-- EVAL: inr (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero)))))))))))
+-- Time: 0m2.688s

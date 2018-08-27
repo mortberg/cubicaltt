@@ -661,9 +661,9 @@ glue b ts | eps `member` ts = equivDom (ts ! eps)
           | otherwise       = VGlue b ts
 
 glueElem :: Val -> System Val -> Val
-glueElem (VUnGlueElem u _ _) _ = u
 glueElem v us | eps `member` us = us ! eps
-              | otherwise       = VGlueElem v us
+glueElem (VUnGlueElem u _ _) _ = u
+glueElem v us = VGlueElem v us
 
 unGlue :: Val -> Val -> System Val -> Val
 unGlue w a equivs | eps `member` equivs = app (equivFun (equivs ! eps)) w

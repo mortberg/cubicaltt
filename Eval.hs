@@ -298,7 +298,7 @@ app u v = case (u,v) of
     _ -> error $ "app: missing case in split for " ++ c
   (Ter (Split _ _ ty hbr) e,VHComp a w ws) -> case eval e ty of
     VPi _ f -> let j   = fresh (e,v)
-                   wsj = Map.map (@@ j) ws
+                   wsj = Map.map (@@@ j) ws
                    w'  = app u w
                    ws' = mapWithKey (\alpha -> app (u `face` alpha)) wsj
                    -- a should be constant
@@ -315,7 +315,7 @@ app u v = case (u,v) of
   (VHComp (VPi a f) u0 us, v) ->
     let i = fresh (u,v)
     in hComp i (app f v) (app u0 v)
-          (mapWithKey (\al ual -> app (ual @@ i) (v `face` al)) us)
+          (mapWithKey (\al ual -> app (ual @@@ i) (v `face` al)) us)
 --  _ | isNeutral u       -> VApp u v
   _                     -> VApp u v -- error $ "app \n  " ++ show u ++ "\n  " ++ show v
 
@@ -390,15 +390,15 @@ hFill i a u us = hComp j a u (insertSystem (i ~> 0) u $ us `conj` (i,j))
   where j = fresh (Atom i,a,u,us)
 
 hFillLine :: Val -> Val -> System Val -> Val
-hFillLine a u us = VPLam i $ hFill i a u (Map.map (@@ i) us)
+hFillLine a u us = VPLam i $ hFill i a u (Map.map (@@@ i) us)
   where i = fresh (a,u,us)
 
 hComp :: Name -> Val -> Val -> System Val -> Val
 hComp i a u us | eps `member` us = (us ! eps) `face` (i ~> 1)
 hComp i a u us = case a of
   VPathP p v0 v1 -> let j = fresh (Atom i,a,u,us) in
-    VPLam j $ hComp i (p @@ j) (u @@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
-                                         (Map.map (@@ j) us))
+    VPLam j $ hComp i (p @@@ j) (u @@@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
+                                         (Map.map (@@@ j) us))
   VId b v0 v1 -> undefined
   VSigma a f -> let (us1, us2) = (Map.map fstVal us, Map.map sndVal us)
                     (u1, u2) = (fstVal u, sndVal u)
@@ -470,8 +470,8 @@ comp i a u ts =
   let j = fresh (Atom i,a,u,ts)
   in case a of
     -- VPathP p v0 v1 ->
-    --   VPLam j $ comp i (p @@ j) (u @@ j) $
-    --               insertsSystem [(j ~> 0,v0),(j ~> 1,v1)] (Map.map (@@ j) ts)
+    --   VPLam j $ comp i (p @@@ j) (u @@@ j) $
+    --               insertsSystem [(j ~> 0,v0),(j ~> 1,v1)] (Map.map (@@@ j) ts)
     _ -> hComp j (a `face` (i ~> 1)) (fwd i a (Dir Zero) u)
                (mapWithKey (\al ual -> fwd i (a `face` al) (Atom j) (ual  `swap` (i,j))) ts)
 
@@ -479,7 +479,7 @@ compNeg :: Name -> Val -> Val -> System Val -> Val
 compNeg i a u ts = comp i (a `sym` i) u (ts `sym` i)
 
 compLine :: Val -> Val -> System Val -> Val
-compLine a u ts = comp i (a @@ i) u (Map.map (@@ i) ts)
+compLine a u ts = comp i (a @@@ i) u (Map.map (@@@ i) ts)
   where i = fresh (a,u,ts)
 
 comps :: Name -> [(Ident,Ter)] -> Env -> [(System Val,Val)] -> [Val]
@@ -500,7 +500,7 @@ fillNeg :: Name -> Val -> Val -> System Val -> Val
 fillNeg i a u ts = (fill i (a `sym` i) u (ts `sym` i)) `sym` i
 
 fillLine :: Val -> Val -> System Val -> Val
-fillLine a u ts = VPLam i $ fill i (a @@ i) u (Map.map (@@ i) ts)
+fillLine a u ts = VPLam i $ fill i (a @@@ i) u (Map.map (@@@ i) ts)
   where i = fresh (a,u,ts)
 
 
@@ -508,7 +508,7 @@ fillLine a u ts = VPLam i $ fill i (a @@ i) u (Map.map (@@ i) ts)
 -- Transport and forward
 
 transLine :: Val -> Formula -> Val -> Val
-transLine a phi u = trans i (a @@ i) phi u
+transLine a phi u = trans i (a @@@ i) phi u
   where i = fresh (a,phi,u)
 
 -- For i:II |- a, phi # i,
@@ -519,8 +519,8 @@ trans :: Name -> Val -> Formula -> Val -> Val
 trans i a (Dir One) u = u
 trans i a phi u = case a of
   VPathP p v0 v1 -> let j = fresh (Atom i,a,phi,u) in
-    VPLam j $ comp i (p @@ j) (u @@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
-                                         (border (u @@ j) (invSystem phi One)))
+    VPLam j $ comp i (p @@@ j) (u @@@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
+                                         (border (u @@@ j) (invSystem phi One)))
   VId b v0 v1 -> undefined
   VSigma a f ->
     let (u1,u2) = (fstVal u, sndVal u)
@@ -565,7 +565,7 @@ trans i a phi u = case a of
     VHComp _ v vs -> let j = fresh (Atom i,a,phi,u) in
       hComp j (a `face` (i ~> 1)) (trans i a phi v)
         (mapWithKey (\al val ->
-                      trans i (a `face` al) (phi `face` al) (val @@ j)) vs)
+                      trans i (a `face` al) (phi `face` al) (val @@@ j)) vs)
     _ -> VTrans (VPLam i a) phi u
   _ -> VTrans (VPLam i a) phi u
 
@@ -587,7 +587,7 @@ transFillNeg :: Name -> Val -> Formula -> Val -> Val
 transFillNeg i a phi u = (transFill i (a `sym` i) phi u) `sym` i
 
 transNegLine :: Val -> Formula -> Val -> Val
-transNegLine u phi v = transNeg i (u @@ i) phi v
+transNegLine u phi v = transNeg i (u @@@ i) phi v
   where i = fresh (u,phi,v)
 
 transps :: Name -> [(Ident,Ter)] -> Env -> Formula -> [Val] -> [Val]
@@ -729,7 +729,7 @@ hcompFiber i a b f y u us =
       u1comp = hComp i a u1 us1
       u1fill = hFill i a u1 us1
       j = fresh ()
-  in VPair u1comp (VPLam j $ hComp i b (u2 @@ j)
+  in VPair u1comp (VPLam j $ hComp i b (u2 @@@ j)
                                        (insertsSystem [(j~>0, y),(j~>1,app f u1fill)]
                                                       (Map.map (@@ i) us2)))
 
@@ -813,10 +813,9 @@ lemEqConst :: Name -> Val -> Val -> System Val -> (Val,Val)
 lemEqConst i eq b as = (a,p)
  where
    j = fresh (eq,b,as)
-   eqj = eq @@ j
+   eqj = eq @@@ j
    adwns = mapWithKey (\al aal ->
-               let -- eqaj = (eq `face` al) @@ j
-                   eqaj = eqj `face` al
+               let eqaj = eqj `face` al
                in transFillNeg j eqaj (Dir Zero) aal) as
    left = fill j eqj b adwns
    a = comp j eqj b adwns
@@ -920,8 +919,8 @@ instance Convertible Val where
       (VVar x _, VVar x' _)       -> x == x'
       (VPathP a b c,VPathP a' b' c') -> conv ns a a' && conv ns b b' && conv ns c c'
       (VPLam i a,VPLam i' a')    -> conv ns (a `swap` (i,j)) (a' `swap` (i',j))
-      (VPLam i a,p')             -> conv ns (a `swap` (i,j)) (p' @@ j)
-      (p,VPLam i' a')            -> conv ns (p @@ j) (a' `swap` (i',j))
+      (VPLam i a,p')             -> conv ns (a `swap` (i,j)) (p' @@@ j)
+      (p,VPLam i' a')            -> conv ns (p @@@ j) (a' `swap` (i',j))
       (VAppFormula u x,VAppFormula u' x') -> conv ns (u,x) (u',x')
       (VTrans a phi u,VTrans a' phi' u')  ->
         -- TODO: Maybe identify via (- = 1)?  Or change argument to a system..

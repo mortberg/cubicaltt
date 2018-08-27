@@ -692,16 +692,13 @@ transGlue i a equivs psi u0 = glueElem v1' t1s'
       mapWithKey (\al wal -> (equivFun wal,equivDom wal,psi `face` al,u0 `face` al))
                  alliequivs
 
-    t1s = Map.map (\(_,dwal,psial,u0al) -> trans i dwal psial u0al) alliequivs'
+    t1s = Map.map (\(fwal,dwal,psial,u0al) -> (fwal,trans i dwal psial u0al)) alliequivs'
     wts = Map.map (\(fwal,dwal,psial,u0al) -> app fwal (transFill i dwal psial u0al)) alliequivs'
 
     v1 = comp i a v0 (border v0 psisys `unionSystem` wts)
 
-    -- TODO: v1 `face` al can be simplified by hand (it is constructed
-    -- using a system with the same face as the one in fibersys)
-    fibersys = mapWithKey
-                 (\al x -> VPair x (constPath (v1 `face` al)))
-                 (border u0 psisys `unionSystem` t1s)
+    fibersys = border (VPair u0 (constPath v0)) psisys `unionSystem`
+               Map.map (\(fwal,x) -> VPair x (constPath (app fwal x))) t1s
 
     fibersys' = mapWithKey
                   (\al wal ->

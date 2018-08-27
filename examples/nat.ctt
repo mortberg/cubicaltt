@@ -33,6 +33,17 @@ n18 : nat = suc n17
 n19 : nat = suc n18
 n20 : nat = suc n19
 
+double : nat -> nat = split
+  zero -> zero
+  suc n -> suc (suc (double n))
+
+n32 : nat = double n16
+n64 : nat = double n32
+n128 : nat = double n64
+n256 : nat = double n128
+n512 : nat = double n256
+n1024 : nat = double n512
+
 pred : nat -> nat = split
   zero -> zero
   suc n -> n

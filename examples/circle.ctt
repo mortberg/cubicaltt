@@ -118,33 +118,49 @@ loopright : nat -> Path S1 base base = split
   zero -> <_> base
   suc n -> <i> hcomp S1 (loop1 @ i) [ (i=0) -> <_> base, (i=1) -> loopright n ]
 
+-- These are instant:
 nloopleft10 : Z = winding (loopleft n10)
--- > nloopleft10
--- EVAL: inr (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero))))))))))
--- Time: 0m0.005s
-
 nloopcap10 : Z = winding (loopcap n10)
--- > nloopcap10
--- EVAL: inr (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero))))))))))
--- Time: 0m0.019s
-
 nloopright10 : Z = winding (loopright n10)
--- > nloopright10
--- EVAL: inr (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero))))))))))
--- Time: 0m1.342s
+
+-- The 128th is a bit slower:
+
+nloopleft128 : Z = winding (loopleft n128)
+-- > nloopleft128
+-- EVAL: inr (suc ...)
+-- Time: 0m2.184s
+
+nloopcap128 : Z = winding (loopcap n128)
+-- > nloopright128
+-- EVAL: inr (suc ...)
+-- Time: 0m1.247s
+
+nloopright128 : Z = winding (loopright n128)
+-- > nloopcap128
+-- EVAL: inr (suc ...)
+-- Time: 0m0.086s
 
 
-nloopleft11 : Z = winding (loopleft n11)
--- > nloopleft11
--- EVAL: inr (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero)))))))))))
--- Time: 0m0.010s
+-- The 256th is too slow for loopleft (killed after 17s)
 
-nloopcap11 : Z = winding (loopcap n11)
--- > nloopcap11
--- EVAL: inr (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero)))))))))))
--- Time: 0m0.021s
+nloopcap256 : Z = winding (loopcap n256)
+-- > nloopcap256 
+-- EVAL: inr (suc ...)
+-- Time: 0m0.289s
 
-nloopright11 : Z = winding (loopright n11)
--- > nloopright11
--- EVAL: inr (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero)))))))))))
--- Time: 0m2.688s
+nloopright256 : Z = winding (loopright n256)
+-- > nloopright256
+-- EVAL: inr (suc ...)
+-- Time: 0m9.495s
+
+-- loopright is now too slow, but loopcap is still going strong!
+
+nloopcap512 : Z = winding (loopcap n512)
+-- > nloopcap512 
+-- EVAL: inr (suc ...)
+-- Time: 0m1.366s
+
+nloopcap1024 : Z = winding (loopcap n1024)
+-- > nloopcap1024
+-- EVAL: inr (suc ...)
+-- Time: 0m5.724s

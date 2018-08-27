@@ -662,7 +662,7 @@ glue b ts | eps `member` ts = equivDom (ts ! eps)
 
 glueElem :: Val -> System Val -> Val
 glueElem v us | eps `member` us = us ! eps
-glueElem (VUnGlueElem u _ _) _ = u
+glueElem (VUnGlueElem u _ _) _ = u -- TODO: remove this line and add it to conv!
 glueElem v us = VGlueElem v us
 
 unGlue :: Val -> Val -> System Val -> Val

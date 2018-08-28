@@ -164,7 +164,7 @@ data Val = VU
 
            -- Glue values
          | VGlue Val (System Val)
-         | VGlueElem Val (System Val)
+         | VGlueElem Val (System Val)        -- glue a [ phi -> t ]
          | VUnGlueElem Val Val (System Val)  -- unglue u A [phi -> (T,w)]
 
            -- Composition in the universe

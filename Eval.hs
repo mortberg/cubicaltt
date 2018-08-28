@@ -643,8 +643,8 @@ pcon c a us phi     = VPCon c a us phi
 -- An equivalence for a type a is a triple (t,f,p) where
 -- t : U
 -- f : t -> a
--- p : (x : a) -> isContr ((y:t) * Id a x (f y))
--- with isContr c = (z : c) * ((z' : C) -> Id c z z')
+-- p : (x : a) -> isContr ((y:t) * Path a x (f y))
+-- with isContr c = (z : c) * ((z' : C) -> Path c z z')
 
 -- Extraction functions for getting a, f, s and t:
 equivDom :: Val -> Val
@@ -662,14 +662,12 @@ glue b ts | eps `member` ts = equivDom (ts ! eps)
 
 glueElem :: Val -> System Val -> Val
 glueElem v us | eps `member` us = us ! eps
-glueElem (VUnGlueElem u _ _) _ = u -- TODO: remove this line and add it to conv!
 glueElem v us = VGlueElem v us
 
 unGlue :: Val -> Val -> System Val -> Val
 unGlue w a equivs | eps `member` equivs = app (equivFun (equivs ! eps)) w
-                  | otherwise           = case w of
-                                            VGlueElem v us -> v
-                                            _ -> VUnGlueElem w a equivs
+unGlue (VGlueElem v us) _ _ = v
+unGlue w a equivs = VUnGlueElem w a equivs
 
 -- isNeutralGlueHComp :: System Val -> Val -> System Val -> Bool
 -- isNeutralGlueHComp equivs u us =
@@ -928,6 +926,8 @@ instance Convertible Val where
         -- conv ns (a,phi,u) (a',phi',u')
       (VHComp a u ts,VHComp a' u' ts')    -> conv ns (a,u,ts) (a',u',ts')
       (VGlue v equivs,VGlue v' equivs')   -> conv ns (v,equivs) (v',equivs')
+      (VGlueElem (VUnGlueElem b a equivs) ts,g) -> conv ns (border b equivs,b) (ts,g)
+      (g,VGlueElem (VUnGlueElem b a equivs) ts) -> conv ns (border b equivs,b) (ts,g)
       (VGlueElem u us,VGlueElem u' us')   -> conv ns (u,us) (u',us')
       (VUnGlueElemU u _ _,VUnGlueElemU u' _ _) -> conv ns u u'
       (VUnGlueElem u _ _,VUnGlueElem u' _ _) -> conv ns u u'

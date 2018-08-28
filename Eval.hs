@@ -146,8 +146,8 @@ instance Nominal Val where
          VSplit u v              -> app (act b u (i,phi)) (act b v (i,phi))
          VGlue a ts              -> glue (act b a (i,phi)) (act b ts (i,phi))
          VGlueElem a ts          -> glueElem (act b a (i,phi)) (act b ts (i,phi))
-         VUnGlueElem a bb ts      -> unGlue (act b a (i,phi)) (act b bb (i,phi)) (act b ts (i,phi))
-         VUnGlueElemU a bb es     -> unGlueU (act b a (i,phi)) (act b bb (i,phi)) (act b es (i,phi))
+         VUnGlueElem a bb ts     -> unGlue (act b a (i,phi)) (act b bb (i,phi)) (act b ts (i,phi))
+         VUnGlueElemU a bb es    -> unGlueU (act b a (i,phi)) (act b bb (i,phi)) (act b es (i,phi))
          VHCompU a ts            -> hCompUniv (act b a (i,phi)) (act b ts (i,phi))
          VIdPair u us            -> VIdPair (act b u (i,phi)) (act b us (i,phi))
          VId a u v               -> VId (act b a (i,phi)) (act b u (i,phi)) (act b v (i,phi))
@@ -761,9 +761,8 @@ eqFun e = transNegLine e (Dir Zero)
 
 unGlueU :: Val -> Val -> System Val -> Val
 unGlueU w b es | eps `Map.member` es = eqFun (es ! eps) w
-               | otherwise           = case w of
-                                        VGlueElem v us   -> v
-                                        _ -> VUnGlueElemU w b es
+unGlueU (VGlueElem v us) _ _ = v
+unGlueU w b es = VUnGlueElemU w b es
 
 hCompUniv :: Val -> System Val -> Val
 hCompUniv b es | eps `Map.member` es = (es ! eps) @@ One
@@ -928,6 +927,8 @@ instance Convertible Val where
       (VGlue v equivs,VGlue v' equivs')   -> conv ns (v,equivs) (v',equivs')
       (VGlueElem (VUnGlueElem b a equivs) ts,g) -> conv ns (border b equivs,b) (ts,g)
       (g,VGlueElem (VUnGlueElem b a equivs) ts) -> conv ns (border b equivs,b) (ts,g)
+      (VGlueElem (VUnGlueElemU b a equivs) ts,g) -> conv ns (border b equivs,b) (ts,g)
+      (g,VGlueElem (VUnGlueElemU b a equivs) ts) -> conv ns (border b equivs,b) (ts,g)
       (VGlueElem u us,VGlueElem u' us')   -> conv ns (u,us) (u',us')
       (VUnGlueElemU u _ _,VUnGlueElemU u' _ _) -> conv ns u u'
       (VUnGlueElem u _ _,VUnGlueElem u' _ _) -> conv ns u u'
@@ -996,6 +997,8 @@ instance Normal Val where
     VTrans a phi u      -> VTrans (normal ns a) (normal ns phi) (normal ns u)
     VHComp u v vs       -> VHComp (normal ns u) (normal ns v) (normal ns vs)
     VGlue u equivs      -> VGlue (normal ns u) (normal ns equivs)
+    VGlueElem (VUnGlueElem b _ _) _ -> normal ns b
+    VGlueElem (VUnGlueElemU b _ _) _ -> normal ns b
     VGlueElem u us      -> VGlueElem (normal ns u) (normal ns us)
     VUnGlueElem v u us  -> VUnGlueElem (normal ns v) (normal ns u) (normal ns us)
     VUnGlueElemU e u us -> VUnGlueElemU (normal ns e) (normal ns u) (normal ns us)

@@ -134,7 +134,7 @@ eqToEq (A B : U) (p : Path U A B)
 transPathFun (A B : U) (w : equiv A B)
   : Path (A -> B) w.1 (transEquiv A B (transEquivToPath A B w)).1 =
  <i> \(a : A) ->
-   let f (b : B) : B = transGen (<_>B) -i b
+   let f (b : B) : B = transGen (<_> B) -i b
        g (b : B) : B = hfill B b [] @ i
    in g (g (g (f (f (f (f ((fill (<_> A -> B) w.1 []) @ i a)))))))
 

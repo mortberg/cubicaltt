@@ -51,7 +51,7 @@ subst (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
 
 substEq (A : U) (P : A -> U) (a : A) (e : P a)
   : Path (P a) e (subst A P a a (refl A a) e) =
-  fill (<i> P a) e []
+  <i> transGen (<_> P a) (-i) e
 
 substInv (A : U) (P : A -> U) (a b : A) (p : Path A a b) : P b -> P a =
  subst A P b a (<i> p @ -i)

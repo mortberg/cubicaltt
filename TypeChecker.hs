@@ -243,6 +243,7 @@ check a t = case (a,t) of
     unlessM (v === a) $
       throwError $ "check conv:\n" ++ show v ++ "\n/=\n" ++ show a
 
+
 -- Check a list of declarations
 checkDecls :: Decls -> Typing ()
 checkDecls (MutualDecls _ []) = return ()
@@ -502,7 +503,7 @@ infer e = case e of
     vu0 <- evalTyping u0
     rho <- asks env
     let vus = evalSystem rho us
-    return (VPathP (constPath va) vu0 (hcomp' va vu0 vus))
+    return (VPathP (constPath va) vu0 (hcomp va vu0 vus))
   Trans a phi u0 -> do
     (va0, va1) <- checkPLam (constPath VU) a
     va <- evalTyping a
@@ -531,7 +532,7 @@ infer e = case e of
     vt  <- evalTyping t0
     rho <- asks env
     let vps = evalSystem rho ps
-    return (VPathP va vt (comp' va vt vps))
+    return (VPathP va vt (comp va vt vps))
   PCon c a es phis -> do
     check VU a
     va <- evalTyping a

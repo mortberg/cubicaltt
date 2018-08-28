@@ -502,7 +502,7 @@ infer e = case e of
     vu0 <- evalTyping u0
     rho <- asks env
     let vus = evalSystem rho us
-    return (VPathP (constPath va) vu0 (hCompLine va vu0 vus))
+    return (VPathP (constPath va) vu0 (hcompLine va vu0 vus))
   Trans a phi u0 -> do
     (va0, va1) <- checkPLam (constPath VU) a
     va <- evalTyping a

@@ -186,3 +186,27 @@ looprightSlow : nat -> Path S1 base base = split
 -- Working theory is that the generation of tons of names makes it
 -- slow (compare with yacctt where both of the examples takes 0m0.099s)
 -- We should probably eliminate the *Line functions from Eval
+
+
+-- More involved examples:
+
+-- This is always +1 (the loops on the LHS cancel the ones on the RHS)
+-- The input grows 3^n
+loopall : nat -> Path S1 base base = split
+  zero -> loop1
+  suc n -> <i> hcomp S1 (loopall n @ i) [ (i=0) -> loopall n
+                                        , (i=1) -> loopall n ]
+-- > winding (loopall n9)
+-- EVAL: inr (suc zero)
+-- Time: 0m2.861s
+-- The input here is 3^9 = 19683
+
+
+-- This computes 3^n
+loop3n : nat -> Path S1 base base = split
+  zero -> loop1
+  suc n -> <i> hcomp S1 (loop3n n @ i) [ (i=0) -> <j> loop3n n @ -j
+                                       , (i=1) -> loop3n n ]
+-- > winding (loop3n n6)
+-- EVAL: inr (suc ...)
+-- Time: 0m1.239s

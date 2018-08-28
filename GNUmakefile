@@ -21,7 +21,7 @@ GRAMMAR_OBJECT_FILES = $(GRAMMAR_HS_FILES:.hs=.o)
 PROFILING = # -prof -fprof-auto
 GHCOPTIONS = -O2 -rtsopts -v0 -fno-full-laziness $(PROFILING)
 
-all: cubical
+all: build-Makefile cubical
 
 # There should be a way to make ghc link with the appropriate libraries,
 # without using the --make option, but I can't figure it out.  The libraries
@@ -38,7 +38,7 @@ cubical: $(INPUT:.hs=.o) $(GRAMMAR_OBJECT_FILES)
 build-Makefile: $(INPUT) $(GRAMMAR_HS_FILES)
 	$(GHC) -M -dep-suffix "" $^
 
-include Makefile
+-include Makefile
 
 %.hi %.o: %.hs
 	$(GHC) $(GHCOPTIONS) $<
@@ -54,5 +54,5 @@ bnfc $(GRAMMAR_FILES): Exp.cf
 
 TAGS:; hasktags --etags $(INPUT) $(GRAMMAR)
 
-clean:; rm -rf Exp *.log *.aux *.hi *.o cubical TAGS Makefile.bak
+clean:; rm -rf Exp *.log *.aux *.hi *.o cubical TAGS Makefile.bak Makefile
 git-clean:; git clean -Xdfq

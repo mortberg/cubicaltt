@@ -414,7 +414,7 @@ hcomp :: Name -> Val -> Val -> System Val -> Val
 hcomp i a u us | eps `member` us = (us ! eps) `face` (i ~> 1)
 hcomp i a u us = case a of
   VPathP p v0 v1 -> let j = fresh (Atom i,a,u,us) in
-    VPLam j $ hcomp i (p @@@ j) (u @@@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
+    VPLam j $ hcomp i (p @@ j) (u @@@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
                                          (Map.map (@@@ j) us))
   VId b v0 v1 -> undefined
   VSigma a f -> let (us1, us2) = (Map.map fstVal us, Map.map sndVal us)
@@ -536,7 +536,7 @@ trans :: Name -> Val -> Formula -> Val -> Val
 trans i a (Dir One) u = u
 trans i a phi u = case a of
   VPathP p v0 v1 -> let j = fresh (Atom i,a,phi,u) in
-    VPLam j $ comp i (p @@@ j) (u @@@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
+    VPLam j $ comp i (p @@ j) (u @@@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
                                          (border (u @@@ j) (invSystem phi One)))
   VId b v0 v1 -> undefined
   VSigma a f ->
@@ -827,7 +827,7 @@ lemEqConst :: Name -> Val -> Val -> System Val -> (Val,Val)
 lemEqConst i eq b as = (a,p)
  where
    j = fresh (eq,b,as)
-   eqj = eq @@@ j
+   eqj = eq @@ j
    adwns = mapWithKey (\al aal ->
                let eqaj = eqj `face` al
                in transFillNeg j eqaj (Dir Zero) aal) as
@@ -935,12 +935,12 @@ instance Convertible Val where
       
       (Ter (PLam i a) e,Ter (PLam i' a') e') ->
         conv ns (eval (sub (i,Atom j) e) a) (eval (sub (i',Atom j) e') a')
-      (Ter (PLam i a) e,a') -> conv ns (eval (sub (i,Atom j) e) a) (a' @@@ j)
-      (a,Ter (PLam i' a') e) -> conv ns (a @@@ j) (eval (sub (i',Atom j) e) a')
+      (Ter (PLam i a) e,a') -> conv ns (eval (sub (i,Atom j) e) a) (a' @@ j)
+      (a,Ter (PLam i' a') e) -> conv ns (a @@ j) (eval (sub (i',Atom j) e) a')
 
       (VPLam i a,VPLam i' a')    -> conv ns (a `swap` (i,j)) (a' `swap` (i',j))
-      (VPLam i a,p')             -> conv ns (a `swap` (i,j)) (p' @@@ j)
-      (p,VPLam i' a')            -> conv ns (p @@@ j) (a' `swap` (i',j))
+      (VPLam i a,p')             -> conv ns (a `swap` (i,j)) (p' @@ j)
+      (p,VPLam i' a')            -> conv ns (p @@ j) (a' `swap` (i',j))
       (VAppFormula u x,VAppFormula u' x') -> conv ns (u,x) (u',x')
       (VTrans a phi u,VTrans a' phi' u')  ->
         -- TODO: Maybe identify via (- = 1)?  Or change argument to a system..

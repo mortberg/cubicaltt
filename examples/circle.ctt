@@ -123,82 +123,101 @@ nloopleft10 : Z = winding (loopleft n10)
 nloopcap10 : Z = winding (loopcap n10)
 nloopright10 : Z = winding (loopright n10)
 
--- The 128th is a bit slower:
 
 nloopleft128 : Z = winding (loopleft n128)
 -- > nloopleft128
 -- EVAL: inr (suc ...)
--- Time: 0m2.184s
+-- Time: 0m0.133s
 
 nloopcap128 : Z = winding (loopcap n128)
 -- > nloopright128
 -- EVAL: inr (suc ...)
--- Time: 0m1.247s
+-- Time: 0m0.069s
 
 nloopright128 : Z = winding (loopright n128)
 -- > nloopcap128
 -- EVAL: inr (suc ...)
--- Time: 0m0.086s
+-- Time: 0m0.142s
 
 
--- The 256th is too slow for loopleft (killed after 17s)
+nloopleft256 : Z = winding (loopleft n256)
+-- > nloopcap256 
+-- EVAL: inr (suc ...)
+-- Time: 0m0.683s
 
 nloopcap256 : Z = winding (loopcap n256)
 -- > nloopcap256 
 -- EVAL: inr (suc ...)
--- Time: 0m0.289s
+-- Time: 0m0.220s
 
 nloopright256 : Z = winding (loopright n256)
 -- > nloopright256
 -- EVAL: inr (suc ...)
--- Time: 0m9.495s
+-- Time: 0m0.649s
 
--- loopright is now too slow, but loopcap is still going strong!
+nloopright512 : Z = winding (loopright n512)
+-- > nloopright512 
+-- EVAL: inr (suc ...)
+-- Time: 0m3.102s
+
+nloopleft512 : Z = winding (loopleft n512)
+-- > nloopleft512
+-- EVAL: inr (suc ...)
+-- Time: 0m3.257s
 
 nloopcap512 : Z = winding (loopcap n512)
 -- > nloopcap512 
 -- EVAL: inr (suc ...)
--- Time: 0m1.366s
+-- Time: 0m0.562s
+
+
+nloopleft1024 : Z = winding (loopleft n1024)
+-- > nloopleft1024
+-- EVAL: inr (suc ...)
+-- Time: 0m13.794s
+
+nloopright1024 : Z = winding (loopright n1024)
+-- > nloopright1024
+-- EVAL: inr (suc ...)
+-- Time: 0m16.091s
 
 nloopcap1024 : Z = winding (loopcap n1024)
 -- > nloopcap1024
 -- EVAL: inr (suc ...)
--- Time: 0m5.724s
+-- Time:  0m3.607s
 
 
 
--- The following is very strange:
 
--- The only difference to loopright is that the second branch has been
+-- Here is a version of loopright where the second branch has been
 -- eta-expanded:
-looprightSlow : nat -> Path S1 base base = split
+looprighteta : nat -> Path S1 base base = split
   zero -> <_> base
-  suc n -> <i> hcomp S1 (loop1 @ i) [ (i=0) -> <_> base, (i=1) -> <j> looprightSlow n @ j ]
+  suc n -> <i> hcomp S1 (loop1 @ i) [ (i=0) -> <_> base, (i=1) -> <j> looprighteta n @ j ]
 
--- The following is not too bad:
--- > loopright n256
--- Time: 0m0.494s
+-- After adding closures for Path-lambdas they compute the same way
+-- (looprighteta was a lot slower before):
 
--- But the following is slow:
--- > looprightSlow
--- Time: 0m11.115s
+-- > winding (loopright n256) Time: 0m0.494s
+-- EVAL: inr (suc ...)
+-- Time: 0m0.733s
 
--- Working theory is that the generation of tons of names makes it
--- slow (compare with yacctt where both of the examples takes 0m0.099s)
--- We should probably eliminate the *Line functions from Eval
+-- > winding (looprighteta n256)
+-- EVAL: inr (suc ...)
+-- Time: 0m0.745s
 
 
 -- More involved examples:
 
--- This is always +1 (the loops on the LHS cancel the ones on the RHS)
--- The input grows 3^n
+-- This is always "inr (suc zero)" (the loops on the LHS cancel the
+-- ones on the RHS), but the input grows 3^n
 loopall : nat -> Path S1 base base = split
   zero -> loop1
   suc n -> <i> hcomp S1 (loopall n @ i) [ (i=0) -> loopall n
                                         , (i=1) -> loopall n ]
 -- > winding (loopall n9)
 -- EVAL: inr (suc zero)
--- Time: 0m2.861s
+-- Time:  0m3.583s
 -- The input here is 3^9 = 19683
 
 
@@ -207,6 +226,13 @@ loop3n : nat -> Path S1 base base = split
   zero -> loop1
   suc n -> <i> hcomp S1 (loop3n n @ i) [ (i=0) -> <j> loop3n n @ -j
                                        , (i=1) -> loop3n n ]
--- > winding (loop3n n6)
+
+-- > winding (loop3n n6)     (3^6 = 729)
 -- EVAL: inr (suc ...)
--- Time: 0m1.239s
+-- Time: 0m1.181s
+
+-- > winding (loop3n n7)     (3^7 = 2187)
+-- EVAL: inr (suc ...)
+-- Time: 0m14.146s
+
+

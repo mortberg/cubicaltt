@@ -92,7 +92,14 @@ negBoolEq : Path U bool bool =
 -- We can transport true along this non-trivial equality:
 testFalse : bool = transport negBoolEq true
 
+testbool : PathP (<i> negBoolEq @ i) true false =
+  <i> transGen (<j> negBoolEq @ i /\ j) 0 true
 
+testbool0 : bool =
+  transGen (<j> negBoolEq @ 0 /\ j) 0 true
+
+-- TODO: Who does this call transGlue?
+foo : bool = testbool @ 0
 
 -- An isomorphic representation to bool:
 

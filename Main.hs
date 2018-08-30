@@ -109,7 +109,7 @@ initLoop flags f hist = do
                    intercalate ", " dups ++ "]"
       (merr,tenv) <- TC.runDeclss TC.verboseEnv adefs
       case merr of
-        Just err -> putStrLn $ "Type checking failed: " ++ shrink err
+        Just err -> putStrLn $ "Type checking failed: " ++ err
         Nothing  -> unless (mods == []) $ putStrLn "File loaded."
       if Batch `elem` flags
         then return ()

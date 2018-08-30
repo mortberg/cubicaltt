@@ -1121,17 +1121,16 @@ decodeLoop (n : Z) :
   (subst S1 (\(x : S1) -> helix x -> Path S1 base1 x) base1 base1 loop loopIt n)
   (loopIt n) =
       let T (p : loopS1) : loopS1 =
-            (<i> hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1
---                 (transGen0 S1 (transGen0 S1 (transGen0 S1 (p @ i))))  <-- This is not needed with hack in Eval that makes transGen (<_> S1) 0 x reduce away
-                 (p @ i)
-                      [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ])
-                      [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ])
-                      [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ])
-                      [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ])
-                      [ (i = 0) -> <_> base1, (i = 1) -> loop ])
+            (<i> hcomp S1 (hcomp S1 (hcomp S1 (p @ i)
+                                              [ (i = 0) -> <_> base1
+                                              , (i = 1) -> <_> base1 ])
+                                    [ (i = 0) -> <_> base1
+                                   , (i = 1) -> <_> base1 ])
+                          [ (i = 0) -> <_> base1
+                          , (i = 1) -> loop ])
                       
           key (p : loopS1) : Path loopS1 (T p) (compS1 p loop) =
-            <i> compS1 (hcompbaseeq4 p @ i) loop
+            <i> compS1 (hcompbaseeq2 p @ i) loop
 
           goal : Path loopS1 (T (loopIt (predZ n))) (loopIt n) =
                       compPath loopS1 (T (loopIt (predZ n)))

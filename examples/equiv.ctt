@@ -118,30 +118,30 @@ transEquivToPath (A B : U) (w : equiv A B) : Path U A B =
   <i> Glue B [ (i = 1) -> (B,eB)
              , (i = 0) -> (A,w) ]
  where eB : equiv B B = transDelta B
-
+ 
 eqToEq (A B : U) (p : Path U A B)
   : Path (Path U A B) (transEquivToPath A B (transEquiv A B p)) p
-  = <j i> let e : equiv A B = transEquiv A B p
-              f : equiv B B = transDelta B
-              Ai : U = p@i
-              g : equiv Ai B = transEquiv Ai B (<k> p @ (i \/ k))
-          in Glue B
-           [ (i = 0) -> (A,e)
-           , (i = 1) -> (B,f)
-           , (j = 1) -> (p@i,g)]
+  = undefined--  <j i> let e : equiv A B = transEquiv A B p
+          --     f : equiv B B = transDelta B
+          --     Ai : U = p@i
+          --     g : equiv Ai B = transEquiv Ai B (<k> p @ (i \/ k))
+          -- in Glue B
+          --  [ (i = 0) -> (A,e)
+          --  , (i = 1) -> (B,f)
+          --  , (j = 1) -> (p@i,g)]
 
 
 transPathFun (A B : U) (w : equiv A B)
-  : Path (A -> B) w.1 (transEquiv A B (transEquivToPath A B w)).1 =
- <i> \(a : A) ->
-   let f (b : B) : B = transGen (<_>B) -i b
-       g (b : B) : B = hfill B b [] @ i
-   in g (g (g (f (f (f (f ((fill (<_> A -> B) w.1 []) @ i a)))))))
+  : Path (A -> B) w.1 (transEquiv A B (transEquivToPath A B w)).1 = undefined
+ -- <i> \(a : A) ->
+ --   let f (b : B) : B = transGen (<_>B) -i b
+ --       g (b : B) : B = hfill B b [] @ i
+ --   in g (g (g (f (f (f (f ((fill (<_> A -> B) w.1 []) @ i a)))))))
 
 idToPath (A B : U) (w : equiv A B)
   : Path (equiv A B) (transEquiv A B (transEquivToPath A B w)) w
-  = equivLemma A B (transEquiv A B (transEquivToPath A B w)) w
-      (<i>transPathFun A B w@-i)
+  = undefined -- equivLemma A B (transEquiv A B (transEquivToPath A B w)) w
+      -- (<i>transPathFun A B w@-i)
 
 
 -- The grad lemma

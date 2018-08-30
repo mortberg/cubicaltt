@@ -167,14 +167,14 @@ univalenceJ (A B : U) : equiv (Path U A B) (equiv A B) =
 -- transEquiv is an equiv
 transEquivIsEquiv (A B : U)
   : isEquiv (Path U A B) (equiv A B) (transEquiv A B)
-  = gradLemma (Path U A B) (equiv A B) (transEquiv A B)
-      (transEquivToPath A B) (idToPath A B) (eqToEq A B)
+  = undefined -- gradLemma (Path U A B) (equiv A B) (transEquiv A B)
+      -- (transEquivToPath A B) (idToPath A B) (eqToEq A B)
 
 -- Univalence proved using transEquiv.
 -- univalenceTrans takes extremely much memory when normalizing
 univalenceTrans (A B:U) : Path U (Path U A B) (equiv A B) = 
- isoPath (Path U A B) (equiv A B) (transEquiv A B)
-         (transEquivToPath A B) (idToPath A B) (eqToEq A B)
+ undefined -- isoPath (Path U A B) (equiv A B) (transEquiv A B)
+         -- (transEquivToPath A B) (idToPath A B) (eqToEq A B)
 
 univalenceTrans' (A B : U) : equiv (Path U A B) (equiv A B) =
   (transEquiv A B,transEquivIsEquiv A B)
@@ -182,7 +182,7 @@ univalenceTrans' (A B : U) : equiv (Path U A B) (equiv A B) =
 -- This also takes too long to normalize:
 slowtest (A : U) : Path (equiv A A)
   (transEquiv A A (transEquivToPath A A (idEquiv A))) (idEquiv A) =
-    idToPath A A (idEquiv A)
+  undefined  -- idToPath A A (idEquiv A)
 
 
 

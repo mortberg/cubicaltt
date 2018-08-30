@@ -240,8 +240,12 @@ check a t = case (a,t) of
     checkCompSystem (evalSystem rho ts) -- Not needed
   _ -> do
     v <- infer t
+    ns <- asks names
+    let (nv,na) = normal ns (v,a)
     unlessM (v === a) $
-      throwError $ "check conv:\n" ++ show v ++ "\n/=\n" ++ show a
+      throwError $ "The following are not convertible:\n\n" ++ show v ++
+                   "\n/=\n" ++ show a ++ "\n\n\nNormal forms:\n\n" ++
+                   show nv ++ "\n/=\n" ++ show na
 
 -- Check a list of declarations
 checkDecls :: Decls -> Typing ()

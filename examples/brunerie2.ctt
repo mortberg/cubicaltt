@@ -2148,6 +2148,23 @@ f4 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S2pt).1 =
 
 test0To4 : (Omega3 S2pt).1 = f4 test0To3
 
+test0To4_smaller : (Omega3 S2pt).1 = <i j k>
+ hcomp S2 (hcomp S2 (hcomp S2 (loop2 {S2} @ j @ k)
+                             [ (k = 0) -> <_> base2
+                             , (k = 1) -> <l> loop2 {S2} @ i @ l ])
+                   [ (i = 0) -> <l> hcomp S2 (loop2 {S2} @ (j /\ -l) @ k) [ (k = 0) -> <_> base2, (k = 1) -> <_> base2 ]
+                   , (i = 1) -> <l> hcomp S2 (loop2 {S2} @ (j /\ -l) @ k) [ (k = 0) -> <_> base2, (k = 1) -> <m> loop2 {S2} @ -l @ m ]
+                   , (j = 0) -> <l> hcomp S2 base2 [ (k = 0) -> <_> base2, (k = 1) -> <m> loop2 {S2} @ (i /\ -l) @ m ]
+                   , (j = 1) -> <l> hcomp S2 (loop2 {S2} @ -l @ k) [ (k = 0) -> <_> base2, (k = 1) -> <m> loop2 {S2} @ (i /\ -l) @ m ]
+                   , (k = 0) -> <l> base2
+                   , (k = 1) -> <l> base2 ])
+         [ (i = 0) -> <l> hcomp S2 base2 [ (k = 0) -> <_> base2, (k = 1)(l = 0) -> <_> base2, (l = 1) -> <_> base2 ]
+         , (i = 1) -> <l> hcomp S2 base2 [ (k = 0) -> <_> base2, (k = 1)(l = 0) -> <_> base2, (l = 1) -> <_> base2 ]
+         , (j = 0) -> <l> hcomp S2 base2 [ (k = 0) -> <_> base2, (k = 1)(l = 0) -> <_> base2, (l = 1) -> <_> base2 ]
+         , (j = 1) -> <l> hcomp S2 base2 [ (k = 0) -> <_> base2, (k = 1)(l = 0) -> <_> base2, (l = 1) -> <_> base2 ]
+         , (k = 0) -> <_> base2
+         , (k = 1) -> <l> hcomp S2 base2 [ (l = 0) -> <_> base2, (l = 1) -> <_> base2 ] ]
+
 -- Part of test0To5
 -- testFibContrHopf3 : HopfThree' test0To4 = fibContrHopfThree' test0To4
 testFibContrHopf3refl : HopfThree' (<_ _ _> base2) = fibContrHopfThree' (<_ _ _> base2)

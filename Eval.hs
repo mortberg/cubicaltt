@@ -326,12 +326,14 @@ app u v = case (u,v) of
                      else comp j (app f (hfill j a w wsj)) w' ws'
     _ -> error $ "app: Split annotation not a Pi type " ++ show u
   (Ter Split{} _,_) -> VSplit u v
-  (VTrans (VPLam i (VPi a f)) phi u0, v) ->
-    let j = fresh (u,v)
-        (aij,fij) = (a,f) `swap` (i,j)
-        w = transFillNeg j aij phi v
-        w0 = transNeg j aij phi v  -- w0 = w `face` (j ~> 0)
-    in trans j (app fij w) phi (app u0 w0)
+  (VTrans (VPLam i (VPi a f)) phi u0, v)
+      | isNonDep f -> trans i (app f (VVar "impossible" VU)) phi (app u0 (transNeg i a phi v))
+      | otherwise ->
+        let j = fresh (u,v)
+            (aij,fij) = (a,f) `swap` (i,j)
+            w = transFillNeg j aij phi v
+            w0 = transNeg j aij phi v  -- w0 = w `face` (j ~> 0)
+        in trans j (app fij w) phi (app u0 w0)
   (VHComp (VPi a f) u0 us, v) ->
     let i = fresh (u,v)
     in hcomp i (app f v) (app u0 v)
@@ -431,11 +433,15 @@ hcomp i a u us = case a of
     VPLam j $ hcomp i (p @@@ j) (u @@@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
                                          (Map.map (@@@ j) us))
   VId b v0 v1 -> undefined
-  VSigma a f -> let (us1, us2) = (Map.map fstVal us, Map.map sndVal us)
-                    (u1, u2) = (fstVal u, sndVal u)
-                    u1fill = hfill i a u1 us1
-                    u1comp = hcomp i a u1 us1
-                in VPair u1comp (comp i (app f u1fill) u2 us2)
+  VSigma a f
+    | isNonDep f -> VPair (hcomp i a (fstVal u) (Map.map fstVal us))
+                          (hcomp i (app f (VVar "impossible" VU)) (sndVal u) (Map.map sndVal us))
+    | otherwise -> 
+      let (us1, us2) = (Map.map fstVal us, Map.map sndVal us)
+          (u1, u2) = (fstVal u, sndVal u)
+          u1fill = hfill i a u1 us1
+          u1comp = hcomp i a u1 us1
+      in VPair u1comp (comp i (app f u1fill) u2 us2)
   VU -> hcompUniv u (Map.map (VPLam i) us)
   -- TODO: neutrality tests in the next two cases could be removed
   -- since there are neutral values for unglue and unglueU
@@ -574,10 +580,13 @@ trans i a phi u = case a of
     VPLam j $ comp i (p @@@ j) (u @@@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
                                          (border (u @@@ j) (invSystem phi One)))
   VId b v0 v1 -> undefined
-  VSigma a f ->
-    let (u1,u2) = (fstVal u, sndVal u)
-        u1f     = transFill i a phi u1
-    in VPair (trans i a phi u1) (trans i (app f u1f) phi u2)
+  VSigma a f
+    | isNonDep f -> VPair (trans i a phi (fstVal u))
+                          (trans i (app f (VVar "impossible" VU)) phi (sndVal u))
+    | otherwise ->
+      let (u1,u2) = (fstVal u, sndVal u)
+          u1f     = transFill i a phi u1
+      in VPair (trans i a phi u1) (trans i (app f u1f) phi u2)
   VPi{} -> VTrans (VPLam i a) phi u
   VU -> u
   -- TODO: neutrality tests in the next two cases could be removed

@@ -385,10 +385,11 @@ v @@ phi = case (inferType v,toFormula phi) of
   (VPathP _ _ a1,Dir 1) -> a1
   _                    -> VAppFormula v (toFormula phi)
 
-    
+
 -- -- Applying a *fresh* name.
 (@@@) :: Val -> Name -> Val
 (VPLam i u) @@@ j = u `swap` (i,j)
+(Ter (PLam i t) rho) @@@ j = eval (sub (i, Atom j) rho) t
 v @@@ j           = VAppFormula v (toFormula j)
 
 
@@ -399,7 +400,7 @@ v @@@ j           = VAppFormula v (toFormula j)
 -- the *Line functions and not @@@... why?
 
 hcompLine :: Val -> Val -> System Val -> Val
-hcompLine a u us = hcomp i a u (Map.map (@@ i) us)
+hcompLine a u us = hcomp i a u (Map.map (@@@ i) us)
   where i = fresh (a,u,us)
 
 hfill :: Name -> Val -> Val -> System Val -> Val
@@ -407,14 +408,14 @@ hfill i a u us = hcomp j a u (insertSystem (i ~> 0) u $ us `conj` (i,j))
   where j = fresh (Atom i,a,u,us)
 
 hfillLine :: Val -> Val -> System Val -> Val
-hfillLine a u us = VPLam i $ hfill i a u (Map.map (@@ i) us)
+hfillLine a u us = VPLam i $ hfill i a u (Map.map (@@@ i) us)
   where i = fresh (a,u,us)
 
 hcomp :: Name -> Val -> Val -> System Val -> Val
 hcomp i a u us | eps `member` us = (us ! eps) `face` (i ~> 1)
 hcomp i a u us = case a of
   VPathP p v0 v1 -> let j = fresh (Atom i,a,u,us) in
-    VPLam j $ hcomp i (p @@ j) (u @@@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
+    VPLam j $ hcomp i (p @@@ j) (u @@@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
                                          (Map.map (@@@ j) us))
   VId b v0 v1 -> undefined
   VSigma a f -> let (us1, us2) = (Map.map fstVal us, Map.map sndVal us)
@@ -496,7 +497,7 @@ compNeg :: Name -> Val -> Val -> System Val -> Val
 compNeg i a u ts = comp i (a `sym` i) u (ts `sym` i)
 
 compLine :: Val -> Val -> System Val -> Val
-compLine a u ts = comp i (a @@ i) u (Map.map (@@ i) ts)
+compLine a u ts = comp i (a @@@ i) u (Map.map (@@@ i) ts)
   where i = fresh (a,u,ts)
 
 comps :: Name -> [(Ident,Ter)] -> Env -> [(System Val,Val)] -> [Val]
@@ -517,7 +518,7 @@ fillNeg :: Name -> Val -> Val -> System Val -> Val
 fillNeg i a u ts = (fill i (a `sym` i) u (ts `sym` i)) `sym` i
 
 fillLine :: Val -> Val -> System Val -> Val
-fillLine a u ts = VPLam i $ fill i (a @@ i) u (Map.map (@@ i) ts)
+fillLine a u ts = VPLam i $ fill i (a @@@ i) u (Map.map (@@@ i) ts)
   where i = fresh (a,u,ts)
 
 
@@ -525,7 +526,7 @@ fillLine a u ts = VPLam i $ fill i (a @@ i) u (Map.map (@@ i) ts)
 -- Transport and forward
 
 transLine :: Val -> Formula -> Val -> Val
-transLine a phi u = trans i (a @@ i) phi u
+transLine a phi u = trans i (a @@@ i) phi u
   where i = fresh (a,phi,u)
 
 -- For i:II |- a, phi # i,
@@ -536,7 +537,7 @@ trans :: Name -> Val -> Formula -> Val -> Val
 trans i a (Dir One) u = u
 trans i a phi u = case a of
   VPathP p v0 v1 -> let j = fresh (Atom i,a,phi,u) in
-    VPLam j $ comp i (p @@ j) (u @@@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
+    VPLam j $ comp i (p @@@ j) (u @@@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
                                          (border (u @@@ j) (invSystem phi One)))
   VId b v0 v1 -> undefined
   VSigma a f ->
@@ -604,7 +605,7 @@ transFillNeg :: Name -> Val -> Formula -> Val -> Val
 transFillNeg i a phi u = (transFill i (a `sym` i) phi u) `sym` i
 
 transNegLine :: Val -> Formula -> Val -> Val
-transNegLine u phi v = transNeg i (u @@ i) phi v
+transNegLine u phi v = transNeg i (u @@@ i) phi v
   where i = fresh (u,phi,v)
 
 transps :: Name -> [(Ident,Ter)] -> Env -> Formula -> [Val] -> [Val]
@@ -629,7 +630,7 @@ squeeze i a phi u = trans j (a `disj` (i,j)) (phi `orFormula` Atom i) u
 
 idJ :: Val -> Val -> Val -> Val -> Val -> Val -> Val
 idJ a v c d x p = case p of
-  VIdPair w ws -> comp i (app (app c (w @@ i)) w') d
+  VIdPair w ws -> comp i (app (app c (w @@@ i)) w') d
                     (border d (shape ws))
     where w' = VIdPair (VPLam j $ w @@ (Atom i :/\: Atom j))
                   (insertSystem (i ~> 0) v ws)
@@ -827,7 +828,7 @@ lemEqConst :: Name -> Val -> Val -> System Val -> (Val,Val)
 lemEqConst i eq b as = (a,p)
  where
    j = fresh (eq,b,as)
-   eqj = eq @@ j
+   eqj = eq @@@ j
    adwns = mapWithKey (\al aal ->
                let eqaj = eqj `face` al
                in transFillNeg j eqaj (Dir Zero) aal) as

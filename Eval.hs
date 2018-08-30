@@ -254,25 +254,26 @@ eval rho@(Env (_,_,_,Nameless os)) v = case v of
     hfillLine (eval rho a) (eval rho t0) (evalSystem rho ts)
   Trans (PLam i a) phi t ->
     let j = fresh ()
-    in transLine (VPLam j (eval (sub (i,Atom j) rho) a))
-                 (evalFormula rho phi) (eval rho t)
+    in trans j (eval (sub (i,Atom j) rho) a) (evalFormula rho phi) (eval rho t)
   Trans a phi t       ->
     let j = fresh ()
-    in eval rho (Trans (PLam j (AppFormula a (Atom j))) phi t)
+    in trans j (eval (sub (j,Atom j) rho) (AppFormula a (Atom j))) (evalFormula rho phi) (eval rho t)
   Comp (PLam i a) t0 ts        ->
     let j = fresh ()
-    in compLine (VPLam j (eval (sub (i,Atom j) rho) a))
-                (eval rho t0) (evalSystem rho ts)
+    in comp j (eval (sub (i,Atom j) rho) a) (eval rho t0)
+              (Map.map (@@@ j) (evalSystem rho ts))
   Comp a t0 ts        ->
     let j = fresh ()
-    in eval rho (Comp (PLam j (AppFormula a (Atom j))) t0 ts)
+    in comp j (eval (sub (j,Atom j) rho) (AppFormula a (Atom j)))
+              (eval rho t0) (Map.map (@@@ j) (evalSystem rho ts))
   Fill (PLam i a) t0 ts        ->
     let j = fresh ()
-    in fillLine (VPLam j (eval (sub (i,Atom j) rho) a))
-                (eval rho t0) (evalSystem rho ts)
+    in VPLam j $ fill j (eval (sub (i,Atom j) rho) a) (eval rho t0)
+                      (Map.map (@@@ j) (evalSystem rho ts))
   Fill a t0 ts        ->
     let j = fresh ()
-    in eval rho (Fill (PLam j (AppFormula a (Atom j))) t0 ts)
+    in VPLam j $ fill j (eval (sub (j,Atom j) rho) (AppFormula a (Atom j)))
+                      (eval rho t0) (Map.map (@@@ j) (evalSystem rho ts))
   Glue a ts           -> glue (eval rho a) (evalSystem rho ts)
   GlueElem a ts       -> glueElem (eval rho a) (evalSystem rho ts)
   UnGlueElem v a ts   -> unglue (eval rho v) (eval rho a) (evalSystem rho ts)
@@ -517,9 +518,9 @@ fill i a u ts =
 fillNeg :: Name -> Val -> Val -> System Val -> Val
 fillNeg i a u ts = (fill i (a `sym` i) u (ts `sym` i)) `sym` i
 
-fillLine :: Val -> Val -> System Val -> Val
-fillLine a u ts = VPLam i $ fill i (a @@@ i) u (Map.map (@@@ i) ts)
-  where i = fresh (a,u,ts)
+-- fillLine :: Val -> Val -> System Val -> Val
+-- fillLine a u ts = VPLam i $ fill i (a @@@ i) u (Map.map (@@@ i) ts)
+--   where i = fresh (a,u,ts)
 
 
 -----------------------------------------------------------

@@ -27,14 +27,15 @@ import qualified Eval as E
 type Interpreter a = InputT IO a
 
 -- Flag handling
-data Flag = Debug | Batch | Help | Version | Time
+data Flag = Debug | Batch | Help | Version | Time | Shrink
   deriving (Eq,Show)
 
 options :: [OptDescr Flag]
 options = [ Option "d"  ["debug"]   (NoArg Debug)   "run in debugging mode"
           , Option "b"  ["batch"]   (NoArg Batch)   "run in batch mode"
           , Option ""   ["help"]    (NoArg Help)    "print help"
-          , Option "-t" ["time"]    (NoArg Time)    "measure time spent computing"
+          , Option "s"  ["shrink"]  (NoArg Shrink)  "truncate the size of the output"
+          , Option "t"  ["time"]    (NoArg Time)    "measure time spent computing"
           , Option ""   ["version"] (NoArg Version) "print version number" ]
 
 -- Version number, welcome message, usage and prompt strings
@@ -82,8 +83,9 @@ main = do
     (_,_,errs) -> putStrLn $ "Input error: " ++ concat errs ++ "\n" ++
                              usageInfo usage options
 
-shrink :: String -> String
-shrink s = if length s > 100 then take 100 s ++ "..." else s
+shrink :: Bool -> String -> String
+shrink True s = if length s > 100 then take 100 s ++ "..." else s
+shrink False s = s
 
 -- Initialize the main loop
 initLoop :: [Flag] -> FilePath -> History -> IO ()
@@ -152,7 +154,7 @@ loop flags f names tenv = do
                 start <- liftIO getCurrentTime
                 let e = mod $ E.eval (TC.env tenv) body
                 -- Let's not crash if the evaluation raises an error:
-                liftIO $ catch (putStrLn (msg ++ shrink (show e)))
+                liftIO $ catch (putStrLn (msg ++ shrink (Shrink `elem` flags) (show e)))
                                -- (writeFile "examples/nunivalence3.ctt" (show e))
                                (\e -> putStrLn ("Exception: " ++
                                                 show (e :: SomeException)))

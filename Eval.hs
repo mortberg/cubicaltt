@@ -226,7 +226,6 @@ instance Nominal Val where
 
 -----------------------------------------------------------------------
 -- The evaluator
-
 eval :: Env -> Ter -> Val
 eval rho@(Env (_,_,_,Nameless os)) v = case v of
   U                   -> VU
@@ -308,6 +307,7 @@ evalSystem rho ts =
 
 app :: Val -> Val -> Val
 app u v = case (u,v) of
+  (Ter (Lam "_" _ t) e,_) -> eval e t -- Treat dummy lambda specially
   (Ter (Lam x _ t) e,_) -> eval (upd (x,v) e) t
   (Ter (Split _ _ _ nvs) e,VCon c vs) -> case lookupBranch c nvs of
     Just (OBranch _ xs t) -> eval (upds (zip xs vs) e) t
@@ -321,10 +321,11 @@ app u v = case (u,v) of
                    w'  = app u w
                    ws' = mapWithKey (\alpha -> app (u `face` alpha)) wsj
                    -- a should be constant
-               in comp j (app f (hfill j a w wsj)) w' ws'
+               in if isNonDep f
+                     then hcomp j (app f (VVar "impossible" VU)) w' ws'
+                     else comp j (app f (hfill j a w wsj)) w' ws'
     _ -> error $ "app: Split annotation not a Pi type " ++ show u
-  (Ter Split{} _,_) -- | isNeutral v
-                    -> VSplit u v
+  (Ter Split{} _,_) -> VSplit u v
   (VTrans (VPLam i (VPi a f)) phi u0, v) ->
     let j = fresh (u,v)
         (aij,fij) = (a,f) `swap` (i,j)
@@ -335,7 +336,6 @@ app u v = case (u,v) of
     let i = fresh (u,v)
     in hcomp i (app f v) (app u0 v)
           (mapWithKey (\al ual -> app (ual @@@ i) (v `face` al)) us)
-
   (VComp (VPLam i (VPi a f)) li0 ts,vi1) ->
     let j       = fresh (u,vi1)
         (aj,fj) = (a,f) `swap` (i,j)

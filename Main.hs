@@ -83,7 +83,7 @@ main = do
                              usageInfo usage options
 
 shrink :: String -> String
-shrink s = s -- if length s > 1000 then take 1000 s ++ "..." else s
+shrink s = if length s > 100 then take 100 s ++ "..." else s
 
 -- Initialize the main loop
 initLoop :: [Flag] -> FilePath -> History -> IO ()

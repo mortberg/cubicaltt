@@ -66,3 +66,31 @@ testNOneZ : Z = transport (<i> sucPathZ @ - i) zeroZ
 
 
 ZSet : set Z = hedberg Z (orDisc nat nat natDec natDec)
+
+
+-- Maybe we can generalize the notion of being a set to allow
+-- arbitrary paths on the sides and not just refl?
+gengoal (A : U) (hA : set A) (x y : A) (p : Path A x y) : (z : A) (r : Path A y z) (q : Path A x z) ->
+  PathP (<i> Path A x (r @ i)) p q =
+  J A y (\(z : A) (r : Path A y z) -> (q : Path A x z) -> PathP (<i> Path A x (r @ i)) p q)
+   (hA x y p)
+
+ctr (y : Z) : fiber Z Z sucZ y = (predZ y,<i> sucpredZ y @ -i)
+
+contr (y : Z) (y' : fiber Z Z sucZ y) : Path ((x : Z) * Path Z y (sucZ x)) (ctr y) y' =
+    let p1 : Path Z (predZ y) y'.1 =
+          compPath Z (predZ y) (predZ (sucZ y'.1)) y'.1
+                   (<i> predZ (y'.2 @ i)) (predsucZ y'.1)
+        prf1 : Path Z (sucZ (predZ y)) (sucZ y'.1) = <i> sucZ (p1 @ i)
+        prf2 : Path Z y (sucZ (predZ y)) = <i> sucpredZ y @ -i
+        p2 : PathP (<i> Path Z y (prf1 @ i)) prf2 y'.2 =
+          gengoal Z ZSet y (sucZ (predZ y)) prf2 (sucZ y'.1) prf1 y'.2
+    in <i> (p1 @ i,p2 @ i)
+
+-- This doesn't sem to affect "fibContrHopfThree' (<_ _ _> base2)"...
+-- opaque contr
+
+equivSucZ : isEquiv Z Z sucZ = \(y : Z) -> (ctr y,contr y)
+
+sucPathZ' : Path U Z Z = ua Z Z (sucZ,equivSucZ)
+

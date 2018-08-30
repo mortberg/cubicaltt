@@ -20,11 +20,9 @@ moebius : S1 -> U = split
 
 helix : S1 -> U = split
   base -> Z
-  loop @ i -> sucPathZ @ i
+  loop @ i -> sucPathZ' @ i
 
-winding (p : loopS1) : Z = trans Z Z rem zeroZ
-  where
-    rem : Path U Z Z = <i> helix (p @ i)
+winding (p : loopS1) : Z = transGen (<i> helix (p @ i)) 0 zeroZ
 
 compS1 : loopS1 -> loopS1 -> loopS1 = compPath S1 base base base
 

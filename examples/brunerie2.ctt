@@ -1083,9 +1083,9 @@ shift : (n : Z) -> Path loopS1 (compS1 (loopIt (predZ n)) loop) (loopIt n) = spl
   pos n -> shiftPos n
   neg n -> shiftNeg n
 
--- Compose 3 paths. This is a little bit more compact than doing 2 compPath
-comp3 (A : U) (a b c d : A) (p : Path A a b) (q : Path A b c) (r : Path A c d) : Path A a d =
-  <i> hcomp A (q @ i) [ (i = 0) -> <j> p @ -j, (i = 1) -> r ]
+-- -- Compose 3 paths. This is a little bit more compact than doing 2 compPath
+-- comp3 (A : U) (a b c d : A) (p : Path A a b) (q : Path A b c) (r : Path A c d) : Path A a d =
+--   <i> hcomp A (q @ i) [ (i = 0) -> <j> p @ -j, (i = 1) -> r ]
 
 hcompbase (p : loopS1) : loopS1 =
   <i> hcomp S1 (p @ i) [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ]
@@ -1095,18 +1095,18 @@ hcompbaseeq (p : loopS1) : Path loopS1 (hcompbase p) p =
                                , (i = 1) -> <k> p @ -j \/ k
                                , (j = 1) -> <k> p @ i /\ k ]
 
--- This is quite ugly, but we need to remove 4 hcomp's with base on both sides...
-hcompbaseeq4 (p : loopS1) : Path loopS1 (hcompbase (hcompbase (hcompbase (hcompbase p)))) p =
-  let sq1 : Path loopS1 (hcompbase p) p = hcompbaseeq p
-      sq2 : Path loopS1 (hcompbase (hcompbase p)) (hcompbase p) =
-              hcompbaseeq (hcompbase p)
-      sq3 : Path loopS1 (hcompbase (hcompbase (hcompbase p))) (hcompbase (hcompbase p)) =
-              hcompbaseeq (hcompbase (hcompbase p))
-      sq4 : Path loopS1 (hcompbase (hcompbase (hcompbase (hcompbase p)))) (hcompbase (hcompbase (hcompbase p))) =
-              hcompbaseeq (hcompbase (hcompbase (hcompbase p)))
-  in compPath loopS1
-       (hcompbase (hcompbase (hcompbase (hcompbase p)))) (hcompbase (hcompbase (hcompbase p))) p sq4
-       (<i> hcomp loopS1 (sq2 @ i) [ (i = 0) -> <j> sq3 @ -j, (i = 1) -> sq1 ])
+-- -- This is quite ugly, but we need to remove 4 hcomp's with base on both sides...
+-- hcompbaseeq4 (p : loopS1) : Path loopS1 (hcompbase (hcompbase (hcompbase (hcompbase p)))) p =
+--   let sq1 : Path loopS1 (hcompbase p) p = hcompbaseeq p
+--       sq2 : Path loopS1 (hcompbase (hcompbase p)) (hcompbase p) =
+--               hcompbaseeq (hcompbase p)
+--       sq3 : Path loopS1 (hcompbase (hcompbase (hcompbase p))) (hcompbase (hcompbase p)) =
+--               hcompbaseeq (hcompbase (hcompbase p))
+--       sq4 : Path loopS1 (hcompbase (hcompbase (hcompbase (hcompbase p)))) (hcompbase (hcompbase (hcompbase p))) =
+--               hcompbaseeq (hcompbase (hcompbase (hcompbase p)))
+--   in compPath loopS1
+--        (hcompbase (hcompbase (hcompbase (hcompbase p)))) (hcompbase (hcompbase (hcompbase p))) p sq4
+--        (<i> hcomp loopS1 (sq2 @ i) [ (i = 0) -> <j> sq3 @ -j, (i = 1) -> sq1 ])
 
 hcompbaseeq2 (p : loopS1) : Path loopS1 (hcompbase (hcompbase p)) p =
   let sq1 : Path loopS1 (hcompbase p) p = hcompbaseeq p
@@ -1264,12 +1264,9 @@ decodeEncode (x : S1) (p : Path S1 base1 x) :
               (<_ _> base1)
 
 
--- Can this be simplified?
+-- Can this be simplified? YES! See below
 decodeEncode' (x : S1) (p : Path S1 base1 x) :
   Path (Path S1 base1 x) (decode x (encode x p)) p =
---   J S1 base1
---     (\(x : S1) (p : Path S1 base1 x) -> Path (Path S1 base1 x) (decode x (encode x p)) p)
---     (<_ _> base1)
   -- This is the normal form:
   <i j> hcomp S1 (hcomp S1 base1 [ (j = 0) -> <_> base1
                                  , (j = 1) -> p ])
@@ -1283,6 +1280,14 @@ decodeEncode' (x : S1) (p : Path S1 base1 x) :
                                            , (k = 1) -> <_> p @ j ]
                  , (j = 0) -> <_> base1
                  , (j = 1) -> <_> x ]
+
+-- This is the new normal form after making comp compute directly for Path and Sigma
+decodeEncode'' (x : S1) (p : Path S1 base1 x) :
+  Path (Path S1 base1 x) (decode x (encode x p)) p =
+  <i j> hcomp S1 base1 [ (i = 0) -> <k> decode (p @ k) (encode (p @ k) (<l> p @ (k /\ l))) @ j
+                       , (i = 1) -> <k> p @ (j /\ k)
+                       , (j = 0) -> <k> base1
+                       , (j = 1) -> p ]
 
 
 decodeEncodeRefl : Path loopS1 (decode base1 (encode base1 (<_> base1))) (<_> base1) =

@@ -488,11 +488,13 @@ comp i a u us =
     VPathP p v0 v1 ->
       VPLam j $ comp i (p @@@ j) (u @@@ j) $
                   insertsSystem [(j ~> 0,v0),(j ~> 1,v1)] (Map.map (@@@ j) us)
-    VSigma a f -> let (us1, us2) = (Map.map fstVal us, Map.map sndVal us)
-                      (u1, u2) = (fstVal u, sndVal u)
-                      u1fill = hfill i a u1 us1
-                      u1comp = hcomp i a u1 us1
-                  in VPair u1comp (comp i (app f u1fill) u2 us2)
+    VSigma a f ->
+      let (t1s, t2s) = (Map.map fstVal us, Map.map sndVal us)
+          (u1,  u2)  = (fstVal u, sndVal u)
+          fill_u1    = fill i a u1 t1s
+          ui1        = comp i a u1 t1s
+          comp_u2    = comp i (app f fill_u1) u2 t2s
+      in VPair ui1 comp_u2
     _ -> hcomp j (a `face` (i ~> 1)) (fwd i a (Dir Zero) u)
                (mapWithKey (\al ual -> fwd i (a `face` al) (Atom j) (ual  `swap` (i,j))) us)
 

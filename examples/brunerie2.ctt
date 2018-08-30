@@ -2288,3 +2288,4 @@ problem : Path Z (pos zero) (pos zero) =
 problempath : Path U (helix (transGen (<k> Hopf (test0To4 @ k @ 0 @ k)) 0 base1))
                      (helix (transGen (<k> Hopf (test0To4 @ k @ 1 @ k)) 0 base1)) =
               <j> helix (transGen (<k> Hopf (test0To4 @ k @ j @ k)) 0 base1)
+

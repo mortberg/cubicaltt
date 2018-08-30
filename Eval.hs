@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, BangPatterns #-}
 module Eval where
 
 import Data.List
@@ -456,8 +456,6 @@ hcomp i a u us = case a of
   Ter (Sum _ _ nass) env | VCon n vs <- u, all isCon (elems us) ->
     case lookupLabel n nass of
       Just as -> let usvs = transposeSystemAndList (Map.map unCon us) vs
-                     -- TODO: it is not really much of an improvement
-                     -- to use hcomps here; directly use comps?
                  in VCon n $ hcomps i as env usvs
       Nothing -> error $ "hcomp: missing constructor in sum " ++ n
   Ter (HSum _ _ _) _ -> VHComp a u (Map.map (VPLam i) us)
@@ -470,10 +468,9 @@ hcomps i []         _ []            = []
 hcomps i ((x,a):as) e ((ts,u):tsus) =
   let v   = hfill i (eval e a) u ts
       vi1 = hcomp i (eval e a) u ts
-      vs  = comps i as (upd (x,v) e) tsus -- NB: not hcomps
+      !vs  = comps i as (upd (x,v) e) tsus -- NB: not hcomps
   in vi1 : vs
 hcomps _ _ _ _ = error "hcomps: different lengths of types and values"
-
 
 -- For i:II |- a, phi # i, u : a (i/phi) we get fwd i a phi u : a(i/1)
 -- such that fwd i a 1 u = u.   Note that i gets bound.
@@ -506,7 +503,7 @@ comps i []         _ []         = []
 comps i ((x,a):as) e ((ts,u):tsus) =
   let v   = fill i (eval e a) u ts
       vi1 = comp i (eval e a) u ts
-      vs  = comps i as (upd (x,v) e) tsus
+      !vs  = comps i as (upd (x,v) e) tsus
   in vi1 : vs
 comps _ _ _ _ = error "comps: different lengths of types and values"
 

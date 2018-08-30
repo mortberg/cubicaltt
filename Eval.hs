@@ -104,6 +104,7 @@ instance Nominal Val where
     VCon _ vs               -> occurs x vs
     VPCon _ a vs phis       -> occurs x (a,vs,phis)
     VHComp a u ts           -> occurs x (a,u,ts)
+    VComp a u ts            -> occurs x (a,u,ts)    
     VTrans a phi u          -> occurs x (a,phi,u)
     VVar _ v                -> occurs x v
     VOpaque _ v             -> occurs x v
@@ -137,6 +138,7 @@ instance Nominal Val where
          VCon c vs               -> VCon c (act b vs (i,phi))
          VPCon c a vs phis       -> pcon c (act b a (i,phi)) (act b vs (i,phi)) (act b phis (i,phi))
          VHComp a u us           -> hcompLine (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
+         VComp a u us           -> compLine (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
          VTrans a psi u          -> transLine (act b a (i,phi)) (act b psi (i,phi)) (act b u (i,phi))
          VVar x v                -> VVar x (act b v (i,phi))
          VOpaque x v             -> VOpaque x (act b v (i,phi))
@@ -169,6 +171,7 @@ instance Nominal Val where
          VCon c vs               -> VCon c (act b vs (i,phi))
          VPCon c a vs phis       -> VPCon c (act b a (i,phi)) (act b vs (i,phi)) (act b phis (i,phi))
          VHComp a u us           -> VHComp (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
+         VComp a u us            -> VComp (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
          VTrans a psi u          -> VTrans (act b a (i,phi)) (act b psi (i,phi)) (act b u (i,phi))
          VVar x v                -> VVar x (act b v (i,phi))
          VOpaque x v             -> VOpaque x (act b v (i,phi))
@@ -203,6 +206,7 @@ instance Nominal Val where
          VCon c vs               -> VCon c (sw vs)
          VPCon c a vs phis       -> VPCon c (sw a) (sw vs) (sw phis)
          VHComp a u us           -> VHComp (sw a) (sw u) (sw us)
+         VComp a u us            -> VComp (sw a) (sw u) (sw us)
          VTrans a phi u          -> VTrans (sw a) (sw phi) (sw u)
          VVar x v                -> VVar x (sw v)
          VOpaque x v             -> VOpaque x (sw v)
@@ -331,8 +335,15 @@ app u v = case (u,v) of
     let i = fresh (u,v)
     in hcomp i (app f v) (app u0 v)
           (mapWithKey (\al ual -> app (ual @@@ i) (v `face` al)) us)
---  _ | isNeutral u       -> VApp u v
-  _                     -> VApp u v -- error $ "app \n  " ++ show u ++ "\n  " ++ show v
+
+  (VComp (VPLam i (VPi a f)) li0 ts,vi1) ->
+    let j       = fresh (u,vi1)
+        (aj,fj) = (a,f) `swap` (i,j)
+        tsj     = Map.map (@@@ j) ts
+        v       = transFillNeg j aj (Dir Zero) vi1
+        vi0     = transNeg j aj (Dir Zero) vi1
+    in comp j (app fj v) (app li0 vi0) (intersectionWith app tsj (border v tsj))
+  _ -> VApp u v
 
 fstVal, sndVal :: Val -> Val
 fstVal (VPair a b)     = a
@@ -369,6 +380,7 @@ inferType v = case v of
     ty         -> error $ "inferType: expected PathP type for " ++ show v
                   ++ ", got " ++ show ty
   VHComp a _ _ -> a
+  VComp a _ _  -> a @@ One
   VTrans a _ _ -> a @@ One
   VUnGlueElem _ b _  -> b
   VUnGlueElemU _ b _ -> b
@@ -495,6 +507,18 @@ comp i a u us =
           ui1        = comp i a u1 t1s
           comp_u2    = comp i (app f fill_u1) u2 t2s
       in VPair ui1 comp_u2
+    VPi{} -> VComp (VPLam i a) u (Map.map (VPLam i) us)
+    -- VU -> compUniv u (Map.map (VPLam i) us)
+    -- VCompU a es -> compU i a es u us
+    -- VGlue b equivs -> compGlue i b equivs u us    
+    Ter (Sum _ n nass) env
+      | n `elem` ["nat","Z","bool"] -> hcomp i a u us -- hardcode hack
+      | otherwise -> case u of
+      VCon n us' | all isCon (elems us) -> case lookupLabel n nass of
+                    Just as -> let usus' = transposeSystemAndList (Map.map unCon us) us'
+                               in VCon n $ comps i as env usus'
+                    Nothing -> error $ "comp: missing constructor in labelled sum " ++ n
+      _ -> VComp (VPLam i a) u (Map.map (VPLam i) us)    
     _ -> hcomp j (a `face` (i ~> 1)) (fwd i a (Dir Zero) u)
                (mapWithKey (\al ual -> fwd i (a `face` al) (Atom j) (ual  `swap` (i,j))) us)
 
@@ -504,11 +528,11 @@ comp i a u us =
 
 
 compNeg :: Name -> Val -> Val -> System Val -> Val
-compNeg i a u ts = comp i (a `sym` i) u (ts `sym` i)
+compNeg i a u us = comp i (a `sym` i) u (us `sym` i)
 
 compLine :: Val -> Val -> System Val -> Val
-compLine a u ts = comp i (a @@@ i) u (Map.map (@@@ i) ts)
-  where i = fresh (a,u,ts)
+compLine a u us = comp i (a @@@ i) u (Map.map (@@@ i) us)
+  where i = fresh (a,u,us)
 
 comps :: Name -> [(Ident,Ter)] -> Env -> [(System Val,Val)] -> [Val]
 comps i []         _ []         = []
@@ -958,6 +982,7 @@ instance Convertible Val where
         conv ns (a,invSystem phi One,u) (a',invSystem phi' One,u')
         -- conv ns (a,phi,u) (a',phi',u')
       (VHComp a u ts,VHComp a' u' ts')    -> conv ns (a,u,ts) (a',u',ts')
+      (VComp a u ts,VComp a' u' ts')    -> conv ns (a,u,ts) (a',u',ts')
       (VGlue v equivs,VGlue v' equivs')   -> conv ns (v,equivs) (v',equivs')
       (VGlueElem (VUnGlueElem b a equivs) ts,g) -> conv ns (border b equivs,b) (ts,g)
       (g,VGlueElem (VUnGlueElem b a equivs) ts) -> conv ns (border b equivs,b) (ts,g)
@@ -1033,6 +1058,7 @@ instance Normal Val where
     VPLam i u           -> VPLam i (normal ns u)
     VTrans a phi u      -> VTrans (normal ns a) (normal ns phi) (normal ns u)
     VHComp u v vs       -> VHComp (normal ns u) (normal ns v) (normal ns vs)
+    VComp u v vs        -> VComp (normal ns u) (normal ns v) (normal ns vs)
     VGlue u equivs      -> VGlue (normal ns u) (normal ns equivs)
     VGlueElem (VUnGlueElem b _ _) _ -> normal ns b
     VGlueElem (VUnGlueElemU b _ _) _ -> normal ns b

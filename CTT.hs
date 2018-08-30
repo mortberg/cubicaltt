@@ -170,7 +170,10 @@ data Val = VU
            -- Composition in the universe
          | VHCompU Val (System Val)
 
-           -- Composition; the type is constant
+           -- Composition; the type is not constant
+         | VComp Val Val (System Val)
+
+           -- Homogeneous composition; the type is constant
          | VHComp Val Val (System Val)
 
            -- Generalized transport
@@ -200,6 +203,7 @@ isNeutral v = case v of
   VVar{}         -> True
   VOpaque{}      -> True
   VHComp{}       -> True
+  VComp{}       -> True  
   VTrans{}       -> True
   VFst{}         -> True
   VSnd{}         -> True
@@ -441,6 +445,7 @@ showVal v = case v of
   VPCon c a us phis -> text c <+> braces (showVal a) <+> showVals us
                        <+> hsep (map ((char '@' <+>) . showFormula) phis)
   VHComp v0 v1 vs   -> text "hcomp" <+> showVals [v0,v1] <+> text (showSystem vs)
+  VComp v0 v1 vs    -> text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)
   VTrans u phi v0   -> text "transGen" <+> showVal1 u <+> showFormula phi
                        <+> showVal1 v0
   VPi a l@(VLam x t b)

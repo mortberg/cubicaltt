@@ -391,20 +391,20 @@ groupoidIsProp (A : U) : prop (groupoid A) =
 --        (f0 f1 : (x : A) -> B x) : Path ((x : A) -> B x) f0 f1
 --   = <i> \ (x:A) -> (h x (f0 x) (f1 x)) @ i
 
-propIsContr (A : U) (z0 z1 : isContr A) : Path (isContr A) z0 z1 =
- <j> (p0 a1 @ j
-     ,\(x : A) -> <i> hcomp A (lem1 x@i@j)
-                              [ (i=0) -> <k> p0 a1 @ j
-                              , (i=1) -> <k> p0 x @ j \/ k
-                              , (j=0) -> <k> p0 x @ i/\ k
-                              , (j=1) -> <k> p1 x @ i ])
- where
-  a0 : A = z0.1
-  p0 : (x : A) -> Path A a0 x = z0.2
-  a1 : A = z1.1
-  p1 : (x : A) -> Path A a1 x = z1.2
-  lem1 (x : A) : PathP (<i> Path A a0 (p1 x @ i)) (p0 a1) (p0 x) =
-    <i j> p0 (p1 x @ i) @ j
+-- propIsContr (A : U) (z0 z1 : isContr A) : Path (isContr A) z0 z1 =
+--  <j> (p0 a1 @ j
+--      ,\(x : A) -> <i> hcomp A (lem1 x@i@j)
+--                               [ (i=0) -> <k> p0 a1 @ j
+--                               , (i=1) -> <k> p0 x @ j \/ k
+--                               , (j=0) -> <k> p0 x @ i/\ k
+--                               , (j=1) -> <k> p1 x @ i ])
+--  where
+--   a0 : A = z0.1
+--   p0 : (x : A) -> Path A a0 x = z0.2
+--   a1 : A = z1.1
+--   p1 : (x : A) -> Path A a1 x = z1.2
+--   lem1 (x : A) : PathP (<i> Path A a0 (p1 x @ i)) (p0 a1) (p0 x) =
+--     <i j> p0 (p1 x @ i) @ j
 
 -- propIsEquiv (A B : U) (f : A -> B) : prop (isEquiv A B f) =
 --   \(u0 u1 : isEquiv A B f) -> <i> \(y : B) -> propIsContr (fiber A B f y) (u0 y) (u1 y) @ i
@@ -494,21 +494,34 @@ rot_unit_r : (a : S1) -> Path S1 (rot a base1) a = split
    base1 -> <_> base1
    loop1 @ i -> <_> loop @ i
 
-lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a0 a1 :A)
-         (p : Path A a0 a1) (b0 : P a0) (b1 : P a1) : PathP (<i> P (p @ i)) b0 b1 =
-  <i> pP (p @ i) (comp (<j> P (p @ i /\ j)) b0 [ (i=0) -> <_> b0])
-                 (comp (<j> P (p @ i \/ -j)) b1 [ (i=1) -> <_> b1]) @ i
-
 -- Specialized version for S1:
 lemPropFS1 (P : S1 -> U) (pP : (x : S1) -> prop (P x)) 
          (b0 : P base1) : PathP (<i> P (loop @ i)) b0 b0 =
-  <i> pP (loop @ i) (comp (<j> P (loop @ i /\ j)) b0 [ (i=0) -> <_> b0])
-                    (comp (<j> P (loop @ i \/ -j)) b0 [ (i=1) -> <_> b0]) @ i
+  <i> pP (loop @ i) (transGen (<j> P (loop @ i /\ j)) (-i) b0)
+                    (transGen (<j> P (loop @ i \/ -j)) i b0) @ i
 
 rotIsEquiv_loop : PathP (<i> isEquiv S1 S1 (rot (loop @ i))) (idIsEquiv S1) (idIsEquiv S1) =
   lemPropFS1 (\(a : S1) -> isEquiv S1 S1 (rot a))
              (\(a : S1) -> propIsEquivDirect' S1 S1 (rot a)) 
              (idIsEquiv S1) 
+
+isPropOver (A0 A1 : U) (A : Path U A0 A1) (p : prop A1) : U =
+  (a0 : A0) (a1 : A1) -> PathP A a0 a1
+
+propToPropOver (A0 A1 : U) (A : Path U A0 A1) (p : prop A1) : isPropOver A0 A1 A p = \(a0 : A0) (a1 : A1) ->
+  <i> hcomp (A @ i) (transGen (<j> A @ i /\ j) (-i) a0)
+              [ (i=0) -> <_> a0
+              , (i=1) -> p (transGen A 0 a0) a1 ]
+
+-- Alternative version inspired by redtt, doesn't seem to compute faster
+rotIsEquiv_loop_alt : PathP (<i> isEquiv S1 S1 (rot (loop @ i))) (idIsEquiv S1) (idIsEquiv S1) =
+  propToPropOver
+       (isEquiv S1 S1 (\(a : S1) -> a))
+       (isEquiv S1 S1 (\(a : S1) -> a))
+       (<i> isEquiv S1 S1 (rot (loop @ i)))
+       (propIsEquivDirect' S1 S1 (\(a : S1) -> a))
+       (idIsEquiv S1) (idIsEquiv S1)
+
 
 rotIsEquiv : (a : S1) -> isEquiv S1 S1 (rot a) = split
    base1 -> idIsEquiv S1
@@ -697,15 +710,7 @@ funDepTr (A : U) (P : A -> U) (a0 a1 : A) (p : Path A a0 a1) (u0 : P a0) (u1 : P
 -- itFibOmega3' (B : ptType) (P : B.1 -> U) (f : P (pt B)) : (Omega3 B).1 -> U =
 --   fibOmega' (Omega2 B) (itFibOmega2' B P f) (ptItFibOmega2' B P f)
 
-
 -- HopfOne' : (Omega S2pt).1 -> U = fibOmega' S2pt Hopf base1
-
--- > :n HopfTwo'
--- NORMEVAL: \(p : PathP (<i36396> PathP (<i36397> S2) base2 base2) (<i36398> base2) (<i36398> base2)) -> PathP (<i36399> PathP (<i36400> S1) base1 base1) (<i36405> hcomp S1 (hcomp S1 (hcomp S1 base1 [ (i36405 = 0) -> <i36422> base1 ]) [ (i36405 = 0) -> <i36412> base1, (i36405 = 1) -> <i36412> hcomp S1 base1 [ (i36412 = 1) -> <i36419> base1 ] ]) [ (i36405 = 0) -> <i36407> transGen (<i36408> Hopf (p @ i36407 @ i36408)) 0 base1, (i36405 = 1) -> <i36407> base1 ]) (<i36409> hcomp S1 (hcomp S1 base1 [ (i36409 = 0) -> <i36420> base1 ]) [ (i36409 = 0) -> <i36411> base1, (i36409 = 1) -> <i36411> hcomp S1 base1 [ (i36411 = 1) -> <i36416> base1 ] ])
--- HopfTwo' : (Omega2 S2pt).1 -> U = itFibOmega2' S2pt Hopf base1
-
--- > :n HopfThree'
--- NORMEVAL: \(p : PathP (<i36423> PathP (<i36424> PathP (<i36425> S2) base2 base2) (<i36426> base2) (<i36426> base2)) (<i36427 i36426> base2) (<i36427 i36426> base2)) -> PathP (<i36428> PathP (<i36429> PathP (<i36430> S1) base1 base1) (<i36433> hcomp S1 (hcomp S1 (hcomp S1 base1 [ (i36433 = 0) -> <i36449> base1 ]) [ (i36433 = 0) -> <i36439> base1, (i36433 = 1) -> <i36439> hcomp S1 base1 [ (i36439 = 1) -> <i36446> base1 ] ]) [ (i36433 = 0) -> <i36435> base1, (i36433 = 1) -> <i36435> base1 ]) (<i36436> hcomp S1 (hcomp S1 base1 [ (i36436 = 0) -> <i36447> base1 ]) [ (i36436 = 0) -> <i36438> base1, (i36436 = 1) -> <i36438> hcomp S1 base1 [ (i36438 = 1) -> <i36443> base1 ] ])) (<i36464 i36466> hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1 base1 [ (i36466 = 0) -> <i36664> base1 ]) [ (i36466 = 0) -> <i36660> base1, (i36466 = 1) -> <i36660> hcomp S1 base1 [ (i36660 = 1) -> <i36662> base1 ] ]) [ (i36466 = 0) -> <i36658> base1, (i36466 = 1) -> <i36658> base1 ]) [ (i36464 = 0) -> <i36656> hcomp S1 (hcomp S1 (hcomp S1 base1 [ (i36466 = 0) -> <i36652> base1 ]) [ (i36466 = 0) -> <i36653> base1, (i36466 = 1) -> <i36653> hcomp S1 base1 [ (i36653 = 1) -> <i36654> base1 ] ]) [ (i36466 = 0) -> <i36655> base1, (i36466 = 1) -> <i36655> base1 ], (i36466 = 0) -> <i36656> base1, (i36466 = 1) -> <i36656> base1 ]) [ (i36464 = 0) -> <i36558> hcomp S1 (hcomp S1 (hcomp S1 base1 [ (i36466 = 0) -> <i36554> base1 ]) [ (i36466 = 0) -> <i36555> base1, (i36466 = 1) -> <i36555> hcomp S1 base1 [ (i36555 = 1) -> <i36556> base1 ] ]) [ (i36466 = 0) -> <i36557> base1, (i36466 = 1) -> <i36557> base1 ], (i36464 = 1) -> <i36558> hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1 base1 [ (i36466 = 0) -> <i36607> base1 ]) [ (i36466 = 0) -> <i36608> base1, (i36466 = 1) -> <i36608> hcomp S1 base1 [ (i36608 = 1) -> <i36609> base1 ] ]) [ (i36466 = 0) -> <i36610> base1, (i36466 = 1) -> <i36610> base1 ]) [ (i36466 = 0) -> <i36615> base1, (i36466 = 1) -> <i36615> base1, (i36558 = 1) -> <i36615> hcomp S1 (hcomp S1 (hcomp S1 base1 [ (i36466 = 0) -> <i36625> base1 ]) [ (i36466 = 0) -> <i36626> base1, (i36466 = 1) -> <i36626> hcomp S1 base1 [ (i36626 = 1) -> <i36627> base1 ] ]) [ (i36466 = 0) -> <i36634> base1, (i36466 = 1) -> <i36634> base1, (i36615 = 1) -> <i36634> hcomp S1 (hcomp S1 base1 [ (i36466 = 0) -> <i36631> base1 ]) [ (i36466 = 0) -> <i36632> base1, (i36466 = 1) -> <i36632> hcomp S1 base1 [ (i36632 = 1) -> <i36633> base1 ] ] ] ], (i36466 = 0) -> <i36558> base1, (i36466 = 1) -> <i36558> base1 ]) [ (i36466 = 0) -> <i36534> base1, (i36466 = 1) -> <i36534> base1 ]) [ (i36464 = 0) -> <i36467> hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1 base1 [ (i36466 = 0) -> <i36488> base1 ]) [ (i36466 = 0) -> <i36486> base1, (i36466 = 1) -> <i36486> hcomp S1 base1 [ (i36486 = 1) -> <i36487> base1 ] ]) [ (i36466 = 0) -> <i36484> transGen (<i36485> Hopf (p @ i36467 @ i36484 @ i36485)) 0 base1, (i36466 = 1) -> <i36484> base1 ]) [ (i36466 = 0) -> <i36470> base1, (i36466 = 1) -> <i36470> base1, (i36467 = 1) -> <i36470> hcomp S1 (hcomp S1 (hcomp S1 base1 [ (i36466 = 0) -> <i36479> base1 ]) [ (i36466 = 0) -> <i36480> base1, (i36466 = 1) -> <i36480> hcomp S1 base1 [ (i36480 = 1) -> <i36481> base1 ] ]) [ (i36466 = 0) -> <i36482> base1, (i36466 = 1) -> <i36482> base1 ] ], (i36464 = 1) -> <i36467> hcomp S1 (hcomp S1 (hcomp S1 base1 [ (i36466 = 0) -> <i36500> base1 ]) [ (i36466 = 0) -> <i36498> base1, (i36466 = 1) -> <i36498> hcomp S1 base1 [ (i36498 = 1) -> <i36499> base1 ] ]) [ (i36466 = 0) -> <i36491> base1, (i36466 = 1) -> <i36491> base1, (i36467 = 1) -> <i36491> hcomp S1 (hcomp S1 base1 [ (i36466 = 0) -> <i36495> base1 ]) [ (i36466 = 0) -> <i36496> base1, (i36466 = 1) -> <i36496> hcomp S1 base1 [ (i36496 = 1) -> <i36497> base1 ] ] ], (i36466 = 0) -> <i36467> base1, (i36466 = 1) -> <i36467> base1 ]) (<i36502 i36503> hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1 base1 [ (i36503 = 0) -> <i36529> base1 ]) [ (i36503 = 0) -> <i36530> base1, (i36503 = 1) -> <i36530> hcomp S1 base1 [ (i36530 = 1) -> <i36531> base1 ] ]) [ (i36503 = 0) -> <i36532> base1, (i36503 = 1) -> <i36532> base1 ]) [ (i36502 = 0) -> <i36637> hcomp S1 (hcomp S1 (hcomp S1 base1 [ (i36503 = 0) -> <i36644> base1 ]) [ (i36503 = 0) -> <i36645> base1, (i36503 = 1) -> <i36645> hcomp S1 base1 [ (i36645 = 1) -> <i36646> base1 ] ]) [ (i36503 = 0) -> <i36647> base1, (i36503 = 1) -> <i36647> base1 ], (i36503 = 0) -> <i36637> base1, (i36503 = 1) -> <i36637> base1 ]) [ (i36502 = 0) -> <i36537> hcomp S1 (hcomp S1 (hcomp S1 base1 [ (i36503 = 0) -> <i36546> base1 ]) [ (i36503 = 0) -> <i36547> base1, (i36503 = 1) -> <i36547> hcomp S1 base1 [ (i36547 = 1) -> <i36548> base1 ] ]) [ (i36503 = 0) -> <i36549> base1, (i36503 = 1) -> <i36549> base1 ], (i36502 = 1) -> <i36537> hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1 base1 [ (i36503 = 0) -> <i36573> base1 ]) [ (i36503 = 0) -> <i36574> base1, (i36503 = 1) -> <i36574> hcomp S1 base1 [ (i36574 = 1) -> <i36575> base1 ] ]) [ (i36503 = 0) -> <i36576> base1, (i36503 = 1) -> <i36576> base1 ]) [ (i36503 = 0) -> <i36577> base1, (i36503 = 1) -> <i36577> base1, (i36537 = 1) -> <i36577> hcomp S1 (hcomp S1 (hcomp S1 base1 [ (i36503 = 0) -> <i36594> base1 ]) [ (i36503 = 0) -> <i36595> base1, (i36503 = 1) -> <i36595> hcomp S1 base1 [ (i36595 = 1) -> <i36596> base1 ] ]) [ (i36503 = 0) -> <i36597> base1, (i36503 = 1) -> <i36597> base1, (i36577 = 1) -> <i36597> hcomp S1 (hcomp S1 base1 [ (i36503 = 0) -> <i36600> base1 ]) [ (i36503 = 0) -> <i36601> base1, (i36503 = 1) -> <i36601> hcomp S1 base1 [ (i36601 = 1) -> <i36602> base1 ] ] ] ], (i36503 = 0) -> <i36537> base1, (i36503 = 1) -> <i36537> base1 ])
 -- HopfThree' : (Omega3 S2pt).1 -> U = itFibOmega3' S2pt Hopf base1
 
 -- We only need these when B is S2pt, P is Hopf and f is
@@ -1308,21 +1313,21 @@ decodeEncode (x : S1) (p : Path S1 base1 x) :
 
 
 -- Can this be simplified? YES! See below
-decodeEncode' (x : S1) (p : Path S1 base1 x) :
-  Path (Path S1 base1 x) (decode x (encode x p)) p =
-  -- This is the normal form:
-  <i j> hcomp S1 (hcomp S1 base1 [ (j = 0) -> <_> base1
-                                 , (j = 1) -> p ])
-                 [ (i = 0) -> <k> hcomp S1 (decode (p @ k) (encode (p @ k) (<l> p @ k /\ l)) @ j)
-                                           [ (j = 0) -> <_> base1
-                                           , (j = 1) -> <l> p @ k \/ l
-                                           , (k = 1) -> <_> decode x (encode x p) @ j ]
-                 , (i = 1) -> <k> hcomp S1 (p @ j /\ k)
-                                           [ (j = 0) -> <_> base1
-                                           , (j = 1) -> <l> p @ k \/ l
-                                           , (k = 1) -> <_> p @ j ]
-                 , (j = 0) -> <_> base1
-                 , (j = 1) -> <_> x ]
+-- decodeEncode' (x : S1) (p : Path S1 base1 x) :
+--   Path (Path S1 base1 x) (decode x (encode x p)) p =
+--   -- This is the normal form:
+--   <i j> hcomp S1 (hcomp S1 base1 [ (j = 0) -> <_> base1
+--                                  , (j = 1) -> p ])
+--                  [ (i = 0) -> <k> hcomp S1 (decode (p @ k) (encode (p @ k) (<l> p @ k /\ l)) @ j)
+--                                            [ (j = 0) -> <_> base1
+--                                            , (j = 1) -> <l> p @ k \/ l
+--                                            , (k = 1) -> <_> decode x (encode x p) @ j ]
+--                  , (i = 1) -> <k> hcomp S1 (p @ j /\ k)
+--                                            [ (j = 0) -> <_> base1
+--                                            , (j = 1) -> <l> p @ k \/ l
+--                                            , (k = 1) -> <_> p @ j ]
+--                  , (j = 0) -> <_> base1
+--                  , (j = 1) -> <_> x ]
 
 -- This is the new normal form after making comp compute directly for Path and Sigma
 decodeEncode'' (x : S1) (p : Path S1 base1 x) :
@@ -1771,6 +1776,11 @@ multTwo : S2 -> S2 -> trS2 = split
 
 multTwoTilde (x : S2) : trS2 -> trS2 =
   g2TruncRec S2 trS2 trS2Trunc (multTwo x)
+
+lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a0 a1 :A)
+         (p : Path A a0 a1) (b0 : P a0) (b1 : P a1) : PathP (<i> P (p @ i)) b0 b1 =
+  <i> pP (p @ i) (transGen (<j> P (p @ i /\ j)) (-i) b0)
+                 (transGen (<j> P (p @ i \/ -j)) i b1) @ i
 
 lemPropS2 (P : S2 -> U) (pP : (x : S2) -> prop (P x)) (pB : P base2) : (x : S2) -> P x = split
     base2 -> pB

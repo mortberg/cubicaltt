@@ -1,8 +1,32 @@
+-- This file contains two self-contained proofs that the loop space of
+-- S1 is a set. They both first prove that the loop space of S1 is a
+-- retract of Z and then that a retract of a set is a set. The first
+-- proof is called setLoop' and the second setLoop.
+
+-- The first proof uses a version of decode that is heavily dependent
+-- on exactly how transport in Glue is defined (one has to remove
+-- hcomp's by hand) while the second is a more direct definition which
+-- should be more robust and efficient. The latter proof is inspired
+-- by: https://github.com/RedPRL/redtt/blob/master/example/omega1s1.red
+
 module loops1 where
 
 idfun (A : U) (a : A) : A = a
 
 Path (A : U) (a0 a1 : A) : U = PathP (<i> A) a0 a1
+
+--         v
+--    b0 -----> b1
+--    |         |
+--    |         |
+-- r0 |         | r1
+--    |         |
+--    a0 -----> a1
+--         u
+Square (A : U) (a0 a1 b0 b1 : A)
+               (u : Path A a0 a1) (v : Path A b0 b1)
+               (r0 : Path A a0 b0) (r1 : Path A a1 b1) : U
+  = PathP (<i> (Path A (u @ i) (v @ i))) r0 r1
 
 fiber (A B : U) (f : A -> B) (y : B) : U =
   (x : A) * Path B y (f x)
@@ -185,9 +209,6 @@ contr (y : Z) (y' : fiber Z Z sucZ y) : Path ((x : Z) * Path Z y (sucZ x)) (ctr 
           gengoal Z ZSet y (sucZ (predZ y)) prf2 (sucZ y'.1) prf1 y'.2
     in <i> (p1 @ i,p2 @ i)
 
--- Maybe make this opaque?
--- opaque contr
-
 equivSucZ : isEquiv Z Z sucZ = \(y : Z) -> (ctr y,contr y)
     
 sucPathZ : Path U Z Z = ua Z Z (sucZ,equivSucZ)
@@ -224,6 +245,10 @@ loopIt : (n : Z) -> loopS1 = split
   pos n -> loopPos n
   neg n -> loopNeg n
 
+
+-------------------------------------------------------------------------------
+-- We now define decode'
+
 shiftPos : (n : nat) -> Path loopS1 (compS1 (loopIt (predZ (pos n))) loop) (loopIt (pos n)) = split
   zero -> compInvPath S1 base1 base1 loop
   suc n -> <_ i> hcomp S1 (loopPos n @ i) [ (i = 0) -> <_> base1, (i = 1) -> loop ]
@@ -251,36 +276,30 @@ hcompbaseeq (p : loopS1) : Path loopS1 (hcompbase p) p =
                                , (i = 1) -> <k> p @ -j \/ k
                                , (j = 1) -> <k> p @ i /\ k ]
 
--- This is quite ugly, but we need to remove 4 hcomp's with base on both sides...
-hcompbaseeq4 (p : loopS1) : Path loopS1 (hcompbase (hcompbase (hcompbase (hcompbase p)))) p = 
+hcompbaseeq2 (p : loopS1) : Path loopS1 (hcompbase (hcompbase p)) p =
   let sq1 : Path loopS1 (hcompbase p) p = hcompbaseeq p
       sq2 : Path loopS1 (hcompbase (hcompbase p)) (hcompbase p) =
               hcompbaseeq (hcompbase p)
-      sq3 : Path loopS1 (hcompbase (hcompbase (hcompbase p))) (hcompbase (hcompbase p)) =
-              hcompbaseeq (hcompbase (hcompbase p))
-      sq4 : Path loopS1 (hcompbase (hcompbase (hcompbase (hcompbase p)))) (hcompbase (hcompbase (hcompbase p))) =
-              hcompbaseeq (hcompbase (hcompbase (hcompbase p)))
-  in compPath loopS1
-       (hcompbase (hcompbase (hcompbase (hcompbase p)))) (hcompbase (hcompbase (hcompbase p))) p sq4
-       (<i> hcomp loopS1 (sq2 @ i) [ (i = 0) -> <j> sq3 @ -j, (i = 1) -> sq1 ])
+  in compPath loopS1 (hcompbase (hcompbase p)) (hcompbase p) p sq2 sq1
 
 -- This proof requires that "transGen (<_> nat) 0 n == n" judgmentally as it is done now
 -- This proof requires that "transGen (<_> S1) 0 n == n" judgmentally as it is done now
 decodeLoop (n : Z) :
   Path (Path S1 base1 base1)
   (subst S1 (\(x : S1) -> helix x -> Path S1 base1 x) base1 base1 loop loopIt n)
-  (loopIt n) = 
+  (loopIt n) =
       let T (p : loopS1) : loopS1 =
-            (<i> hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1
---                 (transGen0 S1 (transGen0 S1 (transGen0 S1 (p @ i))))  <-- This is not needed with hack in Eval that makes transGen (<_> S1) 0 x reduce away
-                 (p @ i)
-                      [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ])
-                      [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ])
-                      [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ])
-                      [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ])
-                      [ (i = 0) -> <_> base1, (i = 1) -> loop ])
+            (<i> hcomp S1 (hcomp S1 (hcomp S1 (p @ i)
+                                              [ (i = 0) -> <_> base1
+                                              , (i = 1) -> <_> base1 ])
+                                    [ (i = 0) -> <_> base1
+                                   , (i = 1) -> <_> base1 ])
+                          [ (i = 0) -> <_> base1
+                          , (i = 1) -> loop ])
+                      
           key (p : loopS1) : Path loopS1 (T p) (compS1 p loop) =
-            <i> compS1 (hcompbaseeq4 p @ i) loop
+            <i> compS1 (hcompbaseeq2 p @ i) loop
+
           goal : Path loopS1 (T (loopIt (predZ n))) (loopIt n) =
                       compPath loopS1 (T (loopIt (predZ n)))
                         (compS1 (loopIt (predZ n)) loop) (loopIt n)
@@ -294,24 +313,100 @@ pathSIntroS1 (C : S1 -> U) (c : C base1)
   transGen (<j> PathP (<i> C (loop @ -j \/ i))
                       (transGen (<i> C (loop @ -j /\ i)) j c) c) 0 w
 
--- Old complicated normal form of pathSIntro using eqSubstSig:
--- > :n pathSIntroS1
--- NORMEVAL: \(C : S1 -> U) -> \(c : C base1) -> \(w : PathP (<i53031> C base1) (transGen (<i53034> C (loop1 {S1} @ i53034)) 0 c) c) -> <i53135> hcomp (C (loop1 {S1} @ i53135)) (hcomp (C (loop1 {S1} @ i53135)) (transGen (<i53145> C (loop1 {S1} @ (i53145 /\ i53135))) 0 (hcomp (C base1) (hcomp (C base1) (transGen (<i53158> C base1) 0 (hcomp (C base1) (transGen (<i53171> C (loop1 {S1} @ -i53171)) 0 (w @ i53135)) [ (i53135 = 0) -> <i53163> transGen (<i53164> C (loop1 {S1} @ (-i53163 /\ -i53164))) i53163 (transGen (<i53165> C (loop1 {S1} @ (-i53163 /\ i53165))) 0 (transGen (<i53166> C base1) -i53163 c)), (i53135 = 1) -> <i53163> transGen (<i53169> C (loop1 {S1} @ (-i53163 /\ -i53169))) i53163 (transGen (<i53170> C (loop1 {S1} @ (-i53163 \/ -i53170))) -i53163 c) ])) [ (i53135 = 0) -> <i53153> transGen (<i53154> C base1) i53153 (transGen (<i53155> C base1) i53153 (transGen (<i53010> C base1) 0 c)), (i53135 = 1) -> <i53153> transGen (<i53157> C base1) i53153 (transGen (<i52997> C (loop1 {S1} @ -i52997)) 0 c) ]) [ (i53135 = 0) -> <i53149> transGen (<i53010> C base1) 0 c, (i53135 = 1) -> <i53149> transGen (<i52997> C (loop1 {S1} @ -i52997)) 0 c ])) [ (i53135 = 0) -> <i53139> transGen (<i53140> C base1) i53139 (transGen (<i53141> C base1) i53139 c), (i53135 = 1) -> <i53139> transGen (<i53143> C (loop1 {S1} @ (i53139 \/ i53143))) i53139 (transGen (<i53144> C (loop1 {S1} @ (i53139 \/ -i53144))) i53139 c) ]) [ (i53135 = 0) -> <i53005> c, (i53135 = 1) -> <i53005> c ]
-
--- New simpler normal form:
--- > :n pathSIntroS1
--- NORMEVAL: \(C : S1 -> U) -> \(c : C base1) -> \(w : PathP (<i105153> C base1) (transGen (<i105156> C (loop1 {S1} @ i105156)) 0 c) c) -> <i105157> hcomp (C (loop1 {S1} @ i105157)) (transGen (<i105158> C (loop1 {S1} @ (-i105158 \/ i105157))) 0 (w @ i105157)) [ (i105157 = 0) -> <i105159> transGen (<i105158> C (loop1 {S1} @ (-i105159 /\ -i105158))) i105159 (transGen (<i105163> C (loop1 {S1} @ (-i105159 /\ i105163))) i105159 c), (i105157 = 1) -> <i105159> transGen (<i105158> C base1) i105159 c ]
-
 s1elim (C : S1 -> U) (c : C base1) (p : Path (C base1) (subst S1 C base1 base1 loop c) c) :
   (x : S1) -> C x = split
   base1 -> c
   loop1 @ i -> pathSIntroS1 C c p @ i
 
--- Can we do this directly without s1elim and pathSIntroS1?
-decode : (x : S1) -> helix x -> Path S1 base1 x =
+decode' : (x : S1) -> helix x -> Path S1 base1 x =
   s1elim (\(x : S1) -> helix x -> Path S1 base1 x) loopIt (<i> \(x : Z) -> decodeLoop x @ i)
 
-encodeDecode (x : S1) (p : Path S1 base1 x) : Path (Path S1 base1 x) (decode x (encode x p)) p =
+decodeEncode' (x : S1) (p : Path S1 base1 x) : Path (Path S1 base1 x) (decode' x (encode x p)) p =
   transGen (<i> Path (Path S1 base1 (p @ i))
-            (decode (p @ i) (encode (p @ i) (<j> p @ i /\ j))) (<j> p @ i /\ j)) 0
+                     (decode' (p @ i) (encode (p @ i) (<j> p @ i /\ j)))
+                     (<j> p @ i /\ j))
+            0
             (<_ _> base1)
+
+
+setLoop' (p q : loopS1) (r s : Path loopS1 p q) : Path (Path loopS1 p q) r s =
+  let f : loopS1 -> Z = encode base1
+      g : Z -> loopS1 = decode' base1
+  in <j i> hcomp loopS1 (g (ZSet (f p) (f q) (<i> f (r @ i)) (<i> f (s @ i)) @ j @ i))
+                        [ (i = 0) -> decodeEncode' base1 p
+                        , (i = 1) -> decodeEncode' base1 q
+                        , (j = 0) -> decodeEncode' base1 (r @ i)
+                        , (j = 1) -> decodeEncode' base1 (s @ i) ]
+
+
+
+-------------------------------------------------------------------------------
+-- Can we do this directly without s1elim and pathSIntroS1? Yes!
+
+decodeSquarePos : (n : nat) -> Square S1 base1 base1 base1 base1
+                                      (<_> base1)
+                                      loop
+                                      (loopIt (predZ (pos n)))
+                                      (loopIt (pos n)) = split
+  zero -> <i j> loop @ i \/ -j
+  suc n -> <i j> hfill S1 (loopPos n @ j) [ (j = 0) -> <_> base1
+                                          , (j = 1) -> loop ] @ i
+
+decodeSquareNeg (n : nat) : Square S1 base1 base1 base1 base1
+                                   (<_> base1)
+                                   loop
+                                   (loopIt (predZ (neg n)))
+                                   (loopIt (neg n)) =
+  <i j> hcomp S1 (loopNeg n @ j)
+                 [ (i=1) -> <_> loopNeg n @ j
+                 , (j=0) -> <_> base1
+                 , (j=1) -> <k> loop @ i \/ -k ]
+
+decodeSquare : (n : Z) -> Square S1 base1 base1 base1 base1
+                                 (<_> base1)
+                                 loop
+                                 (loopIt (predZ n))
+                                 (loopIt n) = split
+  pos n -> decodeSquarePos n
+  neg n -> decodeSquareNeg n
+
+
+decode : (x : S1) -> helix x -> Path S1 base1 x = split
+  base1 -> loopIt
+  loop1 @ i -> \(y : sucPathZ @ i) -> <j>
+    let n : Z = unglue y Z [(i=0) -> (Z,(sucZ,equivSucZ))
+                           ,(i=1) -> (Z,idEquiv Z)]
+    in hcomp S1 (decodeSquare n @ i @ j)
+                [ (j=0) -> <_> base1
+                , (j=1) -> <_> loop @ i
+                , (i=0) -> <k> loopIt (predsucZ y @ k) @ j
+                , (i=1) -> <_> loopIt y @ j ]
+
+
+decodeEncode (x : S1) (p : Path S1 base1 x) : Path (Path S1 base1 x) (decode x (encode x p)) p =
+  transGen (<i> Path (Path S1 base1 (p @ i))
+                     (decode (p @ i) (encode (p @ i) (<j> p @ i /\ j)))
+                     (<j> p @ i /\ j))
+            0
+            (<_ _> base1)
+
+setLoop (p q : loopS1) (r s : Path loopS1 p q) : Path (Path loopS1 p q) r s =
+  let f : loopS1 -> Z = encode base1
+      g : Z -> loopS1 = decode base1
+  in <j i> hcomp loopS1 (g (ZSet (f p) (f q) (<i> f (r @ i)) (<i> f (s @ i)) @ j @ i))
+                        [ (i = 0) -> decodeEncode base1 p
+                        , (i = 1) -> decodeEncode base1 q
+                        , (j = 0) -> decodeEncode base1 (r @ i)
+                        , (j = 1) -> decodeEncode base1 (s @ i) ]
+
+
+-- We now compare the normal forms:
+
+-- Normal form of setLoop
+nsetLoop (p q : loopS1) (r s : Path loopS1 p q) : Path (Path loopS1 p q) r s = 
+  <i764 i765 i766> hcomp S1 (loopIt (ZSet (transGen (<i793> helix (p @ i793)) 0 (pos zero)) (transGen (<i792> helix (q @ i792)) 0 (pos zero)) (<i790> transGen (<i791> helix (r @ i790 @ i791)) 0 (pos zero)) (<i788> transGen (<i789> helix (s @ i788 @ i789)) 0 (pos zero)) @ i764 @ i765) @ i766) [ (i764 = 0) -> <i770> hcomp S1 base1 [ (i766 = 0) -> <i771> base1, (i766 = 1) -> <i771> r @ i765 @ i771, (i770 = 0) -> <i771> decode (r @ i765 @ i771) (transGen (<i772> helix (r @ i765 @ (i771 /\ i772))) 0 (pos zero)) @ i766, (i770 = 1) -> <i771> r @ i765 @ (i766 /\ i771) ], (i764 = 1) -> <i770> hcomp S1 base1 [ (i766 = 0) -> <i776> base1, (i766 = 1) -> <i776> s @ i765 @ i776, (i770 = 0) -> <i776> decode (s @ i765 @ i776) (transGen (<i777> helix (s @ i765 @ (i776 /\ i777))) 0 (pos zero)) @ i766, (i770 = 1) -> <i776> s @ i765 @ (i766 /\ i776) ], (i765 = 0) -> <i770> hcomp S1 base1 [ (i766 = 0) -> <i781> base1, (i766 = 1) -> <i781> p @ i781, (i770 = 0) -> <i781> decode (p @ i781) (transGen (<i782> helix (p @ (i781 /\ i782))) 0 (pos zero)) @ i766, (i770 = 1) -> <i781> p @ (i766 /\ i781) ], (i765 = 1) -> <i770> hcomp S1 base1 [ (i766 = 0) -> <i786> base1, (i766 = 1) -> <i786> q @ i786, (i770 = 0) -> <i786> decode (q @ i786) (transGen (<i787> helix (q @ (i786 /\ i787))) 0 (pos zero)) @ i766, (i770 = 1) -> <i786> q @ (i766 /\ i786) ], (i766 = 0) -> <i770> base1, (i766 = 1) -> <i770> base1 ]
+
+-- Normal form of setLoop'
+nsetLoop' (p q : loopS1) (r s : Path loopS1 p q) : Path (Path loopS1 p q) r s =
+  <i800 i801 i802> hcomp S1 (loopIt (ZSet (transGen (<i901> helix (p @ i901)) 0 (pos zero)) (transGen (<i900> helix (q @ i900)) 0 (pos zero)) (<i898> transGen (<i899> helix (r @ i898 @ i899)) 0 (pos zero)) (<i896> transGen (<i897> helix (s @ i896 @ i897)) 0 (pos zero)) @ i800 @ i801) @ i802) [ (i800 = 0) -> <i806> hcomp S1 base1 [ (i802 = 0) -> <i807> base1, (i802 = 1) -> <i807> r @ i801 @ i807, (i806 = 0) -> <i807> s1elim (\(x : S1) -> (helix x) -> (PathP (<i809> S1) base1 x)) loopIt (<i810> \(x : Z) -> <i811> hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1 (loopIt (predZ x) @ (-i810 /\ i811)) [ (i810 = 0)(i811 = 1) -> <i826> base1, (i810 = 1) -> <i826> base1, (i811 = 0) -> <i826> base1 ]) [ (i810 = 1) -> <i822> hcomp S1 (loopIt (predZ x) @ (i811 /\ i822)) [ (i811 = 0) -> <i823> base1, (i811 = 1)(i822 = 1) -> <i823> base1, (i822 = 0) -> <i823> base1 ], (i811 = 0) -> <i822> base1, (i811 = 1) -> <i822> hcomp S1 (loopIt (predZ x) @ (-i810 \/ i822)) [ (i810 = 0) -> <i825> base1, (i810 = 1)(i822 = 0) -> <i825> base1, (i822 = 1) -> <i825> base1 ] ]) [ (i810 = 0) -> <i818> hcomp S1 (hcomp S1 (loopIt (predZ x) @ i811) [ (i811 = 0) -> <i820> base1, (i811 = 1) -> <i820> base1 ]) [ (i811 = 0) -> <i819> base1, (i811 = 1) -> <i819> base1 ], (i810 = 1) -> <i818> hcomp S1 (loopIt (predZ x) @ (i811 /\ -i818)) [ (i811 = 0) -> <i821> base1, (i811 = 1) -> <i821> loopIt (predZ x) @ (-i818 \/ i821), (i818 = 1) -> <i821> loopIt (predZ x) @ (i811 /\ i821) ], (i811 = 0) -> <i818> base1, (i811 = 1) -> <i818> base1 ]) [ (i811 = 0) -> <i816> base1, (i811 = 1) -> <i816> loop1 {S1} @ i816 ]) [ (i810 = 0) -> <i812> hcomp S1 (hcomp S1 (hcomp S1 (loopIt (predZ x) @ i811) [ (i811 = 0) -> <i815> base1, (i811 = 1) -> <i815> base1 ]) [ (i811 = 0) -> <i814> base1, (i811 = 1) -> <i814> base1 ]) [ (i811 = 0) -> <i813> base1, (i811 = 1) -> <i813> loop1 {S1} @ i813 ], (i810 = 1) -> <i812> shift x @ i812 @ i811, (i811 = 0) -> <i812> base1, (i811 = 1) -> <i812> base1 ]) (r @ i801 @ i807) (transGen (<i808> helix (r @ i801 @ (i807 /\ i808))) 0 (pos zero)) @ i802, (i806 = 1) -> <i807> r @ i801 @ (i802 /\ i807) ], (i800 = 1) -> <i806> hcomp S1 base1 [ (i802 = 0) -> <i830> base1, (i802 = 1) -> <i830> s @ i801 @ i830, (i806 = 0) -> <i830> s1elim (\(x : S1) -> (helix x) -> (PathP (<i832> S1) base1 x)) loopIt (<i833> \(x : Z) -> <i834> hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1 (loopIt (predZ x) @ (-i833 /\ i834)) [ (i833 = 0)(i834 = 1) -> <i849> base1, (i833 = 1) -> <i849> base1, (i834 = 0) -> <i849> base1 ]) [ (i833 = 1) -> <i845> hcomp S1 (loopIt (predZ x) @ (i834 /\ i845)) [ (i834 = 0) -> <i846> base1, (i834 = 1)(i845 = 1) -> <i846> base1, (i845 = 0) -> <i846> base1 ], (i834 = 0) -> <i845> base1, (i834 = 1) -> <i845> hcomp S1 (loopIt (predZ x) @ (-i833 \/ i845)) [ (i833 = 0) -> <i848> base1, (i833 = 1)(i845 = 0) -> <i848> base1, (i845 = 1) -> <i848> base1 ] ]) [ (i833 = 0) -> <i841> hcomp S1 (hcomp S1 (loopIt (predZ x) @ i834) [ (i834 = 0) -> <i843> base1, (i834 = 1) -> <i843> base1 ]) [ (i834 = 0) -> <i842> base1, (i834 = 1) -> <i842> base1 ], (i833 = 1) -> <i841> hcomp S1 (loopIt (predZ x) @ (i834 /\ -i841)) [ (i834 = 0) -> <i844> base1, (i834 = 1) -> <i844> loopIt (predZ x) @ (-i841 \/ i844), (i841 = 1) -> <i844> loopIt (predZ x) @ (i834 /\ i844) ], (i834 = 0) -> <i841> base1, (i834 = 1) -> <i841> base1 ]) [ (i834 = 0) -> <i839> base1, (i834 = 1) -> <i839> loop1 {S1} @ i839 ]) [ (i833 = 0) -> <i835> hcomp S1 (hcomp S1 (hcomp S1 (loopIt (predZ x) @ i834) [ (i834 = 0) -> <i838> base1, (i834 = 1) -> <i838> base1 ]) [ (i834 = 0) -> <i837> base1, (i834 = 1) -> <i837> base1 ]) [ (i834 = 0) -> <i836> base1, (i834 = 1) -> <i836> loop1 {S1} @ i836 ], (i833 = 1) -> <i835> shift x @ i835 @ i834, (i834 = 0) -> <i835> base1, (i834 = 1) -> <i835> base1 ]) (s @ i801 @ i830) (transGen (<i831> helix (s @ i801 @ (i830 /\ i831))) 0 (pos zero)) @ i802, (i806 = 1) -> <i830> s @ i801 @ (i802 /\ i830) ], (i801 = 0) -> <i806> hcomp S1 base1 [ (i802 = 0) -> <i853> base1, (i802 = 1) -> <i853> p @ i853, (i806 = 0) -> <i853> s1elim (\(x : S1) -> (helix x) -> (PathP (<i855> S1) base1 x)) loopIt (<i856> \(x : Z) -> <i857> hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1 (loopIt (predZ x) @ (-i856 /\ i857)) [ (i856 = 0)(i857 = 1) -> <i872> base1, (i856 = 1) -> <i872> base1, (i857 = 0) -> <i872> base1 ]) [ (i856 = 1) -> <i868> hcomp S1 (loopIt (predZ x) @ (i857 /\ i868)) [ (i857 = 0) -> <i869> base1, (i857 = 1)(i868 = 1) -> <i869> base1, (i868 = 0) -> <i869> base1 ], (i857 = 0) -> <i868> base1, (i857 = 1) -> <i868> hcomp S1 (loopIt (predZ x) @ (-i856 \/ i868)) [ (i856 = 0) -> <i871> base1, (i856 = 1)(i868 = 0) -> <i871> base1, (i868 = 1) -> <i871> base1 ] ]) [ (i856 = 0) -> <i864> hcomp S1 (hcomp S1 (loopIt (predZ x) @ i857) [ (i857 = 0) -> <i866> base1, (i857 = 1) -> <i866> base1 ]) [ (i857 = 0) -> <i865> base1, (i857 = 1) -> <i865> base1 ], (i856 = 1) -> <i864> hcomp S1 (loopIt (predZ x) @ (i857 /\ -i864)) [ (i857 = 0) -> <i867> base1, (i857 = 1) -> <i867> loopIt (predZ x) @ (-i864 \/ i867), (i864 = 1) -> <i867> loopIt (predZ x) @ (i857 /\ i867) ], (i857 = 0) -> <i864> base1, (i857 = 1) -> <i864> base1 ]) [ (i857 = 0) -> <i862> base1, (i857 = 1) -> <i862> loop1 {S1} @ i862 ]) [ (i856 = 0) -> <i858> hcomp S1 (hcomp S1 (hcomp S1 (loopIt (predZ x) @ i857) [ (i857 = 0) -> <i861> base1, (i857 = 1) -> <i861> base1 ]) [ (i857 = 0) -> <i860> base1, (i857 = 1) -> <i860> base1 ]) [ (i857 = 0) -> <i859> base1, (i857 = 1) -> <i859> loop1 {S1} @ i859 ], (i856 = 1) -> <i858> shift x @ i858 @ i857, (i857 = 0) -> <i858> base1, (i857 = 1) -> <i858> base1 ]) (p @ i853) (transGen (<i854> helix (p @ (i853 /\ i854))) 0 (pos zero)) @ i802, (i806 = 1) -> <i853> p @ (i802 /\ i853) ], (i801 = 1) -> <i806> hcomp S1 base1 [ (i802 = 0) -> <i876> base1, (i802 = 1) -> <i876> q @ i876, (i806 = 0) -> <i876> s1elim (\(x : S1) -> (helix x) -> (PathP (<i878> S1) base1 x)) loopIt (<i879> \(x : Z) -> <i880> hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1 (hcomp S1 (loopIt (predZ x) @ (-i879 /\ i880)) [ (i879 = 0)(i880 = 1) -> <i895> base1, (i879 = 1) -> <i895> base1, (i880 = 0) -> <i895> base1 ]) [ (i879 = 1) -> <i891> hcomp S1 (loopIt (predZ x) @ (i880 /\ i891)) [ (i880 = 0) -> <i892> base1, (i880 = 1)(i891 = 1) -> <i892> base1, (i891 = 0) -> <i892> base1 ], (i880 = 0) -> <i891> base1, (i880 = 1) -> <i891> hcomp S1 (loopIt (predZ x) @ (-i879 \/ i891)) [ (i879 = 0) -> <i894> base1, (i879 = 1)(i891 = 0) -> <i894> base1, (i891 = 1) -> <i894> base1 ] ]) [ (i879 = 0) -> <i887> hcomp S1 (hcomp S1 (loopIt (predZ x) @ i880) [ (i880 = 0) -> <i889> base1, (i880 = 1) -> <i889> base1 ]) [ (i880 = 0) -> <i888> base1, (i880 = 1) -> <i888> base1 ], (i879 = 1) -> <i887> hcomp S1 (loopIt (predZ x) @ (i880 /\ -i887)) [ (i880 = 0) -> <i890> base1, (i880 = 1) -> <i890> loopIt (predZ x) @ (-i887 \/ i890), (i887 = 1) -> <i890> loopIt (predZ x) @ (i880 /\ i890) ], (i880 = 0) -> <i887> base1, (i880 = 1) -> <i887> base1 ]) [ (i880 = 0) -> <i885> base1, (i880 = 1) -> <i885> loop1 {S1} @ i885 ]) [ (i879 = 0) -> <i881> hcomp S1 (hcomp S1 (hcomp S1 (loopIt (predZ x) @ i880) [ (i880 = 0) -> <i884> base1, (i880 = 1) -> <i884> base1 ]) [ (i880 = 0) -> <i883> base1, (i880 = 1) -> <i883> base1 ]) [ (i880 = 0) -> <i882> base1, (i880 = 1) -> <i882> loop1 {S1} @ i882 ], (i879 = 1) -> <i881> shift x @ i881 @ i880, (i880 = 0) -> <i881> base1, (i880 = 1) -> <i881> base1 ]) (q @ i876) (transGen (<i877> helix (q @ (i876 /\ i877))) 0 (pos zero)) @ i802, (i806 = 1) -> <i876> q @ (i802 /\ i876) ], (i802 = 0) -> <i806> base1, (i802 = 1) -> <i806> base1 ]
+-- Time: 0m0.008s

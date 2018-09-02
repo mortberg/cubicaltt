@@ -443,7 +443,7 @@ propIsEquivDirect' (A B : U) (f : A -> B) : prop (isEquiv A B f) =
         q1 : Path B y (f q0) = (q y).1.2
         q2 : (w1 : fiber A B f y) -> Path (fiber A B f y) (q0,q1) w1 =
          (q y).2
-        alpha : Path (fiber A B f y) (p0,p1) (q0,q1) = p2 (q0,q1)
+        alpha : Path (fiber A B f y) (p0,p1) (q0,q1) = p2 (q y).1
     in (alpha @ i,
        \(w : fiber A B f y) ->
           let x : A = w.1
@@ -546,7 +546,7 @@ rotIsEquiv' : (a : S1) -> isEquiv S1 S1 (rot a) =
               propIsEquivDirect' S1 S1 (rot base1) (subst S1 (\(x : S1) -> isEquiv S1 S1 (rot x))
                                  base1 base1 loop (idIsEquiv S1)) (idIsEquiv S1)
 
-rotpath (x : S1) : Path U S1 S1 = ua S1 S1 (rot x, rotIsEquiv' x)
+rotpath (x : S1) : Path U S1 S1 = ua S1 S1 (rot x, rotIsEquiv x)
 
 goal (A : U) : Path (Path U A A) (ua A A (idEquiv A)) (<_> A) =
   <j i> Glue A [ (i = 0) -> (A,idEquiv A)

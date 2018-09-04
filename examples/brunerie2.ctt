@@ -387,9 +387,9 @@ groupoidIsProp (A : U) : prop (groupoid A) =
  \(f g : groupoid A) -> <i> \(a b :A) ->
    setIsProp (Path A a b) (f a b) (g a b) @ i
 
--- propPi (A : U) (B : A -> U) (h : (x : A) -> prop (B x))
---        (f0 f1 : (x : A) -> B x) : Path ((x : A) -> B x) f0 f1
---   = <i> \ (x:A) -> (h x (f0 x) (f1 x)) @ i
+propPi (A : U) (B : A -> U) (h : (x : A) -> prop (B x))
+       (f0 f1 : (x : A) -> B x) : Path ((x : A) -> B x) f0 f1
+  = <i> \ (x:A) -> (h x (f0 x) (f1 x)) @ i
 
 -- propIsContr (A : U) (z0 z1 : isContr A) : Path (isContr A) z0 z1 =
 --  <j> (p0 a1 @ j
@@ -490,10 +490,6 @@ rot : S1 -> S1 -> S1 = split
   base1 -> \(y : S1) -> y
   loop1 @ i -> \(y : S1) -> rotLoop y @ i
 
-rot_unit_r : (a : S1) -> Path S1 (rot a base1) a = split
-   base1 -> <_> base1
-   loop1 @ i -> <_> loop @ i
-
 -- Specialized version for S1:
 lemPropFS1 (P : S1 -> U) (pP : (x : S1) -> prop (P x)) 
          (b0 : P base1) : PathP (<i> P (loop @ i)) b0 b0 =
@@ -566,14 +562,92 @@ goal (A : U) : Path (Path U A A) (ua A A (idEquiv A)) (<_> A) =
                , (i = 1) -> (A,idEquiv A)
                , (j = 1) -> (A,idEquiv A) ]
 
+-- We’re hiding univalence in there
+square : Path (Path U S1 S1) (<_> S1) (<_> S1) =
+  <i j> Glue S1 [ (i = 0) -> (S1, idEquiv S1)
+                , (i = 1) -> (S1, idEquiv S1)
+                , (j = 0) -> (S1, (rot (loop @ i), rotIsEquiv (loop @ i)))
+                , (j = 1) -> (S1, idEquiv S1)
+                ]
+
 Hopf : S2 -> U = split
   base2 -> S1
-  loop2 @ i j -> hcomp U (rotpath (loop @ i) @ j)
-                       [ (i=0) -> <k> goal S1 @ k @ j
-                       , (i=1) -> <k> goal S1 @ k @ j
-                       , (j=0) -> <_> S1
-                       , (j=1) -> <_> S1 ]
+  loop2 @ i j -> square @ i @ j
 
+
+-- We want to construct a map from the total space of the Hopf fibration to [join S1 S1]
+-- We do that by composing four maps
+-- total space of Hopf -> PreTotalHopf -> PostTotalHopf -> AlmostJoinS1S1 -> join S1 S1
+
+data PreTotalHopf =
+    b (x : S1)
+  | l (x : S1) <i j> [ (i=0) -> b x
+                     , (i=1) -> b (transGen (<l> square @ l @ (l /\ j)) 0 x)
+                     , (j=0) -> b x
+                     , (j=1) -> b (transGen (<l> square @ (l /\ i) @ l) 0 x) ]
+
+data PostTotalHopf =
+    b (x : S1)
+  | l (x : S1) <i j> [ (i=0) -> b x
+                     , (i=1) -> b x
+                     , (j=0) -> b x
+                     , (j=1) -> b (rot (loop @ i) x) ]
+
+data AlmostJoinS1S1 =
+    inl (x : S1)
+  | inr (x : S1)
+  | push (x y : S1) <i> [ (i=0) -> inl x , (i=1) -> inr (rot y x) ]
+
+tee1 : (x : S2) -> Hopf x -> PreTotalHopf = split
+  base2 -> (\ (y : S1) -> b y)
+  loop2 @ i j -> (\ (y : Hopf (loop2{S2} @ i @ j)) ->
+        hcomp PreTotalHopf
+             (l{PreTotalHopf} (transGen (<l> square @ (-l /\ i) @ (-l /\ j)) 0 y) @ i @ j)
+             [ (i=0) -> <k> b y
+             , (i=1) -> <k> b (transGen (<l> square @ (i /\ (l \/ k)) @ (j /\ (l \/ k))) 0
+                                (transGen (<l> square @ (i /\ (-l \/ k)) @ (j /\ (-l \/ k))) 0 y))
+             , (j=0) -> <k> b y
+             , (j=1) -> <k> b (transGen (<l> square @ (i /\ (l \/ k)) @ (j /\ (l \/ k))) 0
+                                (transGen (<l> square @ (i /\ (-l \/ k)) @ (j /\ (-l \/ k))) 0 y))
+             ])
+
+a (x : S1) : S1 = hcomp S1 (hcomp S1 x []) []
+aeq (x : S1) : Path S1 (a x) x = <k> transGen (<l> square @ (k \/ l) @ l) 0 x
+
+side1 (x : S1) : Square S1 x (a x) x x (<j> transGen (<l> square @ l @ (l /\ j)) 0 x)
+                                       (<_> x)
+                                       (<_> x)
+                                       (aeq x) =
+  <j> <k> transGen (<l> square @ (l \/ k) @ (l /\ j)) 0 x
+
+side2 (x : S1) : Square S1 x (a x) x x (<i> transGen (<l> square @ (l /\ i) @ l) 0 x)
+                                       (<i> rot (loop @ i) x)
+                                       (<_> x)
+                                       (aeq x) =
+  <i> <j> hfill S1 (hfill S1 (rotLoop x @ (i /\ j)) [ (i = 0) -> <_> x ] @ -j) [ (i = 0) -> <_> x ] @ -j
+
+tee2 : PreTotalHopf -> PostTotalHopf = split
+  b x -> b x
+  l x @ i j -> hcomp PostTotalHopf (l{PostTotalHopf} x @ i @ j)
+                     [ (i=0) -> <_> b x
+                     , (i=1) -> <k> b (side1 x @ j @ -k)
+                     , (j=0) -> <_> b x
+                     , (j=1) -> <k> b (side2 x @ i @ -k)]
+
+tee3 : PostTotalHopf -> AlmostJoinS1S1 = split
+  b x -> inr x
+  l x @ i j -> hcomp AlmostJoinS1S1 (push{AlmostJoinS1S1} x (loop @ i) @ j)
+                     [ (i=0) -> <k> push {AlmostJoinS1S1} x base1 @ (j \/ k)
+                     , (i=1) -> <k> push {AlmostJoinS1S1} x base1 @ (j \/ k)
+                     , (j=0) -> <k> push {AlmostJoinS1S1} x base1 @ k
+                     , (j=1) -> <_> inr (rot (loop @ i) x)]
+
+tee4 : AlmostJoinS1S1 -> join S1 S1 = split
+  inl x -> inr x
+  inr y -> inl y
+  push x y @ i -> push{join S1 S1} (rot y x) x @ -i
+
+tee : (x : S2) -> (Hopf x -> join S1 S1) = \(x : S2) (y : Hopf x) -> tee4 (tee3 (tee2 (tee1 x y)))
 
 -- s2tosusps1 : S2 -> susp S1 = split
 --   base2 -> north
@@ -678,17 +752,17 @@ funDepTr (A : U) (P : A -> U) (a0 a1 : A) (p : Path A a0 a1) (u0 : P a0) (u1 : P
                 (Path (P a1) (subst A P a0 a1 p u0) u1) =
   <j> PathP (<i> P (p @ j \/ i)) (transGen (<i> P (p @ j /\ i)) (-j) u0) u1
 
--- truncFibOmega (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B))
---   (tr : inhOrTrunc (P (pt B)) (suc n)) (p : (Omega B).1) : inhOrTrunc (fibOmega B P f p) n =
---   let trf : inhOrTrunc (Path (P B.2) (subst B.1 P (pt B) (pt B) p f) f) n =
---         tr (subst B.1 P (pt B) (pt B) p f) f
---       eq : Path U (Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f)
---                   (PathP (<i> P (p @ i)) f f) =
---                     <i> funDepTr B.1 P (pt B) (pt B) p f f @ -i
---   in subst U (\(X : U) -> inhOrTrunc X n)
---              (Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f)
---              (PathP (<i> P (p @ i)) f f)
---              eq trf
+truncFibOmega (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B))
+  (tr : inhOrTrunc (P (pt B)) (suc n)) (p : (Omega B).1) : inhOrTrunc (fibOmega B P f p) n =
+  let trf : inhOrTrunc (Path (P B.2) (subst B.1 P (pt B) (pt B) p f) f) n =
+        tr (subst B.1 P (pt B) (pt B) p f) f
+      eq : Path U (Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f)
+                  (PathP (<i> P (p @ i)) f f) =
+                    <i> funDepTr B.1 P (pt B) (pt B) p f f @ -i
+  in subst U (\(X : U) -> inhOrTrunc X n)
+             (Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f)
+             (PathP (<i> P (p @ i)) f f)
+             eq trf
 
 -- alternative attempt:
 
@@ -1404,23 +1478,28 @@ setLoop (p q : loopS1) (r s : Path loopS1 p q) : Path (Path loopS1 p q) r s =
 
 -- We actually never need the full isGroupoidS1 as setLoop suffices!
 
--- lemPropFib (P : S1 -> U) (pP : (x : S1) -> prop (P x)) (bP : P base1) : (x : S1) -> P x = split
---  base1 -> bP
---  loop1 @ i -> lemPropF S1 P pP base1 base1 loop bP bP @ i
+lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a0 a1 :A)
+         (p : Path A a0 a1) (b0 : P a0) (b1 : P a1) : PathP (<i> P (p @ i)) b0 b1 =
+  <i> pP (p @ i) (transGen (<j> P (p @ i /\ j)) (-i) b0)
+                 (transGen (<j> P (p @ i \/ -j)) i b1) @ i
 
--- isGroupoidS1 : groupoid S1 = lem
---  where
---   lem2 : (y : S1) -> set (Path S1 base1 y)
---     = lemPropFib (\(y : S1) -> set (Path S1 base1 y)) (\(y : S1) -> setIsProp (Path S1 base1 y)) setLoop
+lemPropFib (P : S1 -> U) (pP : (x : S1) -> prop (P x)) (bP : P base1) : (x : S1) -> P x = split
+ base1 -> bP
+ loop1 @ i -> lemPropF S1 P pP base1 base1 loop bP bP @ i
 
---   lem : (x y : S1) -> set (Path S1 x y)
---    = lemPropFib (\(x : S1) -> (y : S1) -> set (Path S1 x y)) pP lem2
---      where
---        pP (x : S1) : prop ((y : S1) -> set (Path S1 x y)) =
---         propPi S1 (\(y : S1) -> set (Path S1 x y)) (\(y : S1) -> setIsProp (Path S1 x y))
+isGroupoidS1 : groupoid S1 = lem
+ where
+  lem2 : (y : S1) -> set (Path S1 base1 y)
+    = lemPropFib (\(y : S1) -> set (Path S1 base1 y)) (\(y : S1) -> setIsProp (Path S1 base1 y)) setLoop
+
+  lem : (x y : S1) -> set (Path S1 x y)
+   = lemPropFib (\(x : S1) -> (y : S1) -> set (Path S1 x y)) pP lem2
+     where
+       pP (x : S1) : prop ((y : S1) -> set (Path S1 x y)) =
+        propPi S1 (\(y : S1) -> set (Path S1 x y)) (\(y : S1) -> setIsProp (Path S1 x y))
 
 one : nat = suc zero
--- two : nat = suc one
+two : nat = suc one
 
 -- alternative approach:
 -- temp1' : inhOrTrunc (HopfTwo' (<_ _> base2)) one =
@@ -1459,6 +1538,12 @@ arg4 (p : (Omega3 S2pt).1) : Path loopS1 (<_> base1) (transGen (<_> loopS1) 0 (<
   --                , (j = 0) -> <_> base1
   --                , (j = 1) -> <_> base1 ]
 
+
+fibContrHopfThree (p : (Omega3 S2pt).1) : HopfThree p =
+  truncFibOmega zero (Omega2 S2pt) HopfTwo (<_ _> base1)
+    (truncFibOmega one (Omega S2pt) HopfOne (<_> base1)
+      (truncFibOmega two S2pt Hopf base1 isGroupoidS1 (<_> base2)) (<_ _> base2)) p
+
 fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p =
   setLoop (<_> base1)
           (transGen (<_> loopS1) 0 (<_> base1))
@@ -1480,14 +1565,10 @@ fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p =
 
 -- -- end of alternative approach
 
-
--- t : (x : S2) -> (Hopf x -> join S1 S1) = split
---   base2 -> \(a : S1) -> inl a
---   loop2 @ i j -> \(a : Hopf (loop2{S2} @ i @ j)) ->
-
 -- The map h from 9.3
 h (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 = undefined
---  <i j k> t (p @ i @ j @ k) (fibContrHopfThree' p @ i @ j @ k)
+-- it was the following with fibContrHopfThree (not primed):
+--  <i j k> tee (p @ i @ j @ k) (fibContrHopfThree' p @ i @ j @ k)
 
 
 --------------------------------------------------------------------------------
@@ -1776,11 +1857,6 @@ multTwo : S2 -> S2 -> trS2 = split
 
 multTwoTilde (x : S2) : trS2 -> trS2 =
   g2TruncRec S2 trS2 trS2Trunc (multTwo x)
-
-lemPropF (A : U) (P : A -> U) (pP : (x : A) -> prop (P x)) (a0 a1 :A)
-         (p : Path A a0 a1) (b0 : P a0) (b1 : P a1) : PathP (<i> P (p @ i)) b0 b1 =
-  <i> pP (p @ i) (transGen (<j> P (p @ i /\ j)) (-i) b0)
-                 (transGen (<j> P (p @ i \/ -j)) i b1) @ i
 
 lemPropS2 (P : S2 -> U) (pP : (x : S2) -> prop (P x)) (pB : P base2) : (x : S2) -> P x = split
     base2 -> pB

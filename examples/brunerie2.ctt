@@ -1113,9 +1113,6 @@ contr (y : Z) (y' : fiber Z Z sucZ y) : Path ((x : Z) * Path Z y (sucZ x)) (ctr 
           gengoal Z ZSet y (sucZ (predZ y)) prf2 (sucZ y'.1) prf1 y'.2
     in <i> (p1 @ i,p2 @ i)
 
--- This doesn't sem to affect "fibContrHopfThree' (<_ _ _> base2)"...
--- opaque contr
-
 equivSucZ : isEquiv Z Z sucZ = \(y : Z) -> (ctr y,contr y)
 
 sucPathZ : Path U Z Z = ua Z Z (sucZ,equivSucZ)
@@ -1467,7 +1464,6 @@ decodeEncodeRefl : Path loopS1 (decode base1 (encode base1 (<_> base1))) (<_> ba
 -- -- This calls decodeEncode 12 times
 -- setLoop' : set loopS1 = retractSet loopS1 Z (encode base1) (decode base1) (decodeEncode base1) ZSet
 
-
 -- This direct proof only calls decodeEncode 4 times:
 setLoop (p q : loopS1) (r s : Path loopS1 p q) : Path (Path loopS1 p q) r s =
   let f : loopS1 -> Z = encode base1
@@ -1477,8 +1473,6 @@ setLoop (p q : loopS1) (r s : Path loopS1 p q) : Path (Path loopS1 p q) r s =
                         , (i = 1) -> decodeEncode base1 q
                         , (j = 0) -> decodeEncode base1 (r @ i)
                         , (j = 1) -> decodeEncode base1 (s @ i) ]
-
---  setLoop (<i> hcomp S1 base1 [ (i = 0) -> <_> base1, (i = 1) -> <_> base1 ]) (<_> base1)
 
 -- We actually never need the full isGroupoidS1 as setLoop suffices!
 
@@ -1505,42 +1499,16 @@ isGroupoidS1 : groupoid S1 = lem
 one : nat = suc zero
 two : nat = suc one
 
--- alternative approach:
--- temp1' : inhOrTrunc (HopfTwo' (<_ _> base2)) one =
---   truncFibOmega' one (Omega S2pt) HopfOne' (<_> base1) setLoop (<_ _> base2)
-  -- = setLoop (<_> base1) (transGen (<i> (HopfOne' (<_> base2))) 0 (<_> base1))
-
 -- Obsolete now
 -- -- I hardcode this as the smallest thing possible. The fact that we
 -- -- are calling setLoop with refl should make it possible to simplify
 -- -- it even further as decodeEncode with refl is proved by refl.
-
-arg3 (p : (Omega3 S2pt).1) : Path loopS1 (<_> base1) (<_> base1) =
-  <j k> transGen (<l> Hopf (p @ j @ k @ l)) 0 base1
 
 arg4 (p : (Omega3 S2pt).1) : Path loopS1 (<_> base1) (transGen (<_> loopS1) 0 (<_> base1)) =
   transGen (<i> Path loopS1 (<_> base1)
                             (transGen (<j> Path S1 base1 (transGen (<k> Hopf (p @ i @ j @ k)) 0 base1))
                                       0 (<_> base1)))
            0 (<i> hfill loopS1 (<_> base1) [] @ i)
-  -- Unfolded:
-  -- <i j> hcomp S1 (hcomp S1 (hcomp S1 base1 [ (i = 0) -> <_> base1
-  --                                          , (j = 0) -> <_> base1
-  --                                          , (j = 1) -> <_> base1 ])
-  --                          [ (j = 0) -> <_> base1
-  --                          , (j = 1) -> <_> base1 ])
-  --                [ (i = 0) -> <k> hcomp S1 base1 [ (j = 0) -> <_> base1
-  --                                                , (j = 1) -> <_> base1
-  --                                                , (k = 1) -> <_> base1 ]
-  --                , (i = 1) -> <k> hcomp S1 (hcomp S1 base1 [ (j = 0) -> <_> base1
-  --                                                          , (j = 1) -> <l> arg3 p @ k @ l ])
-  --                                                [ (j = 0) -> <_> base1
-  --                                                , (j = 1) -> <_> base1
-  --                                                , (k = 1) -> <_> hcomp S1 base1 [ (j = 0) -> <_> base1
-  --                                                                                , (j = 1) -> <_> base1 ]
-  --                                                ]
-  --                , (j = 0) -> <_> base1
-  --                , (j = 1) -> <_> base1 ]
 
 
 fibContrHopfThree (p : (Omega3 S2pt).1) : HopfThree p =
@@ -1562,17 +1530,6 @@ fibContrHopfThree'' (p : (Omega3 S2pt).1) : HopfThree'' p =
           (<_ _> base1)
           (<i j> transGen (<k> Hopf (p @ i @ j @ k)) 0 base1)
 
--- > :n temp1'
--- Time: 0m1.875s
--- temp1' : inhOrTrunc (HopfTwo' (<_ _> base2)) one =
---   truncFibOmega' one (Omega S2pt) HopfOne' (ptFibOmega' S2pt Hopf base1) setLoop (<_ _> base2)
-
--- > fibContrHopfThree' (<_ _ _> base2)
--- Time: 0m8.185s
--- fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p =
---   truncFibOmega' zero (Omega2 S2pt) HopfTwo' point temp1' p
---    where
---    point : HopfTwo' (pt (Omega2 S2pt)) = ptItFibOmega2' S2pt Hopf base1
 
 -- -- end of alternative approach
 
@@ -2290,23 +2247,6 @@ f4 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S2pt).1 =
 
 test0To4 : (Omega3 S2pt).1 = f4 test0To3
 
-test0To4_smaller : (Omega3 S2pt).1 = <i j k>
- hcomp S2 (hcomp S2 (hcomp S2 (loop2 {S2} @ j @ k)
-                             [ (k = 0) -> <_> base2
-                             , (k = 1) -> <l> loop2 {S2} @ i @ l ])
-                   [ (i = 0) -> <l> hcomp S2 (loop2 {S2} @ (j /\ -l) @ k) [ (k = 0) -> <_> base2, (k = 1) -> <_> base2 ]
-                   , (i = 1) -> <l> hcomp S2 (loop2 {S2} @ (j /\ -l) @ k) [ (k = 0) -> <_> base2, (k = 1) -> <m> loop2 {S2} @ -l @ m ]
-                   , (j = 0) -> <l> hcomp S2 base2 [ (k = 0) -> <_> base2, (k = 1) -> <m> loop2 {S2} @ (i /\ -l) @ m ]
-                   , (j = 1) -> <l> hcomp S2 (loop2 {S2} @ -l @ k) [ (k = 0) -> <_> base2, (k = 1) -> <m> loop2 {S2} @ (i /\ -l) @ m ]
-                   , (k = 0) -> <l> base2
-                   , (k = 1) -> <l> base2 ])
-         [ (i = 0) -> <l> hcomp S2 base2 [ (k = 0) -> <_> base2, (k = 1)(l = 0) -> <_> base2, (l = 1) -> <_> base2 ]
-         , (i = 1) -> <l> hcomp S2 base2 [ (k = 0) -> <_> base2, (k = 1)(l = 0) -> <_> base2, (l = 1) -> <_> base2 ]
-         , (j = 0) -> <l> hcomp S2 base2 [ (k = 0) -> <_> base2, (k = 1)(l = 0) -> <_> base2, (l = 1) -> <_> base2 ]
-         , (j = 1) -> <l> hcomp S2 base2 [ (k = 0) -> <_> base2, (k = 1)(l = 0) -> <_> base2, (l = 1) -> <_> base2 ]
-         , (k = 0) -> <_> base2
-         , (k = 1) -> <l> hcomp S2 base2 [ (l = 0) -> <_> base2, (l = 1) -> <_> base2 ] ]
-
 -- Part of test0To5
 -- testFibContrHopf3 : HopfThree' test0To4 = fibContrHopfThree' test0To4
 testFibContrHopf3refl : HopfThree' (<_ _ _> base2) = fibContrHopfThree' (<_ _ _> base2)
@@ -2320,7 +2260,6 @@ foo : (Omega3 S2pt).1 = <i j k> hcomp S2 base2 [ (i=0) -> <l> loop2{S2} @ l @ l
                                                ]
                                                
 testFibContrHopf3foo : HopfThree' foo = fibContrHopfThree' foo
-
 
 f5 : (Omega3 S2pt).1 -> (Omega3 (joinpt S1pt S1)).1 = h
 
@@ -2352,12 +2291,6 @@ testShortcut4To5 : Z = f11 (f10 (f9 (f8 (f7 (f6 (f3 test0To2))))))
 testShortcutf11 : Z = f11 (f10 (sinc (<i j> loop2{S2} @ i @ j)))
 testShortcutf11' : Z = f11 (f10 (f9 (<i> ginc (<j> loop2{S2} @ i @ j))))
 testShortcutf11'' : Z = f11 (f10 (f9 (f8 (<i j> g2inc (loop2{S2} @ i @ j)))))
-
-
--- opaque ZSet
--- opaque decodeEncode
--- opaque encode
--- opaque decode
 
 
 -- attempts to compute parts of fibContrHopfThree':
@@ -2395,12 +2328,11 @@ bsq (p : (Omega3 S2pt).1) :
    ZSet (pos zero) (pos zero) (<_> pos zero) (arg4' p)
 
 
-fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p = 
-  setLoop (<_> base1)
-          (transGen (<_> loopS1) 0 (<_> base1))
-          (<i> hfill loopS1 (<_> base1) [] @ i)
-          (arg4 p)
-
+-- fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p = 
+--   setLoop (<_> base1)
+--           (transGen (<_> loopS1) 0 (<_> base1))
+--           (<i> hfill loopS1 (<_> base1) [] @ i)
+--           (arg4 p)
   -- Unfolded version:
   -- <i j k> hcomp S1 (decode base1 (bsq p @ i @ j) @ k)
   --             [ (i = 0) -> <l> decodeEncode base1 (<m> hcomp S1 base1 [ (j = 0) -> <_> base1
@@ -2413,11 +2345,6 @@ fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p =
   --             , (k = 0) -> <_> base1
   --             , (k = 1) -> <_> base1 ]
 
--- opaque arg4'
--- opaque arg4
--- opaque Hopf
--- opaque bsq
-
 -- This path does not terminate. The innermost transGen does though
 problem : Path Z (pos zero) (pos zero) =
   <i> transGen (<j> helix (transGen (<k> Hopf (test0To4 @ i @ j @ k)) 0 base1)) 0 (pos zero)
@@ -2427,6 +2354,3 @@ problempath : Path U (helix (transGen (<k> Hopf (test0To4 @ k @ 0 @ k)) 0 base1)
                      (helix (transGen (<k> Hopf (test0To4 @ k @ 1 @ k)) 0 base1)) =
               <j> helix (transGen (<k> Hopf (test0To4 @ k @ j @ k)) 0 base1)
 
-
--- :n fibContrHopfThree' test0To4
--- Time: 9m45.741s

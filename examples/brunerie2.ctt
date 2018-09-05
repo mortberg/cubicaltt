@@ -759,10 +759,7 @@ truncFibOmega (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B))
       eq : Path U (Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f)
                   (PathP (<i> P (p @ i)) f f) =
                     <i> funDepTr B.1 P (pt B) (pt B) p f f @ -i
-  in subst U (\(X : U) -> inhOrTrunc X n)
-             (Path (P (pt B)) (subst B.1 P (pt B) (pt B) p f) f)
-             (PathP (<i> P (p @ i)) f f)
-             eq trf
+  in transGen (<i> inhOrTrunc (eq @ i) n) 0 trf
 
 -- alternative attempt:
 
@@ -1488,13 +1485,16 @@ lemPropFib (P : S1 -> U) (pP : (x : S1) -> prop (P x)) (bP : P base1) : (x : S1)
 isGroupoidS1 : groupoid S1 = lem
  where
   lem2 : (y : S1) -> set (Path S1 base1 y)
-    = lemPropFib (\(y : S1) -> set (Path S1 base1 y)) (\(y : S1) -> setIsProp (Path S1 base1 y)) setLoop
+    = lemPropFib (\(y : S1) -> set (Path S1 base1 y))
+                 (\(y : S1) -> setIsProp (Path S1 base1 y))
+                 setLoop
 
   lem : (x y : S1) -> set (Path S1 x y)
    = lemPropFib (\(x : S1) -> (y : S1) -> set (Path S1 x y)) pP lem2
      where
        pP (x : S1) : prop ((y : S1) -> set (Path S1 x y)) =
-        propPi S1 (\(y : S1) -> set (Path S1 x y)) (\(y : S1) -> setIsProp (Path S1 x y))
+        propPi S1 (\(y : S1) -> set (Path S1 x y))
+                  (\(y : S1) -> setIsProp (Path S1 x y))
 
 one : nat = suc zero
 two : nat = suc one
@@ -1504,17 +1504,70 @@ two : nat = suc one
 -- -- are calling setLoop with refl should make it possible to simplify
 -- -- it even further as decodeEncode with refl is proved by refl.
 
+fibContrHopfThree (p : (Omega3 S2pt).1) : HopfThree p =
+  truncFibOmega zero (Omega2 S2pt) HopfTwo (<_ _> base1)
+    (truncFibOmega one (Omega S2pt) HopfOne (<_> base1)
+      (truncFibOmega two S2pt Hopf base1 isGroupoidS1 (<_> base2)) (<_ _> base2)) p
+
+fibContrHopfThree_unfolded (p : (Omega3 S2pt).1) : HopfThree p =
+  let p1 : inhOrTrunc loopS1 two =
+--          truncFibOmega two S2pt Hopf base1 isGroupoidS1 (<_> base2)
+            setLoop
+
+      p2 : inhOrTrunc (Path loopS1 (<_> base1) (<_> base1)) one =
+             truncFibOmega one (Omega S2pt) HopfOne (<_> base1) p1 (<_ _> base2)
+
+      -- unfolded p2
+      p2' : (x y : Path loopS1 (<_> base1) (<_> base1)) ->
+            Path (Path loopS1 (<_> base1) (<_> base1)) x y =
+            transGen (<i> (x y : Path loopS1 (<j> hcomp S1 base1 [ (i=1) -> <_> base1
+                                                                 , (j=0) -> <_> base1
+                                                                 , (j=1) -> <_> base1 ])
+                                             (<_> base1)) ->
+                          Path (Path loopS1 (<j> hcomp S1 base1 [ (i=1) -> <_> base1
+                                                                , (j=0) -> <_> base1
+                                                                , (j=1) -> <_> base1 ])
+                                            (<_> base1)) x y) 0
+                    (setLoop (<k> hcomp S1 base1 [ (k=0) -> <_> base1
+                                                 , (k=1) -> <_> base1 ])
+                             (<_> base1))
+
+      p3 : fibOmega (Omega2 S2pt) HopfTwo (<_ _> base1) p =
+        truncFibOmega zero (Omega2 S2pt) HopfTwo (<_ _> base1) p2 p
+
+      -- Unfolded version of p3
+      p3' : PathP (<i> PathP (<j> PathP (<k> Hopf (p @ i @ j @ k)) base1 base1) (<_> base1) (<_> base1)) (<_ _> base1) (<_ _> base1) =
+        <i j k> hcomp (Hopf (p @ i @ j @ k))
+                      (transGen (<l> Hopf (p @ (i \/ -l) @ j @ k)) 0
+                                (p2 (<m n> hcomp S1 (transGen (<i2> Hopf (p @ i2 @ m @ n)) 0 base1)
+                                                    [ (m=0) -> <_> base1
+                                                    , (m=1) -> <_> base1
+                                                    , (n=0) -> <_> base1
+                                                    , (n=1) -> <_> base1 ])
+                                    (<_ _> base1) @ i @ j @ k))
+                      [ (i=0) -> <m> transGen (<l> Hopf (p @ (-l /\ -m) @ j @ k)) m
+                                              (hcomp (Hopf (p @ -m @ j @ k))
+                                                     (transGen (<n> Hopf (p @ (-m /\ n) @ j @ k)) 0 base1)
+                                                     [ (j=0) -> <_> base1
+                                                     , (j=1) -> <_> base1
+                                                     , (k=0) -> <_> base1
+                                                     , (k=1) -> <_> base1
+                                                     , (m=1) -> <_> base1 ])
+                      , (i=1) -> <_> base1
+                      , (j=0) -> <_> base1
+                      , (j=1) -> <_> base1
+                      , (k=0) -> <_> base1
+                      , (k=1) -> <_> base1 ]
+
+
+  in p3'
+
+
 arg4 (p : (Omega3 S2pt).1) : Path loopS1 (<_> base1) (transGen (<_> loopS1) 0 (<_> base1)) =
   transGen (<i> Path loopS1 (<_> base1)
                             (transGen (<j> Path S1 base1 (transGen (<k> Hopf (p @ i @ j @ k)) 0 base1))
                                       0 (<_> base1)))
            0 (<i> hfill loopS1 (<_> base1) [] @ i)
-
-
-fibContrHopfThree (p : (Omega3 S2pt).1) : HopfThree p =
-  truncFibOmega zero (Omega2 S2pt) HopfTwo (<_ _> base1)
-    (truncFibOmega one (Omega S2pt) HopfOne (<_> base1)
-      (truncFibOmega two S2pt Hopf base1 isGroupoidS1 (<_> base2)) (<_ _> base2)) p
 
 fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p =
   -- setLoop (<_> base1)

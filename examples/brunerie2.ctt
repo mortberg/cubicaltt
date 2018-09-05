@@ -1517,7 +1517,7 @@ fibContrHopfThree_unfolded (p : (Omega3 S2pt).1) : HopfThree p =
       p2 : inhOrTrunc (Path loopS1 (<_> base1) (<_> base1)) one =
              truncFibOmega one (Omega S2pt) HopfOne (<_> base1) p1 (<_ _> base2)
 
-      -- unfolded p2
+      -- unfolded p2... Why is this so complicated???
       p2' : (x y : Path loopS1 (<_> base1) (<_> base1)) ->
             Path (Path loopS1 (<_> base1) (<_> base1)) x y =
             transGen (<i> (x y : Path loopS1 (<j> hcomp S1 base1 [ (i=1) -> <_> base1
@@ -1532,14 +1532,18 @@ fibContrHopfThree_unfolded (p : (Omega3 S2pt).1) : HopfThree p =
                                                  , (k=1) -> <_> base1 ])
                              (<_> base1))
 
+      -- The following should work!
+      p2'' : (x y : Path loopS1 (<_> base1) (<_> base1)) ->
+            Path (Path loopS1 (<_> base1) (<_> base1)) x y = setLoop (<_> base1) (<_> base1)
+
       p3 : fibOmega (Omega2 S2pt) HopfTwo (<_ _> base1) p =
-        truncFibOmega zero (Omega2 S2pt) HopfTwo (<_ _> base1) p2 p
+        truncFibOmega zero (Omega2 S2pt) HopfTwo (<_ _> base1) p2'' p
 
       -- Unfolded version of p3
       p3' : PathP (<i> PathP (<j> PathP (<k> Hopf (p @ i @ j @ k)) base1 base1) (<_> base1) (<_> base1)) (<_ _> base1) (<_ _> base1) =
         <i j k> hcomp (Hopf (p @ i @ j @ k))
                       (transGen (<l> Hopf (p @ (i \/ -l) @ j @ k)) 0
-                                (p2 (<m n> hcomp S1 (transGen (<i2> Hopf (p @ i2 @ m @ n)) 0 base1)
+                                (p2'' (<m n> hcomp S1 (transGen (<o> Hopf (p @ o @ m @ n)) 0 base1)
                                                     [ (m=0) -> <_> base1
                                                     , (m=1) -> <_> base1
                                                     , (n=0) -> <_> base1

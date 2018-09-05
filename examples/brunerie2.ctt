@@ -830,6 +830,10 @@ HopfThree'  (p : (Omega3 S2pt).1) : U = Path (HopfTwo' (<_ _> base2))
                                                      HopfTwo'pt    (transGen (<k> HopfTwo' (p @ k)) 0 HopfTwo'pt)
 
 
+-- Hardcode the simplest thing possible:
+HopfThree''  (p : (Omega3 S2pt).1) : U =
+  Path (Path loopS1 (<_> base1) (<_> base1)) (<_ _> base1)  (<i j> transGen (<k> Hopf (p @ i @ j @ k)) 0 base1)
+
 -- This is now trivial!
 truncFibOmega' (n : nat) (B : ptType) (P : B.1 -> U) (f : P (pt B))
   (tr : inhOrTrunc (P (pt B)) (suc n)) (p : (Omega B).1) : inhOrTrunc (fibOmega' B P f p) n = tr f (subst B.1 P (pt B) (pt B) p f)
@@ -1552,6 +1556,11 @@ fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p =
   truncFibOmega' zero (Omega2 S2pt) HopfTwo' HopfTwo'pt
     (truncFibOmega' one (Omega S2pt) HopfOne' (<_> base1) setLoop (<_ _> base2)) p
 
+fibContrHopfThree'' (p : (Omega3 S2pt).1) : HopfThree'' p =
+  setLoop (<_> base1)
+          (<_> base1)
+          (<_ _> base1)
+          (<i j> transGen (<k> Hopf (p @ i @ j @ k)) 0 base1)
 
 -- > :n temp1'
 -- Time: 0m1.875s

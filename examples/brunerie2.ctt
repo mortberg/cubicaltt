@@ -1545,11 +1545,13 @@ fibContrHopfThree (p : (Omega3 S2pt).1) : HopfThree p =
       (truncFibOmega two S2pt Hopf base1 isGroupoidS1 (<_> base2)) (<_ _> base2)) p
 
 fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p =
-  setLoop (<_> base1)
-          (transGen (<_> loopS1) 0 (<_> base1))
-          (<i> hfill loopS1 (<_> base1) [] @ i)
-          (arg4 p)
-  -- truncFibOmega' zero (Omega2 S2pt) HopfTwo' HopfTwo'pt temp1' p
+  -- setLoop (<_> base1)
+  --         (transGen (<_> loopS1) 0 (<_> base1))
+  --         (<i> hfill loopS1 (<_> base1) [] @ i)
+  --         (arg4 p)
+  truncFibOmega' zero (Omega2 S2pt) HopfTwo' HopfTwo'pt
+    (truncFibOmega' one (Omega S2pt) HopfOne' (<_> base1) setLoop (<_ _> base2)) p
+
 
 -- > :n temp1'
 -- Time: 0m1.875s

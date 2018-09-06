@@ -295,6 +295,46 @@ goalcube' : Path (Path (Path (join S1 S1)
                 ]
 
 
+-- Inspired by Evan's redtt code
+goalcube'' : Path (Path (Path (join S1 S1)
+                            (inl base1) (inl base1))
+                      (<_> inl base1) (<_> inl base1))
+                (<_ _> inl base1) (<_ _> inl base1) =
+  <i j k> hcomp (join S1 S1)
+                (pushP S1 S1 (loop @ j) (loop @ k) @ i)
+                [
+                  (i=0) -> facek01 @ 1 @ j
+                , (i=1) -> <m> pushP S1 S1 base1 (loop @ k) @ -m
+                , (j=0) -> <m> pushP S1 S1 base1 (loop @ k) @ i /\ -m
+                , (j=1) -> <m> pushP S1 S1 base1 (loop @ k) @ i /\ -m
+                , (k=0) -> facek01 @ -i @ j
+                , (k=1) -> facek01 @ -i @ j
+                ]
+
+  where
+  facek01 : PathP (<i> PathP (<j> Path (join S1 S1)
+                                       (pushP S1 S1 (loop @ j) base1 @ -i)
+                                       (inl base1))
+                             (<k> pushP S1 S1 base1 base1 @ -i /\ -k)
+                             (<k> pushP S1 S1 base1 base1 @ -i /\ -k))
+                  (<j k> pushP S1 S1 base1 base1 @ -k)
+                  (<j k> hcomp (join S1 S1)
+                               (pushP S1 S1 base1 base1 @ -k)
+                               [ (j=0) -> <i> pushP S1 S1 base1 base1 @ -i /\ -k
+                               , (j=1) -> <i> pushP S1 S1 base1 base1 @ -i /\ -k
+                               , (k=0) -> <i> pushP S1 S1 (loop @ j) base1 @ -i
+                               , (k=1) -> <_> inl base1
+                               ]) =
+   <i j k> hfill (join S1 S1)
+                 (pushP S1 S1 base1 base1 @ -k)
+                 [ (j=0) -> <i> pushP S1 S1 base1 base1 @ -i /\ -k
+                 , (j=1) -> <i> pushP S1 S1 base1 base1 @ -i /\ -k
+                 , (k=0) -> <i> pushP S1 S1 (loop @ j) base1 @ -i
+                 , (k=1) -> <_> inl base1
+                 ] @ i
+
+
+
 e : S3 -> join S1 S1 = split
   base3 -> inl base1
   loop3 @ i j k -> goalcube' @ i @ j @ k

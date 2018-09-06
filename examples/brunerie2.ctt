@@ -784,9 +784,7 @@ lemTransGen0 (A : U) (a : A) : Path A (transGen0 A a) a =
 --     rem2 : Path A (transGen (<_> A) 0 a) (hcomp A (transGen (<_> A) 0 a) []) =
 --       hfill A (transGen (<_> A) 0 a) []
 -- in compPath A (transGen0 A a) (hcomp A (transGen (<_> A) 0 a) []) a rem2 (<i> rem1 @ -i)
-  <i> hcomp A (hfill A (transGen (<_> A) 0 a) [] @ i)
-           [ (i = 0) -> <_> transGen0 A a
-           , (i = 1) -> <j> fill (<_> A) a [] @ -j ]
+  <i> transGen (<_> A) i a
 
 -- This is a bit weird
 -- lemTransGen0' (A : U) (a : A) : Path A (transGen0 A a) (hcomp A a []) =
@@ -2432,11 +2430,21 @@ abc1 : (Omega3 S3pt).1 = <i j k> hcomp S3 base3
                               , (k = 0) -> <_> base3
                               , (k = 1) -> <_> base3 ]
 
+abc2 : (Omega3 S3pt).1 = <i j k> loop3{S3} @ i @ j @ k
+abc3 : (Omega3 S3pt).1 = <i j k> loop3{S3} @ k @ i @ j
+
 -- Doesn’t contain too many hcomps
 testabc0 : (Omega (gTruncpt (Omega S2pt))).1 = f8 (f7 abc0)
 
 -- Contains about 170000 hcomps (essentially all of them composing reflexivities)
 testabc1 : (Omega (gTruncpt (Omega S2pt))).1 = f8 (f7 abc1)
+
+-- Fast and small (like testabc0)
+testabc2 : (Omega (gTruncpt (Omega S2pt))).1 = f8 (f7 abc2)
+
+-- Slow and big (like testabc1)
+testabc3 : (Omega (gTruncpt (Omega S2pt))).1 = f8 (f7 abc3)
+
 
 -- Various simple tests:
 testShortcutf11 : Z = f11 (f10 (sinc (<i j> loop2{S2} @ i @ j)))

@@ -333,11 +333,41 @@ goalcube'' : Path (Path (Path (join S1 S1)
                  , (k=1) -> <_> inl base1
                  ] @ i
 
+-- normal form of Evan's cube
+ngoalcube'' : Path (Path (Path (join S1 S1)
+                            (inl base1) (inl base1))
+                      (<_> inl base1) (<_> inl base1))
+                (<_ _> inl base1) (<_ _> inl base1) =
+  <i j k> hcomp (join S1 S1)
+              (pushP S1 S1 (loop @ j) (loop @ k) @ i)
+              [ (i = 0) -> <l> hcomp (join S1 S1)
+                                     (pushP S1 S1 base1 base1 @ -l)
+                                     [ (j = 0) -> <m> pushP S1 S1 base1 base1 @ (-m /\ -l)
+                                     , (j = 1) -> <m> pushP S1 S1 base1 base1 @ (-m /\ -l)
+                                     , (l = 0) -> <m> pushP S1 S1 (loop @ j) base1 @ -m
+                                     , (l = 1) -> <m> inl base1 ]
+              , (i = 1) -> <l> pushP S1 S1 base1 (loop @ k) @ -l
+              , (j = 0) -> <l> pushP S1 S1 base1 (loop @ k) @ (i /\ -l)
+              , (j = 1) -> <l> pushP S1 S1 base1 (loop @ k) @ (i /\ -l)
+              , (k = 0) -> <l> hcomp (join S1 S1)
+                                     (pushP S1 S1 base1 base1 @ -l)
+                                     [ (i = 1) -> <m> pushP S1 S1 base1 base1 @ -l
+                                     , (j = 0) -> <m> pushP S1 S1 base1 base1 @ ((i \/ -m) /\ -l)
+                                     , (j = 1) -> <m> pushP S1 S1 base1 base1 @ ((i \/ -m) /\ -l)
+                                     , (l = 0) -> <m> pushP S1 S1 (loop @ j) base1 @ (i \/ -m)
+                                     , (l = 1) -> <m> inl base1 ]
+              , (k = 1) -> <l> hcomp (join S1 S1)
+                                     (pushP S1 S1 base1 base1 @ -l)
+                                     [ (i = 1) -> <m> pushP S1 S1 base1 base1 @ -l
+                                     , (j = 0) -> <m> pushP S1 S1 base1 base1 @ ((i \/ -m) /\ -l)
+                                     , (j = 1) -> <m> pushP S1 S1 base1 base1 @ ((i \/ -m) /\ -l)
+                                     , (l = 0) -> <m> pushP S1 S1 (loop @ j) base1 @ (i \/ -m)
+                                     , (l = 1) -> <m> inl base1 ] ]
 
 
 e : S3 -> join S1 S1 = split
   base3 -> inl base1
-  loop3 @ i j k -> goalcube' @ i @ j @ k
+  loop3 @ i j k -> goalcube'' @ i @ j @ k
 
 eInvAux2 : S1 -> Path (Path S3 base3 base3) (<_> base3) (<_> base3) = split
   base1 -> <_ _> base3

@@ -66,7 +66,7 @@ type Face = Map Name Dir
 --   arbitrary = fromList <$> arbitrary
 
 showFace :: Face -> String
-showFace alpha = concat [ "(" ++ show i ++ " = " ++ show d ++ ")"
+showFace alpha = concat [ "(" ++ show i ++ "=" ++ show d ++ ")"
                         | (i,d) <- toList alpha ]
 
 swapFace :: Face -> (Name,Name) -> Face
@@ -427,14 +427,8 @@ face x f = faceloop x (assocs f)
 -- the faces should be incomparable
 type System a = Map Face a
 
-showListSystem :: Show a => [(Face,a)] -> String
-showListSystem [] = "[]"
-showListSystem ts =
-  "[ " ++ intercalate ", " [ showFace alpha ++ " -> " ++ show u
-                           | (alpha,u) <- ts ] ++ " ]"
-
-showSystem :: Show a => System a -> String
-showSystem = showListSystem . toList
+-- showSystem :: Show a => System a -> String
+-- showSystem = showListSystem . toList
 
 insertSystem :: Face -> a -> System a -> System a
 insertSystem alpha v ts =

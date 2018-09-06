@@ -100,7 +100,7 @@ getLblType c (Ter (HSum _ _ cas) r) = case lookupLabel c cas of
   Just as -> return (as,r)
   Nothing -> throwError ("getLblType: " ++ show c ++ " in " ++ show cas)
 getLblType c u = throwError ("expected a data type for the constructor "
-                             ++ c ++ " but got " ++ show u)
+                             ++ c ++ " but got " ++ show (showVal u))
 
 -- Monadic version of unless
 unlessM :: Monad m => m Bool -> m () -> m ()
@@ -131,8 +131,8 @@ check a t = case (a,t) of
       rho <- asks env
       let e = unlines (reverse (contextOfEnv rho))
       ns <- asks names
-      trace $ "\nHole at " ++ show l ++ ":\n\n" ++
-              e ++ replicate 80 '-' ++ "\n" ++ show (normal ns a)  ++ "\n"
+      trace $ "\nHole at " ++ show (showLoc l) ++ ":\n\n" ++
+              e ++ replicate 80 '-' ++ "\n" ++ show (showVal (normal ns a))  ++ "\n"
   (_,Con c es) -> do
     (bs,nu) <- getLblType c a
     checks (bs,nu) es
@@ -141,7 +141,7 @@ check a t = case (a,t) of
   (VU,Sum _ _ bs) -> forM_ bs $ \lbl -> case lbl of
     OLabel _ tele -> checkTele tele
     PLabel _ tele is ts ->
-      throwError $ "check: no path constructor allowed in " ++ show t
+      throwError $ "check: no path constructor allowed in " ++ show (showTer t)
   (VU,HSum _ _ bs) -> forM_ bs $ \lbl -> case lbl of
     OLabel _ tele -> checkTele tele
     PLabel _ tele is ts -> do
@@ -180,9 +180,9 @@ check a t = case (a,t) of
     rho <- asks env
     unlessM (a === eval rho a') $
       throwError $ "check: lam types don't match"
-        ++ "\nlambda type annotation: " ++ show a'
-        ++ "\ndomain of Pi: " ++ show a
-        ++ "\nnormal form of type: " ++ show (normal ns a)
+        ++ "\nlambda type annotation: " ++ show (showTer a')
+        ++ "\ndomain of Pi: " ++ show (showVal a)
+        ++ "\nnormal form of type: " ++ show (showVal (normal ns a))
     let var = mkVarNice ns x a
 
     local (addTypeVal (x,a)) $ check (app f var) t
@@ -203,13 +203,13 @@ check a t = case (a,t) of
     let (nu0,nu1) = normal ns (u0,u1)
         (na0,na1) = normal ns (a0,a1)
     unless (conv ns a0 u0) $
-      throwError $ "Left endpoints don't match for \n" ++ show e ++ "\ngot\n" ++
-                   show u0 ++ "\nbut expected\n" ++ show a0 ++
-                   "\n\nNormal forms:\n" ++ show nu0 ++ "\nand\n" ++ show na0
+      throwError $ "Left endpoints don't match for \n" ++ show (showTer e) ++ "\ngot\n" ++
+                   show (showVal u0) ++ "\nbut expected\n" ++ show (showVal a0) ++
+                   "\n\nNormal forms:\n" ++ show (showVal nu0) ++ "\nand\n" ++ show (showVal na0)
     unless (conv ns a1 u1) $
-      throwError $ "Right endpoints don't match for \n" ++ show e ++ "\ngot\n" ++
-                   show u1 ++ "\nbut expected\n" ++ show a1 ++
-                   "\n\nNormal forms:\n" ++ show nu1 ++ "\nand\n" ++ show na1
+      throwError $ "Right endpoints don't match for \n" ++ show (showTer e) ++ "\ngot\n" ++
+                   show (showVal u1) ++ "\nbut expected\n" ++ show (showVal a1) ++
+                   "\n\nNormal forms:\n" ++ show (showVal nu1) ++ "\nand\n" ++ show (showVal na1)
   (VU,Glue a ts) -> do
     check VU a
     rho <- asks env
@@ -243,9 +243,9 @@ check a t = case (a,t) of
     ns <- asks names
     let (nv,na) = normal ns (v,a)
     unlessM (v === a) $
-      throwError $ "The following are not convertible:\n\n" ++ show v ++
-                   "\n/=\n" ++ show a ++ "\n\n\nNormal forms:\n\n" ++
-                   show nv ++ "\n/=\n" ++ show na
+      throwError $ "The following are not convertible:\n\n" ++ show (showVal v) ++
+                   "\n/=\n" ++ show (showVal a) ++ "\n\n\nNormal forms:\n\n" ++
+                   show (showVal nv) ++ "\n/=\n" ++ show (showVal na)
 
 -- Check a list of declarations
 checkDecls :: Decls -> Typing ()
@@ -275,7 +275,7 @@ checkFam :: Ter -> Typing ()
 checkFam (Lam x a b) = do
   check VU a
   local (addType (x,a)) $ check VU b
-checkFam x = throwError $ "checkFam: " ++ show x
+checkFam x = throwError $ "checkFam: " ++ show (showTer x)
 
 -- Check that a system is compatible
 checkCompSystem :: System Val -> Typing ()
@@ -283,9 +283,9 @@ checkCompSystem vus = do
   ns <- asks names
   unless (isCompSystem ns vus)
     (throwError $
-      "Incompatible system " ++ showSystem vus ++
+      "Incompatible system " ++ show (showSystem showVal vus) ++
       ",\nwith incompatible pairs\n" ++
-      (unlines (map show (conflictCompSystem ns vus))))
+      (unlines (map (\(a,b) -> show (showVal a,showVal b)) (conflictCompSystem ns vus))))
 
 -- Check the values at corresponding faces with a function, assumes
 -- systems have the same faces
@@ -301,30 +301,30 @@ checkSystemWith us f = sequence_ $ elems $ mapWithKey f us
 checkGlueElem :: Val -> System Val -> System Ter -> Typing ()
 checkGlueElem vu ts us = do
   unless (keys ts == keys us)
-    (throwError ("Keys don't match in " ++ show ts ++ " and " ++ show us))
+    (throwError ("Keys don't match in " ++ show (showSystem showVal ts) ++ " and " ++ show (showSystem showTer us)))
   rho <- asks env
   checkSystemsWith ts us
     (\alpha vt u -> local (faceEnv alpha) $ check (equivDom vt) u)
   let vus = evalSystem rho us
   checkSystemsWith ts vus (\alpha vt vAlpha ->
     unlessM (app (equivFun vt) vAlpha === (vu `face` alpha)) $
-      throwError $ "Image of glue component " ++ show vAlpha ++
-                   " doesn't match " ++ show vu)
+      throwError $ "Image of glue component " ++ show (showVal vAlpha) ++
+                   " doesn't match " ++ show (showVal vu))
   checkCompSystem vus
 
 -- Check a glueElem against VComp _ ves
 checkGlueElemU :: Val -> System Val -> System Ter -> Typing ()
 checkGlueElemU vu ves us = do
   unless (keys ves == keys us)
-    (throwError ("Keys don't match in " ++ show ves ++ " and " ++ show us))
+    (throwError ("Keys don't match in " ++ show (showSystem showVal ves) ++ " and " ++ show (showSystem showTer us)))
   rho <- asks env
   checkSystemsWith ves us
     (\alpha ve u -> local (faceEnv alpha) $ check (ve @@ One) u)
   let vus = evalSystem rho us
   checkSystemsWith ves vus (\alpha ve vAlpha ->
     unlessM (eqFun ve vAlpha === (vu `face` alpha)) $
-      throwError $ "Transport of glueElem (for compU) component " ++ show vAlpha ++
-                   " doesn't match " ++ show vu)
+      throwError $ "Transport of glueElem (for compU) component " ++ show (showVal vAlpha) ++
+                   " doesn't match " ++ show (showVal vu))
   checkCompSystem vus
 
 checkGlue :: Val -> System Ter -> Typing ()
@@ -390,8 +390,8 @@ checkBranch (PLabel _ tele is ts,nu) f (PBranch c ns js e) g va = do
     let veborder = border ve vts
     unlessM (veborder === vgts) $
       throwError $ "Faces in branch for " ++ show c ++ " don't match:"
-                   ++ "\ngot\n" ++ showSystem veborder ++ "\nbut expected\n"
-                   ++ showSystem vgts
+                   ++ "\ngot\n" ++ show (showSystem showVal veborder) ++ "\nbut expected\n"
+                   ++ show (showSystem showVal vgts)
 
 checkFormula :: Formula -> Typing ()
 checkFormula phi = do
@@ -418,9 +418,9 @@ checkPLam v t = do
   case vt of
     VPathP a a0 a1 -> do
       unlessM (a === v) $ throwError (
-        "checkPLam\n" ++ show v ++ "\n/=\n" ++ show a)
+        "checkPLam\n" ++ show (showVal v) ++ "\n/=\n" ++ show (showVal a))
       return (a0,a1)
-    _ -> throwError $ show vt ++ " is not a path"
+    _ -> throwError $ show (showVal vt) ++ " is not a path"
 
 -- Return system such that:
 --   rhoalpha |- p_alpha : Id (va alpha) (t0 rhoalpha) ualpha
@@ -433,12 +433,12 @@ checkPLamSystem t0 va ps = do
       rhoAlpha <- asks env
       (a0,a1)  <- checkPLam (va `face` alpha) pAlpha
       unlessM (a0 === eval rhoAlpha t0) $
-        throwError $ "Incompatible system " ++ showSystem ps ++
-                     ", component\n " ++ show pAlpha ++
-                     "\nincompatible with\n " ++ show t0 ++
-                     "\na0 = " ++ show a0 ++
-                     "\nt0alpha = " ++ show (eval rhoAlpha t0) ++
-                     "\nva = " ++ show va
+        throwError $ "Incompatible system " ++ show (showSystem showTer ps) ++
+                     ", component\n " ++ show (showTer pAlpha) ++
+                     "\nincompatible with\n " ++ show (showTer t0) ++
+                     "\na0 = " ++ show (showVal a0) ++
+                     "\nt0alpha = " ++ show (showVal (eval rhoAlpha t0)) ++
+                     "\nva = " ++ show (showVal va)
       return a1) ps
   checkCompSystem (evalSystem rho ps)
   return v
@@ -464,19 +464,19 @@ infer e = case e of
         check a u
         v <- evalTyping u
         return $ app f v
-      _       -> throwError $ show c ++ " is not a product"
+      _       -> throwError $ show (showVal c) ++ " is not a product"
   Fst t -> do
     c <- infer t
     case c of
       VSigma a f -> return a
-      _          -> throwError $ show c ++ " is not a sigma-type"
+      _          -> throwError $ show (showVal c) ++ " is not a sigma-type"
   Snd t -> do
     c <- infer t
     case c of
       VSigma a f -> do
         v <- evalTyping t
         return $ app f (fstVal v)
-      _          -> throwError $ show c ++ " is not a sigma-type"
+      _          -> throwError $ show (showVal c) ++ " is not a sigma-type"
   Where t d -> do
     checkDecls d
     local (addDecls d) $ infer t
@@ -491,7 +491,7 @@ infer e = case e of
     t <- infer e
     case t of
       VPathP a _ _ -> return $ a @@ phi
-      _ -> throwError (show e ++ " is not a path")
+      _ -> throwError (show (showTer e) ++ " is not a path")
   HComp a u0 us -> do
     check VU a
     va <- evalTyping a
@@ -516,7 +516,7 @@ infer e = case e of
     mapM_ (\alpha ->
               local (faceEnv alpha) $ do
                 unlessM (va `face` alpha === constPath (va0 `face` alpha)) $
-                  throwError $ show va ++ " not constant on "
+                  throwError $ show (showVal va) ++ " not constant on "
                                ++ show phi ++ " for trans")
       phisys
     check va0 u0
@@ -560,7 +560,7 @@ infer e = case e of
     check (VId va vu vx) p
     vp <- evalTyping p
     return (app (app vc vx) vp)
-  _ -> throwError ("infer " ++ show e)
+  _ -> throwError ("infer " ++ show (showTer e))
 
 -- Not used since we have U : U
 --

@@ -1,5 +1,13 @@
 module Main where
 
+import Data.Text.Prettyprint.Doc
+import Data.Text.Prettyprint.Doc.Render.Text
+
+import Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Text.IO as IO
+import System.IO
+
 import Control.Monad.Reader
 import qualified Control.Exception as E
 import Data.List
@@ -83,8 +91,8 @@ main = do
     (_,_,errs) -> putStrLn $ "Input error: " ++ concat errs ++ "\n" ++
                              usageInfo usage options
 
-shrink :: Bool -> String -> String
-shrink True s = if length s > 100 then take 100 s ++ "..." else s
+shrink :: Bool -> Text -> Text
+-- shrink True s = if length s > 100 then take 100 s ++ "..." else s
 shrink False s = s
 
 -- Initialize the main loop
@@ -154,10 +162,13 @@ loop flags f names tenv = do
                 start <- liftIO getCurrentTime
                 let e = mod $ E.eval (TC.env tenv) body
                 -- Let's not crash if the evaluation raises an error:
-                liftIO $ catch (putStrLn (msg ++ shrink (Shrink `elem` flags) (show e)))
-                               -- (writeFile "examples/nunivalence3.ctt" (show e))
+                -- Use layoutCompact for now, if we want prettier printing use something nicer
+                liftIO $ catch (renderIO stdout (layoutCompact (pretty msg <+> showVal e <+> pretty "\n")))
                                (\e -> putStrLn ("Exception: " ++
-                                                show (e :: SomeException)))
+                                               show (e :: SomeException)))
+
+             
+                -- liftIO $ IO.writeFile "asdf.txt" (renderStrict (layoutPretty defaultLayoutOptions (showVal e)))
                 stop <- liftIO getCurrentTime
                 -- Compute time and print nicely
                 let time = diffUTCTime stop start

@@ -242,7 +242,7 @@ resolveSystem (System ts) = do
   let alphas = map fst ts'
   unless (nub alphas == alphas) $
     throwError $ "system contains same face multiple times: " ++
-                 C.showListSystem ts'
+                 show (CTT.showListSystem CTT.showTer ts')
   -- Note: the symbols in alpha are in scope in u, but they mean 0 or 1
   return $ Map.fromList ts'
 

@@ -6,7 +6,12 @@ import Data.List
 import Data.Maybe
 import Data.Map (Map,(!),filterWithKey,elems)
 import qualified Data.Map as Map
-import Text.PrettyPrint as PP
+
+import Data.Text (Text)
+import qualified Data.Text as T
+import Data.Text.Prettyprint.Doc
+import Data.Text.Prettyprint.Doc.Render.Text
+
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Prelude hiding ((<>))
@@ -18,7 +23,7 @@ import Connections
 
 data Loc = Loc { locFile :: String
                , locPos  :: (Int,Int) }
-  deriving Eq
+  deriving (Show,Eq)
 
 type Ident  = String
 type LIdent = String
@@ -44,7 +49,7 @@ data Decls = MutualDecls Loc [Decl]
            | OpaqueDecl Ident
            | TransparentDecl Ident
            | TransparentAllDecl
-           deriving Eq
+           deriving (Show,Eq)
 
 declIdents :: [Decl] -> [Ident]
 declIdents decls = [ x | (x,_) <- decls ]
@@ -130,7 +135,7 @@ data Ter = Pi Ter
          | Id Ter Ter Ter
          | IdPair Ter (System Ter)
          | IdJ Ter Ter Ter Ter Ter Ter
-  deriving Eq
+  deriving (Show,Eq)
 
 -- For an expression t, returns (u,ts) where u is no application and t = u ts
 unApps :: Ter -> (Ter,[Ter])
@@ -231,7 +236,7 @@ mkVarNice xs x = VVar (head (ys \\ xs))
 
 unCon :: Val -> [Val]
 unCon (VCon _ vs) = vs
-unCon v           = error $ "unCon: not a constructor: " ++ show v
+unCon v           = error $ "unCon: not a constructor: " ++ show (showVal v)
 
 isCon :: Val -> Bool
 isCon VCon{} = True
@@ -253,7 +258,6 @@ data Ctxt = Empty
           | Upd Ident Ctxt
           | Sub Name Ctxt
           | Def Loc [Decl] Ctxt
-  deriving (Show)
 
 instance Eq Ctxt where
     c == d = case (c, d) of
@@ -326,97 +330,106 @@ domainEnv (Env (rho,_,_,_)) = domCtxt rho
 contextOfEnv :: Env -> [String]
 contextOfEnv rho = case rho of
   Env (Empty,_,_,_)               -> []
-  Env (Upd x e,VVar n t:vs,fs,os) -> (n ++ " : " ++ show t) : contextOfEnv (Env (e,vs,fs,os))
-  Env (Upd x e,v:vs,fs,os)        -> (x ++ " = " ++ show v) : contextOfEnv (Env (e,vs,fs,os))
+  Env (Upd x e,VVar n t:vs,fs,os) -> (n ++ " : " ++ show (showVal t)) : contextOfEnv (Env (e,vs,fs,os))
+  Env (Upd x e,v:vs,fs,os)        -> (x ++ " = " ++ show (showVal v)) : contextOfEnv (Env (e,vs,fs,os))
   Env (Def _ _ e,vs,fs,os)        -> contextOfEnv (Env (e,vs,fs,os))
   Env (Sub i e,vs,phi:fs,os)      -> (show i ++ " = " ++ show phi) : contextOfEnv (Env (e,vs,fs,os))
 
 --------------------------------------------------------------------------------
 -- | Pretty printing
 
-instance Show Env where
-  show = render . showEnv True
+-- instance Show Env where
+--   show = render . showEnv True
 
-showEnv :: Bool -> Env -> Doc
+showEnv :: Bool -> Env -> Doc a
 showEnv b e =
   let -- This decides if we should print "x = " or not
-      names x = if b then text x <+> equals else PP.empty
+      names x = if b then pretty x <+> equals else emptyDoc
       par   x = if b then parens x else x
-      com     = if b then comma else PP.empty
+      com     = if b then comma else emptyDoc
       showEnv1 e = case e of
         Env (Upd x env,u:us,fs,os)   ->
           showEnv1 (Env (env,us,fs,os)) <+> names x <+> showVal1 u <> com
         Env (Sub i env,us,phi:fs,os) ->
-          showEnv1 (Env (env,us,fs,os)) <+> names (show i) <+> text (show phi) <> com
+          showEnv1 (Env (env,us,fs,os)) <+> names (show i) <+> pretty (show phi) <> com
         Env (Def _ _ env,vs,fs,os)   -> showEnv1 (Env (env,vs,fs,os))
         _                            -> showEnv b e
   in case e of
-    Env (Empty,_,_,_)            -> PP.empty
+    Env (Empty,_,_,_)            -> emptyDoc
     Env (Def _ _ env,vs,fs,os)   -> showEnv b (Env (env,vs,fs,os))
     Env (Upd x env,u:us,fs,os)   ->
       par $ showEnv1 (Env (env,us,fs,os)) <+> names x <+> showVal1 u
     Env (Sub i env,us,phi:fs,os) ->
-      par $ showEnv1 (Env (env,us,fs,os)) <+> names (show i) <+> text (show phi)
+      par $ showEnv1 (Env (env,us,fs,os)) <+> names (show i) <+> pretty (show phi)
 
-instance Show Loc where
-  show = render . showLoc
+-- instance Show Loc where
+--   show = render . showLoc
 
-showLoc :: Loc -> Doc
-showLoc (Loc name (i,j)) = text (show (i,j) ++ " in " ++ name)
+showLoc :: Loc -> Doc a
+showLoc (Loc name (i,j)) = pretty (i,j) <+> pretty "in" <+> pretty name
 
-showFormula :: Formula -> Doc
+showFormula :: Formula -> Doc a
 showFormula phi = case phi of
-  _ :\/: _ -> parens (text (show phi))
-  _ :/\: _ -> parens (text (show phi))
-  _ -> text $ show phi
+  _ :\/: _ -> parens (pretty (show phi))
+  _ :/\: _ -> parens (pretty (show phi))
+  _ -> pretty $ show phi
 
-instance Show Ter where
-  show = render . showTer
+-- instance Show Ter where
+--   show = render . showTer
 
-showTer :: Ter -> Doc
+showSystem :: (a -> Doc b) -> System a -> Doc b
+showSystem f x = showListSystem f (Map.toList x)
+
+-- Use align here instead of hsep to get prettier printing
+showListSystem :: (a -> Doc b) -> [(Face,a)] -> Doc b
+showListSystem f [] = emptyDoc
+showListSystem f ts =
+  lbracket <> hsep (punctuate comma (map (\(alpha,u) -> pretty (showFace alpha) <+> pretty "->" <+> f u) ts)) <> rbracket
+
+showTer :: Ter -> Doc a
 showTer v = case v of
-  U                  -> char 'U'
+  U                  -> pretty 'U'
   App e0 e1          -> showTer e0 <+> showTer1 e1
-  Pi e0              -> text "Pi" <+> showTer e0
-  Lam x t e          -> char '\\' <> parens (text x <+> colon <+> showTer t) <+>
-                          text "->" <+> showTer e
-  Fst e              -> showTer1 e <> text ".1"
-  Snd e              -> showTer1 e <> text ".2"
-  Sigma e0           -> text "Sigma" <+> showTer1 e0
+  Pi e0              -> pretty "Pi" <+> showTer e0
+  Lam x t e          -> pretty '\\' <> parens (pretty x <+> colon <+> showTer t) <+>
+                          pretty "->" <+> showTer e
+  Fst e              -> showTer1 e <> pretty ".1"
+  Snd e              -> showTer1 e <> pretty ".2"
+  Sigma e0           -> pretty "Sigma" <+> showTer1 e0
   Pair e0 e1         -> parens (showTer e0 <> comma <> showTer e1)
-  Where e d          -> showTer e <+> text "where" <+> showDecls d
-  Var x              -> text x
-  Con c es           -> text c <+> showTers es
-  PCon c a es phis   -> text c <+> braces (showTer a) <+> showTers es
-                        <+> hsep (map ((char '@' <+>) . showFormula) phis)
-  Split f _ _ _      -> text f
-  Sum _ n _          -> text n
-  HSum _ n _         -> text n
-  Undef{}            -> text "undefined"
-  Hole{}             -> text "?"
-  PathP e0 e1 e2     -> text "PathP" <+> showTers [e0,e1,e2]
-  PLam i e           -> char '<' <> text (show i) <> char '>' <+> showTer e
-  AppFormula e phi   -> showTer1 e <+> char '@' <+> showFormula phi
-  HComp a t ts       -> text "hcomp" <+> showTers [a,t] <+> text (showSystem ts)
-  HFill a t ts       -> text "hfill" <+> showTers [a,t] <+> text (showSystem ts)
-  Trans e phi t0     -> text "transGen" <+> showTer1 e <+> showFormula phi
+  Where e d          -> showTer e <+> pretty "where" <+> showDecls d
+  Var x              -> pretty x
+  Con c es           -> pretty c <+> showTers es
+  PCon c a es phis   -> pretty c <+> braces (showTer a) <+> showTers es
+                        <+> hsep (map ((pretty '@' <+>) . showFormula) phis)
+  Split f _ _ _      -> pretty f
+  Sum _ n _          -> pretty n
+  HSum _ n _         -> pretty n
+  Undef{}            -> pretty "undefined"
+  Hole{}             -> pretty "?"
+  PathP e0 e1 e2     -> pretty "PathP" <+> showTers [e0,e1,e2]
+  PLam i e           -> pretty '<' <> pretty (show i) <> pretty '>' <+> showTer e
+  AppFormula e phi   -> showTer1 e <+> pretty '@' <+> showFormula phi
+  HComp a t ts       -> pretty "hcomp" <+> showTers [a,t] <+> showSystem showTer ts
+  HFill a t ts       -> pretty "hfill" <+> showTers [a,t] <+> showSystem showTer ts
+  Trans e phi t0     -> pretty "transGen" <+> showTer1 e <+> showFormula phi
                         <+> showTer1 t0
-  Comp e t ts        -> text "comp" <+> showTers [e,t] <+> text (showSystem ts)
-  Fill e t ts        -> text "fill" <+> showTers [e,t] <+> text (showSystem ts)
-  Glue a ts          -> text "Glue" <+> showTer1 a <+> text (showSystem ts)
-  GlueElem a ts      -> text "glue" <+> showTer1 a <+> text (showSystem ts)
-  UnGlueElem a b ts  -> text "unglue" <+> showTers [a,b] <+> text (showSystem ts)
-  Id a u v           -> text "Id" <+> showTers [a,u,v]
-  IdPair b ts        -> text "idC" <+> showTer1 b <+> text (showSystem ts)
-  IdJ a t c d x p    -> text "idJ" <+> showTers [a,t,c,d,x,p]
+  Comp e t ts        -> pretty "comp" <+> showTers [e,t] <+> showSystem showTer ts
+  Fill e t ts        -> pretty "fill" <+> showTers [e,t] <+> showSystem showTer ts
+  Glue a ts          -> pretty "Glue" <+> showTer1 a <+> showSystem showTer ts
+  GlueElem a ts      -> pretty "glue" <+> showTer1 a <+> showSystem showTer ts
+  UnGlueElem a b ts  -> pretty "unglue" <+> showTers [a,b] <+> showSystem showTer ts
+  Id a u v           -> pretty "Id" <+> showTers [a,u,v]
+  IdPair b ts        -> pretty "idC" <+> showTer1 b <+> showSystem showTer ts
+  IdJ a t c d x p    -> pretty "idJ" <+> showTers [a,t,c,d,x,p]
 
-showTers :: [Ter] -> Doc
+showTers :: [Ter] -> Doc a
 showTers = hsep . map showTer1
 
-showTer1 :: Ter -> Doc
+showTer1 :: Ter -> Doc a
 showTer1 t = case t of
-  U        -> char 'U'
-  Con c [] -> text c
+  U        -> pretty 'U'
+  Con c [] -> pretty c
   Var{}    -> showTer t
   Undef{}  -> showTer t
   Hole{}   -> showTer t
@@ -427,89 +440,90 @@ showTer1 t = case t of
   Snd{}    -> showTer t
   _        -> parens (showTer t)
 
-showDecls :: Decls -> Doc
+showDecls :: Decls -> Doc a
 showDecls (MutualDecls _ defs) =
   hsep $ punctuate comma
-  [ text x <+> equals <+> showTer d | (x,(_,d)) <- defs ]
-showDecls (OpaqueDecl i) = text "opaque" <+> text i
-showDecls (TransparentDecl i) = text "transparent" <+> text i
-showDecls TransparentAllDecl = text "transparent_all"
+  [ pretty x <+> equals <+> showTer d | (x,(_,d)) <- defs ]
+showDecls (OpaqueDecl i) = pretty "opaque" <+> pretty i
+showDecls (TransparentDecl i) = pretty "transparent" <+> pretty i
+showDecls TransparentAllDecl = pretty "transparent_all"
 
-instance Show Val where
-  show = render . showVal
+-- instance Show Val where
+--   show = render . showVal
 
-showVal :: Val -> Doc
+showVal :: Val -> Doc a
 showVal v = case v of
-  VU                -> char 'U'
+  VU                -> pretty 'U'
   Ter t@Sum{} rho   -> showTer t <+> showEnv False rho
   Ter t@HSum{} rho  -> showTer t <+> showEnv False rho
   Ter t@Split{} rho -> showTer t <+> showEnv False rho
   Ter t rho         -> showTer1 t <+> showEnv True rho
-  VCon c us         -> text c <+> showVals us
-  VPCon c a us phis -> text c <+> braces (showVal a) <+> showVals us
-                       <+> hsep (map ((char '@' <+>) . showFormula) phis)
-  VHComp v0 v1 vs   -> text "hcomp" <+> showVals [v0,v1] <+> text (showSystem vs)
-  VComp v0 v1 vs    -> text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)
-  VTrans u phi v0   -> text "transGen" <+> showVal1 u <+> showFormula phi
+  VCon c us         -> pretty c <+> showVals us
+  VPCon c a us phis -> pretty c <+> braces (showVal a) <+> showVals us
+                       <+> hsep (map ((pretty '@' <+>) . showFormula) phis)
+  VHComp v0 v1 vs   -> pretty "hcomp" <+> showVals [v0,v1] <+> showSystem showVal vs
+  VComp v0 v1 vs    -> pretty "comp" <+> showVals [v0,v1] <+> showSystem showVal vs
+  VTrans u phi v0   -> pretty "transGen" <+> showVal1 u <+> showFormula phi
                        <+> showVal1 v0
   VPi a l@(VLam x t b)
-    | "_" `isPrefixOf` x -> showVal1 a <+> text "->" <+> showVal1 b
-    | otherwise          -> char '(' <> showLam v
-  VPi a b           -> text "Pi" <+> showVals [a,b]
+  -- TODO
+--    | "_" `isPrefixOf` x -> showVal1 a <+> pretty "->" <+> showVal1 b
+    | otherwise          -> pretty '(' <> showLam v
+  VPi a b           -> pretty "Pi" <+> showVals [a,b]
   VPair u v         -> parens (showVal u <> comma <> showVal v)
-  VSigma u v        -> text "Sigma" <+> showVals [u,v]
+  VSigma u v        -> pretty "Sigma" <+> showVals [u,v]
   VApp u v          -> showVal u <+> showVal1 v
-  VLam{}            -> text "\\(" <> showLam v
-  VPLam{}           -> char '<' <> showPLam v
+  VLam{}            -> pretty "\\(" <> showLam v
+  VPLam{}           -> pretty '<' <> showPLam v
   VSplit u v        -> showVal u <+> showVal1 v
-  VVar x _          -> text x
-  VOpaque x _       -> text ('#':x)
-  VFst u            -> showVal1 u <> text ".1"
-  VSnd u            -> showVal1 u <> text ".2"
-  VPathP v0 v1 v2   -> text "PathP" <+> showVals [v0,v1,v2]
-  VAppFormula v phi -> showVal v <+> char '@' <+> showFormula phi
-  VGlue a ts        -> text "Glue" <+> showVal1 a <+> text (showSystem ts)
-  VGlueElem a ts    -> text "glue" <+> showVal1 a <+> text (showSystem ts)
-  VUnGlueElem v a ts  -> text "unglue" <+> showVals [v,a] <+> text (showSystem ts)
-  VUnGlueElemU v b es -> text "unglue U" <+> showVals [v,b]
-                         <+> text (showSystem es)
-  VHCompU a ts        -> text "hcomp U" <+> showVal1 a <+> text (showSystem ts)
-  VId a u v           -> text "Id" <+> showVals [a,u,v]
-  VIdPair b ts        -> text "idC" <+> showVal1 b <+> text (showSystem ts)
-  VIdJ a t c d x p    -> text "idJ" <+> showVals [a,t,c,d,x,p]
+  VVar x _          -> pretty x
+  VOpaque x _       -> pretty '#' <+> pretty x
+  VFst u            -> showVal1 u <> pretty ".1"
+  VSnd u            -> showVal1 u <> pretty ".2"
+  VPathP v0 v1 v2   -> pretty "PathP" <+> showVals [v0,v1,v2]
+  VAppFormula v phi -> showVal v <+> pretty '@' <+> showFormula phi
+  VGlue a ts        -> pretty "Glue" <+> showVal1 a <+> showSystem showVal ts
+  VGlueElem a ts    -> pretty "glue" <+> showVal1 a <+> showSystem showVal ts
+  VUnGlueElem v a ts  -> pretty "unglue" <+> showVals [v,a] <+> showSystem showVal ts
+  VUnGlueElemU v b es -> pretty "unglue U" <+> showVals [v,b]
+                         <+> showSystem showVal es
+  VHCompU a ts        -> pretty "hcomp U" <+> showVal1 a <+> showSystem showVal ts
+  VId a u v           -> pretty "Id" <+> showVals [a,u,v]
+  VIdPair b ts        -> pretty "idC" <+> showVal1 b <+> showSystem showVal ts
+  VIdJ a t c d x p    -> pretty "idJ" <+> showVals [a,t,c,d,x,p]
 
-showPLam :: Val -> Doc
+showPLam :: Val -> Doc a
 showPLam e = case e of
-  VPLam i a@VPLam{} -> text (show i) <+> showPLam a
-  VPLam i a         -> text (show i) <> char '>' <+> showVal a
+  VPLam i a@VPLam{} -> pretty (show i) <+> showPLam a
+  VPLam i a         -> pretty (show i) <> pretty '>' <+> showVal a
   _                 -> showVal e
 
 -- Merge lambdas of the same type
-showLam :: Val -> Doc
+showLam :: Val -> Doc a
 showLam e = case e of
   VLam x t a@(VLam _ t' _)
-    | t == t'   -> text x <+> showLam a
+    | t == t'   -> pretty x <+> showLam a
     | otherwise ->
-      text x <+> colon <+> showVal t <> char ')' <+> text "->" <+> showVal a
+      pretty x <+> colon <+> showVal t <> pretty ')' <+> pretty "->" <+> showVal a
   VPi _ (VLam x t a@(VPi _ (VLam _ t' _)))
-    | t == t'   -> text x <+> showLam a
+    | t == t'   -> pretty x <+> showLam a
     | otherwise ->
-      text x <+> colon <+> showVal t <> char ')' <+> text "->" <+> showVal a
+      pretty x <+> colon <+> showVal t <> pretty ')' <+> pretty "->" <+> showVal a
   VLam x t e         ->
-    text x <+> colon <+> showVal t <> char ')' <+> text "->" <+> showVal e
+    pretty x <+> colon <+> showVal t <> pretty ')' <+> pretty "->" <+> showVal e
   VPi _ (VLam x t e) ->
-    text x <+> colon <+> showVal t <> char ')' <+> text "->" <+> showVal e
+    pretty x <+> colon <+> showVal t <> pretty ')' <+> pretty "->" <+> showVal e
   _ -> showVal e
 
-showVal1 :: Val -> Doc
+showVal1 :: Val -> Doc a
 showVal1 v = case v of
   VU                -> showVal v
   VCon c []         -> showVal v
   VVar{}            -> showVal v
   VFst{}            -> showVal v
   VSnd{}            -> showVal v
-  Ter t rho | isEmpty (showEnv False rho) -> showTer1 t
+  Ter t rho | show (showEnv False rho) == "" -> showTer1 t
   _                 -> parens (showVal v)
 
-showVals :: [Val] -> Doc
+showVals :: [Val] -> Doc a
 showVals = hsep . map showVal1

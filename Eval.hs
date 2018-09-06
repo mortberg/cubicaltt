@@ -284,7 +284,7 @@ eval rho@(Env (_,_,_,Nameless os)) v = case v of
   IdPair b ts         -> VIdPair (eval rho b) (evalSystem rho ts)
   IdJ a t c d x p     -> idJ (eval rho a) (eval rho t) (eval rho c)
                              (eval rho d) (eval rho x) (eval rho p)
-  _                   -> error $ "Cannot evaluate " ++ show v
+  _                   -> error $ "Cannot evaluate " ++ show (showTer v)
 
 evals :: Env -> [(Ident,Ter)] -> [(Ident,Val)]
 evals env bts = [ (b,eval env t) | (b,t) <- bts ]
@@ -324,7 +324,7 @@ app u v = case (u,v) of
                in if isNonDep f
                      then hcomp j (app f (VVar "impossible" VU)) w' ws'
                      else comp j (app f (hfill j a w wsj)) w' ws'
-    _ -> error $ "app: Split annotation not a Pi type " ++ show u
+    _ -> error $ "app: Split annotation not a Pi type " ++ show (showVal u)
   (Ter Split{} _,_) -> VSplit u v
   (VTrans (VPLam i (VPi a f)) phi u0, v)
       | isNonDep f -> trans i (app f (VVar "impossible" VU)) phi (app u0 (transNeg i a phi v))
@@ -363,31 +363,31 @@ inferType v = case v of
   Ter (Undef _ t) rho -> eval rho t
   VFst t -> case inferType t of
     VSigma a _ -> a
-    ty         -> error $ "inferType: expected Sigma type for " ++ show v
-                  ++ ", got " ++ show ty
+    ty         -> error $ "inferType: expected Sigma type for " ++ show (showVal v)
+                  ++ ", got " ++ show (showVal ty)
   VSnd t -> case inferType t of
     VSigma _ f -> app f (VFst t)
-    ty         -> error $ "inferType: expected Sigma type for " ++ show v
-                  ++ ", got " ++ show ty
+    ty         -> error $ "inferType: expected Sigma type for " ++ show (showVal v)
+                  ++ ", got " ++ show (showVal ty)
   VSplit s@(Ter (Split _ _ t _) rho) v1 -> case eval rho t of
     VPi _ f -> app f v1
     ty      -> error $ "inferType: Pi type expected for split annotation in "
-               ++ show v ++ ", got " ++ show ty
+               ++ show (showVal v) ++ ", got " ++ show (showVal ty)
   VApp t0 t1 -> case inferType t0 of
     VPi _ f -> app f t1
-    ty      -> error $ "inferType: expected Pi type for " ++ show v
-               ++ ", got " ++ show ty
+    ty      -> error $ "inferType: expected Pi type for " ++ show (showVal v)
+               ++ ", got " ++ show (showVal ty)
   VAppFormula t phi -> case inferType t of
     VPathP a _ _ -> a @@ phi
-    ty         -> error $ "inferType: expected PathP type for " ++ show v
-                  ++ ", got " ++ show ty
+    ty         -> error $ "inferType: expected PathP type for " ++ show (showVal v)
+                  ++ ", got " ++ show (showVal ty)
   VHComp a _ _ -> a
   VComp a _ _  -> a @@ One
   VTrans a _ _ -> a @@ One
   VUnGlueElem _ b _  -> b
   VUnGlueElemU _ b _ -> b
   VIdJ _ _ c _ x p -> app (app c x) p
-  _ -> error $ "inferType: not neutral " ++ show v
+  _ -> error $ "inferType: not neutral " ++ show (showVal v)
 
 (@@) :: ToFormula a => Val -> a -> Val
 (Ter (PLam i u) rho) @@ phi = eval (sub (i,toFormula phi) rho) u

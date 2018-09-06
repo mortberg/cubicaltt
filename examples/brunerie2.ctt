@@ -1210,7 +1210,7 @@ loopNeg : nat -> loopS1 = split
   zero -> invLoop
   suc n -> compS1 (loopNeg n) invLoop
 
-loopIt : (n : Z) -> loopS1 = split
+loopIt : Z -> loopS1 = split
   pos n -> loopPos n
   neg n -> loopNeg n
 

@@ -218,10 +218,10 @@ check a t = case (a,t) of
     check va u
     vu <- evalTyping u
     checkGlueElem vu ts us
-  -- (VCompU va ves,GlueElem u us) -> do
-  --   check va u
-  --   vu <- evalTyping u
-  --   checkGlueElemU vu ves us
+  (VHCompU va ves,GlueElem u us) -> do
+    check va u
+    vu <- evalTyping u
+    checkGlueElemU vu ves us
   (VU,Id a a0 a1) -> do
     check VU a
     va <- evalTyping a
@@ -313,19 +313,19 @@ checkGlueElem vu ts us = do
   checkCompSystem vus
 
 -- Check a glueElem against VComp _ ves
--- checkGlueElemU :: Val -> System Val -> System Ter -> Typing ()
--- checkGlueElemU vu ves us = do
---   unless (keys ves == keys us)
---     (throwError ("Keys don't match in " ++ show ves ++ " and " ++ show us))
---   rho <- asks env
---   checkSystemsWith ves us
---     (\alpha ve u -> local (faceEnv alpha) $ check (ve @@ One) u)
---   let vus = evalSystem rho us
---   checkSystemsWith ves vus (\alpha ve vAlpha ->
---     unlessM (eqFun ve vAlpha === (vu `face` alpha)) $
---       throwError $ "Transport of glueElem (for compU) component " ++ show vAlpha ++
---                    " doesn't match " ++ show vu)
---   checkCompSystem vus
+checkGlueElemU :: Val -> System Val -> System Ter -> Typing ()
+checkGlueElemU vu ves us = do
+  unless (keys ves == keys us)
+    (throwError ("Keys don't match in " ++ show ves ++ " and " ++ show us))
+  rho <- asks env
+  checkSystemsWith ves us
+    (\alpha ve u -> local (faceEnv alpha) $ check (ve @@ One) u)
+  let vus = evalSystem rho us
+  checkSystemsWith ves vus (\alpha ve vAlpha ->
+    unlessM (eqFun ve vAlpha === (vu `face` alpha)) $
+      throwError $ "Transport of glueElem (for compU) component " ++ show vAlpha ++
+                   " doesn't match " ++ show vu)
+  checkCompSystem vus
 
 checkGlue :: Val -> System Ter -> Typing ()
 checkGlue va ts = do

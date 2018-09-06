@@ -2362,11 +2362,11 @@ abc1 : (Omega3 S3pt).1 = <i j k> hcomp S3 base3
                               , (k = 0) -> <_> base3
                               , (k = 1) -> <_> base3 ]
 
--- Doesn’t contain too much hcomps
-testabc0 : ? = f8 (f7 abc0)
+-- Doesn’t contain too many hcomps
+testabc0 : (Omega (gTruncpt (Omega S2pt))).1 = f8 (f7 abc0)
 
 -- Contains about 170000 hcomps (essentially all of them composing reflexivities)
-testabc1 : ? = f8 (f7 abc1)
+testabc1 : (Omega (gTruncpt (Omega S2pt))).1 = f8 (f7 abc1)
 
 -- Various simple tests:
 testShortcutf11 : Z = f11 (f10 (sinc (<i j> loop2{S2} @ i @ j)))

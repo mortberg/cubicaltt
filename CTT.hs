@@ -527,3 +527,45 @@ showVal1 v = case v of
 
 showVals :: [Val] -> Doc a
 showVals = hsep . map showVal1
+
+
+-------------------------------------------------------------------------------
+
+countHComps :: [Val] -> Int
+countHComps = sum . map countHComp
+
+countHCompSystem :: System Val -> Int
+countHCompSystem = countHComps . Map.elems
+
+countHComp :: Val -> Int
+countHComp v = case v of
+  VU                -> 0
+  Ter t rho         -> 0
+  VCon c us         -> countHComps us
+  VPCon c a us phis -> countHComp a + countHComps us
+  VHComp v0 v1 vs   -> 1 + countHComps [v0,v1] + countHCompSystem vs
+  VComp v0 v1 vs    -> countHComps [v0,v1] + countHCompSystem vs
+  VTrans u phi v0   -> countHComps [u,v0]
+  VPi a l@(VLam x t b) -> countHComps [a,t,b]
+  VPi a b           -> countHComps [a,b]
+  VPair u v         -> countHComps [u,v]
+  VSigma u v        -> countHComps [u,v]
+  VApp u v          -> countHComps [u,v]
+  VLam x t b        -> countHComps [t,b]
+  VPLam i b         -> countHComp b
+  VSplit u v        -> countHComps [u,v]
+  VVar x _          -> 0
+  VOpaque x _       -> 0
+  VFst u            -> countHComp u
+  VSnd u            -> countHComp u
+  VPathP v0 v1 v2   -> countHComps [v0,v1,v2]
+  VAppFormula v phi -> countHComp v
+  VGlue a ts        -> countHComp a + countHCompSystem ts
+  VGlueElem a ts    -> countHComp a + countHCompSystem ts
+  VUnGlueElem v a ts  -> countHComps [v,a] + countHCompSystem ts
+  VUnGlueElemU v b es -> countHComps [v,b] + countHCompSystem es
+  VHCompU a ts        -> countHComp a + countHCompSystem ts
+  VId a u v           -> countHComps [a,u,v]
+  VIdPair b ts        -> countHComp b + countHCompSystem ts
+  VIdJ a t c d x p    -> countHComps [a,t,c,d,x,p]
+  foo -> error ("countHComp " ++ show (showVal foo))

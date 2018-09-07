@@ -4,6 +4,7 @@ packages:
 - .
 extra-deps:
     - BNFC-2.8.1
+    - prettyprinter-1.2.1
 
 flags: {}
 

@@ -35,16 +35,14 @@ import qualified Eval as E
 type Interpreter a = InputT IO a
 
 -- Flag handling
-data Flag = Batch | Debug | Count | Help | Version | Time | Shrink
+data Flag = Batch | Debug | Full | Help | Version
   deriving (Eq,Show)
 
 options :: [OptDescr Flag]
 options = [ Option "d"  ["debug"]   (NoArg Debug)   "run in debugging mode"
           , Option "b"  ["batch"]   (NoArg Batch)   "run in batch mode"
-          , Option "c"  ["count"]   (NoArg Count)   "count the number of hcomp in the result"
+          , Option "f"  ["full"]    (NoArg Full)    "do not truncate big terms"
           , Option ""   ["help"]    (NoArg Help)    "print help"
-          , Option "s"  ["shrink"]  (NoArg Shrink)  "truncate the size of the output"
-          , Option "t"  ["time"]    (NoArg Time)    "measure time spent computing"
           , Option ""   ["version"] (NoArg Version) "print version number" ]
 
 -- Version number, welcome message, usage and prompt strings
@@ -92,8 +90,24 @@ main = do
     (_,_,errs) -> putStrLn $ "Input error: " ++ concat errs ++ "\n" ++
                              usageInfo usage options
 
+printdiv :: Int -> Int -> String
+printdiv n m =
+  printf "%.1f" ((fromIntegral n / fromIntegral m) :: Float)
+
+humanReadable :: Int -> String
+humanReadable n =
+  if n < 1000 then show n
+  else if n < 1000000 then printdiv n 1000 ++ "K"
+  else if n < 1000000000 then printdiv n 1000000 ++ "M"
+  else printdiv n 1000000000 ++ "G"
+
 shrink :: String -> String
-shrink s = if length s > 100 then take 100 s ++ "..." else s
+shrink s =
+  if length s > 6000 then
+    take 2000 s ++ "\n\n[...] (the full term has "
+    ++ humanReadable (length s) ++ " characters, use option -f to print it)\n\n"
+    ++ reverse (take 2000 (reverse s))
+  else s
 
 -- Initialize the main loop
 initLoop :: [Flag] -> FilePath -> History -> IO ()
@@ -163,21 +177,17 @@ loop flags f names tenv = do
                 let e = mod $ E.eval (TC.env tenv) body
                 -- Let's not crash if the evaluation raises an error:
                 -- Use layoutCompact for now, if we want prettier printing use something nicer
-                when (Count `notElem` flags && Shrink `notElem` flags) $ 
+                when (Full `elem` flags) $
                   liftIO $ catch (renderIO stdout (layoutCompact (pretty msg <+> showVal e <+> pretty "\n")))
                                  (\e -> putStrLn ("Exception: " ++
                                                   show (e :: SomeException)))
-
-                when (Count `elem` flags) $
-                  liftIO $ catch (putStrLn ("#hcomps: " ++ show (countHComp e)))
-                                 (\e -> putStrLn ("Exception: " ++
-                                                  show (e :: SomeException)))
-
-                when (Shrink `elem` flags) $ 
+                when (Full `notElem` flags) $
                   liftIO $ catch (putStrLn (shrink (msg ++ show (showVal e))))
                                  (\e -> putStrLn ("Exception: " ++
                                                   show (e :: SomeException)))
-
+                liftIO $ catch (putStrLn ("#hcomps: " ++ show (countHComp e)))
+                               (\e -> putStrLn ("Exception: " ++
+                                                show (e :: SomeException)))
 --                 liftIO $ IO.writeFile "asdf.txt" (renderStrict (layoutCompact (showVal e)))
                 stop <- liftIO getCurrentTime
                 -- Compute time and print nicely
@@ -186,8 +196,7 @@ loop flags f names tenv = do
                     rest = read ('0':dropWhile (/='.') (init (show time)))
                     mins = secs `quot` 60
                     sec  = printf "%.3f" (fromInteger (secs `rem` 60) + rest :: Float)
-                when (Time `elem` flags) $
-                   outputStrLn $ "Time: " ++ show mins ++ "m" ++ sec ++ "s"
+                outputStrLn $ "Time: " ++ show mins ++ "m" ++ sec ++ "s"
                 -- Only print in seconds:
                 -- when (Time `elem` flags) $ outputStrLn $ "Time: " ++ show time
                 loop flags f names tenv

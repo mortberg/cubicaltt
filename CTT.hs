@@ -382,7 +382,7 @@ showSystem f x = showListSystem f (Map.toList x)
 
 -- Use align here instead of hsep to get prettier printing
 showListSystem :: (a -> Doc b) -> [(Face,a)] -> Doc b
-showListSystem f [] = emptyDoc
+showListSystem f [] = lbracket <> rbracket
 showListSystem f ts =
   lbracket <> hsep (punctuate comma (map (\(alpha,u) -> pretty (showFace alpha) <+> pretty "->" <+> f u) ts)) <> rbracket
 

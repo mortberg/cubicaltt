@@ -571,27 +571,26 @@ rotIsEquiv_loop : PathP (<i> isEquiv S1 S1 (rot (loop @ i))) (idIsEquiv S1) (idI
              (\(a : S1) -> propIsEquivDirect' S1 S1 (rot a)) 
              (idIsEquiv S1) 
 
-isPropOver (A0 A1 : U) (A : Path U A0 A1) (p : prop A1) : U =
-  (a0 : A0) (a1 : A1) -> PathP A a0 a1
+-- isPropOver (A0 A1 : U) (A : Path U A0 A1) (p : prop A1) : U =
+--   (a0 : A0) (a1 : A1) -> PathP A a0 a1
 
-propToPropOver (A0 A1 : U) (A : Path U A0 A1) (p : prop A1) : isPropOver A0 A1 A p = \(a0 : A0) (a1 : A1) ->
-  <i> hcomp (A @ i) (transGen (<j> A @ i /\ j) (-i) a0)
+propToPropOver (A : U) (L : Path U A A) (p : (a0 a1 : A) -> Path A a0 a1) (a0 : A) : PathP L a0 a0 =
+  <i> hcomp (L @ i) (transGen (<j> L @ i /\ j) (-i) a0)
               [ (i=0) -> <_> a0
-              , (i=1) -> p (transGen A 0 a0) a1 ]
+              , (i=1) -> p (transGen L 0 a0) a0 ]
 
--- Alternative version inspired by redtt, doesn't seem to compute faster
+-- Alternative version inspired by redtt
 rotIsEquiv_loop_alt : PathP (<i> isEquiv S1 S1 (rot (loop @ i))) (idIsEquiv S1) (idIsEquiv S1) =
   propToPropOver
        (isEquiv S1 S1 (\(a : S1) -> a))
-       (isEquiv S1 S1 (\(a : S1) -> a))
        (<i> isEquiv S1 S1 (rot (loop @ i)))
        (propIsEquivDirect' S1 S1 (\(a : S1) -> a))
-       (idIsEquiv S1) (idIsEquiv S1)
+       (idIsEquiv S1)
 
 
 rotIsEquiv : (a : S1) -> isEquiv S1 S1 (rot a) = split
    base1 -> idIsEquiv S1
-   loop1 @ i -> rotIsEquiv_loop @ i
+   loop1 @ i -> rotIsEquiv_loop_alt @ i
 
 -- Alternative version of rotIsEquiv that generates smaller input
 -- to propIsEquivDirect' and seems to terminate faster:
@@ -2372,6 +2371,7 @@ f4 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S2pt).1 =
 
 test0To4 : (Omega3 S2pt).1 = f4 test0To3
 
+test0To4_goalcube' : (Omega3 S2pt).1 = <i5636 i5637 i5638> hcomp S2 (hcomp S2 (hcomp S2 (loop2 {S2 }  @ i5637 @ i5638) [(i5638=0) -> <i5643> base2 , (i5638=1) -> <i5643> loop2 {S2 }  @ i5636 @ i5643]) [(i5636=0) -> <i5645> hcomp S2 (loop2 {S2 }  @ (i5637 /\ -i5645) @ i5638) [(i5638=0) -> <i5646> base2 , (i5638=1) -> <i5646> base2 ], (i5636=1) -> <i5645> hcomp S2 (loop2 {S2 }  @ (i5637 /\ -i5645) @ i5638) [(i5638=0) -> <i5647> base2 , (i5638=1) -> <i5647> loop2 {S2 }  @ -i5645 @ i5647], (i5637=0) -> <i5645> hcomp S2 base2  [(i5638=0) -> <i5648> base2 , (i5638=1) -> <i5648> loop2 {S2 }  @ (i5636 /\ -i5645) @ i5648], (i5637=1) -> <i5645> hcomp S2 (loop2 {S2 }  @ -i5645 @ i5638) [(i5638=0) -> <i5649> base2 , (i5638=1) -> <i5649> loop2 {S2 }  @ (i5636 /\ -i5645) @ i5649], (i5638=0) -> <i5645> base2 , (i5638=1) -> <i5645> base2 ]) [(i5636=0) -> <i5651> hcomp S2 base2  [(i5638=0) -> <i5652> base2 , (i5638=1)(i5651=0) -> <i5652> base2 , (i5651=1) -> <i5652> base2 ], (i5636=1) -> <i5651> hcomp S2 base2  [(i5638=0) -> <i5653> base2 , (i5638=1)(i5651=0) -> <i5653> base2 , (i5651=1) -> <i5653> base2 ], (i5637=0) -> <i5651> hcomp S2 base2  [(i5638=0) -> <i5654> base2 , (i5638=1)(i5651=0) -> <i5654> base2 , (i5651=1) -> <i5654> base2 ], (i5637=1) -> <i5651> hcomp S2 base2  [(i5638=0) -> <i5655> base2 , (i5638=1)(i5651=0) -> <i5655> base2 , (i5651=1) -> <i5655> base2 ], (i5638=0) -> <i5651> base2 , (i5638=1) -> <i5651> hcomp S2 base2  [(i5651=0) -> <i5656> base2 , (i5651=1) -> <i5656> base2 ]]
 -- Part of test0To5
 -- testFibContrHopf3 : HopfThree' test0To4 = fibContrHopfThree' test0To4
 testFibContrHopf3refl : HopfThree' (<_ _ _> base2) = fibContrHopfThree' (<_ _ _> base2)

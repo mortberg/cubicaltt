@@ -285,18 +285,16 @@ rotIsEquiv : (a : S1) -> isEquiv S1 S1 (rot a) =
 
 rotpath (x : S1) : Path U S1 S1 = ua S1 S1 (rot x, rotIsEquiv x)
 
-HopfSquare (A : U) : Path (Path U A A) (ua A A (idEquiv A)) (<_> A) =
-  <j i> Glue A [ (i = 0) -> (A,idEquiv A)
-               , (i = 1) -> (A,idEquiv A)
-               , (j = 1) -> (A,idEquiv A) ]
+square : Path (Path U S1 S1) (<_> S1) (<_> S1) =
+  <i j> Glue S1 [ (i = 0) -> (S1, idEquiv S1)
+                , (i = 1) -> (S1, idEquiv S1)
+                , (j = 0) -> (S1, (rot (loop @ i), rotIsEquiv (loop @ i)))
+                , (j = 1) -> (S1, idEquiv S1)
+                ]
 
 Hopf : S2 -> U = split
   base2 -> S1
-  loop2 @ i j -> hcomp U (rotpath (loop @ i) @ j)
-                       [ (i=0) -> <k> HopfSquare S1 @ k @ j
-                       , (i=1) -> <k> HopfSquare S1 @ k @ j
-                       , (j=0) -> <_> S1
-                       , (j=1) -> <_> S1 ]
+  loop2 @ i j -> square @ i @ j
 
 -----
 

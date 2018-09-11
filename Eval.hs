@@ -868,6 +868,7 @@ transHCompU i a es psi u0 = glueElem v1' t1s'
 -- to a total one where f is transNeg of eq.  Applies the second
 -- component to the fresh name i.
 lemEqConst :: Name -> Val -> Val -> System Val -> (Val,Val)
+lemEqConst i (VPLam _ a@(Ter (HSum _ "S1" _) _)) b as = (VHComp a b as,hfill i a b as)
 lemEqConst i eq b as = (a,p)
  where
    j = fresh (eq,b,as)

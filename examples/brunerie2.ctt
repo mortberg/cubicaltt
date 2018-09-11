@@ -587,10 +587,17 @@ rotIsEquiv_loop_alt : PathP (<i> isEquiv S1 S1 (rot (loop @ i))) (idIsEquiv S1) 
        (propIsEquivDirect' S1 S1 (\(a : S1) -> a))
        (idIsEquiv S1)
 
+-- Alternative version inspired by redtt, unfolded with arguments to propIsEquivDirect' swapped
+rotIsEquiv_loop_alt_unf : PathP (<i> isEquiv S1 S1 (rot (loop @ i))) (idIsEquiv S1) (idIsEquiv S1) =
+  <i> hcomp (isEquiv S1 S1 (rot (loop @ i)))
+            (transGen (<j> isEquiv S1 S1 (rot (loop @ i /\ j))) (-i) (idIsEquiv S1))
+              [ (i=0) -> <_> idIsEquiv S1
+              , (i=1) -> <i> propIsEquivDirect' S1 S1 (idfun S1) (idIsEquiv S1) (transGen (<i> isEquiv S1 S1 (rot (loop @ i))) 0 (idIsEquiv S1)) @ -i]
+
 
 rotIsEquiv : (a : S1) -> isEquiv S1 S1 (rot a) = split
    base1 -> idIsEquiv S1
-   loop1 @ i -> rotIsEquiv_loop_alt @ i
+   loop1 @ i -> rotIsEquiv_loop_alt_unf @ i
 
 -- Alternative version of rotIsEquiv that generates smaller input
 -- to propIsEquivDirect' and seems to terminate faster:

@@ -491,7 +491,7 @@ propPi (A : U) (B : A -> U) (h : (x : A) -> prop (B x))
 --         q1 : Path B y (f q0) = (q y).1.2
 --         q2 : (w1 : fiber A B f y) -> Path (fiber A B f y) (q0,q1) w1 =
 --          (q y).2
---     in (p2 (q0,q1) @ i,
+--     in (p2 (q y).1 @ i,
 --        \(w : fiber A B f y) ->
 --           let sq : PathP (<j> Path (fiber A B f y) (p2 (q0,q1) @ j) w) (p2 w) (q2 w) = 
 --                      <i j> hcomp (fiber A B f y) (p2 w @ i \/ j)
@@ -587,20 +587,37 @@ rotIsEquiv_loop_alt : PathP (<i> isEquiv S1 S1 (rot (loop @ i))) (idIsEquiv S1) 
        (propIsEquivDirect' S1 S1 (\(a : S1) -> a))
        (idIsEquiv S1)
 
--- Alternative version inspired by redtt, unfolded with arguments to propIsEquivDirect' swapped
+-- Can this be simplified? The second argument is essentially propIsEquivDirect
+isContrIdIsEquiv (A : U) : isContr (isEquiv A A (idfun A)) = (idIsEquiv A,goal)
+  where
+  goal (q : isEquiv A A (idfun A)) : Path (isEquiv A A (idfun A)) (idIsEquiv A) q =
+    <i> \(y : A) -> -- propIsContr (fiber A A (idfun A) y) (idIsEquiv A y) (q y) @ i
+    let q0 : A = (q y).1.1
+        q1 : Path A y q0 = (q y).1.2
+        q2 : (w1 : fiber A A (idfun A) y) -> Path (fiber A A (idfun A) y) (q0,q1) w1 = (q y).2
+    in ((q1 @ i,<j> q1 @ i /\ j),
+       \(w : fiber A A (idfun A) y) ->
+          let sq : PathP (<j> Path (fiber A A (idfun A) y) (q1 @ j,<k> q1 @ j /\ k) w)
+                         (<i> (w.2 @ i,<j> w.2 @ i /\ j)) (q2 w) =
+                     <i j> hcomp (fiber A A (idfun A) y) ((w.2 @ i \/ j,<k> w.2 @ (i \/ j) /\ k))
+                                 [ (i = 0) -> <_> (w.2 @ j,<k> w.2 @ j /\ k)
+                                 , (i = 1) -> <k> q2 w @ j \/ -k
+                                 , (j = 0) -> <k> ((q2 w @ -k).2 @ i,<j> (q2 w @ -k).2 @ i /\ j)
+                                 , (j = 1) -> <_> w ]
+          in sq @ i)
+
+-- Unfolded version inspired by redtt
 rotIsEquiv_loop_alt_unf : PathP (<i> isEquiv S1 S1 (rot (loop @ i))) (idIsEquiv S1) (idIsEquiv S1) =
-  <i> hcomp (isEquiv S1 S1 (rot (loop @ i)))
+  <i> \(y : S1) -> hcomp (isEquiv S1 S1 (rot (loop @ i)))
             (transGen (<j> isEquiv S1 S1 (rot (loop @ i /\ j))) (-i) (idIsEquiv S1))
               [ (i=0) -> <_> idIsEquiv S1
-              , (i=1) -> <i> propIsEquivDirect' S1 S1 (idfun S1) (idIsEquiv S1) (transGen (<i> isEquiv S1 S1 (rot (loop @ i))) 0 (idIsEquiv S1)) @ -i]
-
+              , (i=1) -> <i> (isContrIdIsEquiv S1).2 (transGen (<i> isEquiv S1 S1 (rot (loop @ i))) 0 (idIsEquiv S1)) @ -i] y
 
 rotIsEquiv : (a : S1) -> isEquiv S1 S1 (rot a) = split
    base1 -> idIsEquiv S1
    loop1 @ i -> rotIsEquiv_loop_alt_unf @ i
 
--- Alternative version of rotIsEquiv that generates smaller input
--- to propIsEquivDirect' and seems to terminate faster:
+-- Alternative version of rotIsEquiv
 subst (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
   transGen (<i> P (p @ i)) 0 e
 
@@ -610,7 +627,6 @@ pathSIntroS1 (C : S1 -> U) (c : C base1)
   PathP (<i> C (loop @ i)) c c =
   transGen (<j> PathP (<i> C (loop @ -j \/ i))
                       (transGen (<i> C (loop @ -j /\ i)) j c) c) 0 w
-
 
 s1elim (C : S1 -> U) (c : C base1) (p : Path (C base1) (subst S1 C base1 base1 loop c) c) :
   (x : S1) -> C x = split
@@ -2379,6 +2395,7 @@ f4 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S2pt).1 =
 test0To4 : (Omega3 S2pt).1 = f4 test0To3
 
 test0To4_goalcube' : (Omega3 S2pt).1 = <i5636 i5637 i5638> hcomp S2 (hcomp S2 (hcomp S2 (loop2 {S2 }  @ i5637 @ i5638) [(i5638=0) -> <i5643> base2 , (i5638=1) -> <i5643> loop2 {S2 }  @ i5636 @ i5643]) [(i5636=0) -> <i5645> hcomp S2 (loop2 {S2 }  @ (i5637 /\ -i5645) @ i5638) [(i5638=0) -> <i5646> base2 , (i5638=1) -> <i5646> base2 ], (i5636=1) -> <i5645> hcomp S2 (loop2 {S2 }  @ (i5637 /\ -i5645) @ i5638) [(i5638=0) -> <i5647> base2 , (i5638=1) -> <i5647> loop2 {S2 }  @ -i5645 @ i5647], (i5637=0) -> <i5645> hcomp S2 base2  [(i5638=0) -> <i5648> base2 , (i5638=1) -> <i5648> loop2 {S2 }  @ (i5636 /\ -i5645) @ i5648], (i5637=1) -> <i5645> hcomp S2 (loop2 {S2 }  @ -i5645 @ i5638) [(i5638=0) -> <i5649> base2 , (i5638=1) -> <i5649> loop2 {S2 }  @ (i5636 /\ -i5645) @ i5649], (i5638=0) -> <i5645> base2 , (i5638=1) -> <i5645> base2 ]) [(i5636=0) -> <i5651> hcomp S2 base2  [(i5638=0) -> <i5652> base2 , (i5638=1)(i5651=0) -> <i5652> base2 , (i5651=1) -> <i5652> base2 ], (i5636=1) -> <i5651> hcomp S2 base2  [(i5638=0) -> <i5653> base2 , (i5638=1)(i5651=0) -> <i5653> base2 , (i5651=1) -> <i5653> base2 ], (i5637=0) -> <i5651> hcomp S2 base2  [(i5638=0) -> <i5654> base2 , (i5638=1)(i5651=0) -> <i5654> base2 , (i5651=1) -> <i5654> base2 ], (i5637=1) -> <i5651> hcomp S2 base2  [(i5638=0) -> <i5655> base2 , (i5638=1)(i5651=0) -> <i5655> base2 , (i5651=1) -> <i5655> base2 ], (i5638=0) -> <i5651> base2 , (i5638=1) -> <i5651> hcomp S2 base2  [(i5651=0) -> <i5656> base2 , (i5651=1) -> <i5656> base2 ]]
+
 -- Part of test0To5
 -- testFibContrHopf3 : HopfThree' test0To4 = fibContrHopfThree' test0To4
 testFibContrHopf3refl : HopfThree' (<_ _ _> base2) = fibContrHopfThree' (<_ _ _> base2)
@@ -2510,6 +2527,14 @@ bsq (p : (Omega3 S2pt).1) :
   --                                                                     , (m = 1) -> <_> base1 ]) @ l @ k
   --             , (k = 0) -> <_> base1
   --             , (k = 1) -> <_> base1 ]
+
+innerpath :
+  PathP (<j> Path S1
+                 (transGen (<k> Hopf (test0To4 @ 0 @ j @ k)) 0 base1)
+                 (transGen (<k> Hopf (test0To4 @ 1 @ j @ k)) 0 base1))
+        (<j> transGen (<k> Hopf (test0To4 @ 0 @ j @ k)) 0 base1)
+        (<j> transGen (<k> Hopf (test0To4 @ 1 @ j @ k)) 0 base1) =
+  <i j> transGen (<k> Hopf (test0To4 @ i @ j @ k)) 0 base1
 
 -- This path does not terminate. The innermost transGen does though
 problem : Path Z (pos zero) (pos zero) =

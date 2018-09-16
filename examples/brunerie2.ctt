@@ -591,20 +591,39 @@ rotIsEquiv_loop_alt : PathP (<i> isEquiv S1 S1 (rot (loop @ i))) (idIsEquiv S1) 
 isContrIdIsEquiv (A : U) : isContr (isEquiv A A (idfun A)) = (idIsEquiv A,goal)
   where
   goal (q : isEquiv A A (idfun A)) : Path (isEquiv A A (idfun A)) (idIsEquiv A) q =
-    <i> \(y : A) -> -- propIsContr (fiber A A (idfun A) y) (idIsEquiv A y) (q y) @ i
-    let q0 : A = (q y).1.1
-        q1 : Path A y q0 = (q y).1.2
-        q2 : (w1 : fiber A A (idfun A) y) -> Path (fiber A A (idfun A) y) (q0,q1) w1 = (q y).2
-    in ((q1 @ i,<j> q1 @ i /\ j),
-       \(w : fiber A A (idfun A) y) ->
-          let sq : PathP (<j> Path (fiber A A (idfun A) y) (q1 @ j,<k> q1 @ j /\ k) w)
-                         (<i> (w.2 @ i,<j> w.2 @ i /\ j)) (q2 w) =
-                     <i j> hcomp (fiber A A (idfun A) y) ((w.2 @ i \/ j,<k> w.2 @ (i \/ j) /\ k))
-                                 [ (i = 0) -> <_> (w.2 @ j,<k> w.2 @ j /\ k)
-                                 , (i = 1) -> <k> q2 w @ j \/ -k
-                                 , (j = 0) -> <k> ((q2 w @ -k).2 @ i,<j> (q2 w @ -k).2 @ i /\ j)
-                                 , (j = 1) -> <_> w ]
-          in sq @ i)
+    <i> \(y : A) -> (((q y).1.2 @ i,<j> (q y).1.2 @ i /\ j)
+       ,\(w : (x : A) * Path A y x) ->
+         <j> (hcomp A (w.2 @ i \/ j)
+                      [(i=0) -> <_> w.2 @ j
+                      ,(i=1) -> <k> ((q y).2 w @ j \/ -k).1
+                      ,(j=0) -> <k> ((q y).2 w @ -k).2 @ i
+                      ,(j=1) -> <_> w.1]
+             ,<k> hcomp A (w.2 @ (i \/ j) /\ k)
+                          [(i=0) -> <_> w.2 @ j /\ k
+                          ,(i=1) -> <l> ((q y).2 w @ j \/ -l).2 @ k
+                          ,(j=0) -> <l> ((q y).2 w @ -l).2 @ i /\ k
+                          ,(j=1) -> <_> w.2 @ k
+                          ,(k=0) -> <_> y
+                          ,(k=1) -> <l> hfill A (w.2 @ i \/ j)
+                                                [(i=0) -> <_> w.2 @ j
+                                                ,(i=1) -> <k> ((q y).2 w @ j \/ -k).1
+                                                ,(j=0) -> <k> ((q y).2 w @ -k).2 @ i
+                                                ,(j=1) -> <_> w.1] @ l]))
+
+    -- <i> \(y : A) -> -- propIsContr (fiber A A (idfun A) y) (idIsEquiv A y) (q y) @ i
+    -- let q0 : A = (q y).1.1
+    --     q1 : Path A y q0 = (q y).1.2
+    --     q2 : (w1 : (x : A) * Path A y x) -> Path ((x : A) * Path A y x) (q0,q1) w1 = (q y).2
+    -- in ((q1 @ i,<j> q1 @ i /\ j),
+    --    \(w : (x : A) * Path A y x) ->
+    --       let sq : PathP (<j> Path ((x : A) * Path A y x) (q1 @ j,<k> q1 @ j /\ k) w)
+    --                      (<i> (w.2 @ i,<j> w.2 @ i /\ j)) (q2 w) =
+    --                  <i j> hcomp ((x : A) * Path A y x) ((w.2 @ i \/ j,<k> w.2 @ (i \/ j) /\ k))
+    --                              [ (i = 0) -> <_> (w.2 @ j,<k> w.2 @ j /\ k)
+    --                              , (i = 1) -> <k> q2 w @ j \/ -k
+    --                              , (j = 0) -> <k> ((q2 w @ -k).2 @ i,<j> (q2 w @ -k).2 @ i /\ j)
+    --                              , (j = 1) -> <_> w ]
+    --       in sq @ i)
 
 -- Unfolded version inspired by redtt
 rotIsEquiv_loop_alt_unf : PathP (<i> isEquiv S1 S1 (rot (loop @ i))) (idIsEquiv S1) (idIsEquiv S1) =
@@ -654,7 +673,7 @@ goal (A : U) : Path (Path U A A) (ua A A (idEquiv A)) (<_> A) =
                , (i = 1) -> (A,idEquiv A)
                , (j = 1) -> (A,idEquiv A) ]
 
--- We’re hiding univalence in there
+-- We're hiding univalence in there
 square : Path (Path U S1 S1) (<_> S1) (<_> S1) =
   <i j> Glue S1 [ (i = 0) -> (S1, idEquiv S1)
                 , (i = 1) -> (S1, idEquiv S1)
@@ -2433,7 +2452,7 @@ f11 : loopS1 -> Z = encode base1
 -- Now terminates very quickly.
 testShortcut3To6 : Z = f11 (f10 (f9 (f8 (f7 test0To2))))
 
--- Doesn’t terminate yet (quickly runs out of memory)
+-- Doesnt terminate yet (quickly runs out of memory)
 -- Skips the maps alpha and h
 testShortcut4To5 : Z = f11 (f10 (f9 (f8 (f7 (f6 (f3 test0To2))))))
 
@@ -2457,7 +2476,7 @@ abc1 : (Omega3 S3pt).1 = <i j k> hcomp S3 base3
 abc2 : (Omega3 S3pt).1 = <i j k> loop3{S3} @ i @ j @ k
 abc3 : (Omega3 S3pt).1 = <i j k> loop3{S3} @ k @ i @ j
 
--- Doesn’t contain too many hcomps
+-- Doesnt contain too many hcomps
 testabc0 : (Omega (gTruncpt (Omega S2pt))).1 = f8 (f7 abc0)
 
 -- Contains about 170000 hcomps (essentially all of them composing reflexivities)

@@ -536,9 +536,8 @@ glue b ts | eps `member` ts = equivDom (ts ! eps)
           | otherwise       = VGlue b ts
 
 glueElem :: Val -> System Val -> Val
-glueElem (VUnGlueElem u _) _ = u
 glueElem v us | eps `member` us = us ! eps
-              | otherwise       = VGlueElem v us
+glueElem v us = VGlueElem v us
 
 unglueElem :: Val -> System Val -> Val
 unglueElem w isos | eps `member` isos = app (equivFun (isos ! eps)) w
@@ -889,9 +888,13 @@ instance Convertible Val where
       (VComp a u ts,VComp a' u' ts')      -> conv ns (a,u,ts) (a',u',ts')
       (VHComp a u ts,VHComp a' u' ts')    -> conv ns (a,u,ts) (a',u',ts')
       (VGlue v equivs,VGlue v' equivs')   -> conv ns (v,equivs) (v',equivs')
+      (VGlueElem (VUnGlueElem b equivs) ts,g) -> conv ns (border b equivs,b) (ts,g)
+      (g,VGlueElem (VUnGlueElem b equivs) ts) -> conv ns (border b equivs,b) (ts,g)
+      (VGlueElem (VUnGlueElemU b _ equivs) ts,g) -> conv ns (border b equivs,b) (ts,g)
+      (g,VGlueElem (VUnGlueElemU b _ equivs) ts) -> conv ns (border b equivs,b) (ts,g)
       (VGlueElem u us,VGlueElem u' us')   -> conv ns (u,us) (u',us')
       (VUnGlueElemU u _ _,VUnGlueElemU u' _ _) -> conv ns u u'
-      (VUnGlueElem u ts,VUnGlueElem u' ts')    -> conv ns (u,ts) (u',ts')
+      (VUnGlueElem u _,VUnGlueElem u' _) -> conv ns u u'
       (VCompU u es,VCompU u' es')              -> conv ns (u,es) (u',es')
       (VIdPair v vs,VIdPair v' vs')          -> conv ns (v,vs) (v',vs')
       (VId a u v,VId a' u' v')               -> conv ns (a,u,v) (a',u',v')

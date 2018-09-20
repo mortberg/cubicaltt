@@ -135,7 +135,7 @@ instance Nominal Val where
          VPCon c a vs phis       -> pcon c (act b a (i,phi)) (act b vs (i,phi)) (act b phis (i,phi))
          VHComp a u us           -> hcompLine (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
          VComp a u us           -> compLine (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
-         VTrans a psi u          -> transLine (act b a (i,phi)) (act b psi (i,phi)) (act b u (i,phi))
+         VTrans a psi u          -> trans (act b a (i,phi)) (act b psi (i,phi)) (act b u (i,phi))
          VVar x v                -> VVar x (act b v (i,phi))
          VOpaque x v             -> VOpaque x (act b v (i,phi))
          VAppFormula u psi       -> act b u (i,phi) @@ act b psi (i,phi)
@@ -250,10 +250,10 @@ eval rho@(Env (_,_,_,Nameless os)) v = case v of
     hfillLine (eval rho a) (eval rho t0) (evalSystem rho ts)
   Trans (PLam i a) phi t ->
     let j = fresh ()
-    in trans j (eval (sub (i,Atom j) rho) a) (evalFormula rho phi) (eval rho t)
+    in trans (VPLam j (eval (sub (i,Atom j) rho) a)) (evalFormula rho phi) (eval rho t)
   Trans a phi t       ->
     let j = fresh ()
-    in trans j (eval (sub (j,Atom j) rho) (AppFormula a (Atom j))) (evalFormula rho phi) (eval rho t)
+    in trans (VPLam j (eval (sub (j,Atom j) rho) (AppFormula a (Atom j)))) (evalFormula rho phi) (eval rho t)
   Comp (PLam i a) t0 ts        ->
     let j = fresh ()
     in comp j (eval (sub (i,Atom j) rho) a) (eval rho t0)
@@ -320,13 +320,13 @@ app u v = case (u,v) of
     _ -> error $ "app: Split annotation not a Pi type " ++ show (showVal u)
   (Ter Split{} _,_) -> VSplit u v
   (VTrans (VPLam i (VPi a f)) phi u0, v)
-      | isNonDep f -> trans i (app f (VVar "impossible" VU)) phi (app u0 (transNeg i a phi v))
+      | isNonDep f -> trans (VPLam i (app f (VVar "impossible" VU))) phi (app u0 (transNeg i a phi v))
       | otherwise ->
         let j = fresh (u,v)
             (aij,fij) = (a,f) `swap` (i,j)
             w = transFillNeg j aij phi v
             w0 = transNeg j aij phi v  -- w0 = w `face` (j ~> 0)
-        in trans j (app fij w) phi (app u0 w0)
+        in trans (VPLam j (app fij w)) phi (app u0 w0)
   (VHComp (VPi a f) u0 us, v) ->
     let i = fresh (u,v)
     in hcomp i (app f v) (app u0 v)
@@ -489,7 +489,7 @@ hcomps _ _ _ _ = error "hcomps: different lengths of types and values"
 -- For i:II |- a, phi # i, u : a (i/phi) we get fwd i a phi u : a(i/1)
 -- such that fwd i a 1 u = u.   Note that i gets bound.
 fwd :: Name -> Val -> Formula -> Val -> Val
-fwd i a phi u = trans i (act False a (i,phi `orFormula` Atom i)) phi u
+fwd i a phi u = trans (VPLam i (act False a (i,phi `orFormula` Atom i))) phi u
 
 comp :: Name -> Val -> Val -> System Val -> Val
 comp i a u us | eps `member` us = (us ! eps) `face` (i ~> 1)
@@ -518,7 +518,7 @@ comp i a u us =
                                in VCon n $ comps i as env usus'
                     Nothing -> error $ "comp: missing constructor in labelled sum " ++ n
       _ -> VComp (VPLam i a) u (mapSystem (VPLam i) us)    
-    _ -> hcomp j (a `face` (i ~> 1)) (trans i a (Dir Zero) u)
+    _ -> hcomp j (a `face` (i ~> 1)) (trans (VPLam i a) (Dir Zero) u)
                  (mapWithKey (\al ual -> fwd i (a `face` al) (Atom j) (ual  `swap` (i,j))) us)
 
 -- comp :: Name -> Val -> Val -> System Val -> Val
@@ -558,28 +558,28 @@ fillNeg i a u ts = (fill i (a `sym` i) u (ts `sym` i)) `sym` i
 -----------------------------------------------------------
 -- Transport and forward
 
-transLine :: Val -> Formula -> Val -> Val
-transLine a phi u = trans i (a @@@ i) phi u
-  where i = fresh (a,phi,u)
+-- transLine :: Val -> Formula -> Val -> Val
+-- transLine a phi u = trans i (a @@@ i) phi u
+--   where i = fresh (a,phi,u)
 
 -- For i:II |- a, phi # i,
 --     i:II, phi=1 |- a = a(i/0)
 -- and u : a(i/0) gives trans i a phi u : a(i/1) such that
 -- trans i a 1 u = u : a(i/1) (= a(i/0)).
-trans :: Name -> Val -> Formula -> Val -> Val
-trans i a (Dir One) u = u
-trans i a phi u = case a of
+trans :: Val -> Formula -> Val -> Val
+trans _ (Dir One) u = u
+trans (VPLam i a) phi u = case a of
   VPathP p v0 v1 -> let j = fresh (Atom i,a,phi,u) in
     VPLam j $ comp i (p @@@ j) (u @@@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
                                          (border (u @@@ j) (invSystem phi One)))
   VId b v0 v1 -> undefined
   VSigma a f
-    | isNonDep f -> VPair (trans i a phi (fstVal u))
-                          (trans i (app f (VVar "impossible" VU)) phi (sndVal u))
+    | isNonDep f -> VPair (trans (VPLam i a) phi (fstVal u))
+                          (trans (VPLam i (app f (VVar "impossible" VU))) phi (sndVal u))
     | otherwise ->
       let (u1,u2) = (fstVal u, sndVal u)
           u1f     = transFill i a phi u1
-      in VPair (trans i a phi u1) (trans i (app f u1f) phi u2)
+      in VPair (trans (VPLam i a) phi u1) (trans (VPLam i (app f u1f)) phi u2)
   VPi{} -> VTrans (VPLam i a) phi u
   VU -> u
   -- TODO: neutrality tests in the next two cases could be removed
@@ -617,15 +617,15 @@ trans i a phi u = case a of
            --hcomp i ai1 pc ((ves' `sym` i) `unionSystem` uphi)
       Nothing -> error $ "trans: missing path constructor in hsum " ++ n
     VHComp _ v vs -> let j = fresh (Atom i,a,phi,u) in
-      hcomp j (a `face` (i ~> 1)) (trans i a phi v)
+      hcomp j (a `face` (i ~> 1)) (trans (VPLam i a) phi v)
         (mapWithKey (\al val ->
-                      trans i (a `face` al) (phi `face` al) (val @@@ j)) vs)
+                      trans (VPLam i (a `face` al)) (phi `face` al) (val @@@ j)) vs)
     _ -> VTrans (VPLam i a) phi u
   _ -> VTrans (VPLam i a) phi u
 
 
 transFill :: Name -> Val -> Formula -> Val -> Val
-transFill i a phi u = trans j (a `conj` (i,j)) (phi `orFormula` NegAtom i) u
+transFill i a phi u = trans (VPLam j (a `conj` (i,j))) (phi `orFormula` NegAtom i) u
   where j = fresh (Atom i,a,phi,u)
 
 transFills :: Name ->  [(Ident,Ter)] -> Env -> Formula -> [Val] -> [Val]
@@ -635,7 +635,7 @@ transFills i ((x,a):as) e phi (u:us) =
   in v : transFills i as (upd (x,v) e) phi us
 
 transNeg :: Name -> Val -> Formula -> Val -> Val
-transNeg i a phi u = trans i (a `sym` i) phi u
+transNeg i a phi u = trans (VPLam i (a `sym` i)) phi u
 
 transFillNeg :: Name -> Val -> Formula -> Val -> Val
 transFillNeg i a phi u = (transFill i (a `sym` i) phi u) `sym` i
@@ -648,7 +648,7 @@ transps :: Name -> [(Ident,Ter)] -> Env -> Formula -> [Val] -> [Val]
 transps i []         _ phi []     = []
 transps i ((x,a):as) e phi (u:us) =
   let v   = transFill i (eval e a) phi u
-      vi1 = trans i (eval e a) phi u
+      vi1 = trans (VPLam i (eval e a)) phi u
       vs  = transps i as (upd (x,v) e) phi us
   in vi1 : vs
 transps _ _ _ _ _ = error "transps: different lengths of types and values"
@@ -657,7 +657,7 @@ transps _ _ _ _ _ = error "transps: different lengths of types and values"
 -- (phi=1) and returns a path in direction i connecting transp i a phi
 -- u(i/0) to u(i/1).
 squeeze :: Name -> Val -> Formula -> Val -> Val
-squeeze i a phi u = trans j (a `disj` (i,j)) (phi `orFormula` Atom i) u
+squeeze i a phi u = trans (VPLam j (a `disj` (i,j))) (phi `orFormula` Atom i) u
   where j = fresh (Atom i,a,phi,u)
 
 
@@ -744,7 +744,7 @@ transGlue i a equivs psi u0 = glueElem v1' t1s'
     alliequivs = allSystem i equivs
     psisys = invSystem psi One -- (psi = 1) : FF
     t1s = mapWithKey
-            (\al wal -> trans i (equivDom wal) (psi `face` al) (u0 `face` al))
+            (\al wal -> trans (VPLam i (equivDom wal)) (psi `face` al) (u0 `face` al))
             alliequivs
     wts = mapWithKey (\al wal ->
               app (equivFun wal)
@@ -868,7 +868,7 @@ transHCompU i a es psi u0 = glueElem v1' t1s'
     allies' = mapWithKey (\al eal ->
                 (eal, eal @@ One, psi `face` al, u0 `face` al)) allies
     t1s = mapSystem
-            (\(_,eal1,psial,u0al) -> trans i eal1 psial u0al)
+            (\(_,eal1,psial,u0al) -> trans (VPLam i eal1) psial u0al)
             allies'
     wts = mapSystem
             (\(eal,eal1,psial,u0al) -> eqFun eal (transFill i eal1 psial u0al))

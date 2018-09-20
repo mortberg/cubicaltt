@@ -727,25 +727,25 @@ inv : S1 -> S1 = split
   base1 -> base1
   loop1 @ i -> loop1{S1} @ -i
 
-rotrotinvloop1loop1 : PathP (<i>
- PathP (<j> Path S1
-      (hcomp S1 (loop1 {S1} @ j)
-                [(i=0) -> <k> hcomp S1 base1
-                                            [(j=0) -> <_> base1 ,
-                                             (j=1) -> <l> loop1 {S1 }  @ (-k /\ l),
-                                             (k=0) -> <l> loop1 {S1 }  @ (j /\ l)],
-                (i=1) -> <k> hcomp S1 base1
-                                            [(j=0) -> <l> loop1 {S1 }  @ (k \/ -l),
-                                             (j=1) -> <_> base1 ,
-                                             (k=0) -> <l> loop1 {S1 }  @ (j \/ -l)],
-                (j=0) -> <k> loop1 {S1} @ (i /\ k),
-                (j=1) -> <k> loop1 {S1} @ (i \/ -k)])
-      (loop1 {S1} @ i)) (<i13415> loop1 {S1 }  @ i) (<i13416> loop1 {S1 }  @ i)) (<i j> hfill S1 base1 [(i=0) -> <_> base1, (i=1) -> <_> base1] @ -j) (<i j> hfill S1 base1 [(i=0) -> <_> base1, (i=1) -> <_> base1] @ -j)
-      = undefined
+-- rotrotinvloop1loop1 : PathP (<i>
+--  PathP (<j> Path S1
+--       (hcomp S1 (loop1 {S1} @ j)
+--                 [(i=0) -> <k> hcomp S1 base1
+--                                             [(j=0) -> <_> base1 ,
+--                                              (j=1) -> <l> loop1 {S1 }  @ (-k /\ l),
+--                                              (k=0) -> <l> loop1 {S1 }  @ (j /\ l)],
+--                 (i=1) -> <k> hcomp S1 base1
+--                                             [(j=0) -> <l> loop1 {S1 }  @ (k \/ -l),
+--                                              (j=1) -> <_> base1 ,
+--                                              (k=0) -> <l> loop1 {S1 }  @ (j \/ -l)],
+--                 (j=0) -> <k> loop1 {S1} @ (i /\ k),
+--                 (j=1) -> <k> loop1 {S1} @ (i \/ -k)])
+--       (loop1 {S1} @ i)) (<i13415> loop1 {S1 }  @ i) (<i13416> loop1 {S1 }  @ i)) (<i j> hfill S1 base1 [(i=0) -> <_> base1, (i=1) -> <_> base1] @ -j) (<i j> hfill S1 base1 [(i=0) -> <_> base1, (i=1) -> <_> base1] @ -j)
+--       = undefined
 
-rotrotinvloop1 : (y : S1) -> PathP (<i> Path S1 (rotLoop (rotLoop y @ -i) @ i) y) (<_> y) (<_> y) = split
-  base1 -> <i j> hfill S1 base1 [(i=0) -> <_> base1, (i=1) -> <_> base1] @ -j
-  loop1 @ i -> rotrotinvloop1loop1 @ i
+rotrotinvloop1 : (y : S1) -> PathP (<i> Path S1 (rotLoop (rotLoop y @ -i) @ i) y) (<_> y) (<_> y) = undefined -- split
+  -- base1 -> <i j> hfill S1 base1 [(i=0) -> <_> base1, (i=1) -> <_> base1] @ -j
+  -- loop1 @ i -> rotrotinvloop1loop1 @ i
 
 -- rotinvrotloop1 : (y : S1) -> PathP (<i> Path S1 (rotLoop (rotLoop y @ i) @ -i) y) (<_> y) (<_> y) = undefined
 
@@ -773,11 +773,18 @@ goal (A : U) : Path (Path U A A) (ua A A (idEquiv A)) (<_> A) =
                , (j = 1) -> (A,idEquiv A) ]
 
 -- We're hiding univalence in there
+-- square : Path (Path U S1 S1) (<_> S1) (<_> S1) =
+--   <i j> Glue S1 [ (i = 0) -> (S1, (rot base1 , rotIsEquiv'' base1))
+--                 , (i = 1) -> (S1, (rot base1 , rotIsEquiv'' base1))
+--                 , (j = 0) -> (S1, (rot (loop @ i), rotIsEquiv'' (loop @ i)))
+--                 , (j = 1) -> (S1, (rot base1 , rotIsEquiv'' base1))
+--                 ]
+
 square : Path (Path U S1 S1) (<_> S1) (<_> S1) =
-  <i j> Glue S1 [ (i = 0) -> (S1, (rot base1 , rotIsEquiv'' base1))
-                , (i = 1) -> (S1, (rot base1 , rotIsEquiv'' base1))
-                , (j = 0) -> (S1, (rot (loop @ i), rotIsEquiv'' (loop @ i)))
-                , (j = 1) -> (S1, (rot base1 , rotIsEquiv'' base1))
+  <i j> Glue S1 [ (i = 0) -> (S1, idEquiv S1)
+                , (i = 1) -> (S1, idEquiv S1)
+                , (j = 0) -> (S1, (rot (loop @ i), rotIsEquiv (loop @ i)))
+                , (j = 1) -> (S1, idEquiv S1)
                 ]
 
 Hopf : S2 -> U = split

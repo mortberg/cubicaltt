@@ -522,8 +522,8 @@ comp i a u us =
                                in VCon n $ comps i as env usus'
                     Nothing -> error $ "comp: missing constructor in labelled sum " ++ n
       _ -> VComp (VPLam i a) u (mapSystem (VPLam i) us)    
-    _ -> hcomp j (a `face` (i ~> 1)) (fwd i a (Dir Zero) u)
-               (mapWithKey (\al ual -> fwd i (a `face` al) (Atom j) (ual  `swap` (i,j))) us)
+    _ -> hcomp j (a `face` (i ~> 1)) (trans i a (Dir Zero) u)
+                 (mapWithKey (\al ual -> fwd i (a `face` al) (Atom j) (ual  `swap` (i,j))) us)
 
 -- comp :: Name -> Val -> Val -> System Val -> Val
 -- comp i a u us = hcomp i (a `face` (i ~> 1)) (fwd i a (Dir Zero) u) fwdius

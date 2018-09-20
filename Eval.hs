@@ -596,7 +596,7 @@ trans (VPLam i a) phi u = case a of
       Nothing -> error $ "trans: missing constructor in sum " ++ n
     _ -> VTrans (VPLam i a) phi u
   Ter (HSum _ n nass) env
-    | n `elem` ["S1","S2","S3"] -> u
+    | n `elem` ["S1","S2","S3","g2Trunc"] -> u
     | otherwise -> case u of
     VCon n us -> case lookupLabel n nass of
       Just tele -> VCon n (transps i tele env phi us)
@@ -892,7 +892,8 @@ transHCompU i a es psi u0 = glueElem v1' t1s'
 -- to a total one where f is transNeg of eq.  Applies the second
 -- component to the fresh name i.
 lemEqConst :: Name -> Val -> Val -> System Val -> (Val,Val)
-lemEqConst i eq@(VPLam _ (Ter (HSum _ "S1" _) _)) b as = (hcomp j eqj b as,hfill i eqj b as)
+lemEqConst i eq@(VPLam _ (Ter (HSum _ n _) _)) b as
+  | n `elem` ["S1","S2","S3","g2Trunc"] = (hcomp j eqj b as,hfill i eqj b as)
   where
    j = fresh (eq,b,as)
    eqj = eq @@@ j

@@ -2150,7 +2150,7 @@ multTwoTildeEquiv' : (x : S2) -> isEquiv trS2 trS2 (multTwoTilde x) = split
 -- opaque multTwoTildeEquiv
 -- opaque multBase2EqPath
 
-idEquiv' : equiv trS2 trS2 = (multTwoTilde base2, multTwoTildeEquiv base2)
+idEquiv' : equiv trS2 trS2 = (multTwoTilde base2, multTwoTildeEquiv' base2)
 
 -- opaque propIsEquivDirect'
 

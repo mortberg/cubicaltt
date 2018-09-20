@@ -18,9 +18,10 @@ instance Show Name where
   show (Name i) = i
   show (Gen x)  = 'i' : show x
 
+-- swap is only used for FRESH j!
 swapName :: Name -> (Name,Name) -> Name
 swapName k (i,j) | k == i    = j
-                 | k == j    = i
+--                 | k == j    = i
                  | otherwise = k
 
 -- | Directions

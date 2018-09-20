@@ -85,12 +85,18 @@ allCompatible []     = []
 allCompatible (f:fs) = map (f,) (filter (compatible f) fs) ++ allCompatible fs
 
 -- Partial composition operation
-meet :: Face -> Face -> Face
-meet = unionWith f
+meetUnsafe :: Face -> Face -> Face
+meetUnsafe = unionWith f
   where f d1 d2 = if d1 == d2 then d1 else error "meet: incompatible faces"
 
 meetMaybe :: Face -> Face -> Maybe Face
-meetMaybe x y = if compatible x y then Just $ meet x y else Nothing
+meetMaybe x ys = meet' (assocs x)
+  where
+    meet' [] = Just ys
+    meet' ((i,d):xs) = case Map.lookup i ys of
+      Just d' | d == d' -> fmap (Map.insert i d) (meet' xs)
+              | otherwise -> Nothing
+      Nothing -> fmap (Map.insert i d) (meet' xs)
 
 -- meetCom :: Face -> Face -> Property
 -- meetCom xs ys = compatible xs ys ==> xs `meet` ys == ys `meet` xs
@@ -99,11 +105,14 @@ meetMaybe x y = if compatible x y then Just $ meet x y else Nothing
 -- meetAssoc xs ys zs = compatibles [xs,ys,zs] ==>
 --                      xs `meet` (ys `meet` zs) == (xs `meet` ys) `meet` zs
 
-meetId :: Face -> Bool
-meetId xs = xs `meet` xs == xs
+-- meetId :: Face -> Bool
+-- meetId xs = xs `meet` xs == xs
+
+-- meets :: [Face] -> [Face] -> [Face]
+-- meets xs ys = [ meet x y | x <- xs, y <- ys, compatible x y ]
 
 meets :: [Face] -> [Face] -> [Face]
-meets xs ys = nub [ meet x y | x <- xs, y <- ys, compatible x y ]
+meets xs ys = map fromJust $ filter (/= Nothing) [ meetMaybe x y | x <- xs, y <- ys ]
 
 meetss :: [[Face]] -> [Face]
 meetss = foldr meets [eps]
@@ -496,9 +505,9 @@ mkSystem xs = insertsSystem xs emptySystem
 unionSystem :: System a -> System a -> System a
 unionSystem (Sys us) vs = insertsSystem us vs
 
-joinSystem :: System (System a) -> System a
-joinSystem (Sys tss) = mkSystem $
-  [ (alpha `meet` beta,t) | (alpha,Sys ts) <- tss, (beta,t) <- ts ]
+-- joinSystem :: System (System a) -> System a
+-- joinSystem (Sys tss) = mkSystem $
+--   [ (alpha `meet` beta,t) | (alpha,Sys ts) <- tss, (beta,t) <- ts ]
 
 -- Calculates shape corresponding to (phi=dir)
 invSystem :: Formula -> Dir -> System ()
@@ -530,7 +539,7 @@ instance Nominal a => Nominal (System a) where
       let s' = addAssocs alphaus
       in case Map.lookup i alpha of
         Just d -> let beta = Map.delete i alpha
-                  in foldr (\delta s'' -> insertSystem (meet delta beta)
+                  in foldr (\delta s'' -> insertSystem (meetUnsafe delta beta)
                                             (face u (Map.delete i delta)) s'')
                                             s' (invFormula (face phi beta) d)
         Nothing -> insertSystem alpha (act b u (i,face phi alpha)) s'

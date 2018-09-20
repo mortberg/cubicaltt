@@ -972,10 +972,11 @@ instance Convertible Env where
       conv ns (rho1,vs1,fs1,os1) (rho2,vs2,fs2,os2)
 
 instance Convertible Val where
-  conv ns u v | u == v    = True
+  conv ns u v -- | u == v    = True
               | otherwise =
     let j = fresh (u,v)
     in case (u,v) of
+      (VU,VU) -> True
       (Ter (Lam x a u) e,Ter (Lam x' a' u') e') ->
         let v@(VVar n _) = mkVarNice ns x (eval e a)
         in conv (n:ns) (eval (upd (x,v) e) u) (eval (upd (x',v) e') u')

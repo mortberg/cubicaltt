@@ -2098,17 +2098,17 @@ multTwo : S2 -> S2 -> trS2 = split
 multTwoTilde (x : S2) : trS2 -> trS2 =
   g2TruncRec S2 trS2 trS2Trunc (multTwo x)
 
-lemPropS2 (P : S2 -> U) (pP : (x : S2) -> prop (P x)) (pB : P base2) : (x : S2) -> P x = split
-    base2 -> pB
-    loop2 @ i j -> hcomp (P (loop2{S2} @ i @ j)) (lemPropF S2 P pP base2 base2 (<k> loop2{S2} @ i @ k) pB pB @ j)
-                         [ (i=0) -> <k> aux @ k @ j
-                         , (i=1) -> <k> aux @ k @ j
-                         , (j=0) -> <_> pB
-                         , (j=1) -> <_> pB ]
-                   where
+-- lemPropS2 (P : S2 -> U) (pP : (x : S2) -> prop (P x)) (pB : P base2) : (x : S2) -> P x = split
+--     base2 -> pB
+--     loop2 @ i j -> hcomp (P (loop2{S2} @ i @ j)) (lemPropF S2 P pP base2 base2 (<k> loop2{S2} @ i @ k) pB pB @ j)
+--                          [ (i=0) -> <k> aux @ k @ j
+--                          , (i=1) -> <k> aux @ k @ j
+--                          , (j=0) -> <_> pB
+--                          , (j=1) -> <_> pB ]
+--                    where
 
-      aux : Path (Path (P base2) pB pB) (lemPropF S2 P pP base2 base2 (<_> base2) pB pB) (<_> pB) =
-        propSet (P base2) (pP base2) pB pB (lemPropF S2 P pP base2 base2 (<_> base2) pB pB) (<_> pB)
+--       aux : Path (Path (P base2) pB pB) (lemPropF S2 P pP base2 base2 (<_> base2) pB pB) (<_> pB) =
+--         propSet (P base2) (pP base2) pB pB (lemPropF S2 P pP base2 base2 (<_> base2) pB pB) (<_> pB)
 
 -- This needs the elimination principle for 2-groupoid truncation...
 lem3Trunc (A B : U) (hB : twogroupoid B) (g h : g2Trunc A -> B)
@@ -2125,11 +2125,11 @@ multEquivBase2 : isEquiv trS2 trS2 (multTwoTilde base2) =
   subst (trS2 -> trS2) (isEquiv trS2 trS2) (idfun trS2)
         (multTwoTilde base2) multBase2EqPath (idIsEquiv trS2)
 
-multTwoTildeEquiv : (x : S2) -> isEquiv trS2 trS2 (multTwoTilde x) =
-  lemPropS2
-    (\(x : S2) -> isEquiv trS2 trS2 (multTwoTilde x))
-    (\(x : S2) -> propIsEquivDirect' trS2 trS2 (multTwoTilde x))
-    multEquivBase2
+-- multTwoTildeEquiv : (x : S2) -> isEquiv trS2 trS2 (multTwoTilde x) =
+--   lemPropS2
+--     (\(x : S2) -> isEquiv trS2 trS2 (multTwoTilde x))
+--     (\(x : S2) -> propIsEquivDirect' trS2 trS2 (multTwoTilde x))
+--     multEquivBase2
 
 opaque propIsEquivDirect'
 
@@ -2164,13 +2164,12 @@ tHopf3 : S3 -> U = split
                   , (k=0) -> (trS2, (multTwoTilde (loop2{S2} @ i @ j),multTwoTildeEquiv' (loop2{S2} @ i @ j)))
                   , (k=1) -> (trS2, idEquiv')]
 
-transparent propIsEquivDirect'
-
-pi3S3 : (Omega3 S3pt).1 -> (Omega2 (g2Truncpt S2pt)).1 =
-  mapOmegaRefl2 (Omega S3pt) trS2 pi3S3'
-    where
-    pi3S3' (p : (Omega S3pt).1) : trS2 =
-      subst S3 tHopf3 base3 base3 p (g2inc base2)
+pi3S3 (p : (Omega3 S3pt).1) : (Omega2 (g2Truncpt S2pt)).1 =
+  <i j> transGen (<k> tHopf3 (p @ i @ j @ k)) 0 (g2inc base2) 
+  -- mapOmegaRefl2 (Omega S3pt) trS2 pi3S3'
+  --   where
+  --   pi3S3' (p : (Omega S3pt).1) : trS2 =
+  --     subst S3 tHopf3 base3 base3 p (g2inc base2)
 
 ----------------------------------
 -- B.10 Loop spaces of truncations

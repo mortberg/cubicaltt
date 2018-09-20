@@ -248,7 +248,8 @@ resolveSystem (System ts) = do
 
 resolveFace :: [Face] -> Resolver C.Face
 resolveFace alpha =
-  sequence [ (,) <$> resolveName i <*> resolveDir d | Face i d <- alpha ]
+  Map.fromList <$> sequence [ (,) <$> resolveName i <*> resolveDir d
+                            | Face i d <- alpha ]
 
 resolveDir :: Dir -> Resolver C.Dir
 resolveDir Dir0 = return 0

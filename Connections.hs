@@ -3,10 +3,10 @@
 module Connections where
 
 import Control.Applicative
-import Data.List
-import Data.Map (Map,(!),keys,fromList,toList,mapKeys,elems,intersectionWith
-                ,unionWith,singleton,foldrWithKey,assocs,mapWithKey
-                ,filterWithKey,member,notMember)
+import Data.List hiding (insert)
+import Data.Map (Map,(!),fromList,toList
+                ,unionWith,singleton,foldrWithKey,assocs
+                ,member,notMember)
 import Data.Set (Set,isProperSubsetOf)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -70,11 +70,11 @@ showFace alpha = concat [ "(" ++ show i ++ "=" ++ show d ++ ")"
                         | (i,d) <- toList alpha ]
 
 swapFace :: Face -> (Name,Name) -> Face
-swapFace alpha ij = mapKeys (`swapName` ij) alpha
+swapFace alpha ij = Map.mapKeys (`swapName` ij) alpha
 
 -- Check if two faces are compatible
 compatible :: Face -> Face -> Bool
-compatible xs ys = and (elems (intersectionWith (==) xs ys))
+compatible xs ys = and (Map.elems (Map.intersectionWith (==) xs ys))
 
 compatibles :: [Face] -> Bool
 compatibles []     = True
@@ -425,7 +425,59 @@ face x f = faceloop x (assocs f)
                         = faceloop (act True x (i,Dir d)) xs
 
 -- the faces should be incomparable
-type System a = Map Face a
+newtype System a = Sys [(Face,a)]
+  deriving (Eq,Show)
+
+unSys :: System a -> [(Face,a)]
+unSys (Sys xs) = xs
+
+keys :: System a -> [Face]
+keys (Sys xs) = map fst xs
+
+elems :: System a -> [a]
+elems (Sys xs) = map snd xs
+
+-- insert :: (Face,a) -> System a -> System a
+-- insert x (Sys xs) = Sys (x:xs)
+
+emptySystem :: System a
+emptySystem = Sys []
+
+nullSystem :: System a -> Bool
+nullSystem (Sys []) = True
+nullSystem _ = False
+
+filterWithKey :: (Face -> a -> Bool) -> System a -> System a
+filterWithKey f (Sys xs) = Sys $ filter (uncurry f) xs
+
+mapSystem :: (a -> b) -> System a -> System b
+mapSystem f (Sys xs) = Sys [ (a,f x) | (a,x) <- xs]
+
+mapKeys :: (Face -> Face) -> System a -> System a
+mapKeys f (Sys xs) = mkSystem [ (f a,x) | (a,x) <- xs]
+
+mapWithKey :: (Face -> a -> b) -> System a -> System b
+mapWithKey f (Sys xs) = Sys [ (a,f a x) | (a,x) <- xs ]
+
+intersectionWith :: (a -> b -> c) -> System a -> System b -> System c
+intersectionWith _ (Sys []) _ = emptySystem
+intersectionWith f (Sys ((a,x):xs)) (Sys ys) = case lookup a ys of
+  Just y -> insertSystem a (f x y) (intersectionWith f (Sys xs) (Sys ys))
+  Nothing -> intersectionWith f (Sys xs) (Sys ys)
+
+intersectionWithKey :: (Face -> a -> b -> c) -> System a -> System b -> System c
+intersectionWithKey _ (Sys []) _ = emptySystem
+intersectionWithKey f (Sys ((a,x):xs)) (Sys ys) = case lookup a ys of
+  Just y -> insertSystem a (f a x y) (intersectionWithKey f (Sys xs) (Sys ys))
+  Nothing -> intersectionWithKey f (Sys xs) (Sys ys)
+
+(!) :: System a -> Face -> a
+(Sys xs) ! a = case lookup a xs of
+  Just x -> x
+  Nothing -> error "(!): face doesn't exist in system"
+
+member :: Face -> System a -> Bool
+member a (Sys xs) = or [ a == x | (x,_) <- xs ]
 
 -- showSystem :: Show a => System a -> String
 -- showSystem = showListSystem . toList
@@ -433,22 +485,20 @@ type System a = Map Face a
 insertSystem :: Face -> a -> System a -> System a
 insertSystem alpha v ts
   | any (leq alpha) (keys ts) = ts
-  | otherwise = Map.insert alpha v
-                           (Map.filterWithKey (\gamma _ -> not (gamma `leq` alpha)) ts)
+  | otherwise = Sys $ (alpha,v) : unSys (filterWithKey (\gamma _ -> not (gamma `leq` alpha)) ts)
 
 insertsSystem :: [(Face, a)] -> System a -> System a
 insertsSystem faces us = foldr (uncurry insertSystem) us faces
 
 mkSystem :: [(Face, a)] -> System a
-mkSystem = flip insertsSystem Map.empty
+mkSystem xs = insertsSystem xs emptySystem
 
 unionSystem :: System a -> System a -> System a
-unionSystem us vs = insertsSystem (assocs us) vs
-
+unionSystem (Sys us) vs = insertsSystem us vs
 
 joinSystem :: System (System a) -> System a
-joinSystem tss = mkSystem $
-  [ (alpha `meet` beta,t) | (alpha,ts) <- assocs tss, (beta,t) <- assocs ts ]
+joinSystem (Sys tss) = mkSystem $
+  [ (alpha `meet` beta,t) | (alpha,Sys ts) <- tss, (beta,t) <- ts ]
 
 -- Calculates shape corresponding to (phi=dir)
 invSystem :: Formula -> Dir -> System ()
@@ -461,7 +511,7 @@ allSystem i = filterWithKey (\alpha _ -> i `notMember` alpha)
 transposeSystemAndList :: System [a] -> [b] -> [(System a,b)]
 transposeSystemAndList _  []      = []
 transposeSystemAndList tss (u:us) =
-  (Map.map head tss,u):transposeSystemAndList (Map.map tail tss) us
+   (mapSystem head tss,u) : transposeSystemAndList (mapSystem tail tss) us
 
 -- Quickcheck this:
 -- (i = phi) * beta = (beta - i) * (i = phi beta)
@@ -471,12 +521,11 @@ instance Nominal a => Nominal (System a) where
   -- support s = unions (map keys $ keys s)
   --             `union` support (elems s)
 
-  occurs x s = x `elem` (concatMap Map.keys $ Map.keys s) ||
-               occurs x (Map.elems s)
+  occurs x s = x `elem` (concatMap Map.keys $ keys s) || occurs x (elems s)
 
-  act b s (i, phi) = addAssocs (assocs s)
+  act b (Sys s) (i, phi) = addAssocs s
     where
-    addAssocs [] = Map.empty
+    addAssocs [] = emptySystem
     addAssocs ((alpha,u):alphaus) =
       let s' = addAssocs alphaus
       in case Map.lookup i alpha of
@@ -486,7 +535,7 @@ instance Nominal a => Nominal (System a) where
                                             s' (invFormula (face phi beta) d)
         Nothing -> insertSystem alpha (act b u (i,face phi alpha)) s'
 
-  swap s ij = mapKeys (`swapFace` ij) (Map.map (`swap` ij) s)
+  swap s ij = mapKeys (`swapFace` ij) (mapSystem (`swap` ij) s)
 
 -- carve a using the same shape as the system b
 border :: Nominal a => a -> System b -> System a
@@ -514,16 +563,17 @@ disj a (i, j) = act False a (i, Atom i :\/: Atom j)
 
 leqSystem :: Face -> System a -> Bool
 alpha `leqSystem` us =
-  not $ Map.null $ filterWithKey (\beta _ -> alpha `leq` beta) us
+  not $ nullSystem $ filterWithKey (\beta _ -> alpha `leq` beta) us
 
--- assumes alpha <= shape us
-proj :: (Nominal a, Show a) => System a -> Face -> a
-proj us alpha = us `face` alpha ! eps
-  --   | eps `member` usalpha = usalpha ! eps
-  --   | otherwise            =
-  -- error $ "proj: eps not in " ++ show usalpha ++ "\nwhich  is the "
-  --   ++ show alpha ++ "\nface of " ++ show us
-  -- where usalpha = us `face` alpha
+-- -- assumes alpha <= shape us
+-- proj :: (Nominal a, Show a) => System a -> Face -> a
+-- proj us alpha = us `face` alpha ! eps
+--   --   | eps `member` usalpha = usalpha ! eps
+--   --   | otherwise            =
+--   -- error $ "proj: eps not in " ++ show usalpha ++ "\nwhich  is the "
+--   --   ++ show alpha ++ "\nface of " ++ show us
+--   -- where usalpha = us `face` alpha
 
 domain :: System a -> [Name]
-domain  = keys . Map.unions . keys
+domain  = Map.keys . Map.unions . keys
+

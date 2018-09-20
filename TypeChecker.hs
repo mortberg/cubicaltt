@@ -5,10 +5,6 @@ import Control.Applicative hiding (empty)
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Reader
-import Data.Map (Map,(!),mapWithKey,assocs,filterWithKey,elems,keys
-                ,intersection,intersectionWith,intersectionWithKey
-                ,toList,fromList)
-import qualified Data.Map as Map
 import qualified Data.Traversable as T
 
 import Connections
@@ -422,13 +418,20 @@ checkPLam v t = do
       return (a0,a1)
     _ -> throwError $ show (showVal vt) ++ " is not a path"
 
+runSystem :: System (Typing a) -> Typing (System a)
+runSystem (Sys []) = return emptySystem
+runSystem (Sys ((a,x):xs)) = do
+  x' <- x
+  xs' <- runSystem (Sys xs)
+  return (insertSystem a x' xs')
+
 -- Return system such that:
 --   rhoalpha |- p_alpha : Id (va alpha) (t0 rhoalpha) ualpha
 -- Moreover, check that the system ps is compatible.
 checkPLamSystem :: Ter -> Val -> System Ter -> Typing (System Val)
 checkPLamSystem t0 va ps = do
   rho <- asks env
-  v <- T.sequence $ mapWithKey (\alpha pAlpha ->
+  v <- runSystem $ mapWithKey (\alpha pAlpha ->
     local (faceEnv alpha) $ do
       rhoAlpha <- asks env
       (a0,a1)  <- checkPLam (va `face` alpha) pAlpha

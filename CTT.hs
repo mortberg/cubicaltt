@@ -4,7 +4,7 @@ module CTT where
 import Control.Applicative
 import Data.List
 import Data.Maybe
-import Data.Map (Map,(!),filterWithKey,elems)
+import Data.Map (Map,(!),filterWithKey)
 import qualified Data.Map as Map
 
 import Data.Text (Text)
@@ -378,7 +378,7 @@ showFormula phi = case phi of
 --   show = render . showTer
 
 showSystem :: (a -> Doc b) -> System a -> Doc b
-showSystem f x = showListSystem f (Map.toList x)
+showSystem f (Sys x) = showListSystem f x
 
 -- Use align here instead of hsep to get prettier printing
 showListSystem :: (a -> Doc b) -> [(Face,a)] -> Doc b
@@ -535,7 +535,7 @@ countHComps :: [Val] -> Int
 countHComps = sum . map countHComp
 
 countHCompSystem :: System Val -> Int
-countHCompSystem = countHComps . Map.elems
+countHCompSystem = countHComps . elems
 
 countHComp :: Val -> Int
 countHComp v = case v of

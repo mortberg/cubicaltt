@@ -244,7 +244,7 @@ resolveSystem (System ts) = do
     throwError $ "system contains same face multiple times: " ++
                  show (CTT.showListSystem CTT.showTer ts')
   -- Note: the symbols in alpha are in scope in u, but they mean 0 or 1
-  return $ Map.fromList ts'
+  return $ C.mkSystem ts'
 
 resolveFace :: [Face] -> Resolver C.Face
 resolveFace alpha =

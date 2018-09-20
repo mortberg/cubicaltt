@@ -2124,6 +2124,8 @@ multTwoTildeEquiv : (x : S2) -> isEquiv trS2 trS2 (multTwoTilde x) =
     (\(x : S2) -> propIsEquivDirect' trS2 trS2 (multTwoTilde x))
     multEquivBase2
 
+opaque propIsEquivDirect'
+
 multTwoTildeEquiv'aux : PathP (<i> PathP (<j> isEquiv trS2 trS2 (multTwoTilde (loop2 {S2} @ i @ j))) multEquivBase2 multEquivBase2) (<_> multEquivBase2) (<_> multEquivBase2) =
  <i j> hcomp (isEquiv trS2 trS2 (multTwoTilde (loop2{S2} @ i @ j)))
                               (transGen (<k> isEquiv trS2 trS2 (multTwoTilde (loop2{S2} @ (i /\ k) @ (j /\ k)))) (-i \/ -j) multEquivBase2)
@@ -2131,6 +2133,8 @@ multTwoTildeEquiv'aux : PathP (<i> PathP (<j> isEquiv trS2 trS2 (multTwoTilde (l
                           , (i=1) -> <l> propIsEquivDirect' trS2 trS2 (multTwoTilde base2) multEquivBase2 (transGen (<k> isEquiv trS2 trS2 (multTwoTilde (loop2{S2} @ k @ (j /\ k)))) (-j) multEquivBase2) @ -l
                           , (j=0) -> <l> propIsEquivDirect' trS2 trS2 (multTwoTilde base2) multEquivBase2 multEquivBase2 @ -l
                           , (j=1) -> <l> propIsEquivDirect' trS2 trS2 (multTwoTilde base2) multEquivBase2 (transGen (<k> isEquiv trS2 trS2 (multTwoTilde (loop2{S2} @ (i /\ k) @ k))) (-i) multEquivBase2) @ -l]
+
+transparent propIsEquivDirect'
 
 multTwoTildeEquiv' : (x : S2) -> isEquiv trS2 trS2 (multTwoTilde x) = split
   base2 -> multEquivBase2

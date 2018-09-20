@@ -234,3 +234,15 @@ loop3n : nat -> Path S1 base base = split
 -- Time: 0m14.146s
 
 
+
+reflcap : (n : nat) -> Path S1 base base = split
+  zero -> <_> base
+  suc n -> <i> hcomp S1 (reflcap n @ i) [(i=0) -> <_> base, (i=1) -> <_> base]
+
+-- oneloopside (m : nat) : (n : nat) -> Path S1 base base = split
+--   zero -> <i> hcomp S1 (reflcap m @ i) [(i=0) -> loop1, (i=1) -> <_> base]
+--   suc n -> <i> hcomp S1 (oneloopside m n @ i) [(i=0) -> <_> base, (i=1) -> <_> base]
+
+-- When applied to n8192, it takes 50 seconds and 15GiB of memory
+testreflcap (n : nat) : Z = winding (reflcap n)
+

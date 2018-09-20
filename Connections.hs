@@ -4,11 +4,7 @@ module Connections where
 
 import Control.Applicative
 import Data.List hiding (insert)
-import Data.Map (Map,(!),fromList,toList
-                ,unionWith,singleton,foldrWithKey,assocs
-                ,member,notMember)
 import Data.Set (Set,isProperSubsetOf)
-import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Maybe
 -- import Test.QuickCheck
@@ -60,21 +56,37 @@ instance Num Dir where
 -- | Face
 
 -- Faces of the form: [(i,0),(j,1),(k,0)]
-type Face = Map Name Dir
+-- Invariant: a name only occurs once in the face
+type Face = [(Name,Dir)]
 
 -- instance {-# OVERLAPPING #-} Arbitrary Face where
 --   arbitrary = fromList <$> arbitrary
 
+memberFace :: Name -> Face -> Bool
+memberFace n [] = False
+memberFace n ((i,_):xs) = n == i || memberFace n xs
+
+notMemberFace :: Name -> Face -> Bool
+notMemberFace n xs = not (memberFace n xs)
+
+deleteFace :: Name -> Face -> Face
+deleteFace i [] = []
+deleteFace i ((j,x):xs) | i == j = xs
+                        | otherwise = (j,x) : deleteFace i xs
+
 showFace :: Face -> String
-showFace alpha = concat [ "(" ++ show i ++ "=" ++ show d ++ ")"
-                        | (i,d) <- toList alpha ]
+showFace alpha = concat [ "(" ++ show i ++ "=" ++ show d ++ ")" | (i,d) <- alpha ]
 
 swapFace :: Face -> (Name,Name) -> Face
-swapFace alpha ij = Map.mapKeys (`swapName` ij) alpha
+swapFace alpha ij = [ (swapName i ij,a) | (i,a) <- alpha ]
 
 -- Check if two faces are compatible
 compatible :: Face -> Face -> Bool
-compatible xs ys = and (Map.elems (Map.intersectionWith (==) xs ys))
+compatible [] ys = True
+compatible ((i,a):xs) ys = case lookup i ys of
+  Just d | d == a -> compatible xs ys
+         | otherwise -> False
+  Nothing -> compatible xs ys
 
 compatibles :: [Face] -> Bool
 compatibles []     = True
@@ -84,19 +96,25 @@ allCompatible :: [Face] -> [(Face,Face)]
 allCompatible []     = []
 allCompatible (f:fs) = map (f,) (filter (compatible f) fs) ++ allCompatible fs
 
--- Partial composition operation
-meetUnsafe :: Face -> Face -> Face
-meetUnsafe = unionWith f
-  where f d1 d2 = if d1 == d2 then d1 else error "meet: incompatible faces"
+insertFace :: (Name,Dir) -> Face -> Face
+insertFace (i,d) xs = case lookup i xs of
+  Just d' | d == d' -> xs
+          | otherwise -> error "insertFace"
+  Nothing -> (i,d) : xs
 
 meetMaybe :: Face -> Face -> Maybe Face
-meetMaybe x ys = meet' (assocs x)
-  where
-    meet' [] = Just ys
-    meet' ((i,d):xs) = case Map.lookup i ys of
-      Just d' | d == d' -> fmap (Map.insert i d) (meet' xs)
-              | otherwise -> Nothing
-      Nothing -> fmap (Map.insert i d) (meet' xs)
+meetMaybe [] ys = Just ys
+meetMaybe ((i,d):xs) ys = case lookup i ys of
+  Just d' | d == d' -> fmap (insertFace (i,d)) (meetMaybe xs ys)
+          | otherwise -> Nothing
+  Nothing -> fmap (insertFace (i,d)) (meetMaybe xs ys)
+
+-- Partial composition operation
+meetUnsafe :: Face -> Face -> Face
+meetUnsafe xs ys = fromJust (meetMaybe xs ys)
+  -- unionWith f
+  -- where f d1 d2 = if d1 == d2 then d1 else error "meet: incompatible faces"
+
 
 -- meetCom :: Face -> Face -> Property
 -- meetCom xs ys = compatible xs ys ==> xs `meet` ys == ys `meet` xs
@@ -112,7 +130,7 @@ meetMaybe x ys = meet' (assocs x)
 -- meets xs ys = [ meet x y | x <- xs, y <- ys, compatible x y ]
 
 meets :: [Face] -> [Face] -> [Face]
-meets xs ys = map fromJust $ filter (/= Nothing) [ meetMaybe x y | x <- xs, y <- ys ]
+meets xs ys = [ f | Just f <- [ meetMaybe x y | x <- xs, y <- ys ]]
 
 meetss :: [[Face]] -> [Face]
 meetss = foldr meets [eps]
@@ -128,13 +146,13 @@ incomparables []     = True
 incomparables (x:xs) = all (not . (x `comparable`)) xs && incomparables xs
 
 (~>) :: Name -> Dir -> Face
-i ~> d = singleton i d
+i ~> d = [(i,d)]
 
 eps :: Face
-eps = Map.empty
+eps = []
 
 minus :: Face -> Face -> Face
-minus alpha beta = alpha Map.\\ beta
+minus alpha beta = alpha \\ beta
 
 -- Compute the witness of A <= B, ie compute C s.t. B = CA
 -- leqW :: Face -> Face -> Face
@@ -249,8 +267,8 @@ merge a b =
 -- phi b = max {alpha : Face | phi alpha = b}
 invFormula :: Formula -> Dir -> [Face]
 invFormula (Dir b') b          = [ eps | b == b' ]
-invFormula (Atom i) b          = [ singleton i b ]
-invFormula (NegAtom i) b       = [ singleton i (- b) ]
+invFormula (Atom i) b          = [ (i~>b) ]
+invFormula (NegAtom i) b       = [ (i~>(- b)) ]
 invFormula (phi :/\: psi) Zero = invFormula phi 0 `union` invFormula psi 0
 invFormula (phi :/\: psi) One  = meets (invFormula phi 1) (invFormula psi 1)
 invFormula (phi :\/: psi) b    = invFormula (negFormula phi :/\: negFormula psi) (- b)
@@ -426,12 +444,9 @@ supportFormula (phi :\/: psi) = supportFormula phi `union` supportFormula psi
 
 -- foldrWithKey (\i d a -> act x a (i,Dir d))
 face :: Nominal a => a -> Face -> a
-face x f = faceloop x (assocs f)
-  where
-  faceloop x [] = x
-  faceloop x ((i,d):xs) -- | not (i `occurs` x) = faceloop x xs
-                        -- | otherwise =
-                        = faceloop (act True x (i,Dir d)) xs
+face x [] = x
+face x ((i,d):xs) -- | not (i `occurs` x) = face x xs
+                  | otherwise = face (act True x (i,Dir d)) xs
 
 -- the faces should be incomparable
 newtype System a = Sys [(Face,a)]
@@ -460,7 +475,10 @@ filterWithKey :: (Face -> a -> Bool) -> System a -> System a
 filterWithKey f (Sys xs) = Sys $ filter (uncurry f) xs
 
 mapSystem :: (a -> b) -> System a -> System b
-mapSystem f (Sys xs) = Sys [ (a,f x) | (a,x) <- xs]
+mapSystem f (Sys xs) = Sys $ mapSystem' xs
+  where
+    mapSystem' [] = []
+    mapSystem' ((a,x):xs) = (a,f x) : mapSystem' xs
 
 mapKeys :: (Face -> Face) -> System a -> System a
 mapKeys f (Sys xs) = mkSystem [ (f a,x) | (a,x) <- xs]
@@ -514,7 +532,7 @@ invSystem :: Formula -> Dir -> System ()
 invSystem phi dir = mkSystem $ map (,()) $ invFormula phi dir
 
 allSystem :: Name -> System a -> System a
-allSystem i = filterWithKey (\alpha _ -> i `notMember` alpha)
+allSystem i = filterWithKey (\alpha _ -> i `notMemberFace` alpha)
 
 -- TODO: add some checks
 transposeSystemAndList :: System [a] -> [b] -> [(System a,b)]
@@ -530,17 +548,17 @@ instance Nominal a => Nominal (System a) where
   -- support s = unions (map keys $ keys s)
   --             `union` support (elems s)
 
-  occurs x s = x `elem` (concatMap Map.keys $ keys s) || occurs x (elems s)
+  occurs x s = x `elem` (concatMap (map fst) $ keys s) || occurs x (elems s)
 
   act b (Sys s) (i, phi) = addAssocs s
     where
     addAssocs [] = emptySystem
     addAssocs ((alpha,u):alphaus) =
       let s' = addAssocs alphaus
-      in case Map.lookup i alpha of
-        Just d -> let beta = Map.delete i alpha
+      in case lookup i alpha of
+        Just d -> let beta = deleteFace i alpha
                   in foldr (\delta s'' -> insertSystem (meetUnsafe delta beta)
-                                            (face u (Map.delete i delta)) s'')
+                                            (face u (deleteFace i delta)) s'')
                                             s' (invFormula (face phi beta) d)
         Nothing -> insertSystem alpha (act b u (i,face phi alpha)) s'
 
@@ -584,5 +602,5 @@ alpha `leqSystem` us =
 --   -- where usalpha = us `face` alpha
 
 domain :: System a -> [Name]
-domain  = Map.keys . Map.unions . keys
+domain  = map fst . concat . keys
 

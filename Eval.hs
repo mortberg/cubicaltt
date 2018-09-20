@@ -3,10 +3,6 @@ module Eval where
 
 import Data.List
 import Data.Maybe (fromMaybe)
-import Data.Map (Map,assocs,filterWithKey
-                ,intersection
-                ,notMember,empty)
-import qualified Data.Map as Map
 import qualified Data.Set as Set
 
 import Connections
@@ -297,7 +293,7 @@ evalFormula rho phi = case phi of
 evalSystem :: Env -> System Ter -> System Val
 evalSystem rho (Sys ts) =
   let out = concat [ let betas = meetss [ invFormula (lookName i rho) d
-                                        | (i,d) <- assocs alpha ]
+                                        | (i,d) <- alpha ]
                      in [ (beta,eval (rho `face` beta) talpha) | beta <- betas ]
                    | (alpha,talpha) <- ts ]
   in mkSystem out

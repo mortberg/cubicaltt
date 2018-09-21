@@ -1,6 +1,6 @@
 module Main where
 
-import Data.Text.Prettyprint.Doc
+import Data.Text.Prettyprint.Doc hiding ((<+>))
 import Data.Text.Prettyprint.Doc.Render.Text
 
 import Data.Text (Text)

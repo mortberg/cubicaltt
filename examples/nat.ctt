@@ -48,6 +48,10 @@ n4096 : nat = double n2048
 n8192 : nat = double n4096
 n16384 : nat = double n8192
 n32768 : nat = double n16384
+n65536 : nat = double n32768
+n131072 : nat = double n65536
+n262144 : nat = double n131072
+n2e19 : nat = double n262144
 
 pred : nat -> nat = split
   zero -> zero

@@ -4,12 +4,10 @@ module CTT where
 import Control.Applicative
 import Data.List
 import Data.Maybe
-import Data.Map (Map,(!),filterWithKey)
-import qualified Data.Map as Map
 
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Text.Prettyprint.Doc
+import Data.Text.Prettyprint.Doc hiding ((<+>))
 import Data.Text.Prettyprint.Doc.Render.Text
 
 import Data.Set (Set)
@@ -340,6 +338,11 @@ contextOfEnv rho = case rho of
 
 -- instance Show Env where
 --   show = render . showEnv True
+
+(<+>) :: Doc ann -> Doc ann -> Doc ann
+x <+> y | show x == "" = y
+        | show y == "" = x
+        | otherwise = x <> space <> y
 
 showEnv :: Bool -> Env -> Doc a
 showEnv b e =

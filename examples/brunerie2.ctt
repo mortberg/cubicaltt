@@ -2601,21 +2601,21 @@ test0To4_rotkji : (Omega3 S2pt).1 = <i j k> test0To4 @ k @ j @ i
 
 {- Benchmarks:
 
-fibContrHopfThree'    #hcomps     Time
-test0To4_rotijk       1364053     1m50.877s
-test0To4_rotikj       165103      0m10.991s
-test0To4_rotjik       1364053     2m2.726s
-test0To4_rotjki       165103      0m5.603s
-test0To4_rotkij       294803      0m17.040s
-test0To4_rotkji       294803      0m13.404s
+fibContrHopfThree'    #hcomps        Time
+test0To4_rotijk       1364053      1m50.877s
+test0To4_rotikj        165103      0m10.991s
+test0To4_rotjik       1364053      2m2.726s
+test0To4_rotjki        165103      0m5.603s
+test0To4_rotkij        294803      0m17.040s
+test0To4_rotkji        294803      0m13.404s
 
 fibContrHopfThree''
-test0To4_rotijk       1519518     2m0.453s
-test0To4_rotikj       148813      0m6.695s
-test0To4_rotjik       1535957     2m10.983s
-test0To4_rotjki       149430      0m6.048s
-test0To4_rotkij       541426      0m20.965s
-test0To4_rotkji       540654      0m20.687s
+test0To4_rotijk       1519518      2m0.453s
+test0To4_rotikj        148813      0m6.695s
+test0To4_rotjik       1535957      2m10.983s
+test0To4_rotjki        149430      0m6.048s
+test0To4_rotkij        541426      0m20.965s
+test0To4_rotkji        540654      0m20.687s
 
 
 The fastest rotation hence seems to be test0To4_rotikj... WHY?

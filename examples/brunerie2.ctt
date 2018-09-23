@@ -2665,20 +2665,45 @@ f5 : (Omega3 S2pt).1 -> (Omega3 (joinpt S1pt S1)).1 = h
 
 test0To5 : (Omega3 (joinpt S1pt S1)).1 = f5 test0To4
 
+f5' : (Omega3 S2pt).1 -> (Omega3 (joinpt S1pt S1)).1 = h'
+
+test0To5' : (Omega3 (joinpt S1pt S1)).1 = f5' test0To4
+
 f6 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S3pt).1 =
   mapOmegaRefl3 (joinpt S1pt S1) S3 eInv
 
+test0To6 : (Omega3 S3pt).1 = f6 test0To5
+
 f7 : (Omega3 S3pt).1 -> (Omega2 (g2Truncpt S2pt)).1 = pi3S3
+
+test0To7 : (Omega2 (g2Truncpt S2pt)).1 = f7 test0To6
 
 f8 : (Omega2 (g2Truncpt S2pt)).1 -> (Omega (gTruncpt (Omega S2pt))).1 =
  (mapOmega (Omega (g2Truncpt S2pt)) (gTruncpt (Omega S2pt)) (kappaTwo S2pt, kappaTwoPt S2pt)).1
 
+test0To8 : (Omega (gTruncpt (Omega S2pt))).1 = f8 test0To7
+
 f9 : (Omega (gTruncpt (Omega S2pt))).1 -> sTrunc (Omega2 S2pt).1 =
   kappaOne (Omega S2pt)
+  
+test0To9 : sTrunc (Omega2 S2pt).1 = f9 test0To8
 
 f10 : sTrunc (Omega2 S2pt).1 -> loopS1 = e2'
 
+test0To10 : loopS1 = f10 test0To9
+
 f11 : loopS1 -> Z = encode base1
+
+brunerie : Z = f11 test0To10
+
+-- Version of brunerie that might be faster, uses h' (so
+-- fibContrHopfThree_unfolded) and the (most likely) most efficient
+-- rotation of test0To4
+brunerie_opt : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5' test0To4_rotjki))))))
+
+
+
+-- Try to compute some shortcuts and various experiments
 
 -- Skips the maps e, alpha, h and eInv
 -- Now terminates very quickly.

@@ -892,6 +892,11 @@ transHCompU i a es psi u0 = glueElem v1' t1s'
 -- to a total one where f is transNeg of eq.  Applies the second
 -- component to the fresh name i.
 lemEqConst :: Name -> Val -> Val -> System Val -> (Val,Val)
+lemEqConst i eq@(VPLam _ (Ter (Sum _ n _) _)) b as
+  | n `elem` ["Z","nat","bool"] = (hcomp j eqj b as,hfill i eqj b as)
+  where
+   j = fresh (eq,b,as)
+   eqj = eq @@@ j
 lemEqConst i eq@(VPLam _ (Ter (HSum _ n _) _)) b as
   | n `elem` ["S1","S2","S3","g2Trunc"] = (hcomp j eqj b as,hfill i eqj b as)
   where

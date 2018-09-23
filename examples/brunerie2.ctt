@@ -1863,12 +1863,18 @@ fibContrHopfThree'' (p : (Omega3 S2pt).1) : HopfThree'' p =
           (<_ _> base1)
           (<i j> transGen (<k> Hopf (p @ i @ j @ k)) 0 base1)
 
-
+fibContrHopfThree_unprime (p : (Omega3 S2pt).1) : HopfThree p =
+  unprimeThree p (fibContrHopfThree' p)
+  
 -- -- end of alternative approach
 
 -- The map h from 9.3
 h (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 =
-  <i j k> tee (p @ i @ j @ k) (unprimeThree p (fibContrHopfThree' p) @ i @ j @ k)
+  <i j k> tee (p @ i @ j @ k) (fibContrHopfThree_unprime p @ i @ j @ k)
+
+-- Alternative definition of the h map using fibContrHopfThree_unfolded
+h' (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 =
+  <i j k> tee (p @ i @ j @ k) (fibContrHopfThree_unfolded p @ i @ j @ k)
 
 
 --------------------------------------------------------------------------------
@@ -2580,8 +2586,43 @@ test0To3 : (Omega3 (joinpt S1pt S1)).1 = f3 test0To2
 f4 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S2pt).1 =
   mapOmegaRefl3 (joinpt S1pt S1) S2 alpha
 
-test0To4 : (Omega3 S2pt).1 = <i j k> f4 test0To3 @ k @ j @ i
+test0To4 : (Omega3 S2pt).1 = f4 test0To3
 
+-- Rotating test0To4 seems to make both fibContrHopfThree' and
+-- fibContrHopfThree'' compute a lot faster and with smaller result.
+
+test0To4_rotijk : (Omega3 S2pt).1 = <i j k> test0To4 @ i @ j @ k
+test0To4_rotikj : (Omega3 S2pt).1 = <i j k> test0To4 @ i @ k @ j
+test0To4_rotjik : (Omega3 S2pt).1 = <i j k> test0To4 @ j @ i @ k
+test0To4_rotjki : (Omega3 S2pt).1 = <i j k> test0To4 @ j @ k @ i
+test0To4_rotkij : (Omega3 S2pt).1 = <i j k> test0To4 @ k @ i @ j
+test0To4_rotkji : (Omega3 S2pt).1 = <i j k> test0To4 @ k @ j @ i
+
+
+{- Benchmarks:
+
+fibContrHopfThree'    #hcomps     Time
+test0To4_rotijk       1364053     1m50.877s
+test0To4_rotikj       165103      0m10.991s
+test0To4_rotjik       1364053     2m2.726s
+test0To4_rotjki       165103      0m5.603s
+test0To4_rotkij       294803      0m17.040s
+test0To4_rotkji       294803      0m13.404s
+
+fibContrHopfThree''
+test0To4_rotijk       1519518     2m0.453s
+test0To4_rotikj       148813      0m6.695s
+test0To4_rotjik       1535957     2m10.983s
+test0To4_rotjki       149430      0m6.048s
+test0To4_rotkij       541426      0m20.965s
+test0To4_rotkji       540654      0m20.687s
+
+
+The fastest rotation hence seems to be test0To4_rotikj... WHY?
+
+-}
+
+-- Alternative version computed using goalcube'. This is wrong, but useful for benchmarks
 test0To4_goalcube' : (Omega3 S2pt).1 =
   <i j k> hcomp S2 (hcomp S2 (hcomp S2 (loop2 {S2} @ j @ k) [(k=0) -> <_> base2
                                                             ,(k=1) -> <l> loop2 {S2} @ i @ l])
@@ -2605,9 +2646,6 @@ test0To4_goalcube' : (Omega3 S2pt).1 =
                    ,(j=1) -> <l> hcomp S2 base2 [(k=0) -> <_> base2,(k=1)(l=0) -> <_> base2,(l=1) -> <_> base2 ]
                    ,(k=0) -> <l> base2
                    ,(k=1) -> <l> hcomp S2 base2 [(l=0) -> <_> base2, (l=1) -> <_> base2 ]]
-
-test0To4' : (Omega3 S2pt).1 = <i j k> test0To4_goalcube' @ k @ j @ i
-
 
 -- Part of test0To5
 -- testFibContrHopf3 : HopfThree' test0To4 = fibContrHopfThree' test0To4
@@ -2739,60 +2777,7 @@ testShortcutf11'' : Z = f11 (f10 (f9 (f8 (<i j> g2inc (loop2{S2} @ i @ j)))))
 itestShortcutf11 : Z = f11 (f10 (sinc (<i j> loop2{S2} @ j @ i)))
 itestShortcutf11' : Z = f11 (f10 (f9 (<i> ginc (<j> loop2{S2} @ j @ i))))
 itestShortcutf11'' : Z = f11 (f10 (f9 (f8 (<i j> g2inc (loop2{S2} @ j @ i)))))
-
-
--- attempts to compute parts of fibContrHopfThree':
-
--- This is the fourth argument to ZSet:
-arg4' (p : (Omega3 S2pt).1) : Path Z (pos zero) (pos zero) = 
-  <i> encode base1 (arg4 p @ i)
-  -- Unfolded version:
-  -- The problematic part in the innermost transGen
-  -- <i> hcomp Z (hcomp Z (pos zero)
-  --                      [ (i = 0) -> <_> pos zero
-  --                      , (i = 1) -> <j> hcomp Z (hcomp Z (hcomp Z (hcomp Z (hcomp Z (hcomp Z (hcomp Z (hcomp Z (pos zero)
-  --                                                                    [ (j = 0) -> <_> pos zero
-  --                                                                    , (j = 1) -> <k> transGen (<l> helix (arg3 p @ -k @ -l)) 0 (pos zero) ])
-  --                                                                                                     [ (j = 0) -> <_> pos zero
-  --                                                                                                     , (j = 1) -> <_> pos zero
-  --                                                                                                     ])
-  --                                                                                            [ (j = 0) -> <_> pos zero
-  --                                                                                            , (j = 1) -> <_> pos zero
-  --                                                                                            ])
-  --                                                                                   [ (j = 0) -> <_> pos zero
-  --                                                                                   , (j = 1) -> <_> pos zero
-  --                                                                                   ])
-  --                                                                           [ (j = 1) -> <_> pos zero ])
-  --                                                                    [ (j = 1) -> <_> pos zero ])
-  --                                                            [ (j = 1) -> <_> pos zero ])
-  --                                                  [ (j = 1) -> <_> pos zero ]
-  --                      ])
-  --              [ (i = 0) -> <_> pos zero
-  --              , (i = 1) -> <_> pos zero ]
-
-  
-bsq (p : (Omega3 S2pt).1) :
- Path (Path Z (pos zero) (pos zero)) (<_> pos zero) (arg4' p) =
-   ZSet (pos zero) (pos zero) (<_> pos zero) (arg4' p)
-
-
--- fibContrHopfThree' (p : (Omega3 S2pt).1) : HopfThree' p = 
---   setLoop (<_> base1)
---           (transGen (<_> loopS1) 0 (<_> base1))
---           (<i> hfill loopS1 (<_> base1) [] @ i)
---           (arg4 p)
-  -- Unfolded version:
-  -- <i j k> hcomp S1 (decode base1 (bsq p @ i @ j) @ k)
-  --             [ (i = 0) -> <l> decodeEncode base1 (<m> hcomp S1 base1 [ (j = 0) -> <_> base1
-  --                                                                     , (m = 0) -> <_> base1
-  --                                                                     , (m = 1) -> <_> base1 ]) @ l @ k
-  --             , (i = 1) -> <l> decodeEncode base1 (arg4 p @ j) @ l @ k
-  --             , (j = 0) -> <l> decodeEncode base1 (<_> base1) @ l @ k
-  --             , (j = 1) -> <l> decodeEncode base1 (<m> hcomp S1 base1 [ (m = 0) -> <_> base1
-  --                                                                     , (m = 1) -> <_> base1 ]) @ l @ k
-  --             , (k = 0) -> <_> base1
-  --             , (k = 1) -> <_> base1 ]
-
+ 
 innerpath :
   PathP (<j> Path S1
                  (transGen (<k> Hopf (test0To4 @ 0 @ j @ k)) 0 base1)
@@ -2803,7 +2788,7 @@ innerpath :
 
 -- This path does not terminate. The innermost transGen does though
 problem : Path Z (pos zero) (pos zero) =
-  <i> transGen (<j> helix (transGen (<k> Hopf (test0To4 @ i @ j @ k)) 0 base1)) 0 (pos zero)
+  <i> transGen (<j> helix (innerpath @ i @ j)) 0 (pos zero)
 
 -- This term contains a ton of hcomp U:
 problempath : Path U (helix (transGen (<k> Hopf (test0To4 @ k @ 0 @ k)) 0 base1))

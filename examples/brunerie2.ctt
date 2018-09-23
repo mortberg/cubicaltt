@@ -2580,9 +2580,34 @@ test0To3 : (Omega3 (joinpt S1pt S1)).1 = f3 test0To2
 f4 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S2pt).1 =
   mapOmegaRefl3 (joinpt S1pt S1) S2 alpha
 
-test0To4 : (Omega3 S2pt).1 = f4 test0To3
+test0To4 : (Omega3 S2pt).1 = <i j k> f4 test0To3 @ k @ j @ i
 
-test0To4_goalcube' : (Omega3 S2pt).1 = <i5636 i5637 i5638> hcomp S2 (hcomp S2 (hcomp S2 (loop2 {S2 }  @ i5637 @ i5638) [(i5638=0) -> <i5643> base2 , (i5638=1) -> <i5643> loop2 {S2 }  @ i5636 @ i5643]) [(i5636=0) -> <i5645> hcomp S2 (loop2 {S2 }  @ (i5637 /\ -i5645) @ i5638) [(i5638=0) -> <i5646> base2 , (i5638=1) -> <i5646> base2 ], (i5636=1) -> <i5645> hcomp S2 (loop2 {S2 }  @ (i5637 /\ -i5645) @ i5638) [(i5638=0) -> <i5647> base2 , (i5638=1) -> <i5647> loop2 {S2 }  @ -i5645 @ i5647], (i5637=0) -> <i5645> hcomp S2 base2  [(i5638=0) -> <i5648> base2 , (i5638=1) -> <i5648> loop2 {S2 }  @ (i5636 /\ -i5645) @ i5648], (i5637=1) -> <i5645> hcomp S2 (loop2 {S2 }  @ -i5645 @ i5638) [(i5638=0) -> <i5649> base2 , (i5638=1) -> <i5649> loop2 {S2 }  @ (i5636 /\ -i5645) @ i5649], (i5638=0) -> <i5645> base2 , (i5638=1) -> <i5645> base2 ]) [(i5636=0) -> <i5651> hcomp S2 base2  [(i5638=0) -> <i5652> base2 , (i5638=1)(i5651=0) -> <i5652> base2 , (i5651=1) -> <i5652> base2 ], (i5636=1) -> <i5651> hcomp S2 base2  [(i5638=0) -> <i5653> base2 , (i5638=1)(i5651=0) -> <i5653> base2 , (i5651=1) -> <i5653> base2 ], (i5637=0) -> <i5651> hcomp S2 base2  [(i5638=0) -> <i5654> base2 , (i5638=1)(i5651=0) -> <i5654> base2 , (i5651=1) -> <i5654> base2 ], (i5637=1) -> <i5651> hcomp S2 base2  [(i5638=0) -> <i5655> base2 , (i5638=1)(i5651=0) -> <i5655> base2 , (i5651=1) -> <i5655> base2 ], (i5638=0) -> <i5651> base2 , (i5638=1) -> <i5651> hcomp S2 base2  [(i5651=0) -> <i5656> base2 , (i5651=1) -> <i5656> base2 ]]
+test0To4_goalcube' : (Omega3 S2pt).1 =
+  <i j k> hcomp S2 (hcomp S2 (hcomp S2 (loop2 {S2} @ j @ k) [(k=0) -> <_> base2
+                                                            ,(k=1) -> <l> loop2 {S2} @ i @ l])
+                             [(i=0) -> <l> hcomp S2 (loop2 {S2} @ (j /\ -l) @ k)
+                                                        [(k=0) -> <_> base2
+                                                        ,(k=1) -> <_> base2 ]
+                             ,(i=1) -> <l> hcomp S2 (loop2 {S2 } @ (j /\ -l) @ k)
+                                                        [(k=0) -> <_> base2
+                                                        ,(k=1) -> <m> loop2 {S2} @ -l @ m]
+                             ,(j=0) -> <l> hcomp S2 base2
+                                                         [(k=0) -> <_> base2
+                                                         ,(k=1) -> <m> loop2 {S2} @ (i /\ -l) @ m]
+                             ,(j=1) -> <l> hcomp S2 (loop2 {S2} @ -l @ k)
+                                                        [(k=0) -> <_> base2
+                                                        ,(k=1) -> <m> loop2 {S2} @ (i /\ -l) @ m]
+                             ,(k=0) -> <l> base2
+                             ,(k=1) -> <l> base2 ])
+                   [(i=0) -> <l> hcomp S2 base2 [(k=0) -> <_> base2,(k=1)(l=0) -> <_> base2,(l=1) -> <_> base2 ]
+                   ,(i=1) -> <l> hcomp S2 base2 [(k=0) -> <_> base2,(k=1)(l=0) -> <_> base2,(l=1) -> <_> base2 ]
+                   ,(j=0) -> <l> hcomp S2 base2 [(k=0) -> <_> base2,(k=1)(l=0) -> <_> base2,(l=1) -> <_> base2 ]
+                   ,(j=1) -> <l> hcomp S2 base2 [(k=0) -> <_> base2,(k=1)(l=0) -> <_> base2,(l=1) -> <_> base2 ]
+                   ,(k=0) -> <l> base2
+                   ,(k=1) -> <l> hcomp S2 base2 [(l=0) -> <_> base2, (l=1) -> <_> base2 ]]
+
+test0To4' : (Omega3 S2pt).1 = <i j k> test0To4_goalcube' @ k @ j @ i
+
 
 -- Part of test0To5
 -- testFibContrHopf3 : HopfThree' test0To4 = fibContrHopfThree' test0To4

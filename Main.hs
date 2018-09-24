@@ -2,6 +2,7 @@ module Main where
 
 import Data.Text.Prettyprint.Doc hiding ((<+>))
 import Data.Text.Prettyprint.Doc.Render.Text
+import Data.Text.Prettyprint.Doc.Render.Util.Panic
 
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -35,13 +36,14 @@ import qualified Eval as E
 type Interpreter a = InputT IO a
 
 -- Flag handling
-data Flag = Batch | Debug | Full | Help | Version
+data Flag = Batch | Debug | Full | Help | Version | Eval String
   deriving (Eq,Show)
 
 options :: [OptDescr Flag]
 options = [ Option "d"  ["debug"]   (NoArg Debug)   "run in debugging mode"
           , Option "b"  ["batch"]   (NoArg Batch)   "run in batch mode"
           , Option "f"  ["full"]    (NoArg Full)    "do not truncate big terms"
+          , Option "e"  ["eval"]    (ReqArg Eval "brunerie")   "normalize the given term"
           , Option ""   ["help"]    (NoArg Help)    "print help"
           , Option ""   ["version"] (NoArg Version) "print version number" ]
 
@@ -109,6 +111,11 @@ shrink s =
     ++ reverse (take 2000 (reverse s))
   else s
 
+getEvalRequests :: [Flag] -> [String]
+getEvalRequests [] = []
+getEvalRequests (Eval s : l) = s : (getEvalRequests l)
+getEvalRequests (_ : l) = getEvalRequests l
+
 -- Initialize the main loop
 initLoop :: [Flag] -> FilePath -> History -> IO ()
 initLoop flags f hist = do
@@ -137,11 +144,39 @@ initLoop flags f hist = do
       case merr of
         Just err -> putStrLn $ "Type checking failed: " ++ err
         Nothing  -> unless (mods == []) $ putStrLn "File loaded."
-      if Batch `elem` flags
-        then return ()
+      let evalRequests = getEvalRequests flags
+      if evalRequests /= [] || Batch `elem` flags
+        then runInputT (settings [])
+                       (foldr (exec (Full : flags) f names tenv True) (return ()) evalRequests)
         else -- Compute names for auto completion
              runInputT (settings [n | (n,_) <- names])
                (putHistory hist >> loop flags f names tenv)
+
+-- Adapted from [renderIO] to make it insert newlines regularly
+renderIOEmacsSafe :: Handle -> SimpleDocStream ann -> IO ()
+renderIOEmacsSafe h = go 0
+  where
+    go :: Int -> SimpleDocStream ann -> IO ()
+    go n doc = case doc of
+             SFail              -> panicUncaughtFail
+             SEmpty             -> pure ()
+             SChar c rest       -> do hPutChar h c
+                                      go2 (n + 1) rest
+             SText l t rest     -> do IO.hPutStr h t
+                                      go2 (n + l) rest
+             SLine m rest       -> do hPutChar h '\n'
+                                      IO.hPutStr h (T.replicate m (T.pack " "))
+                                      go2 (n + m + 1) rest
+             SAnnPush _ann rest -> go n rest
+             SAnnPop rest       -> go n rest
+
+    go2 :: Int -> SimpleDocStream ann -> IO ()
+    go2 n doc =
+      if n > 220 then do
+        hPutChar h '\n'
+        go 0 doc
+      else
+        go n doc
 
 -- The main loop
 loop :: [Flag] -> FilePath -> [(CTT.Ident,SymKind)] -> TC.TEnv -> Interpreter ()
@@ -158,33 +193,39 @@ loop flags f names tenv = do
     Just (':':'c':'d':' ':str) -> do lift (setCurrentDirectory str)
                                      loop flags f names tenv
     Just ":h"  -> outputStrLn help >> loop flags f names tenv
-    Just str'  ->
+    Just str'  -> exec flags f names tenv False str' (loop flags f names tenv)
+
+exec :: [Flag] -> FilePath -> [(CTT.Ident,SymKind)] -> TC.TEnv -> Bool -> String -> Interpreter () -> Interpreter ()
+exec flags f names tenv batchmode str' k =
+      let strinit = case batchmode of
+            True -> "\n> " ++ str' ++ "\n"
+            False -> "" in
       let (msg,str,mod) = case str' of
             (':':'n':' ':str) ->
               ("NORMEVAL: ",str,E.normal [])
             str -> ("EVAL: ",str,id)
       in case pExp (lexer str) of
-      Bad err -> outputStrLn ("Parse error: " ++ err) >> loop flags f names tenv
+      Bad err -> outputStrLn (strinit ++ "Parse error: " ++ err) >> k
       Ok  exp ->
         case runResolver $ local (insertIdents names) $ resolveExp exp of
-          Left  err  -> do outputStrLn ("Resolver failed: " ++ err)
-                           loop flags f names tenv
+          Left  err  -> do outputStrLn (strinit ++ "Resolver failed: " ++ err)
+                           k
           Right body -> do
             x <- liftIO $ TC.runInfer tenv body
             case x of
-              Left err -> do outputStrLn ("Could not type-check: " ++ err)
-                             loop flags f names tenv
+              Left err -> do outputStrLn (strinit ++ "Could not type-check: " ++ err)
+                             k
               Right _  -> do
                 start <- liftIO getCurrentTime
                 let e = mod $ E.eval (TC.env tenv) body
                 -- Let's not crash if the evaluation raises an error:
                 -- Use layoutCompact for now, if we want prettier printing use something nicer
                 when (Full `elem` flags) $
-                  liftIO $ catch (renderIO stdout (layoutCompact (pretty msg <+> showVal e <+> pretty "\n")))
+                  liftIO $ catch (renderIOEmacsSafe stdout (layoutCompact (pretty strinit <+> pretty msg <+> showVal e <+> pretty "\n")))
                                  (\e -> putStrLn ("Exception: " ++
                                                   show (e :: SomeException)))
                 when (Full `notElem` flags) $
-                  liftIO $ catch (putStrLn (shrink (msg ++ show (showVal e))))
+                  liftIO $ catch (putStrLn (strinit ++ shrink (msg ++ show (showVal e))))
                                  (\e -> putStrLn ("Exception: " ++
                                                   show (e :: SomeException)))
                 liftIO $ catch (putStrLn ("#hcomps: " ++ show (countHComp e)))
@@ -198,10 +239,12 @@ loop flags f names tenv = do
                     rest = read ('0':dropWhile (/='.') (init (show time)))
                     mins = secs `quot` 60
                     sec  = printf "%.3f" (fromInteger (secs `rem` 60) + rest :: Float)
-                outputStrLn $ "Time: " ++ show mins ++ "m" ++ sec ++ "s"
+                liftIO $ catch (putStrLn $ "Time: " ++ show mins ++ "m" ++ sec ++ "s")
+                               (\e -> putStrLn ("Exception: " ++
+                                                show (e :: SomeException)))
                 -- Only print in seconds:
                 -- when (Time `elem` flags) $ outputStrLn $ "Time: " ++ show time
-                loop flags f names tenv
+                k
 
 -- (not ok,loaded,already loaded defs) -> to load ->
 --   (new not ok, new loaded, new defs)

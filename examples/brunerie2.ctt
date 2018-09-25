@@ -727,27 +727,61 @@ inv : S1 -> S1 = split
   base1 -> base1
   loop1 @ i -> loop @ -i
 
--- rotrotinvloop1loop1 : PathP (<i>
---  PathP (<j> Path S1
---       (hcomp S1 (loop1 {S1} @ j)
---                 [(i=0) -> <k> hcomp S1 base1
---                                             [(j=0) -> <_> base1 ,
---                                              (j=1) -> <l> loop1 {S1 }  @ (-k /\ l),
---                                              (k=0) -> <l> loop1 {S1 }  @ (j /\ l)],
---                 (i=1) -> <k> hcomp S1 base1
---                                             [(j=0) -> <l> loop1 {S1 }  @ (k \/ -l),
---                                              (j=1) -> <_> base1 ,
---                                              (k=0) -> <l> loop1 {S1 }  @ (j \/ -l)],
---                 (j=0) -> <k> loop1 {S1} @ (i /\ k),
---                 (j=1) -> <k> loop1 {S1} @ (i \/ -k)])
---       (loop1 {S1} @ i)) (<i13415> loop1 {S1 }  @ i) (<i13416> loop1 {S1 }  @ i)) (<i j> hfill S1 base1 [(i=0) -> <_> base1, (i=1) -> <_> base1] @ -j) (<i j> hfill S1 base1 [(i=0) -> <_> base1, (i=1) -> <_> base1] @ -j)
---       = undefined
+rotrotinvloop1loop1 :
+ PathP (<i>
+  PathP (<j>
+   Path S1 (hcomp S1 (loop @ j)
+                  [(i=0) -> <k> hcomp S1 base1
+                                      [(k=0) -> <l> loop @ (j /\ l)
+                                      ,(j=0) -> <_> base1
+                                      ,(j=1) -> <l> loop @ (-k /\ l)]
+                  ,(i=1) -> <k> hcomp S1 base1
+                                      [(k=0) -> <l> loop @ (j \/ -l)
+                                      ,(j=0) -> <l> loop @ (k \/ -l)
+                                      ,(j=1) -> <_> base1]
+                  ,(j=1) -> <k> loop @ (i \/ -k)
+                  ,(j=0) -> <k> loop @ (i /\ k)])
+           (loop @ i))
+    (<_> loop @ i)
+    (<_> loop @ i))
+  (<j k> hfill S1 base1 [(j=0) -> <_> base1, (j=1) -> <_> base1] @ -k)
+  (<j k> hfill S1 base1 [(j=0) -> <_> base1, (j=1) -> <_> base1] @ -k) = undefined
 
---rotrotinvloop1 : (y : S1) -> PathP (<i> Path S1 (rotLoop (rotLoop y @ -i) @ i) y) (<_> y) (<_> y) = undefined -- split
-  -- base1 -> <i j> hfill S1 base1 [(i=0) -> <_> base1, (i=1) -> <_> base1] @ -j
-  -- loop1 @ i -> rotrotinvloop1loop1 @ i
+ -- <i j k>
+ --   hcomp S1 (hcomp S1 (loop @ (k \/ j))
+ --                  [(i=0) -> <m> hcomp S1 (loop @ k)
+ --                                      [(m=0) -> <l> loop @ (k \/ (j /\ l))
+ --                                      ,(j=0) -> <_> loop @ k
+ --                                      ,(j=1) -> <l> loop @ (k \/ (-m /\ l))]
+ --                  ,(i=1) -> <m> hcomp S1 base1
+ --                                      [(m=0) -> <l> loop @ (k \/ (j \/ -l))
+ --                                      ,(j=0) -> <l> loop @ (k \/ (m \/ -l))
+ --                                      ,(j=1) -> <_> base1]
+ --                  ,(j=1) -> <m> loop @ (k \/ (i \/ -m))
+ --                  ,(j=0) -> <m> loop @ (k \/ (i /\ m))])
+ --         [(k=0) -> <_> (hcomp S1 (loop @ j)
+ --                  [(i=0) -> <k> hcomp S1 base1
+ --                                      [(k=0) -> <l> loop @ (j /\ l)
+ --                                      ,(j=0) -> <_> base1
+ --                                      ,(j=1) -> <l> loop @ (-k /\ l)]
+ --                  ,(i=1) -> <k> hcomp S1 base1
+ --                                      [(k=0) -> <l> loop @ (j \/ -l)
+ --                                      ,(j=0) -> <l> loop @ (k \/ -l)
+ --                                      ,(j=1) -> <_> base1]
+ --                  ,(j=1) -> <k> loop @ (i \/ -k)
+ --                  ,(j=0) -> <k> loop @ (i /\ k)])
+ --         ,(k=1) -> <m> hfill S1 (loop @ (-m \/ i)) [(i=0) -> <l> hcomp S1 (loop @ -m) [(l=0) -> <_> (loop @ -m), (j=0) -> <_> (loop @ -m), (j=1) -> <_> (loop @ -m)], (i=1) -> <l> hcomp S1 base1 [(l=0) -> <_> base1, (j=0) -> <_> base1, (j=1) -> <_> base1], (j=1) -> <l> loop @ (-m \/ i), (j=0) -> <l> loop @ (-m \/ i)] @ -m
+ --         ,(j=0) -> <m> loop @ (i \/ (k /\ -m))
+ --         ,(j=1) -> <m> loop @ (i \/ (k /\ -m))
+ --         ]
 
--- rotinvrotloop1 : (y : S1) -> PathP (<i> Path S1 (rotLoop (rotLoop y @ i) @ -i) y) (<_> y) (<_> y) = undefined
+rotrotinvloop1 : (y : S1) -> PathP (<i> Path S1 (rotLoop (rotLoop y @ -i) @ i) y) (<_> y) (<_> y) = split
+  base1 -> <i j> hfill S1 base1 [(i=0) -> <_> base1, (i=1) -> <_> base1] @ -j
+  loop1 @ i -> rotrotinvloop1loop1 @ i
+
+
+
+-- -- rotinvrotloop1 : (y : S1) -> PathP (<i> Path S1 (rotLoop (rotLoop y @ i) @ -i) y) (<_> y) (<_> y) = undefined
 
 -- rotrotinv : (a y : S1) -> Path S1 (rot a (rot (inv a) y)) y = split
 --   base1 -> \ (y : S1) -> <_> y
@@ -810,10 +844,34 @@ data PostTotalHopf =
                      , (j=0) -> b x
                      , (j=1) -> b (rot (loop @ i) x) ]
 
+data PostTotalHopf2 =
+    b (x : S1)
+  | l (x : S1) <i j> [ (i=0) -> b x
+                     , (i=1) -> b x
+                     , (j=0) -> b (rot (loop @ -i) x)
+                     , (j=1) -> b x ]
+
 data AlmostJoinS1S1 =
     inl (x : S1)
   | inr (x : S1)
   | push (x y : S1) <i> [ (i=0) -> inl x , (i=1) -> inr (rot y x) ]
+
+test : (x : S2) -> Hopf x -> PostTotalHopf2 = split
+  base2 -> \ (y : S1) -> b y
+  loop2 @ i j -> \ (y : square @ i @ j) ->
+        hcomp PostTotalHopf2 (l{PostTotalHopf2} (unglue y S1 [ (i = 0) -> (S1, idEquiv S1)
+                                                             , (i = 1) -> (S1, idEquiv S1)
+                                                             , (j = 0) -> (S1, (rot (loop @ i), rotIsEquiv (loop @ i)))
+                                                             , (j = 1) -> (S1, idEquiv S1)]) @ i @ j)
+              [(i=0) -> <_> b y
+              ,(i=1) -> <_> b y
+              ,(j=0) -> <k> b (rotrotinvloop1 y @ -i @ k)
+              ,(j=1) -> <_> b y]
+
+-- [(i=0) -> (\ (y : S1) -> b y)
+-- ,(i=1) -> (\ (y : S1) -> b y)
+-- ,(j=0) -> (\ (y : S1) -> b (rot (loop @ i) y))
+-- ,(j=1) -> (\ (y : S1) -> b (rot (loop @ i) y))]
 
 tee1 : (x : S2) -> Hopf x -> PreTotalHopf = split
   base2 -> (\ (y : S1) -> b y)

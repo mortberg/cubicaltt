@@ -105,10 +105,10 @@ humanReadable n =
 
 shrink :: String -> String
 shrink s =
-  if length s > 6000 then
-    take 2000 s ++ "\n\n[...] (the full term has "
+  if length s > 3959 then
+    take 1701 s ++ "\n\n[...] (the full term has "
     ++ humanReadable (length s) ++ " characters, use option -f to print it)\n\n"
-    ++ reverse (take 2000 (reverse s))
+    ++ reverse (take 1701 (reverse s))
   else s
 
 getEvalRequests :: [Flag] -> [String]

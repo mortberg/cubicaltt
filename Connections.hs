@@ -568,7 +568,7 @@ instance Nominal a => Nominal (System a) where
                                             s' (invFormula (face phi beta) d)
         Nothing -> insertSystem alpha (act b u (i,face phi alpha)) s'
 
-  swap s ij = mapKeys (`swapFace` ij) (mapSystem (`swap` ij) s)
+  swap (Sys s) ij = mkSystem [ (k `swapFace` ij, x `swap` ij) | (k,x) <- s ]
 
 -- carve a using the same shape as the system b
 border :: Nominal a => a -> System b -> System a

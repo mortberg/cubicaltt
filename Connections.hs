@@ -137,7 +137,12 @@ meetss :: [[Face]] -> [Face]
 meetss = foldr meets [eps]
 
 leq :: Face -> Face -> Bool
-alpha `leq` beta = fmap sort (meetMaybe alpha beta) == Just (sort alpha)
+leq [] [] = True
+leq [] _  = False
+leq ((i,d):xs) ys = case lookup i ys of
+  Just d' | d == d' -> leq xs (delete (i,d) ys)
+          | otherwise -> False
+  Nothing -> leq xs ys
 
 comparable :: Face -> Face -> Bool
 comparable alpha beta = alpha `leq` beta || beta `leq` alpha

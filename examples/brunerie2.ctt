@@ -610,8 +610,8 @@ ua (A B : U) (e : equiv A B) : Path U A B =
              , (i = 1) -> (B,idEquiv B) ]
 
 rotLoop : (a : S1) -> Path S1 a a = split
-  base1 -> <i> loop1{S1} @ i
-  loop1 @ i -> constSquare S1 base1 (<i> loop1{S1} @ i) @ i
+  base1 -> <i> loop @ i
+  loop1 @ i -> constSquare S1 base1 loop @ i
 
 rot : S1 -> S1 -> S1 = split
   base1 -> \(y : S1) -> y
@@ -725,7 +725,7 @@ rotIsEquiv' : (a : S1) -> isEquiv S1 S1 (rot a) =
 
 inv : S1 -> S1 = split
   base1 -> base1
-  loop1 @ i -> loop1{S1} @ -i
+  loop1 @ i -> loop @ -i
 
 -- rotrotinvloop1loop1 : PathP (<i>
 --  PathP (<j> Path S1
@@ -2619,6 +2619,18 @@ test0To4_rotkji        540654      0m20.687s
 
 
 The fastest rotation hence seems to be test0To4_rotikj... WHY?
+
+-}
+
+{- Benchmarks for fibContrHopfThree_unprime (Guillaume's desktop computer, September 25):
+
+fCHT_unprime          #hcomps        Time
+test0To4_rotijk            (untested)
+test0To4_rotikj       1394791      1m11.536s
+test0To4_rotjik            (untested)
+test0To4_rotjki       1402633      1m7.649s
+test0To4_rotkij            (untested)
+test0To4_rotkji            (doesn't terminate within two hours)
 
 -}
 

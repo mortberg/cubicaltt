@@ -386,7 +386,7 @@ inferType v = case v of
 (Ter (PLam i u) rho) @@ phi = eval (sub (i,toFormula phi) rho) u
 (VPLam i u) @@ phi         = case toFormula phi of
   Dir d -> act True u (i,Dir d)
-  x -> act False u (i,x)
+  x -> act True u (i,x)
 -- v@(Ter Hole{} _) @@ phi    = VAppFormula v (toFormula phi)
 v @@ phi = case (inferType v,toFormula phi) of
   (VPathP _ a0 _,Dir 0) -> a0
@@ -489,7 +489,7 @@ hcomps _ _ _ _ = error "hcomps: different lengths of types and values"
 -- For i:II |- a, phi # i, u : a (i/phi) we get fwd i a phi u : a(i/1)
 -- such that fwd i a 1 u = u.   Note that i gets bound.
 fwd :: Name -> Val -> Formula -> Val -> Val
-fwd i a phi u = trans (VPLam i (act False a (i,phi `orFormula` Atom i))) phi u
+fwd i a phi u = trans (VPLam i (act True a (i,phi `orFormula` Atom i))) phi u
 
 comp :: Name -> Val -> Val -> System Val -> Val
 comp i a u us | eps `member` us = (us ! eps) `face` (i ~> 1)

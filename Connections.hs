@@ -137,7 +137,7 @@ meetss :: [[Face]] -> [Face]
 meetss = foldr meets [eps]
 
 leq :: Face -> Face -> Bool
-alpha `leq` beta = meetMaybe alpha beta == Just alpha
+alpha `leq` beta = fmap sort (meetMaybe alpha beta) == Just (sort alpha)
 
 comparable :: Face -> Face -> Bool
 comparable alpha beta = alpha `leq` beta || beta `leq` alpha

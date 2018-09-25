@@ -1120,8 +1120,8 @@ instance Normal Val where
     VHComp j u v vs     -> VHComp j (normal ns u) (normal ns v) (normal ns vs)
     VComp u v vs        -> VComp (normal ns u) (normal ns v) (normal ns vs)
     VGlue u equivs      -> VGlue (normal ns u) (normal ns equivs)
-    VGlueElem (VUnGlueElem b _ _) _ -> normal ns b
-    VGlueElem (VUnGlueElemU b _ _) _ -> normal ns b
+    -- VGlueElem (VUnGlueElem b _ _) _ -> normal ns b
+    -- VGlueElem (VUnGlueElemU b _ _) _ -> normal ns b
     VGlueElem u us      -> VGlueElem (normal ns u) (normal ns us)
     VUnGlueElem v u us  -> VUnGlueElem (normal ns v) (normal ns u) (normal ns us)
     VUnGlueElemU e u us -> VUnGlueElemU (normal ns e) (normal ns u) (normal ns us)

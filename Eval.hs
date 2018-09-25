@@ -195,36 +195,40 @@ instance Nominal Val where
            VIdJ (act b a (i,phi)) (act b u (i,phi)) (act b c (i,phi)) (act b d (i,phi)) (act b x (i,phi)) (act b p (i,phi))
 
   -- This increases efficiency as it won't trigger computation.
-  swap u ij = case u of
+  swap u ij@(i,j)
+    | not (i `occurs` u) = u
+    | otherwise = swapVal u ij
+    where
+      swapVal u ij = case u of
          VU                      -> VU
          Ter t e                 -> Ter t (swap e ij)
-         VPi a f                 -> VPi (swap a ij) (swap f ij)
-         VPathP a u v            -> VPathP (swap a ij) (swap u ij) (swap v ij)
-         VPLam k v               -> VPLam (swapName k ij) (swap v ij)
-         VSigma a f              -> VSigma (swap a ij) (swap f ij)
-         VPair u v               -> VPair (swap u ij) (swap v ij)
-         VFst u                  -> VFst (swap u ij)
-         VSnd u                  -> VSnd (swap u ij)
+         VPi a f                 -> VPi (swapVal a ij) (swapVal f ij)
+         VPathP a u v            -> VPathP (swapVal a ij) (swapVal u ij) (swapVal v ij)
+         VPLam k v               -> VPLam (swapName k ij) (swapVal v ij)
+         VSigma a f              -> VSigma (swapVal a ij) (swapVal f ij)
+         VPair u v               -> VPair (swapVal u ij) (swapVal v ij)
+         VFst u                  -> VFst (swapVal u ij)
+         VSnd u                  -> VSnd (swapVal u ij)
          VCon c vs               -> VCon c (swap vs ij)
-         VPCon c a vs phis       -> VPCon c (swap a ij) (swap vs ij) (swap phis ij)
-         VHComp k a u us         -> VHComp (swapName k ij) (swap a ij) (swap u ij) (swap us ij)
-         VComp a u us            -> VComp (swap a ij) (swap u ij) (swap us ij)
-         VTrans a phi u          -> VTrans (swap a ij) (swap phi ij) (swap u ij)
-         VVar x v                -> VVar x (swap v ij)
-         VOpaque x v             -> VOpaque x (swap v ij)
-         VAppFormula u psi       -> VAppFormula (swap u ij) (swap psi ij)
-         VApp u v                -> VApp (swap u ij) (swap v ij)
-         VLam x u v              -> VLam x (swap u ij) (swap v ij)
-         VSplit u v              -> VSplit (swap u ij) (swap v ij)
-         VGlue a ts              -> VGlue (swap a ij) (swap ts ij)
-         VGlueElem a ts          -> VGlueElem (swap a ij) (swap ts ij)
-         VUnGlueElem a b ts      -> VUnGlueElem (swap a ij) (swap b ij) (swap ts ij)
-         VUnGlueElemU a b es     -> VUnGlueElemU (swap a ij) (swap b ij) (swap es ij)
-         VHCompU a ts            -> VHCompU (swap a ij) (swap ts ij)
-         VIdPair u us            -> VIdPair (swap u ij) (swap us ij)
-         VId a u v               -> VId (swap a ij) (swap u ij) (swap v ij)
-         VIdJ a u c d x p        ->
-           VIdJ (swap a ij) (swap u ij) (swap c ij) (swap d ij) (swap x ij) (swap p ij)
+         VPCon c a vs phis       -> VPCon c (swapVal a ij) (swap vs ij) (swap phis ij)
+         VHComp k a u us         -> VHComp (swapName k ij) (swapVal a ij) (swapVal u ij) (swap us ij)
+         VComp a u us            -> VComp (swapVal a ij) (swapVal u ij) (swap us ij)
+         VTrans a phi u          -> VTrans (swapVal a ij) (swap phi ij) (swapVal u ij)
+         VVar x v                -> VVar x (swapVal v ij)
+         VOpaque x v             -> VOpaque x (swapVal v ij)
+         VAppFormula u psi       -> VAppFormula (swapVal u ij) (swap psi ij)
+         VApp u v                -> VApp (swapVal u ij) (swapVal v ij)
+         VLam x u v              -> VLam x (swapVal u ij) (swapVal v ij)
+         VSplit u v              -> VSplit (swapVal u ij) (swapVal v ij)
+         VGlue a ts              -> VGlue (swapVal a ij) (swap ts ij)
+         VGlueElem a ts          -> VGlueElem (swapVal a ij) (swap ts ij)
+         VUnGlueElem a b ts      -> VUnGlueElem (swapVal a ij) (swapVal b ij) (swap ts ij)
+         VUnGlueElemU a b es     -> VUnGlueElemU (swapVal a ij) (swapVal b ij) (swap es ij)
+         VHCompU a ts            -> VHCompU (swapVal a ij) (swap ts ij)
+         -- VIdPair u us            -> VIdPair (swapVal u ij) (swapVal us ij)
+         -- VId a u v               -> VId (swapVal a ij) (swapVal u ij) (swapVal v ij)
+         -- VIdJ a u c d x p        ->
+         --   VIdJ (swapVal a ij) (swapVal u ij) (swapVal c ij) (swapVal d ij) (swapVal x ij) (swapVal p ij)
 
 -----------------------------------------------------------------------
 -- The evaluator

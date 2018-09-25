@@ -176,8 +176,8 @@ data Val = VU
            -- Composition; the type is not constant
          | VComp Val Val (System Val)
 
-           -- Homogeneous composition; the type is constant
-         | VHComp Val Val (System Val)
+           -- Homogeneous composition; the type is constant. The Name is bound in the tubes
+         | VHComp Name Val Val (System Val)
 
            -- Generalized transport
          | VTrans Val Formula Val
@@ -464,7 +464,7 @@ showVal v = case v of
   VCon c us         -> pretty c <+> showVals us
   VPCon c a us phis -> pretty c <+> braces (showVal a) <+> showVals us
                        <+> hsep (map ((pretty '@' <+>) . showFormula) phis)
-  VHComp v0 v1 vs   -> pretty "hcomp" <+> showVals [v0,v1] <+> showSystem showVal vs
+  VHComp i v0 v1 vs   -> pretty "hcomp" <+> showVals [v0,v1] <+> showSystem showVal (mapSystem (VPLam i) vs)
   VComp v0 v1 vs    -> pretty "comp" <+> showVals [v0,v1] <+> showSystem showVal vs
   VTrans u phi v0   -> pretty "transGen" <+> showVal1 u <+> showFormula phi
                        <+> showVal1 v0
@@ -546,7 +546,7 @@ countHComp v = case v of
   Ter t rho         -> 0
   VCon c us         -> countHComps us
   VPCon c a us phis -> countHComp a + countHComps us
-  VHComp v0 v1 vs   -> 1 + countHComps [v0,v1] + countHCompSystem vs
+  VHComp _ v0 v1 vs   -> 1 + countHComps [v0,v1] + countHCompSystem vs
   VComp v0 v1 vs    -> countHComps [v0,v1] + countHCompSystem vs
   VTrans u phi v0   -> countHComps [u,v0]
   VPi a l@(VLam x t b) -> countHComps [a,t,b]

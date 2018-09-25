@@ -99,7 +99,7 @@ instance Nominal Val where
     VSnd u                  -> occurs x u
     VCon _ vs               -> occurs x vs
     VPCon _ a vs phis       -> occurs x (a,vs,phis)
-    VHComp a u ts           -> occurs x (a,u,ts)
+    VHComp i a u ts         -> if x == i then occurs x (a,u) else occurs x (a,u,ts)
     VComp a u ts            -> occurs x (a,u,ts)    
     VTrans a phi u          -> occurs x (a,phi,u)
     VVar _ v                -> occurs x v
@@ -133,7 +133,12 @@ instance Nominal Val where
          VSnd u                  -> sndVal (act b u (i,phi))
          VCon c vs               -> VCon c (act b vs (i,phi))
          VPCon c a vs phis       -> pcon c (act b a (i,phi)) (act b vs (i,phi)) (act b phis (i,phi))
-         VHComp a u us           -> hcompLine (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
+         VHComp j a u us | j == i -> hcomp j (act b a (i,phi)) (act b u (i,phi)) us
+                         | not (j `occurs` phi) -> hcomp j (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
+                         | otherwise ->
+                           let k = fresh ()
+                           in hcomp k (act b a (i,phi)) (act b u (i,phi)) (act b (us `swap` (j,k)) (i,phi))
+           -- TODO: hcompLine (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
          VComp a u us           -> compLine (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
          VTrans a psi u          -> trans (act b a (i,phi)) (act b psi (i,phi)) (act b u (i,phi))
          VVar x v                -> VVar x (act b v (i,phi))
@@ -166,7 +171,11 @@ instance Nominal Val where
          VSnd u                  -> VSnd (act b u (i,phi))
          VCon c vs               -> VCon c (act b vs (i,phi))
          VPCon c a vs phis       -> VPCon c (act b a (i,phi)) (act b vs (i,phi)) (act b phis (i,phi))
-         VHComp a u us           -> VHComp (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
+         VHComp j a u us | j == i -> VHComp j (act b a (i,phi)) (act b u (i,phi)) us
+                         | not (j `occurs` phi) -> VHComp j (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
+                         | otherwise ->
+                           let k = fresh ()
+                           in VHComp k (act b a (i,phi)) (act b u (i,phi)) (act b (us `swap` (j,k)) (i,phi))
          VComp a u us            -> VComp (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
          VTrans a psi u          -> VTrans (act b a (i,phi)) (act b psi (i,phi)) (act b u (i,phi))
          VVar x v                -> VVar x (act b v (i,phi))
@@ -198,7 +207,7 @@ instance Nominal Val where
          VSnd u                  -> VSnd (swap u ij)
          VCon c vs               -> VCon c (swap vs ij)
          VPCon c a vs phis       -> VPCon c (swap a ij) (swap vs ij) (swap phis ij)
-         VHComp a u us           -> VHComp (swap a ij) (swap u ij) (swap us ij)
+         VHComp k a u us         -> VHComp (swapName k ij) (swap a ij) (swap u ij) (swap us ij)
          VComp a u us            -> VComp (swap a ij) (swap u ij) (swap us ij)
          VTrans a phi u          -> VTrans (swap a ij) (swap phi ij) (swap u ij)
          VVar x v                -> VVar x (swap v ij)
@@ -308,9 +317,9 @@ app u v = case (u,v) of
   (Ter (Split _ _ _ nvs) e,VPCon c _ us phis) -> case lookupBranch c nvs of
     Just (PBranch _ xs is t) -> eval (subs (zip is phis) (upds (zip xs us) e)) t
     _ -> error $ "app: missing case in split for " ++ c
-  (Ter (Split _ _ ty hbr) e,VHComp a w ws) -> case eval e ty of
-    VPi _ f -> let j   = fresh (e,v)
-                   wsj = mapSystem (@@@ j) ws
+  (Ter (Split _ _ ty hbr) e,VHComp j a w ws) -> case eval e ty of
+    VPi _ f -> let -- j   = fresh (e,v)
+                   wsj = ws -- TODO: mapSystem (@@@ j) ws
                    w'  = app u w
                    ws' = mapWithKey (\alpha -> app (u `face` alpha)) wsj
                    -- a should be constant
@@ -327,10 +336,12 @@ app u v = case (u,v) of
             w = transFillNeg j aij phi v
             w0 = transNeg j aij phi v  -- w0 = w `face` (j ~> 0)
         in trans (VPLam j (app fij w)) phi (app u0 w0)
-  (VHComp (VPi a f) u0 us, v) ->
-    let i = fresh (u,v)
-    in hcomp i (app f v) (app u0 v)
-          (mapWithKey (\al ual -> app (ual @@@ i) (v `face` al)) us)
+  (VHComp i (VPi a f) u0 us, v) ->
+    -- let i = fresh (u,v)
+    -- in hcomp i (app f v) (app u0 v)
+    --       (mapWithKey (\al ual -> app (ual @@@ i) (v `face` al)) us)
+    hcomp i (app f v) (app u0 v)
+            (mapWithKey (\al ual -> app ual (v `face` al)) us)
   (VComp (VPLam i (VPi a f)) li0 ts,vi1) ->
     let j       = fresh (u,vi1)
         (aj,fj) = (a,f) `swap` (i,j)
@@ -374,7 +385,7 @@ inferType v = case v of
     VPathP a _ _ -> a @@ phi
     ty         -> error $ "inferType: expected PathP type for " ++ show (showVal v)
                   ++ ", got " ++ show (showVal ty)
-  VHComp a _ _ -> a
+  VHComp _ a _ _ -> a
   VComp a _ _  -> a @@ One
   VTrans a _ _ -> a @@ One
   VUnGlueElem _ b _  -> b
@@ -472,9 +483,9 @@ hcomp i a u us = case a of
       Just as -> let usvs = transposeSystemAndList (mapSystem unCon us) vs
                  in VCon n $ hcomps i as env usvs
       Nothing -> error $ "hcomp: missing constructor in sum " ++ n
-  Ter (HSum _ _ _) _ -> VHComp a u (mapSystem (VPLam i) us)
-  VPi{} -> VHComp a u (mapSystem (VPLam i) us)
-  _ -> VHComp a u (mapSystem (VPLam i) us)
+  Ter (HSum _ _ _) _ -> VHComp i a u us -- TODO (mapSystem (VPLam i) us)
+  VPi{} -> VHComp i a u us -- TODO (mapSystem (VPLam i) us)
+  _ -> VHComp i a u us -- TODO (mapSystem (VPLam i) us)
 
 -- TODO: has to use comps after the second component anyway... remove?
 hcomps :: Name -> [(Ident,Ter)] -> Env -> [(System Val,Val)] -> [Val]
@@ -616,10 +627,14 @@ trans (VPLam i a) phi u = case a of
         in pc
            --hcomp i ai1 pc ((ves' `sym` i) `unionSystem` uphi)
       Nothing -> error $ "trans: missing path constructor in hsum " ++ n
-    VHComp _ v vs -> let j = fresh (Atom i,a,phi,u) in
+    VHComp j _ v vs ->
+      -- let j = fresh (Atom i,a,phi,u)
+      -- in hcomp j (a `face` (i ~> 1)) (trans (VPLam i a) phi v)
+      --            (mapWithKey (\al val ->
+      --                 trans (VPLam i (a `face` al)) (phi `face` al) (val @@@ j)) vs)
       hcomp j (a `face` (i ~> 1)) (trans (VPLam i a) phi v)
-        (mapWithKey (\al val ->
-                      trans (VPLam i (a `face` al)) (phi `face` al) (val @@@ j)) vs)
+              (mapWithKey (\al val ->
+                 trans (VPLam i (a `face` al)) (phi `face` al) val) vs)
     _ -> VTrans (VPLam i a) phi u
   _ -> VTrans (VPLam i a) phi u
 
@@ -1025,7 +1040,8 @@ instance Convertible Val where
         -- TODO: Maybe identify via (- = 1)?  Or change argument to a system..
         conv ns (a,invSystem phi One,u) (a',invSystem phi' One,u')
         -- conv ns (a,phi,u) (a',phi',u')
-      (VHComp a u ts,VHComp a' u' ts')    -> conv ns (a,u,ts) (a',u',ts')
+      (VHComp j a u ts,VHComp j' a' u' ts')    -> -- TODO
+        conv ns (a,u,mapSystem (VPLam j) ts) (a',u',mapSystem (VPLam j') ts')
       (VComp a u ts,VComp a' u' ts')    -> conv ns (a,u,ts) (a',u',ts')
       (VGlue v equivs,VGlue v' equivs')   -> conv ns (v,equivs) (v',equivs')
       (VGlueElem (VUnGlueElem b a equivs) ts,g) -> conv ns (border b equivs,b) (ts,g)
@@ -1101,7 +1117,7 @@ instance Normal Val where
     VPathP a u0 u1      -> VPathP (normal ns a) (normal ns u0) (normal ns u1)
     VPLam i u           -> VPLam i (normal ns u)
     VTrans a phi u      -> VTrans (normal ns a) (normal ns phi) (normal ns u)
-    VHComp u v vs       -> VHComp (normal ns u) (normal ns v) (normal ns vs)
+    VHComp j u v vs     -> VHComp j (normal ns u) (normal ns v) (normal ns vs)
     VComp u v vs        -> VComp (normal ns u) (normal ns v) (normal ns vs)
     VGlue u equivs      -> VGlue (normal ns u) (normal ns equivs)
     VGlueElem (VUnGlueElem b _ _) _ -> normal ns b

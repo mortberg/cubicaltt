@@ -956,9 +956,9 @@ lemEqConst i eq b as = (a,p)
 class Convertible a where
   conv :: [String] -> a -> a -> Bool
 
-conflictCompSystem :: (Nominal a, Convertible a) => [String] -> System a -> [(a,a)]
+conflictCompSystem :: (Nominal a, Convertible a) => [String] -> System a -> [((Face,a),(Face,a))]
 conflictCompSystem ns ts =
-  [ (fa, fb) | (alpha,beta) <- allCompatible (keys ts),
+  [ ((alpha,fa), (beta,fb)) | (alpha,beta) <- allCompatible (keys ts),
                let (fa,fb) = (getFace alpha beta, getFace beta alpha),
                not (conv ns fa fb) ]
   where getFace a b = face (ts ! a) (b `minus` a)

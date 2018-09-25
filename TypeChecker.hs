@@ -280,8 +280,9 @@ checkCompSystem vus = do
   unless (isCompSystem ns vus)
     (throwError $
       "Incompatible system " ++ show (showSystem showVal vus) ++
-      ",\nwith incompatible pairs\n" ++
-      (unlines (map (\(a,b) -> show (showVal a,showVal b)) (conflictCompSystem ns vus))))
+      (unlines (map (\((a,u),(b,v)) -> "\ncomponent\n\n" ++ showFace a ++ " -> " ++ show (showVal u)
+                      ++ "\n\nincompatible with component\n\n" ++ showFace b ++ " -> " ++ show (showVal v))
+                 (conflictCompSystem ns vus))))
 
 -- Check the values at corresponding faces with a function, assumes
 -- systems have the same faces
@@ -437,8 +438,8 @@ checkPLamSystem t0 va ps = do
       (a0,a1)  <- checkPLam (va `face` alpha) pAlpha
       unlessM (a0 === eval rhoAlpha t0) $
         throwError $ "Incompatible system " ++ show (showSystem showTer ps) ++
-                     ", component\n " ++ show (showTer pAlpha) ++
-                     "\nincompatible with\n " ++ show (showTer t0) ++
+                     ", component\n\n" ++ showFace alpha ++ " -> " ++ show (showTer pAlpha) ++
+                     "\n\nincompatible with\n\n" ++ show (showTer t0) ++
                      "\na0 = " ++ show (showVal a0) ++
                      "\nt0alpha = " ++ show (showVal (eval rhoAlpha t0)) ++
                      "\nva = " ++ show (showVal va)

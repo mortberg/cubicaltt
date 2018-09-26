@@ -124,9 +124,10 @@ instance Nominal Val where
          VPi a f      -> VPi (act b a (i,phi)) (act b f (i,phi))
          VPathP a u v -> VPathP (act b a (i,phi)) (act b u (i,phi)) (act b v (i,phi))
          VPLam j v | j == i -> u
-                   | not (j `occurs` phi) -> VPLam j (act b v (i,phi))
-                   | otherwise -> VPLam k (act b (v `swap` (j,k)) (i,phi))
-              where k = fresh (v,Atom i,phi)
+                   | otherwise -> VPLam j (act b v (i,phi))
+              --      | not (j `occurs` phi) -> VPLam j (act b v (i,phi))
+              --      | otherwise -> VPLam k (act b (v `swap` (j,k)) (i,phi))
+              -- where k = fresh (v,Atom i,phi)
          VSigma a f              -> VSigma (act b a (i,phi)) (act b f (i,phi))
          VPair u v               -> VPair (act b u (i,phi)) (act b v (i,phi))
          VFst u                  -> fstVal (act b u (i,phi))
@@ -134,16 +135,18 @@ instance Nominal Val where
          VCon c vs               -> VCon c (act b vs (i,phi))
          VPCon c a vs phis       -> pcon c (act b a (i,phi)) (act b vs (i,phi)) (act b phis (i,phi))
          VHComp j a u us | j == i -> hcomp j (act b a (i,phi)) (act b u (i,phi)) us
-                         | not (j `occurs` phi) -> hcomp j (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
-                         | otherwise ->
-                           let k = fresh ()
-                           in hcomp k (act b a (i,phi)) (act b u (i,phi)) (act b (us `swap` (j,k)) (i,phi))
+                         | otherwise -> hcomp j (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
+                         -- | not (j `occurs` phi) -> hcomp j (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
+                         -- | otherwise ->
+                         --   let k = fresh ()
+                         --   in hcomp k (act b a (i,phi)) (act b u (i,phi)) (act b (us `swap` (j,k)) (i,phi))
            -- TODO: hcompLine (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
          VComp j a u us | j == i -> comp j a (act b u (i,phi)) us
-                        | not (j `occurs` phi) -> comp j (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
-                        | otherwise ->
-                          let k = fresh ()
-                          in comp k (act b (a `swap` (j,k)) (i,phi)) (act b u (i,phi)) (act b (us `swap` (j,k)) (i,phi))
+                        | otherwise -> comp j (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
+                        -- | not (j `occurs` phi) -> comp j (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
+                        -- | otherwise ->
+                        --   let k = fresh ()
+                        --   in comp k (act b (a `swap` (j,k)) (i,phi)) (act b u (i,phi)) (act b (us `swap` (j,k)) (i,phi))
            -- compLine (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
          VTrans a psi u          -> trans (act b a (i,phi)) (act b psi (i,phi)) (act b u (i,phi))
          VVar x v                -> VVar x (act b v (i,phi))
@@ -167,9 +170,10 @@ instance Nominal Val where
          VPi a f      -> VPi (act b a (i,phi)) (act b f (i,phi))
          VPathP a u v -> VPathP (act b a (i,phi)) (act b u (i,phi)) (act b v (i,phi))
          VPLam j v | j == i -> u
-                   | not (j `occurs` phi) -> VPLam j (act b v (i,phi))
-                   | otherwise -> VPLam k (act b (v `swap` (j,k)) (i,phi))
-              where k = fresh (v,Atom i,phi)
+                   | otherwise -> VPLam j (act b v (i,phi))
+              --      | not (j `occurs` phi) -> VPLam j (act b v (i,phi))
+              --      | otherwise -> VPLam k (act b (v `swap` (j,k)) (i,phi))
+              -- where k = fresh (v,Atom i,phi)
          VSigma a f              -> VSigma (act b a (i,phi)) (act b f (i,phi))
          VPair u v               -> VPair (act b u (i,phi)) (act b v (i,phi))
          VFst u                  -> VFst (act b u (i,phi))
@@ -177,15 +181,17 @@ instance Nominal Val where
          VCon c vs               -> VCon c (act b vs (i,phi))
          VPCon c a vs phis       -> VPCon c (act b a (i,phi)) (act b vs (i,phi)) (act b phis (i,phi))
          VHComp j a u us | j == i -> VHComp j (act b a (i,phi)) (act b u (i,phi)) us
-                         | not (j `occurs` phi) -> VHComp j (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
-                         | otherwise ->
-                           let k = fresh ()
-                           in VHComp k (act b a (i,phi)) (act b u (i,phi)) (act b (us `swap` (j,k)) (i,phi))
+                         | otherwise -> VHComp j (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
+                         -- | not (j `occurs` phi) -> VHComp j (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
+                         -- | otherwise ->
+                         --   let k = fresh ()
+                         --   in VHComp k (act b a (i,phi)) (act b u (i,phi)) (act b (us `swap` (j,k)) (i,phi))
          VComp j a u us | j == i -> VComp j a (act b u (i,phi)) us
-                        | not (j `occurs` phi) -> VComp j (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
-                        | otherwise ->
-                           let k = fresh ()
-                           in VComp k (act b (a `swap` (j,k)) (i,phi)) (act b u (i,phi)) (act b (us `swap` (j,k)) (i,phi))
+                        | otherwise -> VComp j (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
+                        -- | not (j `occurs` phi) -> VComp j (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
+                        -- | otherwise ->
+                        --    let k = fresh ()
+                        --    in VComp k (act b (a `swap` (j,k)) (i,phi)) (act b u (i,phi)) (act b (us `swap` (j,k)) (i,phi))
           -- VComp (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
          VTrans a psi u          -> VTrans (act b a (i,phi)) (act b psi (i,phi)) (act b u (i,phi))
          VVar x v                -> VVar x (act b v (i,phi))

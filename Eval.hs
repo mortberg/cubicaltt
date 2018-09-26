@@ -113,9 +113,9 @@ instance Nominal Val where
     VUnGlueElem a b ts      -> occurs x (a,b,ts)
     VHCompU a ts            -> occurs x (a,ts)
     VUnGlueElemU a b es     -> occurs x (a,b,es)
-    VIdPair u us            -> occurs x (u,us)
-    VId a u v               -> occurs x (a,u,v)
-    VIdJ a u c d y p        -> occurs x [a,u,c,d,y,p]
+    -- VIdPair u us            -> occurs x (u,us)
+    -- VId a u v               -> occurs x (a,u,v)
+    -- VIdJ a u c d y p        -> occurs x [a,u,c,d,y,p]
 
   act b u (i, phi)
     | b = case u of
@@ -139,7 +139,7 @@ instance Nominal Val where
                            let k = fresh ()
                            in hcomp k (act b a (i,phi)) (act b u (i,phi)) (act b (us `swap` (j,k)) (i,phi))
            -- TODO: hcompLine (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
-         VComp a u us           -> compLine (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
+         VComp a u us            -> compLine (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
          VTrans a psi u          -> trans (act b a (i,phi)) (act b psi (i,phi)) (act b u (i,phi))
          VVar x v                -> VVar x (act b v (i,phi))
          VOpaque x v             -> VOpaque x (act b v (i,phi))
@@ -152,10 +152,10 @@ instance Nominal Val where
          VUnGlueElem a bb ts     -> unglue (act b a (i,phi)) (act b bb (i,phi)) (act b ts (i,phi))
          VUnGlueElemU a bb es    -> unglueU (act b a (i,phi)) (act b bb (i,phi)) (act b es (i,phi))
          VHCompU a ts            -> hcompUniv (act b a (i,phi)) (act b ts (i,phi))
-         VIdPair u us            -> VIdPair (act b u (i,phi)) (act b us (i,phi))
-         VId a u v               -> VId (act b a (i,phi)) (act b u (i,phi)) (act b v (i,phi))
-         VIdJ a u c d x p        ->
-           idJ (act b a (i,phi)) (act b u (i,phi)) (act b c (i,phi)) (act b d (i,phi)) (act b x (i,phi)) (act b p (i,phi))
+         -- VIdPair u us            -> VIdPair (act b u (i,phi)) (act b us (i,phi))
+         -- VId a u v               -> VId (act b a (i,phi)) (act b u (i,phi)) (act b v (i,phi))
+         -- VIdJ a u c d x p        ->
+         --   idJ (act b a (i,phi)) (act b u (i,phi)) (act b c (i,phi)) (act b d (i,phi)) (act b x (i,phi)) (act b p (i,phi))
     | otherwise = case u of
          VU           -> VU
          Ter t e      -> Ter t (act b e (i,phi))
@@ -189,10 +189,10 @@ instance Nominal Val where
          VUnGlueElem a bb ts     -> VUnGlueElem (act b a (i,phi)) (act b bb (i,phi)) (act b ts (i,phi))
          VUnGlueElemU a bb es    -> VUnGlueElemU (act b a (i,phi)) (act b bb (i,phi)) (act b es (i,phi))
          VHCompU a ts            -> VHCompU (act b a (i,phi)) (act b ts (i,phi))
-         VIdPair u us            -> VIdPair (act b u (i,phi)) (act b us (i,phi))
-         VId a u v               -> VId (act b a (i,phi)) (act b u (i,phi)) (act b v (i,phi))
-         VIdJ a u c d x p        ->
-           VIdJ (act b a (i,phi)) (act b u (i,phi)) (act b c (i,phi)) (act b d (i,phi)) (act b x (i,phi)) (act b p (i,phi))
+         -- VIdPair u us            -> VIdPair (act b u (i,phi)) (act b us (i,phi))
+         -- VId a u v               -> VId (act b a (i,phi)) (act b u (i,phi)) (act b v (i,phi))
+         -- VIdJ a u c d x p        ->
+         --   VIdJ (act b a (i,phi)) (act b u (i,phi)) (act b c (i,phi)) (act b d (i,phi)) (act b x (i,phi)) (act b p (i,phi))
 
   -- This increases efficiency as it won't trigger computation.
   swap u ij@(i,j)
@@ -258,9 +258,11 @@ eval rho@(Env (_,_,_,Nameless os)) v = case v of
   PLam{}              -> Ter v rho
   AppFormula e phi    -> eval rho e @@ evalFormula rho phi
   HComp a t0 ts       ->
-    hcompLine (eval rho a) (eval rho t0) (evalSystem rho ts)
+    let i = fresh ()
+    in hcomp i (eval rho a) (eval rho t0) (mapSystem (@@@ i) (evalSystem rho ts))
   HFill a t0 ts       ->
-    hfillLine (eval rho a) (eval rho t0) (evalSystem rho ts)
+    let i = fresh ()
+    in VPLam i $ hfill i (eval rho a) (eval rho t0) (mapSystem (@@@ i) (evalSystem rho ts))
   Trans (PLam i a) phi t ->
     let j = fresh ()
     in trans (VPLam j (eval (sub (i,Atom j) rho) a)) (evalFormula rho phi) (eval rho t)
@@ -286,10 +288,10 @@ eval rho@(Env (_,_,_,Nameless os)) v = case v of
   Glue a ts           -> glue (eval rho a) (evalSystem rho ts)
   GlueElem a ts       -> glueElem (eval rho a) (evalSystem rho ts)
   UnGlueElem v a ts   -> unglue (eval rho v) (eval rho a) (evalSystem rho ts)
-  Id a r s            -> VId (eval rho a) (eval rho r) (eval rho s)
-  IdPair b ts         -> VIdPair (eval rho b) (evalSystem rho ts)
-  IdJ a t c d x p     -> idJ (eval rho a) (eval rho t) (eval rho c)
-                             (eval rho d) (eval rho x) (eval rho p)
+  -- Id a r s            -> VId (eval rho a) (eval rho r) (eval rho s)
+  -- IdPair b ts         -> VIdPair (eval rho b) (evalSystem rho ts)
+  -- IdJ a t c d x p     -> idJ (eval rho a) (eval rho t) (eval rho c)
+  --                            (eval rho d) (eval rho x) (eval rho p)
   _                   -> error $ "Cannot evaluate " ++ show (showTer v)
 
 evals :: Env -> [(Ident,Ter)] -> [(Ident,Val)]
@@ -394,7 +396,7 @@ inferType v = case v of
   VTrans a _ _ -> a @@ One
   VUnGlueElem _ b _  -> b
   VUnGlueElemU _ b _ -> b
-  VIdJ _ _ c _ x p -> app (app c x) p
+  -- VIdJ _ _ c _ x p -> app (app c x) p
   _ -> error $ "inferType: not neutral " ++ show (showVal v)
 
 (@@) :: ToFormula a => Val -> a -> Val
@@ -422,6 +424,7 @@ v @@@ j           = VAppFormula v (toFormula j)
 -- For mysterious reasons it seems crucial that we use @@ in all
 -- the *Line functions and not @@@... why?
 
+-- This is only used in the typechecker
 hcompLine :: Val -> Val -> System Val -> Val
 hcompLine a u us = hcomp i a u (mapSystem (@@@ i) us)
   where i = fresh (a,u,us)
@@ -430,17 +433,18 @@ hfill :: Name -> Val -> Val -> System Val -> Val
 hfill i a u us = hcomp j a u (insertSystem (i ~> 0) u $ us `conj` (i,j))
   where j = fresh (Atom i,a,u,us)
 
-hfillLine :: Val -> Val -> System Val -> Val
-hfillLine a u us = VPLam i $ hfill i a u (mapSystem (@@@ i) us)
-  where i = fresh (a,u,us)
+-- hfillLine :: Val -> Val -> System Val -> Val
+-- hfillLine a u us = VPLam i $ hfill i a u (mapSystem (@@@ i) us)
+--   where i = fresh (a,u,us)
 
 hcomp :: Name -> Val -> Val -> System Val -> Val
 hcomp i a u us | eps `member` us = (us ! eps) `face` (i ~> 1)
 hcomp i a u us = case a of
-  VPathP p v0 v1 -> let j = fresh (Atom i,a,u,us) in
-    VPLam j $ hcomp i (p @@@ j) (u @@@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
-                                         (mapSystem (@@@ j) us))
-  VId b v0 v1 -> undefined
+  VPathP p v0 v1 ->
+    let j = fresh (Atom i,a,u,us)
+    in VPLam j $ hcomp i (p @@@ j) (u @@@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
+                                                (mapSystem (@@@ j) us))
+  -- VId b v0 v1 -> undefined
   VSigma a f
     | isNonDep f -> VPair (hcomp i a (fstVal u) (mapSystem fstVal us))
                           (hcomp i (app f (VVar "impossible" VU)) (sndVal u) (mapSystem sndVal us))
@@ -508,12 +512,11 @@ fwd i a phi u = trans (VPLam i (act True a (i,phi `orFormula` Atom i))) phi u
 
 comp :: Name -> Val -> Val -> System Val -> Val
 comp i a u us | eps `member` us = (us ! eps) `face` (i ~> 1)
-comp i a u us =
-  let j = fresh (Atom i,a,u,us)
-  in case a of
+comp i a u us = case a of
     VPathP p v0 v1 ->
-      VPLam j $ comp i (p @@@ j) (u @@@ j) $
-                  insertsSystem [(j ~> 0,v0),(j ~> 1,v1)] (mapSystem (@@@ j) us)
+      let j = fresh (Atom i,a,u,us)
+      in VPLam j $ comp i (p @@@ j) (u @@@ j) $
+                   insertsSystem [(j ~> 0,v0),(j ~> 1,v1)] (mapSystem (@@@ j) us)
     VSigma a f ->
       let (t1s, t2s) = (mapSystem fstVal us, mapSystem sndVal us)
           (u1,  u2)  = (fstVal u, sndVal u)
@@ -533,17 +536,18 @@ comp i a u us =
                                in VCon n $ comps i as env usus'
                     Nothing -> error $ "comp: missing constructor in labelled sum " ++ n
       _ -> VComp (VPLam i a) u (mapSystem (VPLam i) us)    
-    _ -> hcomp j (a `face` (i ~> 1)) (trans (VPLam i a) (Dir Zero) u)
-                 (mapWithKey (\al ual -> fwd i (a `face` al) (Atom j) (ual  `swap` (i,j))) us)
+    _ -> let j = fresh (Atom i,a,u,us)
+         in hcomp j (a `face` (i ~> 1)) (trans (VPLam i a) (Dir Zero) u)
+                  (mapWithKey (\al ual -> fwd i (a `face` al) (Atom j) (ual `swap` (i,j))) us)
 
 -- comp :: Name -> Val -> Val -> System Val -> Val
 -- comp i a u us = hcomp i (a `face` (i ~> 1)) (fwd i a (Dir Zero) u) fwdius
 --  where fwdius = mapWithKey (\al ual -> fwd i (a `face` al) (Atom i) ual) us
 
-
 compNeg :: Name -> Val -> Val -> System Val -> Val
 compNeg i a u us = comp i (a `sym` i) u (us `sym` i)
 
+-- TODO: remove by making VComp take a name
 compLine :: Val -> Val -> System Val -> Val
 compLine a u us = comp i (a @@@ i) u (mapSystem (@@@ i) us)
   where i = fresh (a,u,us)
@@ -558,8 +562,7 @@ comps i ((x,a):as) e ((ts,u):tsus) =
 comps _ _ _ _ = error "comps: different lengths of types and values"
 
 fill :: Name -> Val -> Val -> System Val -> Val
-fill i a u ts =
-  comp j (a `conj` (i,j)) u (insertSystem (i ~> 0) u (ts `conj` (i,j)))
+fill i a u ts = comp j (a `conj` (i,j)) u (insertSystem (i ~> 0) u (ts `conj` (i,j)))
   where j = fresh (Atom i,a,u,ts)
 
 fillNeg :: Name -> Val -> Val -> System Val -> Val
@@ -584,10 +587,11 @@ fillNeg i a u ts = (fill i (a `sym` i) u (ts `sym` i)) `sym` i
 trans :: Val -> Formula -> Val -> Val
 trans _ (Dir One) u = u
 trans (VPLam i a) phi u = case a of
-  VPathP p v0 v1 -> let j = fresh (Atom i,a,phi,u) in
-    VPLam j $ comp i (p @@@ j) (u @@@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
-                                         (border (u @@@ j) (invSystem phi One)))
-  VId b v0 v1 -> undefined
+  VPathP p v0 v1 ->
+    let j = fresh (Atom i,a,phi,u)
+    in VPLam j $ comp i (p @@@ j) (u @@@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
+                                               (border (u @@@ j) (invSystem phi One)))
+  -- VId b v0 v1 -> undefined
   VSigma a f
     | isNonDep f -> VPair (trans (VPLam i a) phi (fstVal u))
                           (trans (VPLam i (app f (VVar "impossible" VU))) phi (sndVal u))
@@ -619,15 +623,15 @@ trans (VPLam i a) phi u = case a of
     VPCon n _ us psis -> case lookupPLabel n nass of
       Just (tele,is,es) ->
         let ai1  = a `face` (i ~> 1)
-            vs   = transFills i tele env phi us
-            env' = subs (zip is psis) (updsTele tele vs env)
-            ves  = evalSystem env' es
-            ves' = mapWithKey
-                   (\al veal -> squeeze i (a `face` al) (phi `face` al) veal)
-                   ves
+            -- vs   = transFills i tele env phi us
+            -- env' = subs (zip is psis) (updsTele tele vs env)
+            -- ves  = evalSystem env' es
+            -- ves' = mapWithKey
+            --        (\al veal -> squeeze i (a `face` al) (phi `face` al) veal)
+            --        ves
             pc = VPCon n ai1 (transps i tele env phi us) psis
             -- NB: restricted to phi=1, u = pc; so we could also take pc instead
-            uphi = border u (invSystem phi One)
+            -- uphi = border u (invSystem phi One)
         in pc
            --hcomp i ai1 pc ((ves' `sym` i) `unionSystem` uphi)
       Nothing -> error $ "trans: missing path constructor in hsum " ++ n
@@ -675,26 +679,26 @@ transps _ _ _ _ _ = error "transps: different lengths of types and values"
 -- Takes a type i : II |- a and i:II |- u : a, both constant on
 -- (phi=1) and returns a path in direction i connecting transp i a phi
 -- u(i/0) to u(i/1).
-squeeze :: Name -> Val -> Formula -> Val -> Val
-squeeze i a phi u = trans (VPLam j (a `disj` (i,j))) (phi `orFormula` Atom i) u
-  where j = fresh (Atom i,a,phi,u)
+-- squeeze :: Name -> Val -> Formula -> Val -> Val
+-- squeeze i a phi u = trans (VPLam j (a `disj` (i,j))) (phi `orFormula` Atom i) u
+--   where j = fresh (Atom i,a,phi,u)
 
 
 -------------------------------------------------------------------------------
 -- | Id
 
-idJ :: Val -> Val -> Val -> Val -> Val -> Val -> Val
-idJ a v c d x p = case p of
-  VIdPair w ws -> comp i (app (app c (w @@@ i)) w') d
-                    (border d (shape ws))
-    where w' = VIdPair (VPLam j $ w @@ (Atom i :/\: Atom j))
-                  (insertSystem (i ~> 0) v ws)
-          i:j:_ = freshs [a,v,c,d,x,p]
-  _ -> VIdJ a v c d x p
+-- idJ :: Val -> Val -> Val -> Val -> Val -> Val -> Val
+-- idJ a v c d x p = case p of
+--   VIdPair w ws -> comp i (app (app c (w @@@ i)) w') d
+--                     (border d (shape ws))
+--     where w' = VIdPair (VPLam j $ w @@ (Atom i :/\: Atom j))
+--                   (insertSystem (i ~> 0) v ws)
+--           i:j:_ = freshs [a,v,c,d,x,p]
+--   _ -> VIdJ a v c d x p
 
-isIdPair :: Val -> Bool
-isIdPair VIdPair{} = True
-isIdPair _         = False
+-- isIdPair :: Val -> Bool
+-- isIdPair VIdPair{} = True
+-- isIdPair _         = False
 
 
 -------------------------------------------------------------------------------
@@ -753,7 +757,7 @@ extend :: Val -> Val -> System Val -> Val
 extend b q ts = hcomp i b (fstVal q) ts'
   where i = fresh (b,q,ts)
         ts' = mapWithKey
-                (\alpha tAlpha -> app ((sndVal q) `face` alpha) tAlpha @@ i) ts
+                (\alpha tAlpha -> app ((sndVal q) `face` alpha) tAlpha @@@ i) ts
 
 transGlue :: Name -> Val -> System Val -> Formula -> Val -> Val
 transGlue i a equivs psi u0 = glueElem v1' t1s'
@@ -1056,10 +1060,10 @@ instance Convertible Val where
       (VUnGlueElemU u _ _,VUnGlueElemU u' _ _) -> conv ns u u'
       (VUnGlueElem u _ _,VUnGlueElem u' _ _) -> conv ns u u'
       (VHCompU u es,VHCompU u' es')            -> conv ns (u,es) (u',es')
-      (VIdPair v vs,VIdPair v' vs')          -> conv ns (v,vs) (v',vs')
-      (VId a u v,VId a' u' v')               -> conv ns (a,u,v) (a',u',v')
-      (VIdJ a u c d x p,VIdJ a' u' c' d' x' p') ->
-        conv ns [a,u,c,d,x,p] [a',u',c',d',x',p']
+      -- (VIdPair v vs,VIdPair v' vs')          -> conv ns (v,vs) (v',vs')
+      -- (VId a u v,VId a' u' v')               -> conv ns (a,u,v) (a',u',v')
+      -- (VIdJ a u c d x p,VIdJ a' u' c' d' x' p') ->
+      --   conv ns [a,u,c,d,x,p] [a',u',c',d',x',p']
       _                                      -> False
 
 instance Convertible Ctxt where
@@ -1136,10 +1140,10 @@ instance Normal Val where
     VSplit u t          -> VSplit (normal ns u) (normal ns t)
     VApp u v            -> VApp (normal ns u) (normal ns v)
     VAppFormula u phi   -> VAppFormula (normal ns u) (normal ns phi)
-    VId a u v           -> VId (normal ns a) (normal ns u) (normal ns v)
-    VIdPair u us        -> VIdPair (normal ns u) (normal ns us)
-    VIdJ a u c d x p    -> VIdJ (normal ns a) (normal ns u) (normal ns c)
-                                (normal ns d) (normal ns x) (normal ns p)
+    -- VId a u v           -> VId (normal ns a) (normal ns u) (normal ns v)
+    -- VIdPair u us        -> VIdPair (normal ns u) (normal ns us)
+    -- VIdJ a u c d x p    -> VIdJ (normal ns a) (normal ns u) (normal ns c)
+    --                             (normal ns d) (normal ns x) (normal ns p)
     _                   -> v
 
 instance Normal (Nameless a) where

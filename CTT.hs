@@ -130,9 +130,9 @@ data Ter = Pi Ter
          | GlueElem Ter (System Ter)
          | UnGlueElem Ter Ter (System Ter)
            -- Id
-         | Id Ter Ter Ter
-         | IdPair Ter (System Ter)
-         | IdJ Ter Ter Ter Ter Ter Ter
+         -- | Id Ter Ter Ter
+         -- | IdPair Ter (System Ter)
+         -- | IdJ Ter Ter Ter Ter Ter Ter
   deriving (Show,Eq)
 
 -- For an expression t, returns (u,ts) where u is no application and t = u ts
@@ -183,8 +183,8 @@ data Val = VU
          | VTrans Val Formula Val
 
            -- Id
-         | VId Val Val Val
-         | VIdPair Val (System Val)
+         -- | VId Val Val Val
+         -- | VIdPair Val (System Val)
 
            -- Neutral values:
          | VVar Ident Val
@@ -196,7 +196,7 @@ data Val = VU
          | VAppFormula Val Formula
          | VLam Ident Val Val
          | VUnGlueElemU Val Val (System Val)
-         | VIdJ Val Val Val Val Val Val
+         -- | VIdJ Val Val Val Val Val Val
   deriving Eq
 
 isNeutral :: Val -> Bool
@@ -215,7 +215,7 @@ isNeutral v = case v of
   VAppFormula{}  -> True
   VUnGlueElemU{} -> True
   VUnGlueElem{}  -> True
-  VIdJ{}         -> True
+  -- VIdJ{}         -> True
   _              -> False
 
 isNeutralSystem :: System Val -> Bool
@@ -422,9 +422,9 @@ showTer v = case v of
   Glue a ts          -> pretty "Glue" <+> showTer1 a <+> showSystem showTer ts
   GlueElem a ts      -> pretty "glue" <+> showTer1 a <+> showSystem showTer ts
   UnGlueElem a b ts  -> pretty "unglue" <+> showTers [a,b] <+> showSystem showTer ts
-  Id a u v           -> pretty "Id" <+> showTers [a,u,v]
-  IdPair b ts        -> pretty "idC" <+> showTer1 b <+> showSystem showTer ts
-  IdJ a t c d x p    -> pretty "idJ" <+> showTers [a,t,c,d,x,p]
+  -- Id a u v           -> pretty "Id" <+> showTers [a,u,v]
+  -- IdPair b ts        -> pretty "idC" <+> showTer1 b <+> showSystem showTer ts
+  -- IdJ a t c d x p    -> pretty "idJ" <+> showTers [a,t,c,d,x,p]
 
 showTers :: [Ter] -> Doc a
 showTers = hsep . map showTer1
@@ -491,9 +491,9 @@ showVal v = case v of
   VUnGlueElemU v b es -> pretty "unglue U" <+> showVals [v,b]
                          <+> showSystem showVal es
   VHCompU a ts        -> pretty "hcomp U" <+> showVal1 a <+> showSystem showVal ts
-  VId a u v           -> pretty "Id" <+> showVals [a,u,v]
-  VIdPair b ts        -> pretty "idC" <+> showVal1 b <+> showSystem showVal ts
-  VIdJ a t c d x p    -> pretty "idJ" <+> showVals [a,t,c,d,x,p]
+  -- VId a u v           -> pretty "Id" <+> showVals [a,u,v]
+  -- VIdPair b ts        -> pretty "idC" <+> showVal1 b <+> showSystem showVal ts
+  -- VIdJ a t c d x p    -> pretty "idJ" <+> showVals [a,t,c,d,x,p]
 
 showPLam :: Val -> Doc a
 showPLam e = case e of
@@ -568,7 +568,7 @@ countHComp v = case v of
   VUnGlueElem v a ts  -> countHComps [v,a] + countHCompSystem ts
   VUnGlueElemU v b es -> countHComps [v,b] + countHCompSystem es
   VHCompU a ts        -> countHComp a + countHCompSystem ts
-  VId a u v           -> countHComps [a,u,v]
-  VIdPair b ts        -> countHComp b + countHCompSystem ts
-  VIdJ a t c d x p    -> countHComps [a,t,c,d,x,p]
+  -- VId a u v           -> countHComps [a,u,v]
+  -- VIdPair b ts        -> countHComp b + countHCompSystem ts
+  -- VIdJ a t c d x p    -> countHComps [a,t,c,d,x,p]
   foo -> error ("countHComp " ++ show (showVal foo))

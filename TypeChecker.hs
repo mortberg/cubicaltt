@@ -218,22 +218,22 @@ check a t = case (a,t) of
     check va u
     vu <- evalTyping u
     checkGlueElemU vu ves us
-  (VU,Id a a0 a1) -> do
-    check VU a
-    va <- evalTyping a
-    check va a0
-    check va a1
-  (VId va va0 va1,IdPair w ts) -> do
-    check (VPathP (constPath va) va0 va1) w
-    vw <- evalTyping w
-    checkSystemWith ts $ \alpha tAlpha ->
-      local (faceEnv alpha) $ do
-        check (va `face` alpha) tAlpha
-        vtAlpha <- evalTyping tAlpha
-        unlessM (vw `face` alpha === constPath vtAlpha) $
-          throwError "malformed eqC"
-    rho <- asks env
-    checkCompSystem (evalSystem rho ts) -- Not needed
+  -- (VU,Id a a0 a1) -> do
+  --   check VU a
+  --   va <- evalTyping a
+  --   check va a0
+  --   check va a1
+  -- (VId va va0 va1,IdPair w ts) -> do
+  --   check (VPathP (constPath va) va0 va1) w
+  --   vw <- evalTyping w
+  --   checkSystemWith ts $ \alpha tAlpha ->
+  --     local (faceEnv alpha) $ do
+  --       check (va `face` alpha) tAlpha
+  --       vtAlpha <- evalTyping tAlpha
+  --       unlessM (vw `face` alpha === constPath vtAlpha) $
+  --         throwError "malformed eqC"
+  --   rho <- asks env
+  --   checkCompSystem (evalSystem rho ts) -- Not needed
   _ -> do
     v <- infer t
     ns <- asks names
@@ -547,23 +547,23 @@ infer e = case e of
     checks (bs,nu) es
     mapM_ checkFormula phis
     return va
-  IdJ a u c d x p -> do
-    check VU a
-    va <- evalTyping a
-    check va u
-    vu <- evalTyping u
-    let refu = VIdPair (constPath vu) $ mkSystem [(eps,vu)]
-    rho <- asks env
-    let z = Var "z"
-        ctype = eval rho $ Pi $ Lam "z" a $ Pi $ Lam "_" (Id a u z) U
-    check ctype c
-    vc <- evalTyping c
-    check (app (app vc vu) refu) d
-    check va x
-    vx <- evalTyping x
-    check (VId va vu vx) p
-    vp <- evalTyping p
-    return (app (app vc vx) vp)
+  -- IdJ a u c d x p -> do
+  --   check VU a
+  --   va <- evalTyping a
+  --   check va u
+  --   vu <- evalTyping u
+  --   let refu = VIdPair (constPath vu) $ mkSystem [(eps,vu)]
+  --   rho <- asks env
+  --   let z = Var "z"
+  --       ctype = eval rho $ Pi $ Lam "z" a $ Pi $ Lam "_" (Id a u z) U
+  --   check ctype c
+  --   vc <- evalTyping c
+  --   check (app (app vc vu) refu) d
+  --   check va x
+  --   vx <- evalTyping x
+  --   check (VId va vu vx) p
+  --   vp <- evalTyping p
+  --   return (app (app vc vx) vp)
   _ -> throwError ("infer " ++ show (showTer e))
 
 -- Not used since we have U : U

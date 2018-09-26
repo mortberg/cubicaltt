@@ -224,10 +224,10 @@ resolveExp e = case e of
   GlueElem u ts -> CTT.GlueElem <$> resolveExp u <*> resolveSystem ts
   UnGlueElem u v ts ->
     CTT.UnGlueElem <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
-  Id a u v      -> CTT.Id <$> resolveExp a <*> resolveExp u <*> resolveExp v
-  IdPair u ts   -> CTT.IdPair <$> resolveExp u <*> resolveSystem ts
-  IdJ a t c d x p -> CTT.IdJ <$> resolveExp a <*> resolveExp t <*> resolveExp c
-                             <*> resolveExp d <*> resolveExp x <*> resolveExp p
+  -- Id a u v      -> CTT.Id <$> resolveExp a <*> resolveExp u <*> resolveExp v
+  -- IdPair u ts   -> CTT.IdPair <$> resolveExp u <*> resolveSystem ts
+  -- IdJ a t c d x p -> CTT.IdJ <$> resolveExp a <*> resolveExp t <*> resolveExp c
+  --                            <*> resolveExp d <*> resolveExp x <*> resolveExp p
   _ -> do
     modName <- asks envModule
     throwError ("Could not resolve " ++ show e ++ " in module " ++ modName)

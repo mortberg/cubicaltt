@@ -376,7 +376,9 @@ app u v = case (u,v) of
     -- in comp j (app fj v) (app li0 vi0) (intersectionWith app tsj (border v tsj))
     let v       = transFillNeg j a (Dir Zero) vi1
         vi0     = transNeg j a (Dir Zero) vi1
-    in comp j (app f v) (app li0 vi0) (intersectionWith app ts (border v ts))
+    in if isNonDep f
+          then comp j (app f (VVar "impossible" VU)) (app li0 vi0) (intersectionWith app ts (border v ts))
+          else comp j (app f v) (app li0 vi0) (intersectionWith app ts (border v ts))
   _ -> VApp u v
 
 fstVal, sndVal :: Val -> Val
@@ -540,13 +542,16 @@ comp i a u us = case a of
       let j = fresh (Atom i,a,u,us)
       in VPLam j $ comp i (p @@@ j) (u @@@ j) $
                    insertsSystem [(j ~> 0,v0),(j ~> 1,v1)] (mapSystem (@@@ j) us)
-    VSigma a f ->
-      let (t1s, t2s) = (mapSystem fstVal us, mapSystem sndVal us)
-          (u1,  u2)  = (fstVal u, sndVal u)
-          fill_u1    = fill i a u1 t1s
-          ui1        = comp i a u1 t1s
-          comp_u2    = comp i (app f fill_u1) u2 t2s
-      in VPair ui1 comp_u2
+    VSigma a f
+      | isNonDep f -> VPair (comp i a (fstVal u) (mapSystem fstVal us))
+                            (comp i (app f (VVar "impossible" VU)) (sndVal u) (mapSystem sndVal us))
+      | otherwise ->
+        let (t1s, t2s) = (mapSystem fstVal us, mapSystem sndVal us)
+            (u1,  u2)  = (fstVal u, sndVal u)
+            fill_u1    = fill i a u1 t1s
+            ui1        = comp i a u1 t1s
+            comp_u2    = comp i (app f fill_u1) u2 t2s
+        in VPair ui1 comp_u2
     VPi{} -> VComp i a u us
     -- VU -> compUniv u (mapSystem (VPLam i) us)
     -- VCompU a es -> compU i a es u us

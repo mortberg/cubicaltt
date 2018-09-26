@@ -79,7 +79,9 @@ showFace :: Face -> String
 showFace alpha = concat [ "(" ++ show i ++ "=" ++ show d ++ ")" | (i,d) <- alpha ]
 
 swapFace :: Face -> (Name,Name) -> Face
-swapFace alpha ij = [ (swapName i ij,a) | (i,a) <- alpha ]
+swapFace alpha ij = swapFaceAux alpha ij [] where
+  swapFaceAux [] ij acc = acc
+  swapFaceAux ((i,a):alpha) ij acc = swapFaceAux alpha ij ((swapName i ij,a):acc)
 
 -- Check if two faces are compatible
 compatible :: Face -> Face -> Bool
@@ -568,7 +570,11 @@ instance Nominal a => Nominal (System a) where
                                             s' (invFormula (face phi beta) d)
         Nothing -> insertSystem alpha (act b u (i,face phi alpha)) s'
 
-  swap (Sys s) ij = mkSystem [ (k `swapFace` ij, x `swap` ij) | (k,x) <- s ]
+  -- It should be safe (and slightly more efficient) to use Sys instead of mkSystem
+  -- here because swapping respects the invariant that faces are incomparable.
+  swap (Sys s) ij = Sys (swapSys s ij []) where
+    swapSys [] ij acc = acc
+    swapSys ((k,x) : s) ij acc = swapSys s ij ((k `swapFace` ij, x `swap` ij) : acc)
 
 -- carve a using the same shape as the system b
 border :: Nominal a => a -> System b -> System a

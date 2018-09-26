@@ -435,6 +435,7 @@ v @@ phi = case (inferType v,toFormula phi) of
 
 -- -- Applying a *fresh* name.
 (@@@) :: Val -> Name -> Val
+(VPLam (Name "_") u) @@@ j = u
 (VPLam i u) @@@ j = u `swap` (i,j)
 (Ter (PLam i t) rho) @@@ j = eval (sub (i, Atom j) rho) t
 v @@@ j           = VAppFormula v (toFormula j)

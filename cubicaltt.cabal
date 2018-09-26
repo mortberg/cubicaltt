@@ -57,4 +57,5 @@ executable cubical
   -- hs-source-dirs:
   build-tools:         alex, happy, bnfc
   default-language:    Haskell2010
-  ghc-options: -fno-full-laziness -rtsopts
+  ghc-options: -O2 -rtsopts -v0 -fno-full-laziness
+               -- -prof -fprof-auto

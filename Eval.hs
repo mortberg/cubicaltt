@@ -603,8 +603,9 @@ trans _ (Dir One) u = u
 trans (VPLam i a) phi u = case a of
   VPathP p v0 v1 ->
     let j = fresh (Atom i,a,phi,u)
-    in VPLam j $ comp i (p @@@ j) (u @@@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
-                                               (border (u @@@ j) (invSystem phi One)))
+        uj = u @@@ j
+    in VPLam j $ comp i (p @@@ j) uj (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
+                                               (border uj (invSystem phi One)))
   -- VId b v0 v1 -> undefined
   VSigma a f
     | isNonDep f -> VPair (trans (VPLam i a) phi (fstVal u))

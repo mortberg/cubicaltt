@@ -496,20 +496,20 @@ infer e = case e of
     case t of
       VPathP a _ _ -> return $ a @@ phi
       _ -> throwError (show (showTer e) ++ " is not a path")
-  HComp a u0 us -> do
+  HComp i a u0 us -> do
     check VU a
     va <- evalTyping a
     check va u0
-    checkPLamSystem u0 (constPath va) us
+    checkPLamSystem u0 (constPath va) (mapSystem (PLam i) us)
     return va
-  HFill a u0 us -> do
+  HFill i a u0 us -> do
     check VU a
     va <- evalTyping a
     check va u0
-    checkPLamSystem u0 (constPath va) us
+    checkPLamSystem u0 (constPath va) (mapSystem (PLam i) us)
     vu0 <- evalTyping u0
     rho <- asks env
-    let vus = evalSystem rho us
+    let vus = evalSystem rho (mapSystem (PLam i) us)
     return (VPathP (constPath va) vu0 (hcompLine va vu0 vus))
   Trans a phi u0 -> do
     (va0, va1) <- checkPLam (constPath VU) a
@@ -525,20 +525,20 @@ infer e = case e of
       phisys
     check va0 u0
     return va1
-  Comp a t0 ps -> do
-    (va0, va1) <- checkPLam (constPath VU) a
-    va <- evalTyping a
+  Comp i a t0 ps -> do
+    (va0, va1) <- checkPLam (constPath VU) (PLam i a)
+    va <- evalTyping (PLam i a)
     check va0 t0
-    checkPLamSystem t0 va ps
+    checkPLamSystem t0 va (mapSystem (PLam i) ps)
     return va1
-  Fill a t0 ps -> do
-    (va0, va1) <- checkPLam (constPath VU) a
-    va <- evalTyping a
+  Fill i a t0 ps -> do
+    (va0, va1) <- checkPLam (constPath VU) (PLam i a)
+    va <- evalTyping (PLam i a)
     check va0 t0
-    checkPLamSystem t0 va ps
+    checkPLamSystem t0 va (mapSystem (PLam i) ps)
     vt  <- evalTyping t0
     rho <- asks env
-    let vps = evalSystem rho ps
+    let vps = evalSystem rho (mapSystem (PLam i) ps)
     return (VPathP va vt (compLine va vt vps))
   PCon c a es phis -> do
     check VU a

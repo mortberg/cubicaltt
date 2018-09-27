@@ -117,14 +117,14 @@ data Ter = Pi Ter
          | PLam Name Ter
          | AppFormula Ter Formula
            -- Homogeneous Kan composition and filling
-         | HComp Ter Ter (System Ter)
-         | HFill Ter Ter (System Ter)
+         | HComp Name Ter Ter (System Ter)
+         | HFill Name Ter Ter (System Ter)
            -- Generalized transports
          | Trans Ter Formula Ter
          -- TODO?: TransFill Ter Formula Ter
            -- Heterogeneous Kan composition and filling
-         | Comp Ter Ter (System Ter)
-         | Fill Ter Ter (System Ter)
+         | Comp Name Ter Ter (System Ter)
+         | Fill Name Ter Ter (System Ter)
            -- Glue
          | Glue Ter (System Ter)
          | GlueElem Ter (System Ter)
@@ -134,6 +134,50 @@ data Ter = Pi Ter
          -- | IdPair Ter (System Ter)
          -- | IdJ Ter Ter Ter Ter Ter Ter
   deriving (Show,Eq)
+
+swapTerSystem :: System Ter -> (Name,Name) -> System Ter
+swapTerSystem (Sys s) ij = Sys (swapSys s ij [])
+  where
+    swapSys [] ij acc = acc
+    swapSys ((k,x) : s) ij acc = swapSys s ij ((k `swapFace` ij, x `swapTer` ij) : acc)
+
+-- TODO: fix the undefined
+swapTer :: Ter -> (Name,Name) -> Ter
+swapTer t ij@(i,j) = case t of
+  Pi u -> Pi (swapTer u ij)
+  App u v -> App (swapTer u ij) (swapTer v ij)
+  Lam x u v -> Lam x (swapTer u ij) (swapTer v ij)
+  Where t d -> undefined
+  Var x -> Var x
+  U -> U
+  Sigma u -> Sigma (swapTer u ij)
+  Pair u v -> Pair (swapTer u ij) (swapTer v ij)
+  Fst u -> Fst (swapTer u ij)
+  Snd u -> Snd (swapTer u ij)
+  Con n us -> Con n (map (`swapTer` ij) us)
+  PCon n u us phis -> PCon n (swapTer u ij) (map (`swapTer` ij) us) (phis `swap` ij)
+  Split n loc t lbls -> undefined
+  Sum loc n lbls -> undefined
+  HSum loc n lbls -> undefined
+  Undef loc u -> Undef loc (swapTer u ij)
+  Hole loc -> Hole loc
+  PathP a u v -> PathP (swapTer a ij) (swapTer u ij) (swapTer v ij)
+  PLam k u | k == i -> t
+           | otherwise -> PLam k (swapTer u ij)
+  AppFormula u phi -> AppFormula (swapTer u ij) (phi `swap` ij)
+  HComp k a u us | k == i -> HComp k (swapTer a ij) (swapTer u ij) us
+                 | otherwise -> HComp k (swapTer a ij) (swapTer u ij) (swapTerSystem us ij)
+  HFill k a u us | k == i -> HFill k (swapTer a ij) (swapTer u ij) us
+                 | otherwise -> HFill k (swapTer a ij) (swapTer u ij) (swapTerSystem us ij)
+  Trans a phi v -> Trans (swapTer a ij) (phi `swap` ij) (swapTer v ij)
+  Comp k a u us | k == i -> Comp k a (swapTer u ij) us
+                | otherwise -> Comp k (swapTer a ij) (swapTer u ij) (swapTerSystem us ij)
+  Fill k a u us | k == i -> Fill k a (swapTer u ij) us
+                | otherwise -> Fill k (swapTer a ij) (swapTer u ij) (swapTerSystem us ij)
+  Glue u us -> Glue (swapTer u ij) (swapTerSystem us ij)
+  GlueElem u us -> GlueElem (swapTer u ij) (swapTerSystem us ij)
+  UnGlueElem u v us -> UnGlueElem (swapTer u ij) (swapTer v ij) (swapTerSystem us ij)
+
 
 -- For an expression t, returns (u,ts) where u is no application and t = u ts
 unApps :: Ter -> (Ter,[Ter])
@@ -413,12 +457,12 @@ showTer v = case v of
   PathP e0 e1 e2     -> pretty "PathP" <+> showTers [e0,e1,e2]
   PLam i e           -> pretty '<' <> pretty (show i) <> pretty '>' <+> showTer e
   AppFormula e phi   -> showTer1 e <+> pretty '@' <+> showFormula phi
-  HComp a t ts       -> pretty "hcomp" <+> showTers [a,t] <+> showSystem showTer ts
-  HFill a t ts       -> pretty "hfill" <+> showTers [a,t] <+> showSystem showTer ts
+  HComp i a t ts       -> pretty "hcomp" <+> showTers [a,t] <+> showSystem showTer (mapSystem (PLam i) ts)
+  HFill i a t ts       -> pretty "hfill" <+> showTers [a,t] <+> showSystem showTer (mapSystem (PLam i) ts)
   Trans e phi t0     -> pretty "transGen" <+> showTer1 e <+> showFormula phi
                         <+> showTer1 t0
-  Comp e t ts        -> pretty "comp" <+> showTers [e,t] <+> showSystem showTer ts
-  Fill e t ts        -> pretty "fill" <+> showTers [e,t] <+> showSystem showTer ts
+  Comp i e t ts        -> pretty "comp" <+> showTers [PLam i e,t] <+> showSystem showTer (mapSystem (PLam i) ts)
+  Fill i e t ts        -> pretty "fill" <+> showTers [PLam i e,t] <+> showSystem showTer (mapSystem (PLam i) ts)
   Glue a ts          -> pretty "Glue" <+> showTer1 a <+> showSystem showTer ts
   GlueElem a ts      -> pretty "glue" <+> showTer1 a <+> showSystem showTer ts
   UnGlueElem a b ts  -> pretty "unglue" <+> showTers [a,b] <+> showSystem showTer ts

@@ -572,9 +572,10 @@ instance Nominal a => Nominal (System a) where
 
   -- It should be safe (and slightly more efficient) to use Sys instead of mkSystem
   -- here because swapping respects the invariant that faces are incomparable.
-  swap (Sys s) ij = Sys (swapSys s ij []) where
-    swapSys [] ij acc = acc
-    swapSys ((k,x) : s) ij acc = swapSys s ij ((k `swapFace` ij, x `swap` ij) : acc)
+  swap (Sys s) ij = Sys (swapSys s ij [])
+    where
+      swapSys [] ij acc = acc
+      swapSys ((k,x) : s) ij acc = swapSys s ij ((k `swapFace` ij, x `swap` ij) : acc)
 
 -- carve a using the same shape as the system b
 border :: Nominal a => a -> System b -> System a

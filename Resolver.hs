@@ -213,10 +213,18 @@ resolveExp e = case e of
                               <*> mapM resolveFormula phis
       _ -> CTT.AppFormula <$> resolveExp t <*> resolveFormula phi
   PathP a u v   -> CTT.PathP <$> resolveExp a <*> resolveExp u <*> resolveExp v
-  HComp u v ts  -> CTT.HComp <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
-  HFill u v ts  -> CTT.HFill <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
-  Comp u v ts   -> CTT.Comp <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
-  Fill u v ts   -> CTT.Fill <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
+  HComp u v ts  -> do
+    let i = C.fresh ()
+    CTT.HComp <$> pure i <*> resolveExp u <*> resolveExp v <*> resolveSystemName i ts
+  HFill u v ts  -> do
+    let i = C.fresh ()
+    CTT.HFill <$> pure i <*> resolveExp u <*> resolveExp v <*> resolveSystemName i ts
+  Comp u v ts   -> do
+    let i = C.fresh ()
+    CTT.Comp <$> pure i <*> fmap (fixExp i) (resolveExp u) <*> resolveExp v <*> resolveSystemName i ts
+  Fill u v ts   -> do
+    let i = C.fresh ()
+    CTT.Fill <$> pure i <*> fmap (fixExp i) (resolveExp u) <*> resolveExp v <*> resolveSystemName i ts
   Transport u v -> CTT.Trans <$> resolveExp u <*> pure (C.Dir C.Zero) <*> resolveExp v
   -- Transport u v -> CTT.Comp <$> resolveExp u <*> resolveExp v <*> pure Map.empty
   Trans u phi v -> CTT.Trans <$> resolveExp u <*> resolveFormula phi <*> resolveExp v
@@ -234,6 +242,23 @@ resolveExp e = case e of
 
 resolveWhere :: ExpWhere -> Resolver Ter
 resolveWhere = resolveExp . unWhere
+
+
+fixExp :: C.Name -> Ter -> Ter
+fixExp _ (CTT.PLam (C.Name "_") u) = u
+fixExp i (CTT.PLam j u) = u `CTT.swapTer` (j,i)
+fixExp i u = CTT.AppFormula u (C.Atom i)
+
+resolveSystemName :: C.Name -> System -> Resolver (C.System Ter)
+resolveSystemName i (System ts) = do
+  ts' <- sequence [ (,) <$> resolveFace alpha <*> fmap (fixExp i) (resolveExp u)
+                  | Side alpha u <- ts ]
+  let alphas = map fst ts'
+  unless (nub alphas == alphas) $
+    throwError $ "system contains same face multiple times: " ++
+                 show (CTT.showListSystem CTT.showTer ts')
+  -- Note: the symbols in alpha are in scope in u, but they mean 0 or 1
+  return $ C.mkSystem ts'
 
 resolveSystem :: System -> Resolver (C.System Ter)
 resolveSystem (System ts) = do

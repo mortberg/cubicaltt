@@ -273,34 +273,20 @@ eval rho@(Env (_,_,_,Nameless os)) v = case v of
   PathP a e0 e1       -> VPathP (eval rho a) (eval rho e0) (eval rho e1)
   PLam{}              -> Ter v rho
   AppFormula e phi    -> eval rho e @@ evalFormula rho phi
-  HComp a t0 ts       ->
-    let i = fresh ()
-    in hcomp i (eval rho a) (eval rho t0) (mapSystem (@@@ i) (evalSystem rho ts))
-  HFill a t0 ts       ->
-    let i = fresh ()
-    in VPLam i $ hfill i (eval rho a) (eval rho t0) (mapSystem (@@@ i) (evalSystem rho ts))
+  HComp i a t0 ts       ->
+    hcomp i (eval rho a) (eval rho t0) (evalSystem (sub (i,Atom i) rho) ts)
+  HFill i a t0 ts       ->
+    VPLam i $ hfill i (eval rho a) (eval rho t0) (evalSystem (sub (i,Atom i) rho) ts)
   Trans (PLam i a) phi t ->
     let j = fresh ()
     in trans (VPLam j (eval (sub (i,Atom j) rho) a)) (evalFormula rho phi) (eval rho t)
   Trans a phi t       ->
     let j = fresh ()
     in trans (VPLam j (eval (sub (j,Atom j) rho) (AppFormula a (Atom j)))) (evalFormula rho phi) (eval rho t)
-  Comp (PLam i a) t0 ts        ->
-    let j = fresh ()
-    in comp j (eval (sub (i,Atom j) rho) a) (eval rho t0)
-              (mapSystem (@@@ j) (evalSystem rho ts))
-  Comp a t0 ts        ->
-    let j = fresh ()
-    in comp j (eval (sub (j,Atom j) rho) (AppFormula a (Atom j)))
-              (eval rho t0) (mapSystem (@@@ j) (evalSystem rho ts))
-  Fill (PLam i a) t0 ts        ->
-    let j = fresh ()
-    in VPLam j $ fill j (eval (sub (i,Atom j) rho) a) (eval rho t0)
-                      (mapSystem (@@@ j) (evalSystem rho ts))
-  Fill a t0 ts        ->
-    let j = fresh ()
-    in VPLam j $ fill j (eval (sub (j,Atom j) rho) (AppFormula a (Atom j)))
-                      (eval rho t0) (mapSystem (@@@ j) (evalSystem rho ts))
+  Comp i a t0 ts        ->
+    comp i (eval (sub (i,Atom i) rho) a) (eval rho t0) (evalSystem (sub (i,Atom i) rho) ts)
+  Fill i a t0 ts        ->
+    VPLam i $ fill i (eval (sub (i,Atom i) rho) a) (eval rho t0) (evalSystem (sub (i,Atom i) rho) ts)
   Glue a ts           -> glue (eval rho a) (evalSystem rho ts)
   GlueElem a ts       -> glueElem (eval rho a) (evalSystem rho ts)
   UnGlueElem v a ts   -> unglue (eval rho v) (eval rho a) (evalSystem rho ts)

@@ -215,7 +215,7 @@ data Val = VU
          | VUnGlueElem Val Val (System Val)  -- unglue u A [phi -> (T,w)]
 
            -- Composition in the universe
-         | VHCompU Val (System Val)
+         | VHCompU Name Val (System Val)
 
            -- Composition; the type is not constant. The Name is bound in the type and tubes
          | VComp Name Val Val (System Val)
@@ -239,7 +239,7 @@ data Val = VU
          | VApp Val Val
          | VAppFormula Val Formula
          | VLam Ident Val Val
-         | VUnGlueElemU Val Val (System Val)
+         | VUnGlueElemU Val Val (Name,System Val)
          -- | VIdJ Val Val Val Val Val Val
   deriving Eq
 
@@ -532,9 +532,9 @@ showVal v = case v of
   VGlue a ts        -> pretty "Glue" <+> showVal1 a <+> showSystem showVal ts
   VGlueElem a ts    -> pretty "glue" <+> showVal1 a <+> showSystem showVal ts
   VUnGlueElem v a ts  -> pretty "unglue" <+> showVals [v,a] <+> showSystem showVal ts
-  VUnGlueElemU v b es -> pretty "unglue U" <+> showVals [v,b]
-                         <+> showSystem showVal es
-  VHCompU a ts        -> pretty "hcomp U" <+> showVal1 a <+> showSystem showVal ts
+  VUnGlueElemU v b (j,es) -> pretty "unglue U" <+> showVals [v,b]
+                         <+> showSystem showVal (mapSystem (VPLam j) es)
+  VHCompU i a ts        -> pretty "hcomp U" <+> showVal1 a <+> showSystem showVal (mapSystem (VPLam i) ts)
   -- VId a u v           -> pretty "Id" <+> showVals [a,u,v]
   -- VIdPair b ts        -> pretty "idC" <+> showVal1 b <+> showSystem showVal ts
   -- VIdJ a t c d x p    -> pretty "idJ" <+> showVals [a,t,c,d,x,p]
@@ -610,8 +610,8 @@ countHComp v = case v of
   VGlue a ts        -> countHComp a + countHCompSystem ts
   VGlueElem a ts    -> countHComp a + countHCompSystem ts
   VUnGlueElem v a ts  -> countHComps [v,a] + countHCompSystem ts
-  VUnGlueElemU v b es -> countHComps [v,b] + countHCompSystem es
-  VHCompU a ts        -> countHComp a + countHCompSystem ts
+  VUnGlueElemU v b (_,es) -> countHComps [v,b] + countHCompSystem es
+  VHCompU _ a ts     -> 1 + countHComp a + countHCompSystem ts
   -- VId a u v           -> countHComps [a,u,v]
   -- VIdPair b ts        -> countHComp b + countHCompSystem ts
   -- VIdJ a t c d x p    -> countHComps [a,t,c,d,x,p]

@@ -111,8 +111,8 @@ instance Nominal Val where
     VGlue a ts              -> occurs x (a,ts)
     VGlueElem a ts          -> occurs x (a,ts)
     VUnGlueElem a b ts      -> occurs x (a,b,ts)
-    VHCompU a ts            -> occurs x (a,ts)
-    VUnGlueElemU a b es     -> occurs x (a,b,es)
+    VHCompU i a ts          -> if x == i then occurs x a else occurs x (a,ts)
+    VUnGlueElemU a b (i,es) -> if x == i then occurs x (a,b) else occurs x (a,b,es)
     -- VIdPair u us            -> occurs x (u,us)
     -- VId a u v               -> occurs x (a,u,v)
     -- VIdJ a u c d y p        -> occurs x [a,u,c,d,y,p]
@@ -158,8 +158,11 @@ instance Nominal Val where
          VGlue a ts              -> glue (act b a (i,phi)) (act b ts (i,phi))
          VGlueElem a ts          -> glueElem (act b a (i,phi)) (act b ts (i,phi))
          VUnGlueElem a bb ts     -> unglue (act b a (i,phi)) (act b bb (i,phi)) (act b ts (i,phi))
-         VUnGlueElemU a bb es    -> unglueU (act b a (i,phi)) (act b bb (i,phi)) (act b es (i,phi))
-         VHCompU a ts            -> hcompUniv (act b a (i,phi)) (act b ts (i,phi))
+         VUnGlueElemU a bb (j,es)
+           | j == i -> unglueU (act b a (i,phi)) (act b bb (i,phi)) (j,es)
+           | otherwise -> unglueU (act b a (i,phi)) (act b bb (i,phi)) (j,act b es (i,phi))
+         VHCompU j a ts | j == i -> hcompUniv j (act b a (i,phi)) ts
+                        | otherwise -> hcompUniv j (act b a (i,phi)) (act b ts (i,phi))
          -- VIdPair u us            -> VIdPair (act b u (i,phi)) (act b us (i,phi))
          -- VId a u v               -> VId (act b a (i,phi)) (act b u (i,phi)) (act b v (i,phi))
          -- VIdJ a u c d x p        ->
@@ -203,8 +206,11 @@ instance Nominal Val where
          VGlue a ts              -> VGlue (act b a (i,phi)) (act b ts (i,phi))
          VGlueElem a ts          -> VGlueElem (act b a (i,phi)) (act b ts (i,phi))
          VUnGlueElem a bb ts     -> VUnGlueElem (act b a (i,phi)) (act b bb (i,phi)) (act b ts (i,phi))
-         VUnGlueElemU a bb es    -> VUnGlueElemU (act b a (i,phi)) (act b bb (i,phi)) (act b es (i,phi))
-         VHCompU a ts            -> VHCompU (act b a (i,phi)) (act b ts (i,phi))
+         VUnGlueElemU a bb (j,es)
+           | j == i -> VUnGlueElemU (act b a (i,phi)) (act b bb (i,phi)) (j,es)
+           | otherwise -> VUnGlueElemU (act b a (i,phi)) (act b bb (i,phi)) (j,act b es (i,phi))
+         VHCompU j a ts | j == i -> VHCompU j (act b a (i,phi)) ts
+                        | otherwise -> VHCompU j (act b a (i,phi)) (act b ts (i,phi))
          -- VIdPair u us            -> VIdPair (act b u (i,phi)) (act b us (i,phi))
          -- VId a u v               -> VId (act b a (i,phi)) (act b u (i,phi)) (act b v (i,phi))
          -- VIdJ a u c d x p        ->
@@ -239,8 +245,8 @@ instance Nominal Val where
          VGlue a ts              -> VGlue (swapVal a ij) (swap ts ij)
          VGlueElem a ts          -> VGlueElem (swapVal a ij) (swap ts ij)
          VUnGlueElem a b ts      -> VUnGlueElem (swapVal a ij) (swapVal b ij) (swap ts ij)
-         VUnGlueElemU a b es     -> VUnGlueElemU (swapVal a ij) (swapVal b ij) (swap es ij)
-         VHCompU a ts            -> VHCompU (swapVal a ij) (swap ts ij)
+         VUnGlueElemU a b (k,es)     -> VUnGlueElemU (swapVal a ij) (swapVal b ij) (swapName k ij,swap es ij)
+         VHCompU k a ts          -> VHCompU (swapName k ij) (swapVal a ij) (swap ts ij)
          -- VIdPair u us            -> VIdPair (swapVal u ij) (swapVal us ij)
          -- VId a u v               -> VId (swapVal a ij) (swapVal u ij) (swapVal v ij)
          -- VIdJ a u c d x p        ->
@@ -432,21 +438,9 @@ v @@@ j           = VAppFormula v (toFormula j)
 -------------------------------------------------------------------------------
 -- Composition and filling
 
--- For mysterious reasons it seems crucial that we use @@ in all
--- the *Line functions and not @@@... why?
-
--- This is only used in the typechecker
-hcompLine :: Val -> Val -> System Val -> Val
-hcompLine a u us = hcomp i a u (mapSystem (@@@ i) us)
-  where i = fresh (a,u,us)
-
 hfill :: Name -> Val -> Val -> System Val -> Val
 hfill i a u us = hcomp j a u (insertSystem (i ~> 0) u $ us `conj` (i,j))
   where j = fresh (Atom i,a,u,us)
-
--- hfillLine :: Val -> Val -> System Val -> Val
--- hfillLine a u us = VPLam i $ hfill i a u (mapSystem (@@@ i) us)
---   where i = fresh (a,u,us)
 
 hcomp :: Name -> Val -> Val -> System Val -> Val
 hcomp i a u us | eps `member` us = (us ! eps) `face` (i ~> 1)
@@ -465,7 +459,7 @@ hcomp i a u us = case a of
           u1fill = hfill i a u1 us1
           u1comp = hcomp i a u1 us1
       in VPair u1comp (comp i (app f u1fill) u2 us2)
-  VU -> hcompUniv u (mapSystem (VPLam i) us)
+  VU -> hcompUniv i u us
   -- TODO: neutrality tests in the next two cases could be removed
   -- since there are neutral values for unglue and unglueU
   VGlue b equivs -> -- | not (isNeutralGlueHComp equivs u us) ->
@@ -480,16 +474,15 @@ hcomp i a u us = case a of
                us
         v1 = hcomp i b v (vs `unionSystem` wts)
     in glueElem v1 t1s
-  VHCompU b es -> -- | not (isNeutralGlueHComp es u us) ->
+  VHCompU j b es -> -- | not (isNeutralGlueHComp es u us) ->
     let wts = mapWithKey (\al eal ->
-                  eqFun eal
-                    (hfill i (eal @@ One) (u `face` al) (us `face` al)))
+                  eqFun (j,eal)
+                    (hfill i (act True eal (j,Dir 1)) (u `face` al) (us `face` al)))
                 es
         t1s = mapWithKey (\al eal ->
-                hcomp i (eal @@ One) (u `face` al) (us `face` al)) es
-        v = unglueU u b es
-        vs = mapWithKey (\al ual -> unglueU ual (b `face` al) (es `face` al))
-               us
+                hcomp i (act True eal (j,Dir 1)) (u `face` al) (us `face` al)) es
+        v = unglueU u b (i,es)
+        vs = mapWithKey (\al ual -> unglueU ual (b `face` al) (i,es `face` al)) us
         v1 = hcomp i b v (vs `unionSystem` wts)
     in glueElem v1 t1s
   -- Ter (Sum _ "Z" nass) env -> u
@@ -561,11 +554,6 @@ comp i a u us = case a of
 compNeg :: Name -> Val -> Val -> System Val -> Val
 compNeg i a u us = comp i (a `sym` i) u (us `sym` i)
 
--- Only used in the typechecker
-compLine :: Val -> Val -> System Val -> Val
-compLine a u us = comp i (a @@@ i) u (mapSystem (@@@ i) us)
-  where i = fresh (a,u,us)
-
 comps :: Name -> [(Ident,Ter)] -> Env -> [(System Val,Val)] -> [Val]
 comps i []         _ []         = []
 comps i ((x,a):as) e ((ts,u):tsus) =
@@ -582,17 +570,8 @@ fill i a u ts = comp j (a `conj` (i,j)) u (insertSystem (i ~> 0) u (ts `conj` (i
 fillNeg :: Name -> Val -> Val -> System Val -> Val
 fillNeg i a u ts = (fill i (a `sym` i) u (ts `sym` i)) `sym` i
 
--- fillLine :: Val -> Val -> System Val -> Val
--- fillLine a u ts = VPLam i $ fill i (a @@@ i) u (mapSystem (@@@ i) ts)
---   where i = fresh (a,u,ts)
-
-
 -----------------------------------------------------------
 -- Transport and forward
-
--- transLine :: Val -> Formula -> Val -> Val
--- transLine a phi u = trans i (a @@@ i) phi u
---   where i = fresh (a,phi,u)
 
 -- For i:II |- a, phi # i,
 --     i:II, phi=1 |- a = a(i/0)
@@ -620,8 +599,8 @@ trans (VPLam i a) phi u = case a of
   -- since there are neutral values for unglue and unglueU
   VGlue b equivs -> -- trace "transGlue"
     transGlue i b equivs phi u
-  VHCompU b es -> -- | not (eps `notMember` (es `face` (i ~> 0)) && isNeutral u) ->
-    transHCompU i b es phi u
+  VHCompU j b es -> -- | not (eps `notMember` (es `face` (i ~> 0)) && isNeutral u) ->
+    transHCompU i b (j,es) phi u
   Ter (Sum _ n nass) env
     | n `elem` ["nat","Z","bool"] -> u -- hardcode hack
     | otherwise -> case u of
@@ -677,10 +656,6 @@ transNeg i a phi u = trans (VPLam i (a `sym` i)) phi u
 
 transFillNeg :: Name -> Val -> Formula -> Val -> Val
 transFillNeg i a phi u = (transFill i (a `sym` i) phi u) `sym` i
-
-transNegLine :: Val -> Formula -> Val -> Val
-transNegLine u phi v = transNeg i (u @@@ i) phi v
-  where i = fresh (u,phi,v)
 
 transps :: Name -> [(Ident,Ter)] -> Env -> Formula -> [Val] -> [Val]
 transps i []         _ phi []     = []
@@ -803,7 +778,7 @@ transGlue i a equivs psi u0 = glueElem v1' t1s'
 
     t1s' = mapSystem fstVal fibersys'
     -- no need for a fresh name; take i
-    v1' = hcomp i ai1 v1 (mapSystem (\om -> (sndVal om) @@ i) fibersys'
+    v1' = hcomp i ai1 v1 (mapSystem (\om -> (sndVal om) @@@ i) fibersys'
                            `unionSystem` border v1 psisys)
 
 mkFiberType :: Val -> Val -> Val -> Val
@@ -879,37 +854,37 @@ mkFiberType a x equiv = eval rho $
 -- | Composition in the Universe
 
 -- any path between types define an equivalence
-eqFun :: Val -> Val -> Val
-eqFun e = transNegLine e (Dir Zero)
+eqFun :: (Name,Val) -> Val -> Val
+eqFun (i,e) = transNeg i e (Dir Zero)
 
-unglueU :: Val -> Val -> System Val -> Val
-unglueU w b es | eps `member` es = eqFun (es ! eps) w
+unglueU :: Val -> Val -> (Name,System Val) -> Val
+unglueU w b (i,es) | eps `member` es = eqFun (i,es ! eps) w
 unglueU (VGlueElem v us) _ _ = v
-unglueU w b es = VUnGlueElemU w b es
+unglueU w b (i,es) = VUnGlueElemU w b (i,es)
 
-hcompUniv :: Val -> System Val -> Val
-hcompUniv b es | eps `member` es = (es ! eps) @@ One
-               | otherwise           = VHCompU b es
+hcompUniv :: Name -> Val -> System Val -> Val
+hcompUniv i b es | eps `member` es = act True (es ! eps) (i,Dir 1)
+                 | otherwise       = VHCompU i b es
 
-transHCompU :: Name -> Val -> System Val -> Formula -> Val -> Val
-transHCompU i a es psi u0 = glueElem v1' t1s'
+transHCompU :: Name -> Val -> (Name,System Val) -> Formula -> Val -> Val
+transHCompU i a (j,es) psi u0 = glueElem v1' t1s'
   where
     (ai0,esi0) = (a,es) `face` (i ~> 0)
     (ai1,esi1) = (a,es) `face` (i ~> 1)
 
-    v0 = unglueU u0 ai0 esi0
+    v0 = unglueU u0 ai0 (j,esi0)
 
     allies = allSystem i es
     psisys = invSystem psi One -- (psi = 1) : FF
 
     -- Preprocess allies to avoid recomputing the faces in t1s and wts
     allies' = mapWithKey (\al eal ->
-                (eal, eal @@ One, psi `face` al, u0 `face` al)) allies
+                (eal, act True eal (j,Dir 1), psi `face` al, u0 `face` al)) allies
     t1s = mapSystem
             (\(_,eal1,psial,u0al) -> trans (VPLam i eal1) psial u0al)
             allies'
     wts = mapSystem
-            (\(eal,eal1,psial,u0al) -> eqFun eal (transFill i eal1 psial u0al))
+            (\(eal,eal1,psial,u0al) -> eqFun (j,eal) (transFill i eal1 psial u0al))
             allies'
 
     v1 = comp i a v0 (border v0 psisys `unionSystem` wts)
@@ -919,7 +894,7 @@ transHCompU i a es psi u0 = glueElem v1' t1s'
     fibersys' = mapWithKey
                   (\al eal ->
 --                     lemEq' eal (v1 `face` al) (sys `face` al))
-                     lemEqConst i eal (v1 `face` al) (sys `face` al))
+                     lemEqConst i (j,eal) (v1 `face` al) (sys `face` al))
                   esi1
 
     t1s' = mapSystem fst fibersys'
@@ -929,31 +904,23 @@ transHCompU i a es psi u0 = glueElem v1' t1s'
 -- Extend a partial element (aalpha, <_> f aalpha) in the fiber over b
 -- to a total one where f is transNeg of eq.  Applies the second
 -- component to the fresh name i.
-lemEqConst :: Name -> Val -> Val -> System Val -> (Val,Val)
-lemEqConst i eq@(VPLam _ (Ter (Sum _ n _) _)) b as
-  | n `elem` ["Z","nat","bool"] = (hcomp j eqj b as,hfill i eqj b as)
-  where
-   j = fresh (eq,b,as)
-   eqj = eq @@@ j
-lemEqConst i eq@(VPLam _ (Ter (HSum _ n _) _)) b as
-  | n `elem` ["S1","S2","S3","g2Trunc"] = (hcomp j eqj b as,hfill i eqj b as)
-  where
-   j = fresh (eq,b,as)
-   eqj = eq @@@ j
-lemEqConst i eq b as = (a,p)
+lemEqConst :: Name -> (Name,Val) -> Val -> System Val -> (Val,Val)
+lemEqConst i (j,eq@(VPLam _ (Ter (Sum _ n _) _))) b as
+  | n `elem` ["Z","nat","bool"] = (hcomp j eq b as,hfill i eq b as)
+lemEqConst i (j,eq@(VPLam _ (Ter (HSum _ n _) _))) b as
+  | n `elem` ["S1","S2","S3","g2Trunc"] = (hcomp j eq b as,hfill i eq b as)
+lemEqConst i (j,eq) b as = (a,p)
  where
-   j = fresh (eq,b,as)
-   eqj = eq @@@ j
    adwns = mapWithKey (\al aal ->
-               let eqaj = eqj `face` al
+               let eqaj = eq `face` al
                in transFillNeg j eqaj (Dir Zero) aal) as
-   left = fill j eqj b adwns
-   a = comp j eqj b adwns
+   left = fill j eq b adwns
+   a = comp j eq b adwns
    -- a = left `face` (j ~> 1)
 
-   right = transFillNeg j eqj (Dir Zero) a
+   right = transFillNeg j eq (Dir Zero) a
 
-   p = compNeg j eqj a (insertsSystem [ (i ~> 0, left), (i ~> 1, right)] adwns)
+   p = compNeg j eq a (insertsSystem [ (i ~> 0, left), (i ~> 1, right)] adwns)
 
 
 
@@ -1069,12 +1036,12 @@ instance Convertible Val where
       (VGlue v equivs,VGlue v' equivs')   -> conv ns (v,equivs) (v',equivs')
       (VGlueElem (VUnGlueElem b a equivs) ts,g) -> conv ns (border b equivs,b) (ts,g)
       (g,VGlueElem (VUnGlueElem b a equivs) ts) -> conv ns (border b equivs,b) (ts,g)
-      (VGlueElem (VUnGlueElemU b a equivs) ts,g) -> conv ns (border b equivs,b) (ts,g)
-      (g,VGlueElem (VUnGlueElemU b a equivs) ts) -> conv ns (border b equivs,b) (ts,g)
+      (VGlueElem (VUnGlueElemU b a (j,equivs)) ts,g) -> conv ns (border b (mapSystem (VPLam j) equivs),b) (ts,g)
+      (g,VGlueElem (VUnGlueElemU b a (j,equivs)) ts) -> conv ns (border b (mapSystem (VPLam j) equivs),b) (ts,g)
       (VGlueElem u us,VGlueElem u' us')   -> conv ns (u,us) (u',us')
       (VUnGlueElemU u _ _,VUnGlueElemU u' _ _) -> conv ns u u'
       (VUnGlueElem u _ _,VUnGlueElem u' _ _) -> conv ns u u'
-      (VHCompU u es,VHCompU u' es')            -> conv ns (u,es) (u',es')
+      (VHCompU j u es,VHCompU j' u' es')            -> conv ns (u,mapSystem (VPLam j) es) (u',mapSystem (VPLam j') es')
       -- (VIdPair v vs,VIdPair v' vs')          -> conv ns (v,vs) (v',vs')
       -- (VId a u v,VId a' u' v')               -> conv ns (a,u,v) (a',u',v')
       -- (VIdJ a u c d x p,VIdJ a' u' c' d' x' p') ->
@@ -1147,8 +1114,8 @@ instance Normal Val where
     -- VGlueElem (VUnGlueElemU b _ _) _ -> normal ns b
     VGlueElem u us      -> VGlueElem (normal ns u) (normal ns us)
     VUnGlueElem v u us  -> VUnGlueElem (normal ns v) (normal ns u) (normal ns us)
-    VUnGlueElemU e u us -> VUnGlueElemU (normal ns e) (normal ns u) (normal ns us)
-    VHCompU a ts        -> VHCompU (normal ns a) (normal ns ts)
+    VUnGlueElemU e u (j,us) -> VUnGlueElemU (normal ns e) (normal ns u) (j,normal ns us)
+    VHCompU j a ts      -> VHCompU j (normal ns a) (normal ns ts)
     VVar x t            -> VVar x (normal ns t)
     VFst t              -> VFst (normal ns t)
     VSnd t              -> VSnd (normal ns t)
@@ -1186,3 +1153,30 @@ instance (Normal a,Normal b,Normal c,Normal d) => Normal (a,b,c,d) where
 instance Normal a => Normal [a] where
   normal ns = map (normal ns)
 
+
+
+-- These functions are only used in the typechecker:
+
+hcompLine :: Val -> Val -> System Val -> Val
+hcompLine a u us = hcomp i a u (mapSystem (@@@ i) us)
+  where i = fresh (a,u,us)
+
+compLine :: Val -> Val -> System Val -> Val
+compLine a u us = comp i (a @@@ i) u (mapSystem (@@@ i) us)
+  where i = fresh (a,u,us)
+
+-- hfillLine :: Val -> Val -> System Val -> Val
+-- hfillLine a u us = VPLam i $ hfill i a u (mapSystem (@@@ i) us)
+--   where i = fresh (a,u,us)
+
+-- fillLine :: Val -> Val -> System Val -> Val
+-- fillLine a u ts = VPLam i $ fill i (a @@@ i) u (mapSystem (@@@ i) ts)
+--   where i = fresh (a,u,ts)
+
+-- transLine :: Val -> Formula -> Val -> Val
+-- transLine a phi u = trans i (a @@@ i) phi u
+--   where i = fresh (a,phi,u)
+
+-- transNegLine :: Val -> Formula -> Val -> Val
+-- transNegLine u phi v = transNeg i (u @@@ i) phi v
+--   where i = fresh (u,phi,v)

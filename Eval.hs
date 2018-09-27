@@ -408,7 +408,7 @@ inferType v = case v of
     ty         -> error $ "inferType: expected PathP type for " ++ show (showVal v)
                   ++ ", got " ++ show (showVal ty)
   VHComp _ a _ _ -> a
-  VComp _ a _ _  -> a @@ One
+  VComp i a _ _  -> act True a (i,Dir 1)
   VTrans a _ _ -> a @@ One
   VUnGlueElem _ b _  -> b
   VUnGlueElemU _ b _ -> b

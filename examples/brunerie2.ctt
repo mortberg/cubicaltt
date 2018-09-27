@@ -775,9 +775,9 @@ rotrotinvloop1loop1 :
  --         ,(j=1) -> <m> loop @ (i \/ (k /\ -m))
  --         ]
 
-rotrotinvloop1 : (y : S1) -> PathP (<i> Path S1 (rotLoop (rotLoop y @ -i) @ i) y) (<_> y) (<_> y) = split
-  base1 -> <i j> hfill S1 base1 [(i=0) -> <_> base1, (i=1) -> <_> base1] @ -j
-  loop1 @ i -> rotrotinvloop1loop1 @ i
+rotrotinvloop1 : (y : S1) -> PathP (<i> Path S1 (rotLoop (rotLoop y @ -i) @ i) y) (<_> y) (<_> y) = undefined -- split
+  -- base1 -> <i j> hfill S1 base1 [(i=0) -> <_> base1, (i=1) -> <_> base1] @ -j
+  -- loop1 @ i -> rotrotinvloop1loop1 @ i
 
 
 

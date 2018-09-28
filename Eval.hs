@@ -775,7 +775,7 @@ extend :: Val -> Val -> System Val -> Val
 extend b q ts = hcomp i b (fstVal q) ts'
   where i = fresh (b,q,ts)
         ts' = mapWithKey
-                (\alpha tAlpha -> app ((sndVal q) `face` alpha) tAlpha @@@ i) ts
+                (\alpha tAlpha -> app ((sndVal q) `face` alpha) tAlpha @@ i) ts
 
 transGlue :: Name -> Val -> System Val -> Formula -> Val -> Val
 transGlue i a equivs psi u0 = glueElem v1' t1s'

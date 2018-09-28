@@ -226,15 +226,22 @@ instance Nominal Val where
          Ter t e                 -> Ter t (swap e ij)
          VPi a f                 -> VPi (swapVal a ij) (swapVal f ij)
          VPathP a u v            -> VPathP (swapVal a ij) (swapVal u ij) (swapVal v ij)
-         VPLam k v               -> VPLam (swapName k ij) (swapVal v ij)
+         VPLam k v               ->
+           if k == i then VPLam k v else VPLam k (swap v ij)
          VSigma a f              -> VSigma (swapVal a ij) (swapVal f ij)
          VPair u v               -> VPair (swapVal u ij) (swapVal v ij)
          VFst u                  -> VFst (swapVal u ij)
          VSnd u                  -> VSnd (swapVal u ij)
          VCon c vs               -> VCon c (swap vs ij)
          VPCon c a vs phis       -> VPCon c (swapVal a ij) (swap vs ij) (swap phis ij)
-         VHComp k a u us         -> VHComp (swapName k ij) (swapVal a ij) (swapVal u ij) (swap us ij)
-         VComp k a u us          -> VComp (swapName k ij) (swapVal a ij) (swapVal u ij) (swap us ij)
+         VHComp k a u us         ->
+           if k == i
+              then VHComp j (swapVal a ij) (swapVal u ij) us
+              else VHComp k (swapVal a ij) (swapVal u ij) (swap us ij)
+         VComp k a u us          ->
+           if k == i
+              then VComp j a (swapVal u ij) us
+              else VComp k (swap a ij) (swapVal u ij) (swap us ij)
          VTrans a phi u          -> VTrans (swapVal a ij) (swap phi ij) (swapVal u ij)
          VVar x v                -> VVar x (swapVal v ij)
          VOpaque x v             -> VOpaque x (swapVal v ij)
@@ -245,8 +252,14 @@ instance Nominal Val where
          VGlue a ts              -> VGlue (swapVal a ij) (swap ts ij)
          VGlueElem a ts          -> VGlueElem (swapVal a ij) (swap ts ij)
          VUnGlueElem a b ts      -> VUnGlueElem (swapVal a ij) (swapVal b ij) (swap ts ij)
-         VUnGlueElemU a b (k,es)     -> VUnGlueElemU (swapVal a ij) (swapVal b ij) (swapName k ij,swap es ij)
-         VHCompU k a ts          -> VHCompU (swapName k ij) (swapVal a ij) (swap ts ij)
+         VUnGlueElemU a b (k,es)     ->
+           if k == i
+              then VUnGlueElemU (swapVal a ij) (swapVal b ij) (j,es)
+              else VUnGlueElemU (swapVal a ij) (swapVal b ij) (k,swap es ij)
+         VHCompU k a ts          ->
+           if k == i
+              then VHCompU j (swapVal a ij) ts
+              else VHCompU k (swapVal a ij) (swap ts ij)
          -- VIdPair u us            -> VIdPair (swapVal u ij) (swapVal us ij)
          -- VId a u v               -> VId (swapVal a ij) (swapVal u ij) (swapVal v ij)
          -- VIdJ a u c d x p        ->

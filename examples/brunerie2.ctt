@@ -1143,10 +1143,10 @@ unprimeTwo (p : (Omega2 S2pt).1) (q : HopfTwo' p) : HopfTwo p =
 unprimeThreeFst (p : (Omega3 S2pt).1) (q : HopfThree' p) : fibOmega (Omega2 S2pt) HopfTwo' HopfTwo'pt p =
   unprime (Omega2 S2pt) HopfTwo' HopfTwo'pt p q
 
-unprimeThreeSnd (p : (Omega3 S2pt).1) (q : fibOmega (Omega2 S2pt) HopfTwo' HopfTwo'pt p) : fibOmega (Omega2 S2pt) (fibOmega (Omega S2pt) HopfOne' (<_> base1)) (<_ _> base1) p =
-  <i> hcomp (fibOmega (Omega S2pt) HopfOne' (<_> base1) (p @ i)) (unprime (Omega S2pt) HopfOne' (<_> base1) (p @ i) (q @ i))
-            [ (i=0) -> unprimePt (Omega S2pt) HopfOne' (<_> base1)
-            , (i=1) -> unprimePt (Omega S2pt) HopfOne' (<_> base1)]
+unprimeThreeSnd (p : (Omega3 S2pt).1) (q : fibOmega (Omega2 S2pt) HopfTwo' HopfTwo'pt p) : fibOmega (Omega2 S2pt) (fibOmega (Omega S2pt) HopfOne' (<_> base1)) (<_ _> base1) p = undefined
+  -- <i> hcomp (fibOmega (Omega S2pt) HopfOne' (<_> base1) (p @ i)) (unprime (Omega S2pt) HopfOne' (<_> base1) (p @ i) (q @ i))
+  --           [ (i=0) -> unprimePt (Omega S2pt) HopfOne' (<_> base1)
+  --           , (i=1) -> unprimePt (Omega S2pt) HopfOne' (<_> base1)]
 
 unprimeThreeTrd (p : (Omega3 S2pt).1) (q : fibOmega (Omega2 S2pt) (fibOmega (Omega S2pt) HopfOne' (<_> base1)) (<_ _> base1) p) : HopfThree p =
   <i j> hcomp (HopfOne (p @ i @ j)) (unprime S2pt Hopf base1 (p @ i @ j) (q @ i @ j))

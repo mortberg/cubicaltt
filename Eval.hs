@@ -443,11 +443,11 @@ inferType v = case v of
                (unionSystem (border v0 (invSystem f Zero))
                             (unionSystem (border v1 (invSystem f One))
                                          (mapSystem (@@ f) us)))
-(VComp i (VPathP p v0 v1) u us) @@ phi = case toFormula phi of
-  f -> comp i (p @@ f) (u @@ f)
-              (unionSystem (border v0 (invSystem f Zero))
-                           (unionSystem (border v1 (invSystem f One))
-                                         (mapSystem (@@ f) us)))
+-- (VComp i (VPathP p v0 v1) u us) @@ phi = case toFormula phi of
+--   f -> comp i (p @@ f) (u @@ f)
+--               (unionSystem (border v0 (invSystem f Zero))
+--                            (unionSystem (border v1 (invSystem f One))
+--                                          (mapSystem (@@ f) us)))
 (Ter (PLam i u) rho) @@ phi = eval (sub (i,toFormula phi) rho) u
 (VPLam i u) @@ phi         = case toFormula phi of
   Dir d -> act True u (i,Dir d)
@@ -550,11 +550,11 @@ fwd i a phi u = trans (VPLam i (act True a (i,phi `orFormula` Atom i))) phi u
 comp :: Name -> Val -> Val -> System Val -> Val
 comp i a u us | eps `member` us = (us ! eps) `face` (i ~> 1)
 comp i a u us = case a of
-    VPathP {} -> VComp i a u us
-    -- VPathP p v0 v1 ->
-    --   let j = fresh (Atom i,a,u,us)
-    --   in VPLam j $ comp i (p @@@ j) (u @@@ j) $
-    --                insertsSystem [(j ~> 0,v0),(j ~> 1,v1)] (mapSystem (@@@ j) us)
+--    VPathP {} -> VComp i a u us
+    VPathP p v0 v1 ->
+      let j = fresh (Atom i,a,u,us)
+      in VPLam j $ comp i (p @@@ j) (u @@@ j) $
+                   insertsSystem [(j ~> 0,v0),(j ~> 1,v1)] (mapSystem (@@@ j) us)
     VSigma a f
       | isNonDep f -> VPair (comp i a (fstVal u) (mapSystem fstVal us))
                             (comp i (app f (VVar "impossible" VU)) (sndVal u) (mapSystem sndVal us))

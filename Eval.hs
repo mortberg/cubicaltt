@@ -424,6 +424,22 @@ inferType v = case v of
   _ -> error $ "inferType: not neutral " ++ show (showVal v)
 
 (@@) :: ToFormula a => Val -> a -> Val
+--  VPathP p v0 v1 -> VTrans (VPLam i a) phi u
+    -- let j = fresh (Atom i,a,phi,u)
+    --     uj = u @@@ j
+    -- in VPLam j $ comp i (p @@ j) uj (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
+    --                                            (border uj (invSystem phi One)))
+(VTrans (VPLam i (VPathP p v0 v1)) psi u) @@ phi = case toFormula phi of
+  Dir 0 -> v0 `face` (i~>1)
+  Dir 1 -> v1 `face` (i~>1)
+  -- Atom j -> comp i (p @@@ j) (u @@@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
+  --                                             (border (u @@@ j) (invSystem psi One)))
+  -- NegAtom j -> comp i (p @@ NegAtom j) (u @@ NegAtom j) (insertsSystem [(j ~> 1,v0),(j ~> 0,v1)]
+  --                                             (border (u @@ NegAtom j) (invSystem psi One)))
+  f -> comp i (p @@ f) (u @@ f) ( -- insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
+         unionSystem (border v0 (invSystem f Zero))
+                     (unionSystem (border v1 (invSystem f One))
+                                  (border (u @@ f) (invSystem psi One))))
 (Ter (PLam i u) rho) @@ phi = eval (sub (i,toFormula phi) rho) u
 (VPLam i u) @@ phi         = case toFormula phi of
   Dir d -> act True u (i,Dir d)
@@ -615,11 +631,11 @@ fillNeg i a u ts = (fill i (a `sym` i) u (ts `sym` i)) `sym` i
 trans :: Val -> Formula -> Val -> Val
 trans _ (Dir One) u = u
 trans (VPLam i a) phi u = case a of
-  VPathP p v0 v1 ->
-    let j = fresh (Atom i,a,phi,u)
-        uj = u @@@ j
-    in VPLam j $ comp i (p @@@ j) uj (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
-                                               (border uj (invSystem phi One)))
+  VPathP p v0 v1 -> VTrans (VPLam i a) phi u
+    -- let j = fresh (Atom i,a,phi,u)
+    --     uj = u @@@ j
+    -- in VPLam j $ comp i (p @@ j) uj (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
+    --                                            (border uj (invSystem phi One)))
   -- VId b v0 v1 -> undefined
   VSigma a f
     | isNonDep f -> VPair (trans (VPLam i a) phi (fstVal u))

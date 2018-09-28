@@ -1009,7 +1009,7 @@ instance Convertible Env where
   conv ns (Env (rho1,vs1,fs1,os1)) (Env (rho2,vs2,fs2,os2)) =
       conv ns (rho1,vs1,fs1,os1) (rho2,vs2,fs2,os2)
 
--- TODO: add cases for trans (Pi A B), hcomp (Pi A B), comp (Pi A B) and the same for Path
+-- TODO: add cases for trans (Pi A B), hcomp (Pi A B), comp (Pi A B)
 instance Convertible Val where
   conv ns u v -- | u == v    = True
               | otherwise =
@@ -1061,12 +1061,18 @@ instance Convertible Val where
       (VPLam i a,p')             -> conv ns (a `swap` (i,j)) (p' @@ j)
       (p,VPLam i' a')            -> conv ns (p @@ j) (a' `swap` (i',j))
       (VAppFormula u x,VAppFormula u' x') -> conv ns (u,x) (u',x')
+      (VTrans (VPLam i (VPathP _ _ _)) _ _,_) -> conv ns (u @@ j) (v @@ j)
+      (_,VTrans (VPLam i (VPathP _ _ _)) _ _) -> conv ns (u @@ j) (v @@ j)      
       (VTrans a phi u,VTrans a' phi' u')  ->
         -- TODO: Maybe identify via (- = 1)?  Or change argument to a system..
         conv ns (a,invSystem phi One,u) (a',invSystem phi' One,u')
         -- conv ns (a,phi,u) (a',phi',u')
+      (VHComp _ (VPathP _ _ _) _ _,_) -> conv ns (u @@ j) (v @@ j)
+      (_,VHComp _ (VPathP _ _ _) _ _) -> conv ns (u @@ j) (v @@ j)
       (VHComp j a u ts,VHComp j' a' u' ts')    -> -- TODO
         conv ns (a,u,mapSystem (VPLam j) ts) (a',u',mapSystem (VPLam j') ts')
+      (VComp _ (VPathP _ _ _) _ _,_) -> conv ns (u @@ j) (v @@ j)
+      (_,VComp _ (VPathP _ _ _) _ _) -> conv ns (u @@ j) (v @@ j)
       (VComp j a u ts,VComp j' a' u' ts')    -> conv ns (VPLam j a,u,mapSystem (VPLam j) ts) (VPLam j' a',u',mapSystem (VPLam j') ts')
       (VGlue v equivs,VGlue v' equivs')   -> conv ns (v,equivs) (v',equivs')
       (VGlueElem (VUnGlueElem b a equivs) ts,g) -> conv ns (border b equivs,b) (ts,g)

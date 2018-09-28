@@ -1095,7 +1095,7 @@ itFibOmega3' (p : (Omega3 S2pt).1) : U =
 
 HopfOne'    (p : (Omega S2pt).1)  : U = Path S1      (transGen (<i> Hopf     (p @ i)) 0       base1) base1
 HopfTwo'    (p : (Omega2 S2pt).1) : U = Path loopS1  (transGen (<j> HopfOne' (p @ j)) 0 (<_> base1)) (<_> base1)
-HopfTwo'pt : HopfTwo' (<_ _> base2) = undefined -- <i> hfill loopS1 (<_> base1) [] @ -i
+HopfTwo'pt : HopfTwo' (<_ _> base2) = <i> hfill loopS1 (<_> base1) [] @ -i
 HopfThree'  (p : (Omega3 S2pt).1) : U = Path (HopfTwo' (<_ _> base2))
                                                      (transGen (<k> HopfTwo' (p @ k)) 0 HopfTwo'pt)  HopfTwo'pt
 

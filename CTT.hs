@@ -4,6 +4,7 @@ module CTT where
 import Control.Applicative
 import Data.List
 import Data.Maybe
+import qualified Data.Map as Map
 
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -199,6 +200,7 @@ mkWheres (d:ds) e = Where (mkWheres ds e) d
 
 data Val = VU
          | Ter Ter Env
+         | FastTer Ter FastEnv
          | VPi Val Val
          | VSigma Val Val
          | VPair Val Val
@@ -376,6 +378,10 @@ contextOfEnv rho = case rho of
   Env (Upd x e,v:vs,fs,os)        -> (x ++ " = " ++ show (showVal v)) : contextOfEnv (Env (e,vs,fs,os))
   Env (Def _ _ e,vs,fs,os)        -> contextOfEnv (Env (e,vs,fs,os))
   Env (Sub i e,vs,phi:fs,os)      -> (show i ++ " = " ++ show phi) : contextOfEnv (Env (e,vs,fs,os))
+
+-- Fast environment
+data FastEnv = E (Map.Map Ident Ter) (Map.Map Ident Val) (Map.Map Name Formula)
+  deriving (Eq)
 
 --------------------------------------------------------------------------------
 -- | Pretty printing

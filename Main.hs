@@ -32,6 +32,7 @@ import CTT
 import Resolver
 import qualified TypeChecker as TC
 import qualified Eval as E
+import qualified FastEval as FE
 
 type Interpreter a = InputT IO a
 
@@ -200,10 +201,11 @@ exec flags f names tenv batchmode str' k =
       let strinit = case batchmode of
             True -> "\n> " ++ str' ++ "\n"
             False -> "" in
-      let (msg,str,mod) = case str' of
+      let (msg,str,fun) = case str' of
             (':':'n':' ':str) ->
-              ("NORMEVAL: ",str,E.normal [])
-            str -> ("EVAL: ",str,id)
+              ("NORMEVAL: ",str,E.normal [] . E.eval (TC.env tenv))
+            (':':'f':'e':' ':str) -> ("FASTEVAL: ",str,FE.eval (FE.toFastEnv (TC.env tenv)))
+            str -> ("EVAL: ",str,E.eval (TC.env tenv))
       in case pExp (lexer str) of
       Bad err -> outputStrLn (strinit ++ "Parse error: " ++ err) >> k
       Ok  exp ->
@@ -217,7 +219,7 @@ exec flags f names tenv batchmode str' k =
                              k
               Right _  -> do
                 start <- liftIO getCurrentTime
-                let e = mod $ E.eval (TC.env tenv) body
+                let e = fun body
                 -- Let's not crash if the evaluation raises an error:
                 -- Use layoutCompact for now, if we want prettier printing use something nicer
                 when (Full `elem` flags) $
@@ -275,6 +277,7 @@ help :: String
 help = "\nAvailable commands:\n" ++
        "  <statement>     infer type and evaluate statement\n" ++
        "  :n <statement>  normalize statement\n" ++
+       "  :fe <statement> compute using the fast evaluator\n" ++
        "  :q              quit\n" ++
        "  :l <filename>   loads filename (and resets environment before)\n" ++
        "  :cd <path>      change directory to path\n" ++

@@ -1169,12 +1169,21 @@ instance Normal Val where
     VPCon n u us phis   -> VPCon n (normal ns u) (normal ns us) phis
     VPathP a u0 u1      -> VPathP (normal ns a) (normal ns u0) (normal ns u1)
     VPLam i u           -> VPLam i (normal ns u)
+    u@(VTrans (VPLam _ (VPathP _ _ _)) _ _) ->
+      let j = fresh ()
+      in normal ns (VPLam j $ u @@ j)
     VTrans a phi u      -> VTrans (normal ns a) (normal ns phi) (normal ns u)
+    u@(VHComp _ (VPathP _ _ _) _ _) ->
+      let j = fresh ()
+      in normal ns (VPLam j $ u @@ j)
     VHComp j u v vs     -> VHComp j (normal ns u) (normal ns v) (normal ns vs)
+    u@(VComp _ (VPathP _ _ _) _ _) ->
+      let j = fresh ()
+      in VPLam j $ normal ns (u @@ j)
     VComp j u v vs      -> VComp j (normal ns u) (normal ns v) (normal ns vs)
     VGlue u equivs      -> VGlue (normal ns u) (normal ns equivs)
-    -- VGlueElem (VUnGlueElem b _ _) _ -> normal ns b
-    -- VGlueElem (VUnGlueElemU b _ _) _ -> normal ns b
+    VGlueElem (VUnGlueElem b _ _) _ -> normal ns b
+    VGlueElem (VUnGlueElemU b _ _) _ -> normal ns b
     VGlueElem u us      -> VGlueElem (normal ns u) (normal ns us)
     VUnGlueElem v u us  -> VUnGlueElem (normal ns v) (normal ns u) (normal ns us)
     VUnGlueElemU e u us -> VUnGlueElemU (normal ns e) (normal ns u) (normal ns us)

@@ -2779,9 +2779,15 @@ brunerie_opt : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5' test0To4_rotjki))))))
 -- Now terminates very quickly.
 testShortcut3To6 : Z = f11 (f10 (f9 (f8 (f7 test0To2))))
 
--- Doesnt terminate yet (quickly runs out of memory)
 -- Skips the maps alpha and h
 testShortcut4To5 : Z = f11 (f10 (f9 (f8 (f7 (f6 (f3 test0To2))))))
+
+-- Make input to the latter maps bigger by going back and forth between f6 and f3
+test631 : Z = f11 (f10 (f9 (f8 (f7 (f6 (f3 (f6 (f3 test0To2))))))))
+test632 : Z = f11 (f10 (f9 (f8 (f7 (f6 (f3 (f6 (f3 (f6 (f3 test0To2))))))))))
+
+-- uses too much memory
+test633 : Z = f11 (f10 (f9 (f8 (f7 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 test0To2))))))))))))
 
 -- Here are some tests to investigate why [testShortcut4To5] takes so much memory:
 abc0 : (Omega3 S3pt).1 = <i j k> hcomp S3 (loop3{S3} @ j @ k @ i)

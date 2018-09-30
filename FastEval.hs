@@ -388,35 +388,8 @@ hcomp i a u us | eps `member` us = (us ! eps) `face` (i ~> 1)
 hcomp i a u us = case a of
   VPathP{} -> VHComp i a u us
   VU -> hcompUniv i u us
-  VGlue b equivs ->
-    let es = mapWithKey
-                (\al wal -> (equivFun wal,equivDom wal,u `face` al,us `face` al))
-                equivs
-        wts = mapWithKey
-                (\_ (fwal,dwal,ual,usal) -> app fwal (hfill i dwal ual usal))
-                es      
-        t1s = mapWithKey
-                (\_ (fwal,dwal,ual,usal) -> hcomp i dwal ual usal)
-                es
-        v = unglue u b equivs
-        vs = mapWithKey (\al ual -> unglue ual (b `face` al) (equivs `face` al)) us
-        v1 = hcomp i b v (vs `unionSystem` wts)
-    in glueElem v1 t1s
+  VGlue{} -> VHComp i a u us
   VHCompU{} -> VHComp i a u us
-  -- VHCompU j b equivs ->
-  --   let es = mapWithKey
-  --              (\al eal -> (eal,eal `face` (j~>1),u `face` al,us `face` al))
-  --              equivs
-  --       wts = mapWithKey
-  --               (\_ (eal,eal1,ual,usal) -> eqFun (j,eal) (hfill i eal1 ual usal))
-  --               es
-  --       t1s = mapWithKey
-  --               (\_ (eal,eal1,ual,usal) -> hcomp i eal1 ual usal)
-  --               es
-  --       v = unglueU u b (i,equivs)
-  --       vs = mapWithKey (\al ual -> unglueU ual (b `face` al) (i,equivs `face` al)) us
-  --       v1 = hcomp i b v (vs `unionSystem` wts)
-  --   in glueElem v1 t1s
   FastTer (Sum _ n _) _
     | n `elem` ["Z","nat","bool"] -> u
   FastTer (Sum _ _ nass) env | VCon n vs <- u, all isCon (elems us) ->
@@ -604,6 +577,20 @@ glueElem v us = VGlueElem v us
 unglue :: Val -> Val -> System Val -> Val
 unglue w a equivs | eps `member` equivs = app (equivFun (equivs ! eps)) w
 unglue (VGlueElem v us) _ _ = v
+unglue (VHComp i (VGlue b equivs) u us) _ _ =
+    let es = mapWithKey
+                (\al wal -> (equivFun wal,equivDom wal,u `face` al,us `face` al))
+                equivs
+        wts = mapWithKey
+                (\_ (fwal,dwal,ual,usal) -> app fwal (hfill i dwal ual usal))
+                es      
+        -- t1s = mapWithKey
+        --         (\_ (fwal,dwal,ual,usal) -> hcomp i dwal ual usal)
+        --         es
+        v = unglue u b equivs
+        vs = mapWithKey (\al ual -> unglue ual (b `face` al) (equivs `face` al)) us
+        v1 = hcomp i b v (vs `unionSystem` wts)
+    in v1
 unglue x _ _ = error $ "unglue, case not supported in fast evaluator: " ++ show (showVal x)
 
 extend :: Val -> Val -> System Val -> Val
@@ -727,11 +714,8 @@ unglueU (VHComp i (VHCompU j b equivs) u us) _ _ =
     in v1 
 unglueU x _ _ = error $ "unglueU, case not supported in fast evaluator: " ++ show (showVal x)
 
--- fstVal (VHComp i (VSigma a f) u us) =
---   hcomp i a (fstVal u) (mapSystem fstVal us)
-
 hcompUniv :: Name -> Val -> System Val -> Val
-hcompUniv i b es | eps `member` es = act True (es ! eps) (i,Dir 1)
+hcompUniv i b es | eps `member` es = (es ! eps) `face` (i~>1)
                  | otherwise       = VHCompU i b es
 
 transHCompU :: Name -> Val -> (Name,System Val) -> Formula -> Val -> Val

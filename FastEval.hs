@@ -137,7 +137,6 @@ instance Nominal FastEnv where
 instance Nominal Val where
   occurs x v = case v of
     VU                      -> False
---    Ter _ e                 -> occurs x e
     FastTer _ e             -> occurs x e
     VPi u v                 -> occurs x (u,v)
     VPathP a v0 v1          -> occurs x [a,v0,v1]
@@ -151,22 +150,14 @@ instance Nominal Val where
     VHComp i a u ts         -> if x == i then occurs x (a,u) else occurs x (a,u,ts)
     VComp i a u ts          -> if x == i then occurs x u else occurs x (a,u,ts)    
     VTrans a phi u          -> occurs x (a,phi,u)
-    -- VVar _ v                -> occurs x v
-    -- VOpaque _ v             -> occurs x v
-    -- VApp u v                -> occurs x (u,v)
-    -- VLam _ u v              -> occurs x (u,v)
-    -- VAppFormula u phi       -> occurs x (u,phi)
-    -- VSplit u v              -> occurs x (u,v)
     VGlue a ts              -> occurs x (a,ts)
     VGlueElem a ts          -> occurs x (a,ts)
-    -- VUnGlueElem a b ts      -> occurs x (a,b,ts)
     VHCompU i a ts          -> if x == i then occurs x a else occurs x (a,ts)
-    -- VUnGlueElemU a b (i,es) -> if x == i then occurs x (a,b) else occurs x (a,b,es)
-
+    _ -> error $ "occurs, case not support in fast evaluator: " ++ show (showVal v)
+    
   act b u (i, phi)
     | b = case u of
          VU           -> VU
---         Ter t e      -> Ter t (act b e (i,phi))
          FastTer t e  -> FastTer t (act b e (i,phi))
          VPi a f      -> VPi (act b a (i,phi)) (act b f (i,phi))
          VPathP a u v -> VPathP (act b a (i,phi)) (act b u (i,phi)) (act b v (i,phi))
@@ -183,23 +174,13 @@ instance Nominal Val where
          VComp j a u us | j == i -> comp j a (act b u (i,phi)) us
                         | otherwise -> comp j (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
          VTrans a psi u          -> trans (act b a (i,phi)) (act b psi (i,phi)) (act b u (i,phi))
-         -- VVar x v                -> VVar x (act b v (i,phi))
-         -- VOpaque x v             -> VOpaque x (act b v (i,phi))
-         -- VAppFormula u psi       -> act b u (i,phi) @@ act b psi (i,phi)
-         -- VApp u v                -> app (act b u (i,phi)) (act b v (i,phi))
-         -- VLam x t u              -> VLam x (act b t (i,phi)) (act b u (i,phi))
-         -- VSplit u v              -> app (act b u (i,phi)) (act b v (i,phi))
          VGlue a ts              -> glue (act b a (i,phi)) (act b ts (i,phi))
          VGlueElem a ts          -> glueElem (act b a (i,phi)) (act b ts (i,phi))
-         -- VUnGlueElem a bb ts     -> unglue (act b a (i,phi)) (act b bb (i,phi)) (act b ts (i,phi))
-         -- VUnGlueElemU a bb (j,es)
-         --   | j == i -> unglueU (act b a (i,phi)) (act b bb (i,phi)) (j,es)
-         --   | otherwise -> unglueU (act b a (i,phi)) (act b bb (i,phi)) (j,act b es (i,phi))
          VHCompU j a ts | j == i -> hcompUniv j (act b a (i,phi)) ts
                         | otherwise -> hcompUniv j (act b a (i,phi)) (act b ts (i,phi))
+         _ -> error $ "act, case not support in fast evaluator: " ++ show (showVal u)
     | otherwise = case u of
          VU           -> VU
---         Ter t e      -> Ter t (act b e (i,phi))
          FastTer t e  -> FastTer t (act b e (i,phi))
          VPi a f      -> VPi (act b a (i,phi)) (act b f (i,phi))
          VPathP a u v -> VPathP (act b a (i,phi)) (act b u (i,phi)) (act b v (i,phi))
@@ -216,28 +197,18 @@ instance Nominal Val where
          VComp j a u us | j == i -> VComp j a (act b u (i,phi)) us
                         | otherwise -> VComp j (act b a (i,phi)) (act b u (i,phi)) (act b us (i,phi))
          VTrans a psi u          -> VTrans (act b a (i,phi)) (act b psi (i,phi)) (act b u (i,phi))
-         -- VVar x v                -> VVar x (act b v (i,phi))
-         -- VOpaque x v             -> VOpaque x (act b v (i,phi))
-         -- VAppFormula u psi       -> VAppFormula (act b u (i,phi)) (act b psi (i,phi))
-         -- VApp u v                -> VApp (act b u (i,phi)) (act b v (i,phi))
-         -- VLam x t u              -> VLam x (act b t (i,phi)) (act b u (i,phi))
-         -- VSplit u v              -> VSplit (act b u (i,phi)) (act b v (i,phi))
          VGlue a ts              -> VGlue (act b a (i,phi)) (act b ts (i,phi))
          VGlueElem a ts          -> VGlueElem (act b a (i,phi)) (act b ts (i,phi))
-         -- VUnGlueElem a bb ts     -> VUnGlueElem (act b a (i,phi)) (act b bb (i,phi)) (act b ts (i,phi))
-         -- VUnGlueElemU a bb (j,es)
-         --   | j == i -> VUnGlueElemU (act b a (i,phi)) (act b bb (i,phi)) (j,es)
-         --   | otherwise -> VUnGlueElemU (act b a (i,phi)) (act b bb (i,phi)) (j,act b es (i,phi))
          VHCompU j a ts | j == i -> VHCompU j (act b a (i,phi)) ts
                         | otherwise -> VHCompU j (act b a (i,phi)) (act b ts (i,phi))
-  -- This increases efficiency as it won't trigger computation.
+         _ -> error $ "act, case not support in fast evaluator: " ++ show (showVal u)
+         
   swap u ij@(i,j)
 --    | not (i `occurs` u) = u
     | otherwise = swapVal u ij
     where
       swapVal u ij = case u of
          VU                      -> VU
---         Ter t e                 -> Ter t (swap e ij)
          FastTer t e             -> FastTer t (swap e ij)         
          VPi a f                 -> VPi (swapVal a ij) (swapVal f ij)
          VPathP a u v            -> VPathP (swapVal a ij) (swapVal u ij) (swapVal v ij)
@@ -258,24 +229,14 @@ instance Nominal Val where
               then VComp j a (swapVal u ij) us
               else VComp k (swap a ij) (swapVal u ij) (swap us ij)
          VTrans a phi u          -> VTrans (swapVal a ij) (swap phi ij) (swapVal u ij)
-         -- VVar x v                -> VVar x (swapVal v ij)
-         -- VOpaque x v             -> VOpaque x (swapVal v ij)
-         -- VAppFormula u psi       -> VAppFormula (swapVal u ij) (swap psi ij)
-         -- VApp u v                -> VApp (swapVal u ij) (swapVal v ij)
-         -- VLam x u v              -> VLam x (swapVal u ij) (swapVal v ij)
-         -- VSplit u v              -> VSplit (swapVal u ij) (swapVal v ij)
          VGlue a ts              -> VGlue (swapVal a ij) (swap ts ij)
          VGlueElem a ts          -> VGlueElem (swapVal a ij) (swap ts ij)
-         -- VUnGlueElem a b ts      -> VUnGlueElem (swapVal a ij) (swapVal b ij) (swap ts ij)
-         -- VUnGlueElemU a b (k,es)     ->
-         --   if k == i
-         --      then VUnGlueElemU (swapVal a ij) (swapVal b ij) (j,es)
-         --      else VUnGlueElemU (swapVal a ij) (swapVal b ij) (k,swap es ij)
          VHCompU k a ts          ->
            if k == i
               then VHCompU j (swapVal a ij) ts
               else VHCompU k (swapVal a ij) (swap ts ij)
-
+         _ -> error $ "swap, case not support in fast evaluator: " ++ show (showVal u)
+         
 -----------------------------------------------------------------------
 -- The evaluator
 eval :: FastEnv -> Ter -> Val
@@ -357,7 +318,6 @@ app u v = case (u,v) of
                      then hcomp j (app f (VVar "impossible" VU)) w' ws'
                      else comp j (app f (hfill j a w ws)) w' ws'
     _ -> error $ "app: Split annotation not a Pi type " ++ show (showVal u)
---  (FastTer Split{} _,_) -> VSplit u v
   (VTrans (VPLam i (VPi a f)) phi u0, v)
       | isNonDep f -> trans (VPLam i (app f (VVar "impossible" VU))) phi (app u0 (transNeg i a phi v))
       | otherwise ->
@@ -373,13 +333,13 @@ app u v = case (u,v) of
     in if isNonDep f
           then comp j (app f (VVar "impossible" VU)) (app li0 vi0) (intersectionWith app ts (border v ts))
           else comp j (app f v) (app li0 vi0) (intersectionWith app ts (border v ts))
---  _ -> VApp u v
+  _ -> error $ "app, case not supported in fast evaluator: " ++ show (showVal u) ++ " " ++ show (showVal v)
 
 fstVal, sndVal :: Val -> Val
 fstVal (VPair a b)     = a
--- fstVal u               = VFst u
+fstVal x = error $ "fst, case not supported in fast evaluator: " ++ show (showVal x)
 sndVal (VPair a b)     = b
--- sndVal u               = VSnd u
+sndVal x = error $ "snd, case not supported in fast evaluator: " ++ show (showVal x)
 
 (@@) :: ToFormula a => Val -> a -> Val
 (VTrans (VPLam i (VPathP p v0 v1)) psi u) @@ phi = case toFormula phi of
@@ -406,7 +366,7 @@ sndVal (VPair a b)     = b
                                          (mapSystem (@@ f) us)))
 (FastTer (PLam i u) rho) @@ phi = eval (sub (i,toFormula phi) rho) u
 (VPLam i u) @@ phi         = act True u (i,toFormula phi)
--- v @@ phi = VAppFormula v (toFormula phi) -- error ("@@: this shouldn't happen " ++ show (showVal v) ++ " @@ " ++ show (toFormula phi))
+v @@ phi = error $ "@@, case not supported in fast evaluator: " ++ show (showVal v) ++ " @@ " ++ show (toFormula phi)
 
 -------------------------------------------------------------------------------
 -- Composition and filling
@@ -639,7 +599,7 @@ glueElem v us = VGlueElem v us
 unglue :: Val -> Val -> System Val -> Val
 unglue w a equivs | eps `member` equivs = app (equivFun (equivs ! eps)) w
 unglue (VGlueElem v us) _ _ = v
--- unglue w a equivs = VUnGlueElem w a equivs
+unglue x _ _ = error $ "unglue, case not supported in fast evaluator: " ++ show (showVal x)
 
 extend :: Val -> Val -> System Val -> Val
 extend b q ts = hcomp i b (fstVal q) ts'
@@ -746,7 +706,7 @@ eqFun (i,e) = transNeg i e (Dir Zero)
 unglueU :: Val -> Val -> (Name,System Val) -> Val
 unglueU w b (i,es) | eps `member` es = eqFun (i,es ! eps) w
 unglueU (VGlueElem v us) _ _ = v
--- unglueU w b (i,es) = VUnGlueElemU w b (i,es)
+unglueU x _ _ = error $ "unglueU, case not supported in fast evaluator: " ++ show (showVal x)
 
 hcompUniv :: Name -> Val -> System Val -> Val
 hcompUniv i b es | eps `member` es = act True (es ! eps) (i,Dir 1)

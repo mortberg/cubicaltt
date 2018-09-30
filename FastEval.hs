@@ -253,15 +253,16 @@ eval rho v = case v of
   Con name ts         -> VCon name (map (eval rho) ts)
   PCon name a ts phis ->
     pcon name (eval rho a) (map (eval rho) ts) (map (evalFormula rho) phis)
+  PathP a e0 e1       -> VPathP (eval rho a) (eval rho e0) (eval rho e1)
   Lam{}               -> FastTer v rho
   Split{}             -> FastTer v rho
   Sum{}               -> FastTer v rho
   HSum{}              -> FastTer v rho
-  Undef{}             -> FastTer v rho
-  Hole{}              -> FastTer v rho
-  PathP a e0 e1       -> VPathP (eval rho a) (eval rho e0) (eval rho e1)
   PLam{}              -> FastTer v rho
   AppFormula e phi    -> eval rho e @@ evalFormula rho phi
+  Glue a ts           -> glue (eval rho a) (evalSystem rho ts)
+  GlueElem a ts       -> glueElem (eval rho a) (evalSystem rho ts)
+  UnGlueElem v a ts   -> unglue (eval rho v) (eval rho a) (evalSystem rho ts)
   HComp i a t0 ts     ->
     let j = fresh ()
     in hcomp j (eval rho a) (eval rho t0) (evalSystem (sub (i,Atom j) rho) ts)
@@ -280,9 +281,6 @@ eval rho v = case v of
   Fill i a t0 ts      ->
     let j = fresh ()
     in VPLam j $ fill j (eval (sub (i,Atom j) rho) a) (eval rho t0) (evalSystem (sub (i,Atom j) rho) ts)
-  Glue a ts           -> glue (eval rho a) (evalSystem rho ts)
-  GlueElem a ts       -> glueElem (eval rho a) (evalSystem rho ts)
-  UnGlueElem v a ts   -> unglue (eval rho v) (eval rho a) (evalSystem rho ts)
   _                   -> error $ "Cannot evaluate " ++ show (showTer v)
 
 evalFormula :: FastEnv -> Formula -> Formula
@@ -337,8 +335,18 @@ app u v = case (u,v) of
 
 fstVal, sndVal :: Val -> Val
 fstVal (VPair a b)     = a
+fstVal (VHComp i (VSigma a f) u us) =
+  hcomp i a (fstVal u) (mapSystem fstVal us)
 fstVal x = error $ "fst, case not supported in fast evaluator: " ++ show (showVal x)
 sndVal (VPair a b)     = b
+sndVal (VHComp i (VSigma a f) u us)
+    | isNonDep f = hcomp i (app f (VVar "impossible" VU)) (sndVal u) (mapSystem sndVal us)
+    | otherwise = 
+      let (us1, us2) = (mapSystem fstVal us, mapSystem sndVal us)
+          (u1, u2) = (fstVal u, sndVal u)
+          u1fill = hfill i a u1 us1
+          u1comp = hcomp i a u1 us1
+      in comp i (app f u1fill) u2 us2
 sndVal x = error $ "snd, case not supported in fast evaluator: " ++ show (showVal x)
 
 (@@) :: ToFormula a => Val -> a -> Val
@@ -379,15 +387,6 @@ hcomp :: Name -> Val -> Val -> System Val -> Val
 hcomp i a u us | eps `member` us = (us ! eps) `face` (i ~> 1)
 hcomp i a u us = case a of
   VPathP{} -> VHComp i a u us
-  VSigma a f
-    | isNonDep f -> VPair (hcomp i a (fstVal u) (mapSystem fstVal us))
-                          (hcomp i (app f (VVar "impossible" VU)) (sndVal u) (mapSystem sndVal us))
-    | otherwise -> 
-      let (us1, us2) = (mapSystem fstVal us, mapSystem sndVal us)
-          (u1, u2) = (fstVal u, sndVal u)
-          u1fill = hfill i a u1 us1
-          u1comp = hcomp i a u1 us1
-      in VPair u1comp (comp i (app f u1fill) u2 us2)
   VU -> hcompUniv i u us
   VGlue b equivs ->
     let wts = mapWithKey (\al wal ->

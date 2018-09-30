@@ -379,9 +379,24 @@ contextOfEnv rho = case rho of
   Env (Def _ _ e,vs,fs,os)        -> contextOfEnv (Env (e,vs,fs,os))
   Env (Sub i e,vs,phi:fs,os)      -> (show i ++ " = " ++ show phi) : contextOfEnv (Env (e,vs,fs,os))
 
--- Fast environment
-data FastEnv = E (Map.Map Ident Ter) (Map.Map Ident Val) (Map.Map Name Formula)
+{-
+-- Fast environments:
+
+The first argument maps identifiers to either definitions or their value.
+
+The second argument maps names to their value in II
+
+The third argument is a list of unapplied substitutions
+(i.e. context restrictions, these are applied when values are
+projected out)
+
+TODO: Optimize the unapplied substitutions by merging them when possible
+-}
+data FastEnv = E (Map.Map Ident (Either Ter Val)) (Map.Map Name Formula) [(Name,Formula)]
   deriving (Eq)
+
+-- instance Show FastEnv where
+--   show (E ds vs fs) = "E (" ++ show (map fst ds) ++ ") (" ++ show [ (i,show(showVal v)) | (i,v) <- Map.toList vs ] ++ ") (" ++ show fs ++ ")"
 
 --------------------------------------------------------------------------------
 -- | Pretty printing

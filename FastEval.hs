@@ -1,5 +1,5 @@
 -- Specialized evaluation function for closed well-typed terms
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, BangPatterns #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 module FastEval where
 
 import qualified Data.Map as Map
@@ -14,15 +14,6 @@ import Debug.Trace
 
 -----------------------------------------------------------------------
 -- Lookup functions
-
--- look :: String -> Env -> Val
--- look x (Env (Upd y rho,v:vs,fs,os)) | x == y = v
---                                     | otherwise = look x (Env (rho,vs,fs,os))
--- look x r@(Env (Def _ decls rho,vs,fs,Nameless os)) = case lookup x decls of
---   Just (_,t) -> eval r t
---   Nothing    -> look x (Env (rho,vs,fs,Nameless os))
--- look x (Env (Sub _ rho,vs,_:fs,os)) = look x (Env (rho,vs,fs,os))
--- look x (Env (Empty,_,_,_)) = error $ "look: not found " ++ show x
 
 -- type VarEnv = (Map.Map Ident Val,Map.Map Ident Ter)
 
@@ -46,27 +37,27 @@ toFastEnv (Env (Sub n ctxt,vs,f:fs,os)) =
 toFastEnv (Env (Def _ ds ctxt,vs,fs,os)) =
   decls ds (toFastEnv (Env (ctxt,vs,fs,os)))
 
-instance Nominal (Map.Map Ident Val) where
-  occurs x xs = occurs x (Map.elems xs)
-  act b xs iphi = Map.map (\x -> act b x iphi) xs
-  swap xs ij = Map.map (\x -> swap x ij) xs
+-- instance Nominal (Map.Map Ident Val) where
+--   occurs x xs = occurs x (Map.elems xs)
+--   act b xs iphi = Map.map (\x -> act b x iphi) xs
+--   swap xs ij = Map.map (\x -> swap x ij) xs
 
-instance Nominal (Map.Map Name Formula) where
-  occurs x xs = occurs x (Map.elems xs)
-  act b xs iphi = Map.map (\x -> act b x iphi) xs
-  swap xs ij = Map.map (\x -> swap x ij) xs
+-- instance Nominal (Map.Map Name Formula) where
+--   occurs x xs = occurs x (Map.elems xs)
+--   act b xs iphi = Map.map (\x -> act b x iphi) xs
+--   swap xs ij = Map.map (\x -> swap x ij) xs
 
 emptyEnv :: FastEnv
-emptyEnv = E Map.empty Map.empty Map.empty
+emptyEnv = E Map.empty Map.empty []
 
 sub :: (Name,Formula) -> FastEnv -> FastEnv
-sub (i,phi) (E ds vs fs) = E ds vs (Map.insert i phi fs)
+sub (i,phi) (E dvs fs iphis) = E dvs (Map.insert i phi fs) iphis
 
 subs :: [(Name,Formula)] -> FastEnv -> FastEnv
 subs iphis rho = foldl (flip sub) rho iphis
 
 upd :: (Ident,Val) -> FastEnv -> FastEnv
-upd (x,v) (E ds vs fs) = E ds (Map.insert x v vs) fs
+upd (x,v) (E dvs fs iphis) = E (Map.insert x (Right v) dvs) fs iphis
 
 upds :: [(Ident,Val)] -> FastEnv -> FastEnv
 upds xus rho = foldl (flip upd) rho xus
@@ -75,26 +66,44 @@ updsTele :: Tele -> [Val] -> FastEnv -> FastEnv
 updsTele tele vs = upds (zip (map fst tele) vs)
 
 decl :: Decl -> FastEnv -> FastEnv
-decl (x,(_,d)) (E ds vs fs) = E (Map.insert x d ds) vs fs
+decl (x,(_,d)) (E dvs fs iphis) = E (Map.insert x (Left d) dvs) fs iphis
 
 decls :: [Decl] -> FastEnv -> FastEnv
 decls ds rho = foldl (flip decl) rho ds
 
 -- Only support non-mutual Decls
 defWhere :: Decls -> FastEnv -> FastEnv
-defWhere (MutualDecls m [(x,(_,d))]) (E ds vs fs) =
-  E (Map.insert x d ds) vs fs
+defWhere (MutualDecls m [(x,(t,d))]) = decl (x,(t,d))
+
+
+-- look :: String -> Env -> Val
+-- look x (Env (Upd y rho,v:vs,fs,os)) | x == y = v
+--                                     | otherwise = look x (Env (rho,vs,fs,os))
+-- look x r@(Env (Def _ decls rho,vs,fs,Nameless os)) = case lookup x decls of
+--   Just (_,t) -> eval r t
+--   Nothing    -> look x (Env (rho,vs,fs,Nameless os))
+-- look x (Env (Sub _ rho,vs,_:fs,os)) = look x (Env (rho,vs,fs,os))
+-- look x (Env (Empty,_,_,_)) = error $ "look: not found " ++ show x
+
+-- lookDefs :: Ident -> [(Ident,Ter)] -> (Ter,[(Ident,Ter)])
+-- lookDefs x [] = error ("lookDefs: can't find " ++ x)
+-- lookDefs x ((y,t):ts) | x == y = (t,(y,t):ts)
+--                       | otherwise = lookDefs x ts
 
 look :: Ident -> FastEnv -> Val
-look x env@(E ds vs _) = case Map.lookup x vs of
-  Just v -> v
-  Nothing -> case Map.lookup x ds of
-    Just t -> eval env t
-    Nothing -> error "look"
+look x e@(E dvs _ iphis) = case Map.lookup x dvs of
+  Just (Right v) -> acts v iphis
+  Just (Left t) -> eval e t
+  Nothing -> error ("look: cannot find " ++ x)
+  -- Nothing -> case lookDefs x ds of
+  --   (t,ds') -> eval (E ds' vs fs) t
+  --   -- case Map.lookup x ds of
+  --   -- Just t -> eval env t
+  --   -- Nothing -> error "look"
 
 lookName :: Name -> FastEnv -> Formula
-lookName x (E _ _ fs) = case Map.lookup x fs of
-  Just phi -> phi
+lookName x (E _ fs iphis) = case Map.lookup x fs of
+  Just phi -> acts phi iphis
   Nothing -> error "lookName"
 
 -- lookName :: Name -> Env -> Formula
@@ -114,9 +123,16 @@ lookName x (E _ _ fs) = case Map.lookup x fs of
 --   swap e _  = e
 
 instance Nominal FastEnv where
-  occurs x (E _ vs fs) = occurs x (vs,fs)
-  act b (E ds vs fs) iphi = E ds (act b vs iphi) (act b fs iphi)
-  swap (E ds vs fs) ij = E ds (swap vs ij) (swap fs ij)
+  occurs x (E dvs fs iphis) = undefined -- occurs x ([ v | Right v <- Map.elems dvs ],fs)
+  act b (E dvs fs iphis) iphi = E dvs fs (iphi:iphis)
+    -- E (Map.map helper dvs) (act b fs iphi)
+    -- where
+    --   helper (Left t) = Left t
+    --   helper (Right v) = Right $ act b v iphi
+  swap (E dvs fs iphis) ij = undefined -- E (Map.map helper dvs) (swap fs ij)
+    -- where
+    --   helper (Left t) = Left t
+    --   helper (Right v) = Right $ swap v ij
 
 instance Nominal Val where
   occurs x v = case v of
@@ -216,7 +232,7 @@ instance Nominal Val where
                         | otherwise -> VHCompU j (act b a (i,phi)) (act b ts (i,phi))
   -- This increases efficiency as it won't trigger computation.
   swap u ij@(i,j)
-    | not (i `occurs` u) = u
+--    | not (i `occurs` u) = u
     | otherwise = swapVal u ij
     where
       swapVal u ij = case u of
@@ -285,20 +301,24 @@ eval rho v = case v of
   PathP a e0 e1       -> VPathP (eval rho a) (eval rho e0) (eval rho e1)
   PLam{}              -> FastTer v rho
   AppFormula e phi    -> eval rho e @@ evalFormula rho phi
-  HComp i a t0 ts       ->
-    hcomp i (eval rho a) (eval rho t0) (evalSystem (sub (i,Atom i) rho) ts)
-  HFill i a t0 ts       ->
-    VPLam i $ hfill i (eval rho a) (eval rho t0) (evalSystem (sub (i,Atom i) rho) ts)
+  HComp i a t0 ts     ->
+    let j = fresh ()
+    in hcomp j (eval rho a) (eval rho t0) (evalSystem (sub (i,Atom j) rho) ts)
+  HFill i a t0 ts     ->
+    let j = fresh ()
+    in VPLam j $ hfill j (eval rho a) (eval rho t0) (evalSystem (sub (i,Atom j) rho) ts)
   Trans (PLam i a) phi t ->
     let j = fresh ()
     in trans (VPLam j (eval (sub (i,Atom j) rho) a)) (evalFormula rho phi) (eval rho t)
   Trans a phi t       ->
     let j = fresh ()
     in trans (VPLam j (eval (sub (j,Atom j) rho) (AppFormula a (Atom j)))) (evalFormula rho phi) (eval rho t)
-  Comp i a t0 ts        ->
-    comp i (eval (sub (i,Atom i) rho) a) (eval rho t0) (evalSystem (sub (i,Atom i) rho) ts)
-  Fill i a t0 ts        ->
-    VPLam i $ fill i (eval (sub (i,Atom i) rho) a) (eval rho t0) (evalSystem (sub (i,Atom i) rho) ts)
+  Comp i a t0 ts      ->
+    let j = fresh ()
+    in comp j (eval (sub (i,Atom j) rho) a) (eval rho t0) (evalSystem (sub (i,Atom j) rho) ts)
+  Fill i a t0 ts      ->
+    let j = fresh ()
+    in VPLam j $ fill j (eval (sub (i,Atom j) rho) a) (eval rho t0) (evalSystem (sub (i,Atom j) rho) ts)
   Glue a ts           -> glue (eval rho a) (evalSystem rho ts)
   GlueElem a ts       -> glueElem (eval rho a) (evalSystem rho ts)
   UnGlueElem v a ts   -> unglue (eval rho v) (eval rho a) (evalSystem rho ts)
@@ -434,10 +454,34 @@ hcomp i a u us = case a of
     in glueElem v1 t1s
   FastTer (Sum _ n _) _
     | n `elem` ["Z","nat","bool"] -> u
-    | otherwise -> error ("hcomp, unsupported datatype: " ++ n)
+  FastTer (Sum _ _ nass) env | VCon n vs <- u, all isCon (elems us) ->
+    case lookupLabel n nass of
+      Just as -> let usvs = transposeSystemAndList (mapSystem unCon us) vs
+                 in VCon n $ hcomps i as env usvs
+      Nothing -> error $ "hcomp: missing constructor in sum " ++ n
+      
+    -- | otherwise -> error ("hcomp, unsupported datatype: " ++ n)
   FastTer (HSum _ _ _) _ -> VHComp i a u us
   VPi{} -> VHComp i a u us
   _ -> VHComp i a u us
+
+hcomps :: Name -> [(Ident,Ter)] -> FastEnv -> [(System Val,Val)] -> [Val]
+hcomps i []         _ []            = []
+hcomps i ((x,a):as) e ((ts,u):tsus) =
+  let v   = hfill i (eval e a) u ts
+      vi1 = hcomp i (eval e a) u ts
+      vs  = comps i as (upd (x,v) e) tsus -- NB: not hcomps
+  in vi1 : vs
+hcomps _ _ _ _ = error "hcomps: different lengths of types and values"
+
+comps :: Name -> [(Ident,Ter)] -> FastEnv -> [(System Val,Val)] -> [Val]
+comps i []         _ []         = []
+comps i ((x,a):as) e ((ts,u):tsus) =
+  let v   = fill i (eval e a) u ts
+      vi1 = comp i (eval e a) u ts
+      vs  = comps i as (upd (x,v) e) tsus
+  in vi1 : vs
+comps _ _ _ _ = error "comps: different lengths of types and values"
 
 -- For i:II |- a, phi # i, u : a (i/phi) we get fwd i a phi u : a(i/1)
 -- such that fwd i a 1 u = u.   Note that i gets bound.
@@ -462,12 +506,19 @@ comp i a u us = case a of
     -- VU -> compUniv u (mapSystem (VPLam i) us)
     -- VCompU a es -> compU i a es u us
     VGlue b equivs -> compGlue i b equivs u us    
-    FastTer (Sum _ n _) _
+    FastTer (Sum _ n nass) env
       | n `elem` ["nat","Z","bool"] -> u
-      | otherwise -> error ("comp, unsupported type: " ++ n)
+      | otherwise -> case u of
+      VCon n us' | all isCon (elems us) -> case lookupLabel n nass of
+                    Just as -> let usus' = transposeSystemAndList (mapSystem unCon us) us'
+                               in VCon n $ comps i as env usus'
+                    Nothing -> error $ "comp: missing constructor in labelled sum " ++ n
+      _ -> VComp i a u us
+        
+      -- | otherwise -> error ("comp, unsupported type: " ++ n)
     _ -> let j = fresh (Atom i,a,u,us)
          in hcomp j (a `face` (i ~> 1)) (trans (VPLam i a) (Dir Zero) u)
-                    (mapWithKey (\al ual -> fwd i (a `face` al) (Atom j) (ual `swap` (i,j))) us)
+                    (mapWithKey (\al ual -> fwd i (a `face` al) (Atom j) (act False ual (i,Atom j))) us)
 
 compNeg :: Name -> Val -> Val -> System Val -> Val
 compNeg i a u us = comp i (a `sym` i) u (us `sym` i)
@@ -488,9 +539,14 @@ trans (VPLam i a) phi u = case a of
   VU -> u
   VGlue b equivs -> transGlue i b equivs phi u
   VHCompU j b es -> transHCompU i b (j,es) phi u
-  FastTer (Sum _ n _) _
+  FastTer (Sum _ n nass) env
     | n `elem` ["nat","Z","bool"] -> u
-    | otherwise -> error ("trans, unsupported datatype: " ++ n)
+--    | otherwise -> error ("trans, unsupported datatype: " ++ n)
+    | otherwise -> case u of
+    VCon n us -> case lookupLabel n nass of
+      Just tele -> VCon n (transps i tele env phi us)
+      Nothing -> error $ "trans: missing constructor in sum " ++ n
+      
   FastTer (HSum _ _ _) _ -> transHSum (VPLam i a) phi u
   _ -> VTrans (VPLam i a) phi u
 

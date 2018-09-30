@@ -402,7 +402,10 @@ instance (Nominal a, Nominal b, Nominal c, Nominal d, Nominal e, Nominal h) =>
 instance Nominal a => Nominal [a]  where
 --  support xs  = unions (map support xs)
   occurs x xs = any (occurs x) xs
-  act b xs f    = [ act b x f | x <- xs ]
+  act b xs f  = reverse $ actList xs []
+    where
+      actList [] acc = acc
+      actList (x:xs) acc = actList xs (act b x f : acc)
   swap xs n   = [ swap x n | x <- xs ]
 
 instance Nominal a => Nominal (Maybe a)  where
@@ -455,6 +458,13 @@ face :: Nominal a => a -> Face -> a
 face x [] = x
 face x ((i,d):xs) -- | not (i `occurs` x) = face x xs
                   | otherwise = face (act True x (i,Dir d)) xs
+
+-- Act with a list of substitutions. Apply the substitution in reverse order:
+-- acts x [(i=0),(k=i/\j)] = x (k=i/\j)(i=0)
+-- TODO: make this faster
+acts :: Nominal a => a -> [(Name,Formula)] -> a
+acts x [] = x
+acts x ((i,phi):iphis) = act True (acts x iphis) (i,phi)
 
 -- the faces should be incomparable
 newtype System a = Sys [(Face,a)]

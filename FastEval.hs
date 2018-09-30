@@ -389,26 +389,31 @@ hcomp i a u us = case a of
   VPathP{} -> VHComp i a u us
   VU -> hcompUniv i u us
   VGlue b equivs ->
-    let wts = mapWithKey (\al wal ->
-                  app (equivFun wal)
-                    (hfill i (equivDom wal) (u `face` al) (us `face` al)))
+    let es = mapWithKey
+                (\al wal -> (equivFun wal,equivDom wal,u `face` al,us `face` al))
                 equivs
-        t1s = mapWithKey (\al wal ->
-                hcomp i (equivDom wal) (u `face` al) (us `face` al)) equivs
+        wts = mapWithKey
+                (\_ (fwal,dwal,ual,usal) -> app fwal (hfill i dwal ual usal))
+                es      
+        t1s = mapWithKey
+                (\_ (fwal,dwal,ual,usal) -> hcomp i dwal ual usal)
+                es
         v = unglue u b equivs
-        vs = mapWithKey (\al ual -> unglue ual (b `face` al) (equivs `face` al))
-               us
+        vs = mapWithKey (\al ual -> unglue ual (b `face` al) (equivs `face` al)) us
         v1 = hcomp i b v (vs `unionSystem` wts)
     in glueElem v1 t1s
-  VHCompU j b es ->
-    let wts = mapWithKey (\al eal ->
-                  eqFun (j,eal)
-                    (hfill i (act True eal (j,Dir 1)) (u `face` al) (us `face` al)))
+  VHCompU j b equivs ->
+    let es = mapWithKey
+               (\al eal -> (eal,eal `face` (j~>1),u `face` al,us `face` al))
+               equivs
+        wts = mapWithKey
+                (\_ (eal,eal1,ual,usal) -> eqFun (j,eal) (hfill i eal1 ual usal))
                 es
-        t1s = mapWithKey (\al eal ->
-                hcomp i (act True eal (j,Dir 1)) (u `face` al) (us `face` al)) es
-        v = unglueU u b (i,es)
-        vs = mapWithKey (\al ual -> unglueU ual (b `face` al) (i,es `face` al)) us
+        t1s = mapWithKey
+                (\_ (eal,eal1,ual,usal) -> hcomp i eal1 ual usal)
+                es
+        v = unglueU u b (i,equivs)
+        vs = mapWithKey (\al ual -> unglueU ual (b `face` al) (i,equivs `face` al)) us
         v1 = hcomp i b v (vs `unionSystem` wts)
     in glueElem v1 t1s
   FastTer (Sum _ n _) _

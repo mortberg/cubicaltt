@@ -68,7 +68,7 @@ separator Side "," ;
 
 Disj.     Formula  ::= Formula "\\/" Formula1 ;
 Conj.     Formula1 ::= Formula1 CIdent Formula2 ;
-Neg.      Formula2 ::= "-" Formula2 ;
+-- Neg.      Formula2 ::= "-" Formula2 ;
 Atom.     Formula2 ::= AIdent ;
 Dir.      Formula2 ::= Dir ;
 coercions Formula 2 ;

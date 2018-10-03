@@ -253,7 +253,7 @@ resolveDir Dir1 = return 1
 resolveFormula :: Formula -> Resolver C.Formula
 resolveFormula (Dir d)          = C.Dir <$> resolveDir d
 resolveFormula (Atom i)         = C.Atom <$> resolveName i
-resolveFormula (Neg phi)        = negFormula <$> resolveFormula phi
+-- resolveFormula (Neg phi)        = negFormula <$> resolveFormula phi
 resolveFormula (Conj phi _ psi) =
     andFormula <$> resolveFormula phi <*> resolveFormula psi
 resolveFormula (Disj phi psi)   =

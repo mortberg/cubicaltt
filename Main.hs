@@ -92,7 +92,7 @@ initLoop flags f hist = do
   (_,_,mods) <- E.catch (imports True ([],[],[]) f)
                         (\e -> do putStrLn $ unlines $
                                     ("Exception: " :
-                                     (takeWhile (/= "CallStack (from HasCallStack):")
+                                     (
                                                    (lines $ show (e :: SomeException))))
                                   return ([],[],[]))
   -- Translate to TT

@@ -20,9 +20,63 @@ inv (A : U) (a b : A) (p : Path A a b) : Path A b a =
 trans (A B : U) (p : Path U A B) (a : A) : B = comp p a []
 transNeg (A B : U) (p : Path U A B) (b : B) : A = comp (inv U A B p) b []
 
+-- subst can be defined using trans:
+substTrans (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
+  trans (P a) (P b) (mapOnPath A U P a b p) e
 
-transKinv (A B : U) (p : Path U A B) (y : B) :
-  Path B (trans A B p (transNeg A B p y)) y = undefined
+subst (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
+  transport (mapOnPath A U P a b p) e
+
+substEq (A : U) (P : A -> U) (a : A) (e : P a)
+  : Path (P a) e (subst A P a a (refl A a) e) =
+  fill (<i> P a) e []
+
+singl (A : U) (a : A) : U = (x : A) * Path A a x
+
+contrSingl (A : U) (a b : A) (p : Path A a b) :
+  Path (singl A a) (a,refl A a) (b,p) = <i> (p @ i,<j> p @ i/\j)
+
+J (A : U) (a : A) (C : (x : A) -> Path A a x -> U)
+  (d : C a (refl A a)) (x : A) (p : Path A a x) : C x p =
+    subst (singl A a) T (a, refl A a) (x, p) (contrSingl A a x p) d
+      where T (z : singl A a) : U = C (z.1) (z.2)
+
+compPath (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
+  <i> comp (<j>A) (p @ i) [ (i=0) -> <j> a, (i=1) -> q ]
+
+transKinv (A : U) : (B : U) (p : Path U A B) (y : B) ->
+                    Path B (trans A B p (transNeg A B p y)) y =
+  J U A (\(B : U) (p : Path U A B) -> (y : B) -> Path B (trans A B p (transNeg A B p y)) y)
+    rem
+    where
+    rem (x : A) : Path A (trans A A (<_> A) (transNeg A A (<_> A) x)) x =
+        let
+            goal2' : Path (Path U A A) (<_> A) (<i> comp (<_> U) A [ (i=0) -> <_> A, (i=1) -> <_> A ]) = <i j> fill (<_> U) A [ (j=0) -> <_> A, (j=1) -> <_> A ] @ i
+            goal2 : Path (Path U A A) (<i> comp (<_> U) A [ (i=0) -> <_> A, (i=1) -> <_> A ]) (<_> A) = inv (Path U A A) (<_> A) (<i> comp (<_> U) A [ (i=0) -> <_> A, (i=1) -> <_> A ]) goal2'
+            goal3 : Path A (comp (<i> comp (<_> U) A [ (i=0) -> <_> A, (i=1) -> <_> A ]) x [])
+                           (comp (<i> A) x []) =
+                           <i> comp (goal2 @ i) x []
+            goal4 : Path A (comp (<i> A) x []) x = inv A x (comp (<i> A) x []) (fill (<i> A) x [])
+            goal1 : Path A (comp (<i> comp (<_> U) A [ (i=0) -> <_> A, (i=1) -> <_> A ]) x []) x =
+                       compPath A (comp (<i> comp (<_> U) A [ (i=0) -> <_> A, (i=1) -> <_> A ]) x [])
+                                  (comp (<i> A) x []) x goal3 goal4
+            goal1' : Path A x (comp (<i> comp (<_> U) A [ (i=0) -> <_> A, (i=1) -> <_> A ]) x []) = inv A (comp (<i> comp (<_> U) A [ (i=0) -> <_> A, (i=1) -> <_> A ]) x []) x goal1
+            goal5 : Path A
+                        x
+                        (comp (<_> A)
+                              (comp (<i> comp (<_> U) A [ (i=0) -> <_> A, (i=1) -> <_> A ]) x [])
+                              [])
+                         = <i> fill (<_> A) (goal1' @ i) [] @ i
+            goal : Path A
+                        (comp (<_> A)
+                              (comp (<i> comp (<_> U) A [ (i=0) -> <_> A, (i=1) -> <_> A ]) x [])
+                              [])
+                        x = inv A x                         (comp (<_> A)
+                              (comp (<i> comp (<_> U) A [ (i=0) -> <_> A, (i=1) -> <_> A ]) x [])
+                              []) goal5
+
+        in  goal
+
 
 transNegKinv (A B : U) (p : Path U A B) (a : A) :
   Path A (transNeg A B p (trans A B p a)) a = undefined
@@ -48,27 +102,6 @@ transNegKinv (A B : U) (p : Path U A B) (a : A) :
 --     -- rem2 (b:B) : PathP (<i> p@-i) b (transNeg A B p b) = 
 --     --   <i> comp (<j> p @ (-i \/ -j)) b [(i=0) -> <j> b]
 
--- subst can be defined using trans:
-substTrans (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
-  trans (P a) (P b) (mapOnPath A U P a b p) e
-
-subst (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
-  transport (mapOnPath A U P a b p) e
-
-substEq (A : U) (P : A -> U) (a : A) (e : P a)
-  : Path (P a) e (subst A P a a (refl A a) e) =
-  fill (<i> P a) e []
-
-singl (A : U) (a : A) : U = (x : A) * Path A a x
-
-contrSingl (A : U) (a b : A) (p : Path A a b) :
-  Path (singl A a) (a,refl A a) (b,p) = <i> (p @ i,<j> p @ i/\j)
-
-J (A : U) (a : A) (C : (x : A) -> Path A a x -> U)
-  (d : C a (refl A a)) (x : A) (p : Path A a x) : C x p =
-    subst (singl A a) T (a, refl A a) (x, p) (contrSingl A a x p) d
-      where T (z : singl A a) : U = C (z.1) (z.2)
-
 -- Normal form of J:
 -- comp (<i> C (p @ i) (<j> p @ i /\ j)) d []
 
@@ -87,9 +120,6 @@ JEq (A : U) (a : A) (C : (x : A) -> Path A a x -> U) (d : C a (refl A a))
   substEq (singl A a) T (a, refl A a) d
     where T (z : singl A a) : U = C (z.1) (z.2)
 
-
-compPath (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
-  <i> comp (<j>A) (p @ i) [ (i=0) -> <j> a, (i=1) -> q ]
 
 compPath' (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
   subst A (Path A a) b c q p

@@ -296,6 +296,7 @@ app u v = case (u,v) of
   (Ter (Split _ _ _ nvs) e,VPCon c _ us phis) -> case lookupBranch c nvs of
     Just (PBranch _ xs is t) -> eval (subs (zip is phis) (upds (zip xs us) e)) t
     _ -> error $ "app: missing case in split for " ++ c
+  (Ter (Split _ _ ty hbr) e,VHComp (Ter (Sum _ _ _) _) w ws) -> VApp u v
   (Ter (Split _ _ ty hbr) e,VHComp a w ws) -> case eval e ty of
     VPi _ f -> let j   = fresh (e,v)
                    wsj = Map.map (@@@ j) ws

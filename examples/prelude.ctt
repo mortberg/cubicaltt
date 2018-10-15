@@ -358,3 +358,4 @@ and (A B : U) : U = (_ : A) * B
 
 propAnd (A B : U) (pA : prop A) (pB : prop B) : prop (and A B) =
   propSig A (\(_ : A) -> B) pA (\(_ : A) -> pB)
+

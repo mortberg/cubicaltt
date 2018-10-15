@@ -302,8 +302,8 @@ comp :: Name -> Val -> Val -> System Val -> Val
 comp i a u ts | eps `member` ts = (ts ! eps) `face` (i ~> 1)
 comp i a u ts = VComp (VPLam i a) u (Map.map (VPLam i) ts)
 
-compNeg :: Name -> Val -> Val -> System Val -> Val
-compNeg i a u ts = comp i (a `sym` i) u (ts `sym` i)
+-- compNeg :: Name -> Val -> Val -> System Val -> Val
+-- compNeg i a u ts = comp i (a `sym` i) u (ts `sym` i)
 
 compLine :: Val -> Val -> System Val -> Val
 compLine a u ts = comp i (a @@ i) u (Map.map (@@ i) ts)
@@ -327,8 +327,8 @@ fill i a u ts =
   comp j (a `conj` (i,j)) u (insertSystem (i ~> 0) u (ts `conj` (i,j)))
   where j = fresh (Atom i,a,u,ts)
 
-fillNeg :: Name -> Val -> Val -> System Val -> Val
-fillNeg i a u ts = (fill i (a `sym` i) u (ts `sym` i)) `sym` i
+-- fillNeg :: Name -> Val -> Val -> System Val -> Val
+-- fillNeg i a u ts = (fill i (a `sym` i) u (ts `sym` i)) `sym` i
 
 fillLine :: Val -> Val -> System Val -> Val
 fillLine a u ts = VPLam i $ fill i (a @@ i) u (Map.map (@@ i) ts)
@@ -365,8 +365,8 @@ transps _ _ _ _ = error "transps: different lengths of types and values"
 transFill :: Name -> Val -> Val -> Val
 transFill i a u = fill i a u empty
 
-transFillNeg :: Name -> Val -> Val -> Val
-transFillNeg i a u = (transFill i (a `sym` i) u) `sym` i
+-- transFillNeg :: Name -> Val -> Val -> Val
+-- transFillNeg i a u = (transFill i (a `sym` i) u) `sym` i
 
 -- Given u of type a "squeeze i a u" connects in the direction i
 -- trans i a u(i=0) to u(i=1)

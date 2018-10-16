@@ -20,7 +20,7 @@ funExt (A : U) (B : A -> U) (f g : (x : A) -> B x)
 
 -- Transport can be defined using comp
 trans (A B : U) (p : Path U A B) (a : A) : B = comp p a []
-transNeg (A B : U) (p : Path U A B) (b : B) : A = comp (<i> p @ - i) b []
+transNeg (A B : U) (p : Path U A B) (b : B) : A = compNeg p b []
 
 transK (A B : U) (p : Path U A B) (y : B) :
   Path B y (trans A B p (transNeg A B p y)) =

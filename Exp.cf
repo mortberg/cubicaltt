@@ -37,6 +37,7 @@ AppFormula.   Exp2 ::= Exp2 "@" Formula ;
 App.          Exp2 ::= Exp2 Exp3 ;
 PathP.        Exp3 ::= "PathP" Exp4 Exp4 Exp4 ;
 Comp.         Exp3 ::= "comp" Exp4 Exp4 System ;
+CompNeg.      Exp3 ::= "compNeg" Exp4 Exp4 System ;
 Trans.        Exp3 ::= "transport" Exp4 Exp4 ;
 Fill.         Exp3 ::= "fill" Exp4 Exp4 System ;
 Glue.         Exp3 ::= "Glue" Exp4 System ;

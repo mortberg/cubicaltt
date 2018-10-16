@@ -115,6 +115,7 @@ data Ter = Pi Ter
          | AppFormula Ter Formula
            -- Kan composition and filling
          | Comp Ter Ter (System Ter)
+         | CompNeg Ter Ter (System Ter)         
          | Fill Ter Ter (System Ter)
            -- Glue
          | Glue Ter (System Ter)
@@ -156,7 +157,8 @@ data Val = VU
          | VPathP Val Val Val
          | VPLam Name Val
          | VComp Val Val (System Val)
-
+         | VCompNeg Val Val (System Val)
+         
            -- Glue values
          | VGlue Val (System Val)
          | VGlueElem Val (System Val)
@@ -192,6 +194,7 @@ isNeutral v = case v of
   VVar{}         -> True
   VOpaque{}      -> True
   VComp{}        -> True
+  VCompNeg{}     -> True  
   VFst{}         -> True
   VSnd{}         -> True
   VSplit{}       -> True
@@ -381,6 +384,7 @@ showTer v = case v of
   PLam i e           -> char '<' <> text (show i) <> char '>' <+> showTer e
   AppFormula e phi   -> showTer1 e <+> char '@' <+> showFormula phi
   Comp e t ts        -> text "comp" <+> showTers [e,t] <+> text (showSystem ts)
+  CompNeg e t ts     -> text "compNeg" <+> showTers [e,t] <+> text (showSystem ts)
   Fill e t ts        -> text "fill" <+> showTers [e,t] <+> text (showSystem ts)
   Glue a ts          -> text "Glue" <+> showTer1 a <+> text (showSystem ts)
   GlueElem a ts      -> text "glue" <+> showTer1 a <+> text (showSystem ts)
@@ -446,6 +450,8 @@ showVal v = case v of
   VAppFormula v phi -> showVal v <+> char '@' <+> showFormula phi
   VComp v0 v1 vs    ->
     text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)
+  VCompNeg v0 v1 vs ->
+    text "compNeg" <+> showVals [v0,v1] <+> text (showSystem vs)
   VGlue a ts        -> text "Glue" <+> showVal1 a <+> text (showSystem ts)
   VGlueElem a ts    -> text "glue" <+> showVal1 a <+> text (showSystem ts)
   VUnGlueElem a ts  -> text "unglue" <+> showVal1 a <+> text (showSystem ts)

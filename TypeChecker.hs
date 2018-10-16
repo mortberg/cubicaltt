@@ -483,6 +483,12 @@ infer e = case e of
     check va0 t0
     checkPLamSystem t0 va ps
     return va1
+  CompNeg a t0 ps -> do
+    (va0, va1) <- checkPLam (constPath VU) a
+    va <- evalTyping a
+    check va1 t0
+    -- checkPLamSystem t0 va ps -- TODO fix!
+    return va0
   Fill a t0 ps -> do
     (va0, va1) <- checkPLam (constPath VU) a
     va <- evalTyping a

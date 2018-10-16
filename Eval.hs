@@ -62,6 +62,7 @@ instance Nominal Val where
     Ter _ e                 -> support e
     VPi u v                 -> support [u,v]
     VComp a u ts            -> support (a,u,ts)
+    VCompNeg a u ts         -> support (a,u,ts)
     VPathP a v0 v1          -> support [a,v0,v1]
     VPLam i v               -> i `delete` support v
     VSigma u v              -> support (u,v)
@@ -96,6 +97,7 @@ instance Nominal Val where
          Ter t e      -> Ter t (acti e)
          VPi a f      -> VPi (acti a) (acti f)
          VComp a v ts -> compLine (acti a) (acti v) (acti ts)
+         VCompNeg a v ts -> compNegLine (acti a) (acti v) (acti ts)
          VPathP a u v -> VPathP (acti a) (acti u) (acti v)
          VPLam j v | j == i -> u
                    | j `notElem` sphi -> VPLam j (acti v)
@@ -133,6 +135,7 @@ instance Nominal Val where
          Ter t e                 -> Ter t (sw e)
          VPi a f                 -> VPi (sw a) (sw f)
          VComp a v ts            -> VComp (sw a) (sw v) (sw ts)
+         VCompNeg a v ts         -> VCompNeg (sw a) (sw v) (sw ts)
          VPathP a u v            -> VPathP (sw a) (sw u) (sw v)
          VPLam k v               -> VPLam (swapName k ij) (sw v)
          VSigma a f              -> VSigma (sw a) (sw f)
@@ -189,6 +192,8 @@ eval rho@(Env (_,_,_,Nameless os)) v = case v of
   AppFormula e phi    -> eval rho e @@ evalFormula rho phi
   Comp a t0 ts        ->
     compLine (eval rho a) (eval rho t0) (evalSystem rho ts)
+  CompNeg a t0 ts        ->
+    compNegLine (eval rho a) (eval rho t0) (evalSystem rho ts)
   Fill a t0 ts        ->
     fillLine (eval rho a) (eval rho t0) (evalSystem rho ts)
   Glue a ts           -> glue (eval rho a) (evalSystem rho ts)
@@ -303,10 +308,15 @@ comp i a u ts | eps `member` ts = (ts ! eps) `face` (i ~> 1)
 comp i a u ts = VComp (VPLam i a) u (Map.map (VPLam i) ts)
 
 compNeg :: Name -> Val -> Val -> System Val -> Val
-compNeg i a u ts = comp i (a `sym` i) u (ts `sym` i)
+compNeg i a u ts | eps `member` ts = (ts ! eps) `face` (i ~> 0)
+compNeg i a u ts = VCompNeg (VPLam i a) u (Map.map (VPLam i) ts)
 
 compLine :: Val -> Val -> System Val -> Val
 compLine a u ts = comp i (a @@ i) u (Map.map (@@ i) ts)
+  where i = fresh (a,u,ts)
+
+compNegLine :: Val -> Val -> System Val -> Val
+compNegLine a u ts = compNeg i (a @@ i) u (Map.map (@@ i) ts)
   where i = fresh (a,u,ts)
 
 compConstLine :: Val -> Val -> System Val -> Val
@@ -327,8 +337,8 @@ fill i a u ts =
   comp j (a `conj` (i,j)) u (insertSystem (i ~> 0) u (ts `conj` (i,j)))
   where j = fresh (Atom i,a,u,ts)
 
-fillNeg :: Name -> Val -> Val -> System Val -> Val
-fillNeg i a u ts = (fill i (a `sym` i) u (ts `sym` i)) `sym` i
+-- fillNeg :: Name -> Val -> Val -> System Val -> Val
+-- fillNeg i a u ts = (fill i (a `sym` i) u (ts `sym` i)) `sym` i
 
 fillLine :: Val -> Val -> System Val -> Val
 fillLine a u ts = VPLam i $ fill i (a @@ i) u (Map.map (@@ i) ts)
@@ -339,10 +349,10 @@ fillLine a u ts = VPLam i $ fill i (a @@ i) u (Map.map (@@ i) ts)
 -- Transport and squeeze (defined using comp)
 
 trans :: Name -> Val -> Val -> Val
-trans i v0 v1 = comp i v0 v1 empty
+trans i a u0 = comp i a u0 empty
 
 transNeg :: Name -> Val -> Val -> Val
-transNeg i a u = trans i (a `sym` i) u
+transNeg i a u0 = compNeg i a u0 empty
 
 transLine :: Val -> Val -> Val
 transLine u v = trans i (u @@ i) v
@@ -365,8 +375,8 @@ transps _ _ _ _ = error "transps: different lengths of types and values"
 transFill :: Name -> Val -> Val -> Val
 transFill i a u = fill i a u empty
 
-transFillNeg :: Name -> Val -> Val -> Val
-transFillNeg i a u = (transFill i (a `sym` i) u) `sym` i
+-- transFillNeg :: Name -> Val -> Val -> Val
+-- transFillNeg i a u = (transFill i (a `sym` i) u) `sym` i
 
 -- Given u of type a "squeeze i a u" connects in the direction i
 -- trans i a u(i=0) to u(i=1)

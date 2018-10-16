@@ -214,6 +214,7 @@ resolveExp e = case e of
       _ -> CTT.AppFormula <$> resolveExp t <*> resolveFormula phi
   PathP a u v   -> CTT.PathP <$> resolveExp a <*> resolveExp u <*> resolveExp v
   Comp u v ts   -> CTT.Comp <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
+  CompNeg u v ts -> CTT.CompNeg <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
   Fill u v ts   -> CTT.Fill <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
   Trans u v     -> CTT.Comp <$> resolveExp u <*> resolveExp v <*> pure Map.empty
   Glue u ts     -> CTT.Glue <$> resolveExp u <*> resolveSystem ts

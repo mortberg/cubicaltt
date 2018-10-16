@@ -116,7 +116,8 @@ data Ter = Pi Ter
            -- Kan composition and filling
          | Comp Ter Ter (System Ter)
          | Fill Ter Ter (System Ter)
-           -- Glue
+         | HComp Ter Ter (System Ter)
+         -- Glue
          | Glue Ter (System Ter)
          | GlueElem Ter (System Ter)
          | UnGlueElem Ter (System Ter)
@@ -381,6 +382,7 @@ showTer v = case v of
   PLam i e           -> char '<' <> text (show i) <> char '>' <+> showTer e
   AppFormula e phi   -> showTer1 e <+> char '@' <+> showFormula phi
   Comp e t ts        -> text "comp" <+> showTers [e,t] <+> text (showSystem ts)
+  HComp e t ts       -> text "hComp" <+> showTers [e,t] <+> text (showSystem ts) 
   Fill e t ts        -> text "fill" <+> showTers [e,t] <+> text (showSystem ts)
   Glue a ts          -> text "Glue" <+> showTer1 a <+> text (showSystem ts)
   GlueElem a ts      -> text "glue" <+> showTer1 a <+> text (showSystem ts)

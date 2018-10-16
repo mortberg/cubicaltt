@@ -189,6 +189,8 @@ eval rho@(Env (_,_,_,Nameless os)) v = case v of
   AppFormula e phi    -> eval rho e @@ evalFormula rho phi
   Comp a t0 ts        ->
     compLine (eval rho a) (eval rho t0) (evalSystem rho ts)
+  HComp a t0 ts       ->
+    hComp (eval rho a) (eval rho t0) (evalSystem rho ts)
   Fill a t0 ts        ->
     fillLine (eval rho a) (eval rho t0) (evalSystem rho ts)
   Glue a ts           -> glue (eval rho a) (evalSystem rho ts)

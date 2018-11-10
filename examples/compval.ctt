@@ -521,11 +521,7 @@ ua (A B : U) (e : equiv A B) : Path U A B =
   <i> Glue B [ (i = 0) -> (A,e)
              , (i = 1) -> (B,idEquiv B) ]
 
--- uabeta is proved using funext and computation. The lhs computes to
--- two transports along constant paths of the rhs. These transports
--- have to be handled by hand, if transport along constant paths would
--- have been the identity function (i.e. if the computation rule for J
--- would be definitional) this proof would be trivial.
-uabeta (A B : U) (e : equiv A B) : Path (A -> B) (trans A B (ua A B e)) e.1 =
-  ?
+-- uabeta is not directly provable by computation any longer
+-- uabeta (A B : U) (e : equiv A B) : Path (A -> B) (trans A B (ua A B e)) e.1 =
+--   ?
 

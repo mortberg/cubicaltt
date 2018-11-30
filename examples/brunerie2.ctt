@@ -558,6 +558,11 @@ gradLemma (A B : U) (f : A -> B) (g : B -> A)
   \(y:B) -> ((g y,<i>s y@-i),\ (z:fiber A B f y) ->
     lemIso A B f g s t y (g y) z.1 (<i>s y@-i) z.2)
 
+isoToEquiv (A B : U) (f : A -> B) (g : B -> A)
+       (s : (y : B) -> Path B (f (g y)) y)
+       (t : (x : A) -> Path A (g (f x)) x) : equiv A B = (f,gradLemma A B f g s t)
+
+
 -- Unfolded direct proof. This has a simpler normal form without transGen's!
 propIsEquivDirect' (A B : U) (f : A -> B) : prop (isEquiv A B f) =
   \(p q : isEquiv A B f) ->
@@ -723,63 +728,15 @@ rotIsEquiv' : (a : S1) -> isEquiv S1 S1 (rot a) =
               propIsEquivDirect' S1 S1 (rot base1) (subst S1 (\(x : S1) -> isEquiv S1 S1 (rot x))
                                  base1 base1 loop (idIsEquiv S1)) (idIsEquiv S1)
 
-inv : S1 -> S1 = split
-  base1 -> base1
-  loop1 @ i -> loop @ -i
+-- Direct proof that rotLoop is invertible:
+rotLoopInv (a : S1) : PathP (<i> Path S1 (rotLoop (rotLoop a @ - i) @ i) a) (<_> a) (<_> a) =
+  <i j> hcomp S1 (rotLoop (rotLoop a @ -i \/ j) @ i)
+                 [ (i = 0) -> <_> a
+                 , (i = 1) -> <k> rotLoop a @ j /\ -k
+                 , (j = 0) -> <_> rotLoop (rotLoop a @ - i) @ i
+                 , (j = 1) -> <k> rotLoop a @ i /\ -k ]
 
-rotrotinvloop1loop1 :
- PathP (<i>
-  PathP (<j>
-   Path S1 (hcomp S1 (loop @ j)
-                  [(i=0) -> <k> hcomp S1 base1
-                                      [(k=0) -> <l> loop @ (j /\ l)
-                                      ,(j=0) -> <_> base1
-                                      ,(j=1) -> <l> loop @ (-k /\ l)]
-                  ,(i=1) -> <k> hcomp S1 base1
-                                      [(k=0) -> <l> loop @ (j \/ -l)
-                                      ,(j=0) -> <l> loop @ (k \/ -l)
-                                      ,(j=1) -> <_> base1]
-                  ,(j=1) -> <k> loop @ (i \/ -k)
-                  ,(j=0) -> <k> loop @ (i /\ k)])
-           (loop @ i))
-    (<_> loop @ i)
-    (<_> loop @ i))
-  (<j k> hfill S1 base1 [(j=0) -> <_> base1, (j=1) -> <_> base1] @ -k)
-  (<j k> hfill S1 base1 [(j=0) -> <_> base1, (j=1) -> <_> base1] @ -k) = undefined
-
- -- <i j k>
- --   hcomp S1 (hcomp S1 (loop @ (k \/ j))
- --                  [(i=0) -> <m> hcomp S1 (loop @ k)
- --                                      [(m=0) -> <l> loop @ (k \/ (j /\ l))
- --                                      ,(j=0) -> <_> loop @ k
- --                                      ,(j=1) -> <l> loop @ (k \/ (-m /\ l))]
- --                  ,(i=1) -> <m> hcomp S1 base1
- --                                      [(m=0) -> <l> loop @ (k \/ (j \/ -l))
- --                                      ,(j=0) -> <l> loop @ (k \/ (m \/ -l))
- --                                      ,(j=1) -> <_> base1]
- --                  ,(j=1) -> <m> loop @ (k \/ (i \/ -m))
- --                  ,(j=0) -> <m> loop @ (k \/ (i /\ m))])
- --         [(k=0) -> <_> (hcomp S1 (loop @ j)
- --                  [(i=0) -> <k> hcomp S1 base1
- --                                      [(k=0) -> <l> loop @ (j /\ l)
- --                                      ,(j=0) -> <_> base1
- --                                      ,(j=1) -> <l> loop @ (-k /\ l)]
- --                  ,(i=1) -> <k> hcomp S1 base1
- --                                      [(k=0) -> <l> loop @ (j \/ -l)
- --                                      ,(j=0) -> <l> loop @ (k \/ -l)
- --                                      ,(j=1) -> <_> base1]
- --                  ,(j=1) -> <k> loop @ (i \/ -k)
- --                  ,(j=0) -> <k> loop @ (i /\ k)])
- --         ,(k=1) -> <m> hfill S1 (loop @ (-m \/ i)) [(i=0) -> <l> hcomp S1 (loop @ -m) [(l=0) -> <_> (loop @ -m), (j=0) -> <_> (loop @ -m), (j=1) -> <_> (loop @ -m)], (i=1) -> <l> hcomp S1 base1 [(l=0) -> <_> base1, (j=0) -> <_> base1, (j=1) -> <_> base1], (j=1) -> <l> loop @ (-m \/ i), (j=0) -> <l> loop @ (-m \/ i)] @ -m
- --         ,(j=0) -> <m> loop @ (i \/ (k /\ -m))
- --         ,(j=1) -> <m> loop @ (i \/ (k /\ -m))
- --         ]
-
-rotrotinvloop1 : (y : S1) -> PathP (<i> Path S1 (rotLoop (rotLoop y @ -i) @ i) y) (<_> y) (<_> y) = undefined -- split
-  -- base1 -> <i j> hfill S1 base1 [(i=0) -> <_> base1, (i=1) -> <_> base1] @ -j
-  -- loop1 @ i -> rotrotinvloop1loop1 @ i
-
-
+rotrotinvloop1 : (y : S1) -> PathP (<i> Path S1 (rotLoop (rotLoop y @ -i) @ i) y) (<_> y) (<_> y) = rotLoopInv
 
 -- -- rotinvrotloop1 : (y : S1) -> PathP (<i> Path S1 (rotLoop (rotLoop y @ i) @ -i) y) (<_> y) (<_> y) = undefined
 
@@ -824,6 +781,10 @@ square : Path (Path U S1 S1) (<_> S1) (<_> S1) =
 Hopf : S2 -> U = split
   base2 -> S1
   loop2 @ i j -> square @ i @ j
+  
+
+
+
 
 
 -- We want to construct a map from the total space of the Hopf fibration to [join S1 S1]

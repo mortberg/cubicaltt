@@ -883,7 +883,38 @@ tee4 : AlmostJoinS1S1 -> join S1 S1 = split
   inr y -> inl y
   push x y @ i -> push{join S1 S1} (rot y x) x @ -i
 
+
 tee : (x : S2) -> (Hopf x -> join S1 S1) = \(x : S2) (y : Hopf x) -> tee4 (tee3 (tee2 (tee1 x y)))
+
+
+
+
+
+
+-- Yet another version of Hopf due to Evan. We overload the old Hopf just to test
+
+rotLoopEquiv : Path (equiv S1 S1)
+                    (isoToEquiv S1 S1 (\(x : S1) -> x) (\(x : S1) -> x) (\(x : S1) -> <_> x) (\(x : S1) -> <_> x))
+                    (isoToEquiv S1 S1 (\(x : S1) -> x) (\(x : S1) -> x) (\(x : S1) -> <_> x) (\(x : S1) -> <_> x))
+                    =
+  <i> isoToEquiv S1 S1 (\(x : S1) -> rotLoop x @ i)
+                       (\(x : S1) -> rotLoop x @ - i)
+                       (\(x : S1) -> rotLoopInv x @ i)
+                       (\(x : S1) -> rotLoopInv x @ - i)
+
+square' : Path (Path U S1 S1) (<_> S1) (<_> S1) =
+  <i j> Glue S1 [ (i = 0) -> (S1, rotLoopEquiv @ 0)
+                , (i = 1) -> (S1, rotLoopEquiv @ 0)
+                , (j = 0) -> (S1, rotLoopEquiv @ 0)
+                , (j = 1) -> (S1, rotLoopEquiv @ i)
+                ]
+
+Hopf : S2 -> U = split
+  base2 -> S1
+  loop2 @ i j -> square' @ i @ j
+
+
+
 
 -- s2tosusps1 : S2 -> susp S1 = split
 --   base2 -> north
@@ -1882,18 +1913,18 @@ fibContrHopfThree'' (p : (Omega3 S2pt).1) : HopfThree'' p =
           (<_ _> base1)
           (<i j> transGen (<k> Hopf (p @ i @ j @ k)) 0 base1)
 
-fibContrHopfThree_unprime (p : (Omega3 S2pt).1) : HopfThree p =
-  unprimeThree p (fibContrHopfThree' p)
+-- fibContrHopfThree_unprime (p : (Omega3 S2pt).1) : HopfThree p =
+--   unprimeThree p (fibContrHopfThree' p)
   
 -- -- end of alternative approach
 
 -- The map h from 9.3
-h (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 =
-  <i j k> tee (p @ i @ j @ k) (fibContrHopfThree_unprime p @ i @ j @ k)
+h (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 = undefined
+--   <i j k> tee (p @ i @ j @ k) (fibContrHopfThree_unprime p @ i @ j @ k)
 
 -- Alternative definition of the h map using fibContrHopfThree_unfolded
-h' (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 =
-  <i j k> tee (p @ i @ j @ k) (fibContrHopfThree_unfolded p @ i @ j @ k)
+h' (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 = undefined
+  -- <i j k> tee (p @ i @ j @ k) (fibContrHopfThree_unfolded p @ i @ j @ k)
 
 
 --------------------------------------------------------------------------------

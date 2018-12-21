@@ -386,14 +386,10 @@ merid : S1 -> Path S2 base2 base2 = split
   base1 -> <_> base2
   loop1 @ i -> <j> loop2{S2} @ i @ j
 
-foo (x y : S1) : Path S2 base2 base2 =
-  compPath S2 base2 base2 base2 (merid y) (merid x)
-
 alpha : join S1 S1 -> S2 = split
   inl x -> base2
   inr y -> base2
-  push x y @ i -> foo x y @ i
-
+  push x y @ i -> compPath S2 base2 base2 base2 (merid y) (merid x) @ i
 
 --
 Sigma (A : U) (B : A -> U) : U = (x : A) * B x

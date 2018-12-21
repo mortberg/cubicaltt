@@ -522,6 +522,7 @@ showDecls TransparentAllDecl = pretty "transparent_all"
 showVal :: Val -> Doc a
 showVal v = case v of
   VU                -> pretty 'U'
+  FastTer t _ -> showTer t
   Ter t@Sum{} rho   -> showTer t <+> showEnv False rho
   Ter t@HSum{} rho  -> showTer t <+> showEnv False rho
   Ter t@Split{} rho -> showTer t <+> showEnv False rho

@@ -2754,10 +2754,28 @@ f11 : loopS1 -> Z = encode base1
 
 brunerie : Z = f11 test0To10
 
--- Version of brunerie that might be faster, uses h' (so
--- fibContrHopfThree_unfolded) and the (most likely) most efficient
--- rotation of test0To4
+-- More versions
+brunerie_rotijk : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5 test0To4_rotijk))))))
+brunerie_rotikj : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5 test0To4_rotikj))))))
+brunerie_rotjik : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5 test0To4_rotjik))))))
+brunerie_rotjki : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5 test0To4_rotjki))))))
+brunerie_rotkij : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5 test0To4_rotkij))))))
+brunerie_rotkji : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5 test0To4_rotkji))))))
+
+
+-- Versions of brunerie that might be faster, uses h' (so
+-- fibContrHopfThree_unfolded)
+
+brunerie_rotijk' : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5' test0To4_rotijk))))))
+brunerie_rotikj' : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5' test0To4_rotikj))))))
+brunerie_rotjik' : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5' test0To4_rotjik))))))
+brunerie_rotjki' : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5' test0To4_rotjki))))))
+brunerie_rotkij' : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5' test0To4_rotkij))))))
+brunerie_rotkji' : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5' test0To4_rotkji))))))
+
+-- This is potentially the fastest?
 brunerie_opt : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5' test0To4_rotjki))))))
+
 
 
 

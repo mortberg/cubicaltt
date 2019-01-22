@@ -2614,8 +2614,9 @@ kappaOne (A : ptType) (p : (Omega (gTruncpt A)).1) : sTrunc (Omega A).1 =
 
 -- e'_2 from 12
 pi2S2' (p : (Omega2 S2pt).1) : loopS1 =
-  let point : (Omega S2pt).1 = pt (Omega S2pt)
-  in subst (Omega S2pt).1 HopfOne point point p (<_> base1)
+  <i> transGen (<j> Hopf (p @ j @ i)) 0 base1
+  -- let point : (Omega S2pt).1 = pt (Omega S2pt)
+  -- in subst (Omega S2pt).1 HopfOne point point p (<_> base1)
 
 e2' : sTrunc (Omega2 S2pt).1 -> loopS1 =
   sTruncRec (Omega2 S2pt).1 loopS1 setLoop pi2S2'

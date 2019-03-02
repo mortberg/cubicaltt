@@ -40,7 +40,7 @@ runTyping env t = runExceptT $ runReaderT t env
 
 runDecls :: TEnv -> Decls -> IO (Either String TEnv)
 runDecls tenv d = runTyping tenv $ do
-  checkDecls d
+--  checkDecls d
   return $ addDecls d tenv
 
 runDeclss :: TEnv -> [Decls] -> IO (Maybe String,TEnv)

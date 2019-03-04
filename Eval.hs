@@ -434,15 +434,15 @@ inferType v = case v of
   _ -> error $ "inferType: not neutral " ++ show (showVal v)
 
 (@@) :: ToFormula a => Val -> a -> Val
-(VTrans (VPLam i (VPathP p v0 v1)) psi u) @@ phi = case toFormula phi of
-  -- This actually doesn't seem to matter, probably due to laziness!
-  -- Dir 0 -> v0 `face` (i~>1)
-  -- Dir 1 -> v1 `face` (i~>1)
-  f -> let uf = u @@ f
-       in comp i (p @@ f) uf
-               (unionSystem (border v0 (invSystem f Zero))
-                            (unionSystem (border v1 (invSystem f One))
-                                         (border uf (invSystem psi One))))
+-- (VTrans (VPLam i (VPathP p v0 v1)) psi u) @@ phi = case toFormula phi of
+--   -- This actually doesn't seem to matter, probably due to laziness!
+--   -- Dir 0 -> v0 `face` (i~>1)
+--   -- Dir 1 -> v1 `face` (i~>1)
+--   f -> let uf = u @@ f
+--        in comp i (p @@ f) uf
+--                (unionSystem (border v0 (invSystem f Zero))
+--                             (unionSystem (border v1 (invSystem f One))
+--                                          (border uf (invSystem psi One))))
 (VHComp i (VPathP p v0 v1) u us) @@ phi = case toFormula phi of
   f -> hcomp i (p @@ f) (u @@ f)
                (unionSystem (border v0 (invSystem f Zero))
@@ -483,10 +483,10 @@ hcomp :: Name -> Val -> Val -> System Val -> Val
 hcomp i a u us | eps `member` us = (us ! eps) `face` (i ~> 1)
 hcomp i a u us = case a of
   VPathP{} -> VHComp i a u us
-  -- VPathP p v0 v1 ->
-  --   let j = fresh (Atom i,a,u,us)
-  --   in VPLam j $ hcomp i (p @@@ j) (u @@@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
-  --                                               (mapSystem (@@@ j) us))
+  VPathP p v0 v1 ->
+    let j = fresh (Atom i,a,u,us)
+    in VPLam j $ hcomp i (p @@@ j) (u @@@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
+                                                (mapSystem (@@@ j) us))
   -- VId b v0 v1 -> undefined
   VSigma a f
     | isNonDep f -> VPair (hcomp i a (fstVal u) (mapSystem fstVal us))
@@ -619,11 +619,12 @@ fillNeg i a u ts = (fill i (a `sym` i) u (ts `sym` i)) `sym` i
 trans :: Val -> Formula -> Val -> Val
 trans _ (Dir One) u = u
 trans (VPLam i a) phi u = case a of
-  VPathP p v0 v1 -> VTrans (VPLam i a) phi u
-    -- let j = fresh (Atom i,a,phi,u)
-    --     uj = u @@@ j
-    -- in VPLam j $ comp i (p @@ j) uj (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
-    --                                            (border uj (invSystem phi One)))
+--  VPathP p v0 v1 -> VTrans (VPLam i a) phi u
+  VPathP p v0 v1 ->
+    let j = fresh (Atom i,a,phi,u)
+        uj = u @@@ j
+    in VPLam j $ comp i (p @@ j) uj (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
+                                               (border uj (invSystem phi One)))
   -- VId b v0 v1 -> undefined
   VSigma a f
     | isNonDep f -> VPair (trans (VPLam i a) phi (fstVal u))
@@ -944,10 +945,10 @@ transHCompU i a (j,es) psi u0 = glueElem v1' t1s'
 -- to a total one where f is transNeg of eq.  Applies the second
 -- component to the fresh name i.
 lemEqConst :: Name -> (Name,Val) -> Val -> System Val -> (Val,Val)
-lemEqConst i (j,eq@(VPLam _ (Ter (Sum _ n _) _))) b as
-  | n `elem` ["Z","nat","bool"] = (hcomp j eq b as,hfill i eq b as)
-lemEqConst i (j,eq@(VPLam _ (Ter (HSum _ n _) _))) b as
-  | n `elem` ["S1","S2","S3","g2Trunc"] = (hcomp j eq b as,hfill i eq b as)
+-- lemEqConst i (j,eq@(VPLam _ (Ter (Sum _ n _) _))) b as
+--   | n `elem` ["Z","nat","bool"] = (hcomp j eq b as,hfill i eq b as)
+-- lemEqConst i (j,eq@(VPLam _ (Ter (HSum _ n _) _))) b as
+--   | n `elem` ["S1","S2","S3","g2Trunc"] = (hcomp j eq b as,hfill i eq b as)
 lemEqConst i (j,eq) b as = (a,p)
  where
    adwns = mapWithKey (\al aal ->

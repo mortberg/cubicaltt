@@ -556,10 +556,10 @@ comp :: Name -> Val -> Val -> System Val -> Val
 comp i a u us | eps `member` us = (us ! eps) `face` (i ~> 1)
 comp i a u us = case a of
 --    VPathP {} -> VComp i a u us
-    VPathP p v0 v1 ->
-      let j = fresh (Atom i,a,u,us)
-      in VPLam j $ comp i (p @@@ j) (u @@@ j) $
-                   insertsSystem [(j ~> 0,v0),(j ~> 1,v1)] (mapSystem (@@@ j) us)
+    -- VPathP p v0 v1 ->
+    --   let j = fresh (Atom i,a,u,us)
+    --   in VPLam j $ comp i (p @@@ j) (u @@@ j) $
+    --                insertsSystem [(j ~> 0,v0),(j ~> 1,v1)] (mapSystem (@@@ j) us)
     -- VSigma a f
     --   | isNonDep f -> VPair (comp i a (fstVal u) (mapSystem fstVal us))
     --                         (comp i (app f (VVar "impossible" VU)) (sndVal u) (mapSystem sndVal us))

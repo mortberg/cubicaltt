@@ -377,18 +377,18 @@ app u v = case (u,v) of
     --       (mapWithKey (\al ual -> app (ual @@@ i) (v `face` al)) us)
     hcomp i (app f v) (app u0 v)
             (mapWithKey (\al ual -> app ual (v `face` al)) us)
-  (VComp j (VPi a f) li0 ts,vi1) ->
-    -- let j       = fresh (u,vi1)
-    --     (aj,fj) = (a,f) `swap` (i,j)
-    --     tsj     = mapSystem (@@@ j) ts
-    --     v       = transFillNeg j aj (Dir Zero) vi1
-    --     vi0     = transNeg j aj (Dir Zero) vi1
-    -- in comp j (app fj v) (app li0 vi0) (intersectionWith app tsj (border v tsj))
-    let v       = transFillNeg j a (Dir Zero) vi1
-        vi0     = transNeg j a (Dir Zero) vi1
-    in if isNonDep f
-          then comp j (app f (VVar "impossible" VU)) (app li0 vi0) (intersectionWith app ts (border v ts))
-          else comp j (app f v) (app li0 vi0) (intersectionWith app ts (border v ts))
+  -- (VComp j (VPi a f) li0 ts,vi1) ->
+  --   -- let j       = fresh (u,vi1)
+  --   --     (aj,fj) = (a,f) `swap` (i,j)
+  --   --     tsj     = mapSystem (@@@ j) ts
+  --   --     v       = transFillNeg j aj (Dir Zero) vi1
+  --   --     vi0     = transNeg j aj (Dir Zero) vi1
+  --   -- in comp j (app fj v) (app li0 vi0) (intersectionWith app tsj (border v tsj))
+  --   let v       = transFillNeg j a (Dir Zero) vi1
+  --       vi0     = transNeg j a (Dir Zero) vi1
+  --   in if isNonDep f
+  --         then comp j (app f (VVar "impossible" VU)) (app li0 vi0) (intersectionWith app ts (border v ts))
+  --         else comp j (app f v) (app li0 vi0) (intersectionWith app ts (border v ts))
   _ -> VApp u v
 
 fstVal, sndVal :: Val -> Val
@@ -560,28 +560,28 @@ comp i a u us = case a of
       let j = fresh (Atom i,a,u,us)
       in VPLam j $ comp i (p @@@ j) (u @@@ j) $
                    insertsSystem [(j ~> 0,v0),(j ~> 1,v1)] (mapSystem (@@@ j) us)
-    VSigma a f
-      | isNonDep f -> VPair (comp i a (fstVal u) (mapSystem fstVal us))
-                            (comp i (app f (VVar "impossible" VU)) (sndVal u) (mapSystem sndVal us))
-      | otherwise ->
-        let (t1s, t2s) = (mapSystem fstVal us, mapSystem sndVal us)
-            (u1,  u2)  = (fstVal u, sndVal u)
-            fill_u1    = fill i a u1 t1s
-            ui1        = comp i a u1 t1s
-            comp_u2    = comp i (app f fill_u1) u2 t2s
-        in VPair ui1 comp_u2
-    VPi{} -> VComp i a u us
+    -- VSigma a f
+    --   | isNonDep f -> VPair (comp i a (fstVal u) (mapSystem fstVal us))
+    --                         (comp i (app f (VVar "impossible" VU)) (sndVal u) (mapSystem sndVal us))
+    --   | otherwise ->
+    --     let (t1s, t2s) = (mapSystem fstVal us, mapSystem sndVal us)
+    --         (u1,  u2)  = (fstVal u, sndVal u)
+    --         fill_u1    = fill i a u1 t1s
+    --         ui1        = comp i a u1 t1s
+    --         comp_u2    = comp i (app f fill_u1) u2 t2s
+    --     in VPair ui1 comp_u2
+    -- VPi{} -> VComp i a u us
     -- VU -> compUniv u (mapSystem (VPLam i) us)
     -- VCompU a es -> compU i a es u us
     -- VGlue b equivs -> compGlue i b equivs u us    
-    Ter (Sum _ n nass) env
-      | n `elem` ["nat","Z","bool"] -> hcomp i a u us -- hardcode hack
-      | otherwise -> case u of
-      VCon n us' | all isCon (elems us) -> case lookupLabel n nass of
-                    Just as -> let usus' = transposeSystemAndList (mapSystem unCon us) us'
-                               in VCon n $ comps i as env usus'
-                    Nothing -> error $ "comp: missing constructor in labelled sum " ++ n
-      _ -> VComp i a u us
+    -- Ter (Sum _ n nass) env
+    --   | n `elem` ["nat","Z","bool"] -> hcomp i a u us -- hardcode hack
+    --   | otherwise -> case u of
+    --   VCon n us' | all isCon (elems us) -> case lookupLabel n nass of
+    --                 Just as -> let usus' = transposeSystemAndList (mapSystem unCon us) us'
+    --                            in VCon n $ comps i as env usus'
+    --                 Nothing -> error $ "comp: missing constructor in labelled sum " ++ n
+    --   _ -> VComp i a u us
     _ -> let j = fresh (Atom i,a,u,us)
          in hcomp j (a `face` (i ~> 1)) (trans (VPLam i a) (Dir Zero) u)
                   (mapWithKey (\al ual -> fwd i (a `face` al) (Atom j) (ual `swap` (i,j))) us)

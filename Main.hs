@@ -173,7 +173,7 @@ renderIOEmacsSafe h = go 0
     go2 :: Int -> SimpleDocStream ann -> IO ()
     go2 n doc =
       if n > 220 then do
-        hPutChar h '\n'
+       -- hPutChar h '\n'
         go 0 doc
       else
         go n doc

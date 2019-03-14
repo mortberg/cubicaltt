@@ -1296,13 +1296,10 @@ decStable (A : U) : dec A -> stable A = split
 discrete (A : U) : U = (a b : A) -> dec (Path A a b)
 
 hedbergLemma (A: U) (a b:A) (f : (x : A) -> Path A a x -> Path A a x) (p : Path A a b) :
-            Square A a a a b (<_> a) p (f a (<_> a)) (f b p) =
- transGen (<i> Square A a a a (p @ i) (<_> a) (<j> p @ i /\ j)
-                 (f a (<_> a)) (f (p @ i) (<j> p @ i /\ j)))
-          0 (<i> f a (<_> a))
+            Square A a a a b (<_> a) p (f a (<_> a)) (f b p) = <i> f (p @ i) (<j> p @ i /\ j)
 
 hedbergStable (A : U) (a b : A) (h : (x : A) -> stable (Path A a x))
-        (p q : Path A a b) : Path (Path A a b) p q =
+        (p q : Path A a b) : Path (Path A a b) p q = 
  <j i> hcomp A a [ (j = 0) -> rem2 @ i
                  , (j = 1) -> rem3 @ i
                  , (i = 0) -> r

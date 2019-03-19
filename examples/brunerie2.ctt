@@ -2475,19 +2475,20 @@ twogroupoidGROUPOID : twogroupoid GROUPOID =
 
 -- opaque twogroupoidGROUPOID
 
-truncPath2 (A : ptType) : g2Trunc A.1 -> GROUPOID =
-  g2TruncRec A.1 GROUPOID twogroupoidGROUPOID
-    (\(x : A.1) -> (gTrunc (Path A.1 (pt A) x),gTruncGroupoid (Path A.1 (pt A) x)))
+truncPath2 : g2Trunc S2 -> GROUPOID =
+  g2TruncRec S2 GROUPOID twogroupoidGROUPOID
+    (\(x : S2) -> (gTrunc (Path S2 base2 x),gTruncGroupoid (Path S2 base2 x)))
 
-kappaTwo (A : ptType) (p : (Omega (g2Truncpt A)).1) : gTrunc (Omega A).1 =
-  subst (g2Trunc A.1) (\(x : g2Trunc A.1) -> (truncPath2 A x).1)
-        (g2inc (pt A)) (g2inc (pt A)) p (ginc (<_> pt A))
+kappaTwo (p : (Omega (g2Truncpt S2pt)).1) : gTrunc (Omega S2pt).1 =
+  transGen (<i> (truncPath2 (p @ i)).1) 0 (ginc (<_> base2))
+-- subst (g2Trunc A.1) (\(x : g2Trunc A.1) -> (truncPath2 A x).1)
+--         (g2inc (pt A)) (g2inc (pt A)) p (ginc (<_> pt A))
 
-kappaTwoPt (A : ptType) :
-  Path (gTrunc (Omega A).1)
-    (kappaTwo A (pt (Omega (g2Truncpt A))))
-    (pt (gTruncpt (Omega A))) =
-    <i> transGen (<_> (truncPath2 A (pt (g2Truncpt A))).1) i (ginc (<_> pt A))
+-- kappaTwoPt (A : ptType) :
+--   Path (gTrunc (Omega A).1)
+--     (kappaTwo A (pt (Omega (g2Truncpt A))))
+--     (pt (gTruncpt (Omega A))) =
+--     <i> transGen (<_> (truncPath2 A (pt (g2Truncpt A))).1) i (ginc (<_> pt A))
 
 -- Groupoid set
 setFun (A B : U) (sB : set B) : set (A -> B) =
@@ -2642,14 +2643,17 @@ f7 : (Omega3 S3pt).1 -> (Omega2 (g2Truncpt S2pt)).1 = pi3S3
 
 test0To7 : (Omega2 (g2Truncpt S2pt)).1 = f7 test0To6
 
-f8 : (Omega2 (g2Truncpt S2pt)).1 -> (Omega (gTruncpt (Omega S2pt))).1 =
- (mapOmega (Omega (g2Truncpt S2pt)) (gTruncpt (Omega S2pt)) (kappaTwo S2pt, kappaTwoPt S2pt)).1
+f8 (p : (Omega2 (g2Truncpt S2pt)).1) : (Omega (gTruncpt (Omega S2pt))).1 =
+ -- (mapOmega (Omega (g2Truncpt S2pt)) (gTruncpt (Omega S2pt)) (kappaTwo S2pt, kappaTwoPt S2pt)).1
+ <i> hcomp (gTrunc (Path S2 base2 base2)) (kappaTwo (p @ i))
+           [ (i=0) -> <j> ginc (<k> hcomp S2 base2 [(k=0) -> <_> base2, (k=1) -> <_> base2, (j=1) -> <_> base2])
+           , (i=1) -> <j> ginc (<k> hcomp S2 base2 [(k=0) -> <_> base2, (k=1) -> <_> base2, (j=1) -> <_> base2]) ]
 
 test0To8 : (Omega (gTruncpt (Omega S2pt))).1 = f8 test0To7
 
 f9 : (Omega (gTruncpt (Omega S2pt))).1 -> sTrunc (Omega2 S2pt).1 =
   kappaOne (Omega S2pt)
-  
+
 test0To9 : sTrunc (Omega2 S2pt).1 = f9 test0To8
 
 f10 : sTrunc (Omega2 S2pt).1 -> loopS1 = e2'

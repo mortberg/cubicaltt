@@ -2353,12 +2353,9 @@ isoPath (A B : U) (f : A -> B) (g : B -> A)
 
 pi (A:U) (P:A->U) : U = (x:A) -> P x
 
-setPi (A:U) (B:A -> U) (h:(x:A) -> set (B x)) (f g:pi A B) : prop (Path (pi A B) f g) =
-  retractProp T0 T1 (\(p:T0) -> \(x:A) -> <i>p@i x) (\(p:T1) -> <i> \(x:A) -> p x @ i) (\(p:T0) -> refl T0 p) rem1
-  where
-  T0 : U = Path (pi A B) f g
-  T1 : U = (x:A) -> Path (B x) (f x) (g x)
-  rem1 : prop T1 = \(p q : T1) -> <i> \ (x:A) -> h x (f x) (g x) (p x) (q x)@i
+setPi (A:U) (B:A -> U) (h:(x:A) -> set (B x)) (f g : pi A B) : prop (Path (pi A B) f g) =
+  \(p q : Path (pi A B) f g) ->
+  <j i> \(a : A) -> h a (f a) (g a) (<i> p @ i a) (<i> q @ i a) @ j @ i
 
 setSigProp (A:U) (B:A -> U) (pB : (x:A) -> prop (B x))
   (sA : (t u : Sigma A B) -> prop (Path A t.1 u.1)) (t u : Sigma A B)
@@ -2441,13 +2438,11 @@ twogroupoidSigProp (A:U) (B:A -> U) (pB : (x:A) -> prop (B x))
     )
 
 groupoidPi (A : U) (B : A -> U) (h : (x : A) -> groupoid (B x)) (f g : pi A B) : set (Path (pi A B) f g) =
-  retractSet T0 T1 (\(p:T0) -> \(x:A) -> <i>p@i x) (\(p:T1) -> <i> \(x:A) -> p x @ i) (\(p:T0) -> refl T0 p) rem1
-  where
-  T0 : U = Path (pi A B) f g
-  T1 : U = (x:A) -> Path (B x) (f x) (g x)
-  rem1 : set T1 =
-    setPi A (\(x:A) -> Path (B x) (f x) (g x)) (\(x:A) -> h x (f x) (g x))
-  
+  \(p q : Path (pi A B) f g) ->
+  \(r s : Path (Path (pi A B) f g) p q) ->
+  <k j i> \(a : A) ->
+  h a (f a) (g a) (<i> p @ i a) (<i> q @ i a) (<j i> r @ j @ i a) (<j i> s @ j @ i a) @ k @ j @ i
+
 groupoidFun (A B : U) (sB : groupoid B) : groupoid (A -> B) =
   groupoidPi A (\(x : A) -> B) (\(x : A) -> sB)
 

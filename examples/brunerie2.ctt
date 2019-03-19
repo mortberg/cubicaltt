@@ -1974,139 +1974,67 @@ g2TruncTwoGroupoid (A : U) : twogroupoid (g2Trunc A) =
 -- We now prove the eliminator for 2-groupoid truncation. This would
 -- be a lot nicer in a proper proof assistant...
 
-lem0 (A : U) (P : A -> U) (gP : (x : A) -> twogroupoid (P x)) (a : A) :
-  (u : Path (Path (Path A a a) (<_> a) (<_> a)) (<_ _> a) (<_ _> a))
-  (v : Path (Path (Path (Path A a a) (<_> a) (<_> a)) (<_ _> a) (<_ _> a)) (<_ _ _> a) u)
-  (a1 b1 : P a)
-  (p1 q1 : Path (P a) a1 b1)
-  (r1 s1 : Path (Path (P a) a1 b1) p1 q1)
-  (t1 : Path (Path (Path (P a) a1 b1) p1 q1) r1 s1)
-  (u1 : PathP (<i> PathP (<j> PathP (<k> P (u @ i @ j @ k)) a1 b1) p1 q1) r1 s1) ->
-  PathP (<i> PathP (<j> PathP (<k> PathP (<l> P (v @ i @ j @ k @ l)) a1 b1) p1 q1) r1 s1) t1 u1 =
-  J (Path (Path (Path A a a) (<_> a) (<_> a)) (<_ _> a) (<_ _> a)) (<_ _ _> a)
-    (\(u : Path (Path (Path A a a) (<_> a) (<_> a)) (<_ _> a) (<_ _> a))
-      (v : Path (Path (Path (Path A a a) (<_> a) (<_> a)) (<_ _> a) (<_ _> a)) (<_ _ _> a) u) ->
-      (a1 b1 : P a)
-      (p1 q1 : Path (P a) a1 b1)
-      (r1 s1 : Path (Path (P a) a1 b1) p1 q1)
-      (t1 : Path (Path (Path (P a) a1 b1) p1 q1) r1 s1)
-      (u1 : PathP (<i> PathP (<j> PathP (<k> P (u @ i @ j @ k)) a1 b1) p1 q1) r1 s1) ->
-      PathP (<i> PathP (<j> PathP (<k> PathP (<l> P (v @ i @ j @ k @ l)) a1 b1) p1 q1) r1 s1) t1 u1)
-      (gP a)
-
-lem1 (A : U) (P : A -> U) (gP : (x : A) -> twogroupoid (P x)) (a : A) :
-  (s : Path (Path A a a) (<_> a) (<_> a))
-  (t u : Path (Path (Path A a a) (<_> a) (<_> a)) (<_ _> a) s)
-  (v : Path (Path (Path (Path A a a) (<_> a) (<_> a)) (<_ _> a) s) t u)
-  (a1 b1 : P a)
-  (p1 q1 : Path (P a) a1 b1)
-  (r1 : Path (Path (P a) a1 b1) p1 q1)
-  (s1 : PathP (<i> PathP (<j> P (s @ i @ j)) a1 b1) p1 q1)
-  (t1 : PathP (<i> PathP (<j> PathP (<k> P (t @ i @ j @ k)) a1 b1) p1 q1) r1 s1)
-  (u1 : PathP (<i> PathP (<j> PathP (<k> P (u @ i @ j @ k)) a1 b1) p1 q1) r1 s1) ->
-  PathP (<i> PathP (<j> PathP (<k> PathP (<l> P (v @ i @ j @ k @ l)) a1 b1) p1 q1) r1 s1) t1 u1 =
-  J (Path (Path A a a) (<_> a) (<_> a)) (<_ _> a)
-    (\(s : Path (Path A a a) (<_> a) (<_> a))
-      (t : Path (Path (Path A a a) (<_> a) (<_> a)) (<_ _> a) s) ->
-      (u : Path (Path (Path A a a) (<_> a) (<_> a)) (<_ _> a) s)
-      (v : Path (Path (Path (Path A a a) (<_> a) (<_> a)) (<_ _> a) s) t u)
-      (a1 b1 : P a)
-      (p1 q1 : Path (P a) a1 b1)
-      (r1 : Path (Path (P a) a1 b1) p1 q1)
-      (s1 : PathP (<i> PathP (<j> P (s @ i @ j)) a1 b1) p1 q1)
-      (t1 : PathP (<i> PathP (<j> PathP (<k> P (t @ i @ j @ k)) a1 b1) p1 q1) r1 s1)
-      (u1 : PathP (<i> PathP (<j> PathP (<k> P (u @ i @ j @ k)) a1 b1) p1 q1) r1 s1) ->
-      PathP (<i> PathP (<j> PathP (<k> PathP (<l> P (v @ i @ j @ k @ l)) a1 b1) p1 q1) r1 s1) t1 u1)
-      (lem0 A P gP a)
-
-lem2 (A : U) (P : A -> U) (gP : (x : A) -> twogroupoid (P x)) (a : A) :
-  (q : Path A a a) (r s : Path (Path A a a) (<_> a) q)
-  (t u : Path (Path (Path A a a) (<_> a) q) r s)
-  (v   : Path (Path (Path (Path A a a) (<_> a) q) r s) t u)
-  (a1 : P a) (b1 : P a)
-  (p1 : Path (P a) a1 b1)
-  (q1 : PathP (<i> P (q @ i)) a1 b1)
+g2TruncFib (A : U) (P : A -> U) (gP : (x : A) -> twogroupoid (P x)) (a : A)
+  (b : A) (p q : Path A a b) (r s : Path (Path A a b) p q)
+  (u v : Path (Path (Path A a b) p q) r s)
+  (w : Path (Path (Path (Path A a b) p q) r s) u v)
+  (a1 : P a) (b1 : P b)
+  (p1 : PathP (<i> P (p @ i)) a1 b1)
+  (q1 : PathP (<i> P (q @ i)) a1 b1) 
   (r1 : PathP (<i> PathP (<j> P (r @ i @ j)) a1 b1) p1 q1)
   (s1 : PathP (<i> PathP (<j> P (s @ i @ j)) a1 b1) p1 q1)
-  (t1 : PathP (<i> PathP (<j> PathP (<k> P (t @ i @ j @ k)) a1 b1) p1 q1) r1 s1)
-  (u1 : PathP (<i> PathP (<j> PathP (<k> P (u @ i @ j @ k)) a1 b1) p1 q1) r1 s1) ->
-  PathP (<i> PathP (<j> PathP (<k> PathP (<l> P (v @ i @ j @ k @ l)) a1 b1) p1 q1) r1 s1) t1 u1 =
-   J (Path A a a) (<_> a) (\(q : Path A a a) (r : Path (Path A a a) (<_> a) q) ->
-                            (s : Path (Path A a a) (<_> a) q)
-                            (t u : Path (Path (Path A a a) (<_> a) q) r s)
-                            (v   : Path (Path (Path (Path A a a) (<_> a) q) r s) t u)
-                            (a1 b1 : P a)
-                            (p1 : Path (P a) a1 b1)
-                            (q1 : PathP (<i> P (q @ i)) a1 b1)
-                            (r1 : PathP (<i> PathP (<j> P (r @ i @ j)) a1 b1) p1 q1)
-                            (s1 : PathP (<i> PathP (<j> P (s @ i @ j)) a1 b1) p1 q1)
-                            (t1 : PathP (<i> PathP (<j> PathP (<k> P (t @ i @ j @ k)) a1 b1) p1 q1) r1 s1)
-                            (u1 : PathP (<i> PathP (<j> PathP (<k> P (u @ i @ j @ k)) a1 b1) p1 q1) r1 s1) ->
-                            PathP (<i> PathP (<j> PathP (<k> PathP (<l> P (v @ i @ j @ k @ l)) a1 b1) p1 q1) r1 s1) t1 u1) (lem1 A P gP a)
+  (u1 : PathP (<i> PathP (<j> PathP (<k> P (u @ i @ j @ k)) a1 b1) p1 q1) r1 s1)
+  (v1 : PathP (<i> PathP (<j> PathP (<k> P (v @ i @ j @ k)) a1 b1) p1 q1) r1 s1)
+  : PathP (<i> PathP (<j> PathP (<k> PathP (<l> P (w @ i @ j @ k @ l)) a1 b1) p1 q1) r1 s1) u1 v1 
+  =
+  <i j k l> hcomp (P (w @ i @ j @ k @ l))
+                  (Lb @ i @ j @ k @ l)
+                  [ (i = 0) -> <m> u1 @ j @ k @ l 
+                  , (i = 1) -> <m> v1 @ j @ k @ l
+                  , (j = 0) -> <m> r1 @ k @ l
+                  , (j = 1) -> <m> s1 @ k @ l
+                  , (k = 0) -> <m> p1 @ l
+                  , (k = 1) -> <m> q1 @ l
+                  , (l = 0) -> <m> a1
+                  , (l = 1) -> <m> gP b b1 b1 (<_> b1) (<_> b1) (<_ _> b1) (<_ _> b1) L (<_ _ _> b1) @ m @ i @ j @ k
+                  ]
+  where
+  L : Path (Path (Path (P b) b1 b1) (<_> b1) (<_> b1)) (<_ _> b1) (<_ _> b1)
+    = <i j k> comp (<l> P (w @ i @ j @ k @ l)) a1
+                   [ (i = 0) -> <l> u1 @ j @ k @ l 
+                   , (i = 1) -> <l> v1 @ j @ k @ l
+                   , (j = 0) -> <l> r1 @ k @ l
+                   , (j = 1) -> <l> s1 @ k @ l
+                   , (k = 0) -> <l> p1 @ l
+                   , (k = 1) -> <l> q1 @ l
+                   ]
+  Lb : PathP (<i> PathP (<j> PathP (<k> PathP (<l> P (w @ i @ j @ k @ l)) a1 (L @ i @ j @ k)) p1 q1) r1 s1) u1 v1
+     = <i j k> fill (<l> P (w @ i @ j @ k @ l)) a1
+                   [ (i = 0) -> <l> u1 @ j @ k @ l 
+                   , (i = 1) -> <l> v1 @ j @ k @ l
+                   , (j = 0) -> <l> r1 @ k @ l
+                   , (j = 1) -> <l> s1 @ k @ l
+                   , (k = 0) -> <l> p1 @ l
+                   , (k = 1) -> <l> q1 @ l
+                   ]
 
-lem (A : U) (P : A -> U) (gP : (x : A) -> twogroupoid (P x)) (a : A) :
-    (b : A) (p q : Path A a b)
-    (r s : Path (Path A a b) p q)
-    (t u : Path (Path (Path A a b) p q) r s)
-    (v   : Path (Path (Path (Path A a b) p q) r s) t u)
-    (a1 : P a) (b1 : P b)
-    (p1 : PathP (<i> P (p @ i)) a1 b1)
-    (q1 : PathP (<i> P (q @ i)) a1 b1)
-    (r1 : PathP (<i> PathP (<j> P (r @ i @ j)) a1 b1) p1 q1)
-    (s1 : PathP (<i> PathP (<j> P (s @ i @ j)) a1 b1) p1 q1)
-    (t1 : PathP (<i> PathP (<j> PathP (<k> P (t @ i @ j @ k)) a1 b1) p1 q1) r1 s1)
-    (u1 : PathP (<i> PathP (<j> PathP (<k> P (u @ i @ j @ k)) a1 b1) p1 q1) r1 s1) ->
-    PathP (<i> PathP (<j> PathP (<k> PathP (<l> P (v @ i @ j @ k @ l)) a1 b1) p1 q1) r1 s1) t1 u1 =
-  J A a (\(b : A) (p : Path A a b) -> (q : Path A a b)
-          (r s : Path (Path A a b) p q)
-          (t u : Path (Path (Path A a b) p q) r s)
-          (v   : Path (Path (Path (Path A a b) p q) r s) t u)
-          (a1 : P a) (b1 : P b)
-          (p1 : PathP (<i> P (p @ i)) a1 b1)
-          (q1 : PathP (<i> P (q @ i)) a1 b1)
-          (r1 : PathP (<i> PathP (<j> P (r @ i @ j)) a1 b1) p1 q1)
-          (s1 : PathP (<i> PathP (<j> P (s @ i @ j)) a1 b1) p1 q1)
-          (t1 : PathP (<i> PathP (<j> PathP (<k> P (t @ i @ j @ k)) a1 b1) p1 q1) r1 s1)
-          (u1 : PathP (<i> PathP (<j> PathP (<k> P (u @ i @ j @ k)) a1 b1) p1 q1) r1 s1) ->
-          PathP (<i> PathP (<j> PathP (<k> PathP (<l> P (v @ i @ j @ k @ l)) a1 b1) p1 q1) r1 s1) t1 u1)
-          (lem2 A P gP a)
-
-T : U = (A : U) (P : A -> U) (gP : (x : A) -> twogroupoid (P x))
-        (a b : A)
-        (p q : Path A a b)
-        (r s : Path (Path A a b) p q)
-        (t u : Path (Path (Path A a b) p q) r s)
-        (v   : Path (Path (Path (Path A a b) p q) r s) t u)
-        (a1 : P a) (b1 : P b)
-        (p1 : PathP (<i> P (p @ i)) a1 b1)
-        (q1 : PathP (<i> P (q @ i)) a1 b1)
-        (r1 : PathP (<i> PathP (<j> P (r @ i @ j)) a1 b1) p1 q1)
-        (s1 : PathP (<i> PathP (<j> P (s @ i @ j)) a1 b1) p1 q1)
-        (t1 : PathP (<i> PathP (<j> PathP (<k> P (t @ i @ j @ k)) a1 b1) p1 q1) r1 s1)
-        (u1 : PathP (<i> PathP (<j> PathP (<k> P (u @ i @ j @ k)) a1 b1) p1 q1) r1 s1) ->
-        PathP (<i> PathP (<j> PathP (<k> PathP (<l> P (v @ i @ j @ k @ l)) a1 b1) p1 q1) r1 s1) t1 u1
-
-g2TruncElim1 (P : T) (A : U) (B : (g2Trunc A) -> U)
-             (bG : (x : g2Trunc A) -> twogroupoid (B x))
-             (f : (x : A) -> B (g2inc x)) : (x : g2Trunc A) -> B x = split
-  g2inc a -> f a
-  g2squashC a b p q r s t u @ i j k l ->
-    P (g2Trunc A) B bG a b p q r s t u
-      (g2TruncTwoGroupoid A a b p q r s t u)
-      (g2TruncElim1 P A B bG f a)
-      (g2TruncElim1 P A B bG f b)
-      (<m> g2TruncElim1 P A B bG f (p @ m))
-      (<m> g2TruncElim1 P A B bG f (q @ m))
-      (<m n> g2TruncElim1 P A B bG f (r @ m @ n))
-      (<m n> g2TruncElim1 P A B bG f (s @ m @ n))
-      (<m n o> g2TruncElim1 P A B bG f (t @ m @ n @ o))
-      (<m n o> g2TruncElim1 P A B bG f (u @ m @ n @ o)) @ i @ j @ k @ l
-
-g2TruncElim : (A : U)
-              (B : (g2Trunc A) -> U)
-              (bG : (x : g2Trunc A) -> twogroupoid (B x))
-              (f : (x : A) -> B (g2inc x)) (x : g2Trunc A) -> B x = g2TruncElim1 lem
-
+g2TruncElim (A : U)
+            (B : (g2Trunc A) -> U)
+            (bG : (x : g2Trunc A) -> twogroupoid (B x))
+            (f : (x : A) -> B (g2inc x)) : (x : g2Trunc A) -> B x = split
+  g2inc x -> f x
+  g2squashC x y p q r s u v @ i j k l ->
+    g2TruncFib (g2Trunc A) B bG x y p q r s u v
+               (g2TruncTwoGroupoid A x y p q r s u v)
+               (g2TruncElim A B bG f x)
+               (g2TruncElim A B bG f y)
+               (<i> g2TruncElim A B bG f (p @ i))
+               (<i> g2TruncElim A B bG f (q @ i))
+               (<i j> g2TruncElim A B bG f (r @ i @ j))
+               (<i j> g2TruncElim A B bG f (s @ i @ j))
+               (<i j k> g2TruncElim A B bG f (u @ i @ j @ k))
+               (<i j k> g2TruncElim A B bG f (v @ i @ j @ k))
+               @ i @ j @ k @ l
 
 -- Groupoid truncation
 data gTrunc (A : U) =
@@ -2158,34 +2086,31 @@ setTruncSet (A : U) : set (sTrunc A) =
   \(a b : sTrunc A) (p q : Path (sTrunc A) a b) ->
     <i j> ssquashC{sTrunc A} a b p q @ i @ j
 
-setTruncFibAux (A : U) (P : A -> U) (gP : (x : A) -> set (P x)) (a : A) :
-    (q : Path A a a)
-    (r : Path (Path A a a) (<_> a) q)
-    (a1 b1 : P a)
-    (p1 : PathP (<i> P a) a1 b1)
-    (q1 : PathP (<i> P (q @ i)) a1 b1) ->
-          PathP (<i> PathP (<j> P (r @ i @ j)) a1 b1) p1 q1
-  = J (Path A a a) (<_> a) (\ (q : Path A a a) (r : Path (Path A a a) (<_> a) q) ->
-                                 (a1 b1 : P a)
-                                 (p1 : PathP (<i> P a) a1 b1)
-                                 (q1 : PathP (<i> P (q @ i)) a1 b1) ->
-                               PathP (<i> PathP (<j> P (r @ i @ j)) a1 b1) p1 q1)
-      (\ (a1 b1 : P a) (p1 q1 : Path (P a) a1 b1) -> gP a a1 b1 p1 q1)
-
-setTruncFib (A : U) (P : A -> U) (gP : (x : A) -> set (P x)) (a : A) :
+setTruncFib (A : U) (P : A -> U) (gP : (x : A) -> set (P x)) (a : A)
     (b : A) (p q : Path A a b)
     (r : Path (Path A a b) p q)
     (a1 : P a) (b1 : P b)
     (p1 : PathP (<i> P (p @ i)) a1 b1)
-    (q1 : PathP (<i> P (q @ i)) a1 b1) ->
+    (q1 : PathP (<i> P (q @ i)) a1 b1) :
     PathP (<i> PathP (<j> P (r @ i @ j)) a1 b1) p1 q1 =
-  J A a (\ (b : A) (p : Path A a b) -> (q : Path A a b)
-          (r : Path (Path A a b) p q)
-          (a1 : P a) (b1 : P b)
-          (p1 : PathP (<i> P (p @ i)) a1 b1)
-          (q1 : PathP (<i> P (q @ i)) a1 b1) ->
-          PathP (<i> PathP (<j> P (r @ i @ j)) a1 b1) p1 q1)
-          (setTruncFibAux A P gP a)
+  <i j> hcomp (P (r @ i @ j))
+              (Lb @ i @ j)
+              [ (i = 0) -> <k> p1 @ j
+              , (i = 1) -> <k> q1 @ j
+              , (j = 0) -> <k> a1
+              , (j = 1) -> <k> gP b b1 b1 L (<_> b1) @ k @ i
+              ]
+  where
+  L : Path (P b) b1 b1 
+    = <i> comp (<j> P (r @ i @ j)) a1
+               [ (i = 0) -> <j> p1 @ j
+               , (i = 1) -> <j> q1 @ j
+               ]
+  Lb : PathP (<i> PathP (<j> P (r @ i @ j)) a1 (L @ i)) p1 q1
+    = <i> fill (<j> P (r @ i @ j)) a1
+               [ (i = 0) -> <j> p1 @ j
+               , (i = 1) -> <j> q1 @ j
+               ]
 
 -- B.9.2  Truncated higher Hopf fibration
 

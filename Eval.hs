@@ -428,6 +428,19 @@ inferType v = case v of
   _ -> error $ "inferType: not neutral " ++ show (showVal v)
 
 (@@) :: ToFormula a => Val -> a -> Val
+(VTrans (VPLam i (VPathP p v0 v1)) psi u) @@ phi = case toFormula phi of
+  -- This actually doesn't seem to matter, probably due to laziness!
+  -- Dir 0 -> v0 `face` (i~>1)
+  -- Dir 1 -> v1 `face` (i~>1)
+  f -> let uf = u @@ f
+       in comp i (p @@ f) uf
+               (unionSystem (border v0 (invSystem f Zero))
+                            (unionSystem (border v1 (invSystem f One))
+                                         (border uf (invSystem psi One))))
+-- (VHComp i (VPathP p v0 v1) u us) @@ phi = case toFormula phi of
+--   f -> hcomp i (p @@ f) (u @@ f)
+--                (unionSystem (border v0 (invSystem f Zero))
+--                             (unionSystem (border v1 (invSystem f One)) (mapSystem (@@ f) us)))
 (Ter (PLam i u) rho) @@ phi = eval (sub (i,toFormula phi) rho) u
 (VPLam i u) @@ phi         = case toFormula phi of
   Dir d -> act True u (i,Dir d)
@@ -469,6 +482,8 @@ hfill i a u us = hcomp j a u (insertSystem (i ~> 0) u $ us `conj` (i,j))
 hcomp :: Name -> Val -> Val -> System Val -> Val
 hcomp i a u us | eps `member` us = (us ! eps) `face` (i ~> 1)
 hcomp i a u us = case a of
+  -- For some reason it doesn't seem to work to treat hcomp in Path negatively. Why?
+  -- VPathP{} -> VHComp i a u us
   VPathP p v0 v1 ->
     let j = fresh (Atom i,a,u,us)
     in VPLam j $ hcomp i (p @@@ j) (u @@@ j) (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
@@ -477,7 +492,7 @@ hcomp i a u us = case a of
   VSigma a f
     | isNonDep f -> VPair (hcomp i a (fstVal u) (mapSystem fstVal us))
                           (hcomp i (app f (VVar "impossible" VU)) (sndVal u) (mapSystem sndVal us))
-    | otherwise -> 
+    | otherwise ->
       let (us1, us2) = (mapSystem fstVal us, mapSystem sndVal us)
           (u1, u2) = (fstVal u, sndVal u)
           u1fill = hfill i a u1 us1
@@ -619,11 +634,12 @@ fillNeg i a u ts = (fill i (a `sym` i) u (ts `sym` i)) `sym` i
 trans :: Val -> Formula -> Val -> Val
 trans _ (Dir One) u = u
 trans (VPLam i a) phi u = case a of
-  VPathP p v0 v1 ->
-    let j = fresh (Atom i,a,phi,u)
-        uj = u @@@ j
-    in VPLam j $ comp i (p @@@ j) uj (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
-                                               (border uj (invSystem phi One)))
+  VPathP{} -> VTrans (VPLam i a) phi u
+  -- VPathP p v0 v1 ->
+  --   let j = fresh (Atom i,a,phi,u)
+  --       uj = u @@@ j
+  --   in VPLam j $ comp i (p @@@ j) uj (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
+  --                                              (border uj (invSystem phi One)))
   -- VId b v0 v1 -> undefined
   VSigma a f
     | isNonDep f -> VPair (trans (VPLam i a) phi (fstVal u))
@@ -1067,22 +1083,24 @@ instance Convertible Val where
       (VOpaque x _, VOpaque x' _) -> x == x'
       (VVar x _, VVar x' _)       -> x == x'
       (VPathP a b c,VPathP a' b' c') -> conv ns a a' && conv ns b b' && conv ns c c'
-      
       (Ter (PLam i a) e,Ter (PLam i' a') e') ->
         conv ns (eval (sub (i,Atom j) e) a) (eval (sub (i',Atom j) e') a')
       (Ter (PLam i a) e,a') -> conv ns (eval (sub (i,Atom j) e) a) (a' @@ j)
       (a,Ter (PLam i' a') e) -> conv ns (a @@ j) (eval (sub (i',Atom j) e) a')
-
       (VPLam i a,VPLam i' a')    -> conv ns (a `swap` (i,j)) (a' `swap` (i',j))
       (VPLam i a,p')             -> conv ns (a `swap` (i,j)) (p' @@ j)
       (p,VPLam i' a')            -> conv ns (p @@ j) (a' `swap` (i',j))
       (VAppFormula u x,VAppFormula u' x') -> conv ns (u,x) (u',x')
+
+      (VTrans (VPLam i (VPathP _ _ _)) _ _,_) -> conv ns (u @@ j) (v @@ j)
+      (_,VTrans (VPLam i (VPathP _ _ _)) _ _) -> conv ns (u @@ j) (v @@ j)
       (VTrans a phi u,VTrans a' phi' u')  ->
-        -- TODO: Maybe identify via (- = 1)?  Or change argument to a system..
         conv ns (a,invSystem phi One,u) (a',invSystem phi' One,u')
-        -- conv ns (a,phi,u) (a',phi',u')
-      (VHComp j a u ts,VHComp j' a' u' ts')    -> -- TODO
+      (VHComp _ (VPathP _ _ _) _ _,_) -> conv ns (u @@ j) (v @@ j)
+      (_,VHComp _ (VPathP _ _ _) _ _) -> conv ns (u @@ j) (v @@ j)
+      (VHComp j a u ts,VHComp j' a' u' ts')    ->
         conv ns (a,u,mapSystem (VPLam j) ts) (a',u',mapSystem (VPLam j') ts')
+
       (VComp j a u ts,VComp j' a' u' ts')    -> conv ns (VPLam j a,u,mapSystem (VPLam j) ts) (VPLam j' a',u',mapSystem (VPLam j') ts')
       (VGlue v equivs,VGlue v' equivs')   -> conv ns (v,equivs) (v',equivs')
       (VGlueElem (VUnGlueElem b a equivs) ts,g) -> conv ns (border b equivs,b) (ts,g)
@@ -1157,8 +1175,16 @@ instance Normal Val where
     VPCon n u us phis   -> VPCon n (normal ns u) (normal ns us) phis
     VPathP a u0 u1      -> VPathP (normal ns a) (normal ns u0) (normal ns u1)
     VPLam i u           -> VPLam i (normal ns u)
+
+    u@(VTrans (VPLam _ (VPathP _ _ _)) _ _) ->
+      let j = fresh ()
+      in normal ns (VPLam j $ u @@ j)
     VTrans a phi u      -> VTrans (normal ns a) (normal ns phi) (normal ns u)
-    VHComp j u v vs     -> VHComp j (normal ns u) (normal ns v) (normal ns vs)
+    u@(VHComp _ (VPathP _ _ _) _ _) ->
+      let j = fresh ()
+      in normal ns (VPLam j $ u @@ j)
+    VHComp j u v vs -> VHComp j (normal ns u) (normal ns v) (normal ns vs)
+
     VComp j u v vs      -> VComp j (normal ns u) (normal ns v) (normal ns vs)
     VGlue u equivs      -> VGlue (normal ns u) (normal ns equivs)
     -- VGlueElem (VUnGlueElem b _ _) _ -> normal ns b

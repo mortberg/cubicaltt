@@ -1296,13 +1296,10 @@ decStable (A : U) : dec A -> stable A = split
 discrete (A : U) : U = (a b : A) -> dec (Path A a b)
 
 hedbergLemma (A: U) (a b:A) (f : (x : A) -> Path A a x -> Path A a x) (p : Path A a b) :
-            Square A a a a b (<_> a) p (f a (<_> a)) (f b p) =
- transGen (<i> Square A a a a (p @ i) (<_> a) (<j> p @ i /\ j)
-                 (f a (<_> a)) (f (p @ i) (<j> p @ i /\ j)))
-          0 (<i> f a (<_> a))
+            Square A a a a b (<_> a) p (f a (<_> a)) (f b p) = <i> f (p @ i) (<j> p @ i /\ j)
 
 hedbergStable (A : U) (a b : A) (h : (x : A) -> stable (Path A a x))
-        (p q : Path A a b) : Path (Path A a b) p q =
+        (p q : Path A a b) : Path (Path A a b) p q = 
  <j i> hcomp A a [ (j = 0) -> rem2 @ i
                  , (j = 1) -> rem3 @ i
                  , (i = 0) -> r
@@ -1870,27 +1867,15 @@ fibContrHopfThree_unfolded (p : (Omega3 S2pt).1) : HopfThree p =
       p3' : PathP (<i> PathP (<j> PathP (<k> Hopf (p @ i @ j @ k)) base1 base1) (<_> base1) (<_> base1)) (<_ _> base1) (<_ _> base1) =
         <i j k> hcomp (Hopf (p @ i @ j @ k))
                       (transGen (<l> Hopf (p @ (i \/ -l) @ j @ k)) 0
-                                (p2'' (<m n> hcomp S1 (transGen (<o> Hopf (p @ o @ m @ n)) 0 base1)
-                                                    [ (m=0) -> <_> base1
-                                                    , (m=1) -> <_> base1
-                                                    , (n=0) -> <_> base1
-                                                    , (n=1) -> <_> base1 ])
+                                (p2'' (<m n> (transGen (<o> Hopf (p @ o @ m @ n)) 0 base1))
                                     (<_ _> base1) @ i @ j @ k))
                       [ (i=0) -> <m> transGen (<l> Hopf (p @ (-l /\ -m) @ j @ k)) m
-                                              (hcomp (Hopf (p @ -m @ j @ k))
                                                      (transGen (<n> Hopf (p @ (-m /\ n) @ j @ k)) 0 base1)
-                                                     [ (j=0) -> <_> base1
-                                                     , (j=1) -> <_> base1
-                                                     , (k=0) -> <_> base1
-                                                     , (k=1) -> <_> base1
-                                                     , (m=1) -> <_> base1 ])
                       , (i=1) -> <_> base1
                       , (j=0) -> <_> base1
                       , (j=1) -> <_> base1
                       , (k=0) -> <_> base1
                       , (k=1) -> <_> base1 ]
-
-
   in p3'
 
 
@@ -2282,7 +2267,7 @@ tHopf3 : S3 -> U = split
                   , (k=1) -> (trS2, idEquiv')]
 
 pi3S3 (p : (Omega3 S3pt).1) : (Omega2 (g2Truncpt S2pt)).1 =
-  <i j> transGen (<k> tHopf3 (p @ i @ j @ k)) 0 (g2inc base2) 
+  <i j> transGen (<k> tHopf3 (p @ j @ k @ i)) 0 (g2inc base2) 
   -- mapOmegaRefl2 (Omega S3pt) trS2 pi3S3'
   --   where
   --   pi3S3' (p : (Omega S3pt).1) : trS2 =
@@ -2478,19 +2463,20 @@ twogroupoidGROUPOID : twogroupoid GROUPOID =
 
 -- opaque twogroupoidGROUPOID
 
-truncPath2 (A : ptType) : g2Trunc A.1 -> GROUPOID =
-  g2TruncRec A.1 GROUPOID twogroupoidGROUPOID
-    (\(x : A.1) -> (gTrunc (Path A.1 (pt A) x),gTruncGroupoid (Path A.1 (pt A) x)))
+truncPath2 : g2Trunc S2 -> GROUPOID =
+  g2TruncRec S2 GROUPOID twogroupoidGROUPOID
+    (\(x : S2) -> (gTrunc (Path S2 base2 x),gTruncGroupoid (Path S2 base2 x)))
 
-kappaTwo (A : ptType) (p : (Omega (g2Truncpt A)).1) : gTrunc (Omega A).1 =
-  subst (g2Trunc A.1) (\(x : g2Trunc A.1) -> (truncPath2 A x).1)
-        (g2inc (pt A)) (g2inc (pt A)) p (ginc (<_> pt A))
+kappaTwo (p : (Omega (g2Truncpt S2pt)).1) : gTrunc (Omega S2pt).1 =
+  transGen (<i> (truncPath2 (p @ i)).1) 0 (ginc (<_> base2))
+-- subst (g2Trunc A.1) (\(x : g2Trunc A.1) -> (truncPath2 A x).1)
+--         (g2inc (pt A)) (g2inc (pt A)) p (ginc (<_> pt A))
 
-kappaTwoPt (A : ptType) :
-  Path (gTrunc (Omega A).1)
-    (kappaTwo A (pt (Omega (g2Truncpt A))))
-    (pt (gTruncpt (Omega A))) =
-    <i> transGen (<_> (truncPath2 A (pt (g2Truncpt A))).1) i (ginc (<_> pt A))
+-- kappaTwoPt (A : ptType) :
+--   Path (gTrunc (Omega A).1)
+--     (kappaTwo A (pt (Omega (g2Truncpt A))))
+--     (pt (gTruncpt (Omega A))) =
+--     <i> transGen (<_> (truncPath2 A (pt (g2Truncpt A))).1) i (ginc (<_> pt A))
 
 -- Groupoid set
 setFun (A B : U) (sB : set B) : set (A -> B) =
@@ -2523,8 +2509,9 @@ kappaOne (A : ptType) (p : (Omega (gTruncpt A)).1) : sTrunc (Omega A).1 =
 
 -- e'_2 from 12
 pi2S2' (p : (Omega2 S2pt).1) : loopS1 =
-  let point : (Omega S2pt).1 = pt (Omega S2pt)
-  in subst (Omega S2pt).1 HopfOne point point p (<_> base1)
+  <i> transGen (<j> Hopf (p @ j @ i)) 0 base1
+  -- let point : (Omega S2pt).1 = pt (Omega S2pt)
+  -- in subst (Omega S2pt).1 HopfOne point point p (<_> base1)
 
 e2' : sTrunc (Omega2 S2pt).1 -> loopS1 =
   sTruncRec (Omega2 S2pt).1 loopS1 setLoop pi2S2'
@@ -2645,14 +2632,17 @@ f7 : (Omega3 S3pt).1 -> (Omega2 (g2Truncpt S2pt)).1 = pi3S3
 
 test0To7 : (Omega2 (g2Truncpt S2pt)).1 = f7 test0To6
 
-f8 : (Omega2 (g2Truncpt S2pt)).1 -> (Omega (gTruncpt (Omega S2pt))).1 =
- (mapOmega (Omega (g2Truncpt S2pt)) (gTruncpt (Omega S2pt)) (kappaTwo S2pt, kappaTwoPt S2pt)).1
+f8 (p : (Omega2 (g2Truncpt S2pt)).1) : (Omega (gTruncpt (Omega S2pt))).1 =
+ -- (mapOmega (Omega (g2Truncpt S2pt)) (gTruncpt (Omega S2pt)) (kappaTwo S2pt, kappaTwoPt S2pt)).1
+ <i> hcomp (gTrunc (Path S2 base2 base2)) (kappaTwo (p @ i))
+           [ (i=0) -> <j> ginc (<k> hcomp S2 base2 [(k=0) -> <_> base2, (k=1) -> <_> base2, (j=1) -> <_> base2])
+           , (i=1) -> <j> ginc (<k> hcomp S2 base2 [(k=0) -> <_> base2, (k=1) -> <_> base2, (j=1) -> <_> base2]) ]
 
 test0To8 : (Omega (gTruncpt (Omega S2pt))).1 = f8 test0To7
 
 f9 : (Omega (gTruncpt (Omega S2pt))).1 -> sTrunc (Omega2 S2pt).1 =
   kappaOne (Omega S2pt)
-  
+
 test0To9 : sTrunc (Omega2 S2pt).1 = f9 test0To8
 
 f10 : sTrunc (Omega2 S2pt).1 -> loopS1 = e2'
@@ -2663,10 +2653,28 @@ f11 : loopS1 -> Z = encode base1
 
 brunerie : Z = f11 test0To10
 
--- Version of brunerie that might be faster, uses h' (so
--- fibContrHopfThree_unfolded) and the (most likely) most efficient
--- rotation of test0To4
+-- More versions
+brunerie_rotijk : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5 test0To4_rotijk))))))
+brunerie_rotikj : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5 test0To4_rotikj))))))
+brunerie_rotjik : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5 test0To4_rotjik))))))
+brunerie_rotjki : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5 test0To4_rotjki))))))
+brunerie_rotkij : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5 test0To4_rotkij))))))
+brunerie_rotkji : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5 test0To4_rotkji))))))
+
+
+-- Versions of brunerie that might be faster, uses h' (so
+-- fibContrHopfThree_unfolded)
+
+brunerie_rotijk' : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5' test0To4_rotijk))))))
+brunerie_rotikj' : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5' test0To4_rotikj))))))
+brunerie_rotjik' : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5' test0To4_rotjik))))))
+brunerie_rotjki' : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5' test0To4_rotjki))))))
+brunerie_rotkij' : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5' test0To4_rotkij))))))
+brunerie_rotkji' : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5' test0To4_rotkji))))))
+
+-- This is potentially the fastest?
 brunerie_opt : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5' test0To4_rotjki))))))
+
 
 
 

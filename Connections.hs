@@ -76,9 +76,9 @@ swapFace alpha ij = Map.mapKeys (`swapName` ij) alpha
 compatible :: Face -> Face -> Bool
 compatible xs ys = and (Map.elems (Map.intersectionWith (==) xs ys))
 
-compatibles :: [Face] -> Bool
-compatibles []     = True
-compatibles (x:xs) = all (x `compatible`) xs && compatibles xs
+-- compatibles :: [Face] -> Bool
+-- compatibles []     = True
+-- compatibles (x:xs) = all (x `compatible`) xs && compatibles xs
 
 allCompatible :: [Face] -> [(Face,Face)]
 allCompatible []     = []
@@ -120,12 +120,12 @@ meetss = foldr meets [eps]
 leq :: Face -> Face -> Bool
 alpha `leq` beta = meetMaybe alpha beta == Just alpha
 
-comparable :: Face -> Face -> Bool
-comparable alpha beta = alpha `leq` beta || beta `leq` alpha
+-- comparable :: Face -> Face -> Bool
+-- comparable alpha beta = alpha `leq` beta || beta `leq` alpha
 
-incomparables :: [Face] -> Bool
-incomparables []     = True
-incomparables (x:xs) = all (not . (x `comparable`)) xs && incomparables xs
+-- incomparables :: [Face] -> Bool
+-- incomparables []     = True
+-- incomparables (x:xs) = all (not . (x `comparable`)) xs && incomparables xs
 
 (~>) :: Name -> Dir -> Face
 i ~> d = singleton i d
@@ -255,8 +255,8 @@ invFormula (phi :/\: psi) Zero = invFormula phi 0 `union` invFormula psi 0
 invFormula (phi :/\: psi) One  = meets (invFormula phi 1) (invFormula psi 1)
 invFormula (phi :\/: psi) b    = invFormula (negFormula phi :/\: negFormula psi) (- b)
 
-propInvFormulaIncomp :: Formula -> Dir -> Bool
-propInvFormulaIncomp phi b = incomparables (invFormula phi b)
+-- propInvFormulaIncomp :: Formula -> Dir -> Bool
+-- propInvFormulaIncomp phi b = incomparables (invFormula phi b)
 
 -- prop_invFormula :: Formula -> Dir -> Bool
 -- prop_invFormula phi b =
@@ -570,9 +570,9 @@ conj, disj :: Nominal a => a -> (Name, Name) -> a
 conj a (i, j) = act False a (i, Atom i :/\: Atom j)
 disj a (i, j) = act False a (i, Atom i :\/: Atom j)
 
-leqSystem :: Face -> System a -> Bool
-alpha `leqSystem` us =
-  not $ nullSystem $ filterWithKey (\beta _ -> alpha `leq` beta) us
+-- leqSystem :: Face -> System a -> Bool
+-- alpha `leqSystem` us =
+--   not $ nullSystem $ filterWithKey (\beta _ -> alpha `leq` beta) us
 
 -- -- assumes alpha <= shape us
 -- proj :: (Nominal a, Show a) => System a -> Face -> a

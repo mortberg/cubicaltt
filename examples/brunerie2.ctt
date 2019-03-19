@@ -2279,7 +2279,7 @@ tHopf3 : S3 -> U = split
                   , (k=1) -> (trS2, idEquiv')]
 
 pi3S3 (p : (Omega3 S3pt).1) : (Omega2 (g2Truncpt S2pt)).1 =
-  <i j> transGen (<k> tHopf3 (p @ i @ j @ k)) 0 (g2inc base2) 
+  <i j> transGen (<k> tHopf3 (p @ j @ k @ i)) 0 (g2inc base2) 
   -- mapOmegaRefl2 (Omega S3pt) trS2 pi3S3'
   --   where
   --   pi3S3' (p : (Omega S3pt).1) : trS2 =

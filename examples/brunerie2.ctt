@@ -2511,6 +2511,31 @@ pi2S2' (p : (Omega2 S2pt).1) : loopS1 =
 e2' : sTrunc (Omega2 S2pt).1 -> loopS1 =
   sTruncRec (Omega2 S2pt).1 loopS1 setLoop pi2S2'
 
+-- experiment with alternative definitions in place of f8-11. seems much faster.
+
+codeS2 (s : S2) : GROUPOID = (gTrunc (Hopf s), gTruncGroupoid (Hopf s))
+
+codeTruncS2 : g2Trunc S2 -> GROUPOID = g2TruncRec S2 GROUPOID twogroupoidGROUPOID codeS2
+
+encodeTruncS2 (p : (Omega (g2Truncpt S2pt)).1) : gTrunc S1 = transGen (<i> (codeTruncS2 (p @ i)).1) 0 (ginc base1)
+
+codeS1 (s : S1) : SET = (sTrunc (helix s), setTruncSet (helix s))
+
+codeTruncS1 : gTrunc S1 -> SET = gTruncRec S1 SET groupoidSET codeS1
+
+encodeS1 (p : (Omega (gTruncpt S1pt)).1) : sTrunc Z = transGen (<i> (codeTruncS1 (p @ i)).1) 0 (sinc (pos zero))
+
+-- g8-10 replaces f8-11
+
+g8 : (Omega2 (g2Truncpt S2pt)).1 -> (Omega (gTruncpt S1pt)).1 =
+  mapOmegaRefl (Omega (g2Truncpt S2pt)) (gTrunc S1) encodeTruncS2
+
+g9 : (Omega (gTruncpt S1pt)).1 -> sTrunc Z = encodeS1
+
+g10 : sTrunc Z -> Z = sTruncRec Z Z ZSet (idfun Z)
+
+-- end of experiment
+
 --- tests
 
 test0To2 : (Omega3 S3pt).1 = <i j k> loop3{S3} @ i @ j @ k

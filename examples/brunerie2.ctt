@@ -1867,27 +1867,15 @@ fibContrHopfThree_unfolded (p : (Omega3 S2pt).1) : HopfThree p =
       p3' : PathP (<i> PathP (<j> PathP (<k> Hopf (p @ i @ j @ k)) base1 base1) (<_> base1) (<_> base1)) (<_ _> base1) (<_ _> base1) =
         <i j k> hcomp (Hopf (p @ i @ j @ k))
                       (transGen (<l> Hopf (p @ (i \/ -l) @ j @ k)) 0
-                                (p2'' (<m n> hcomp S1 (transGen (<o> Hopf (p @ o @ m @ n)) 0 base1)
-                                                    [ (m=0) -> <_> base1
-                                                    , (m=1) -> <_> base1
-                                                    , (n=0) -> <_> base1
-                                                    , (n=1) -> <_> base1 ])
+                                (p2'' (<m n> (transGen (<o> Hopf (p @ o @ m @ n)) 0 base1))
                                     (<_ _> base1) @ i @ j @ k))
                       [ (i=0) -> <m> transGen (<l> Hopf (p @ (-l /\ -m) @ j @ k)) m
-                                              (hcomp (Hopf (p @ -m @ j @ k))
                                                      (transGen (<n> Hopf (p @ (-m /\ n) @ j @ k)) 0 base1)
-                                                     [ (j=0) -> <_> base1
-                                                     , (j=1) -> <_> base1
-                                                     , (k=0) -> <_> base1
-                                                     , (k=1) -> <_> base1
-                                                     , (m=1) -> <_> base1 ])
                       , (i=1) -> <_> base1
                       , (j=0) -> <_> base1
                       , (j=1) -> <_> base1
                       , (k=0) -> <_> base1
                       , (k=1) -> <_> base1 ]
-
-
   in p3'
 
 

@@ -1901,6 +1901,23 @@ fibContrHopfThree'' (p : (Omega3 S2pt).1) : HopfThree'' p =
 
 fibContrHopfThree_unprime (p : (Omega3 S2pt).1) : HopfThree p =
   unprimeThree p (fibContrHopfThree' p)
+
+fibContrHopfThree_evan (p : (Omega3 S2pt).1) : HopfThree p =
+  <i j k>
+  hcomp
+    (Hopf (p @ i @ j @ k))
+    (transGen (<n> Hopf (p @ i @ j @ k /\ n)) (i \/ -i \/ j \/ -j \/ -k) base1)
+    [ (i=0) -> <_> base1
+    , (i=1) -> <_> base1
+    , (j=0) -> <_> base1
+    , (j=1) -> <_> base1
+    , (k=0) -> <_> base1
+    , (k=1) -> <m>
+      setLoop (<_> base1) (<_> base1)
+        (<i j> transGen (<n> Hopf (p @ i @ j @ n)) (i \/ -i \/ j \/ -j) base1)
+        (<_ _> base1)
+        @ m @ i @ j
+    ]
   
 -- -- end of alternative approach
 

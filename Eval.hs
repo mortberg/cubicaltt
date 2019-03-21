@@ -671,7 +671,7 @@ transTer (VPLam i a) phi u = case a of
 
 transHSum (VPLam i a) phi u = case a of
   Ter (HSum _ n nass) env
-    | n `elem` ["S1","S2","S3","g2Trunc"] -> u
+    | n `elem` ["S1","S2","S3","PostTotalHopf"] -> u
     | otherwise -> case u of
     VCon n us -> case lookupLabel n nass of
       Just tele -> VCon n (transps i tele env phi us)
@@ -959,7 +959,7 @@ lemEqConst i eq@(VPLam _ (Ter (Sum _ n _) _)) b as
    j = fresh (eq,b,as)
    eqj = eq @@@ j
 lemEqConst i eq@(VPLam _ (Ter (HSum _ n _) _)) b as
-  | n `elem` ["S1","S2","S3","g2Trunc"] = (hcomp j eqj b as,hfill i eqj b as)
+  | n `elem` ["S1","S2","S3","PostTotalHopf"] = (hcomp j eqj b as,hfill i eqj b as)
   where
    j = fresh (eq,b,as)
    eqj = eq @@@ j

@@ -610,7 +610,7 @@ ua (A B : U) (e : equiv A B) : Path U A B =
              , (i = 1) -> (B,idEquiv B) ]
 
 rotLoop : (a : S1) -> Path S1 a a = split
-  base1 -> <i> loop @ i
+  base1 -> loop
   loop1 @ i -> constSquare S1 base1 loop @ i
 
 rot : S1 -> S1 -> S1 = split
@@ -799,8 +799,6 @@ rotrotinvloop1 : (y : S1) -> PathP (<i> Path S1 (rotLoop (rotLoop y @ -i) @ i) y
   
   
 
-rotpath (x : S1) : Path U S1 S1 = ua S1 S1 (rot x, rotIsEquiv x)
-
 goal (A : U) : Path (Path U A A) (ua A A (idEquiv A)) (<_> A) =
   <j i> Glue A [ (i = 0) -> (A,idEquiv A)
                , (i = 1) -> (A,idEquiv A)
@@ -924,21 +922,75 @@ tee4 : AlmostJoinS1S1 -> join S1 S1 = split
 
 tee : (x : S2) -> (Hopf x -> join S1 S1) = \(x : S2) (y : Hopf x) -> tee4 (tee3 (tee2 (tee1 x y)))
 
--- s2tosusps1 : S2 -> susp S1 = split
---   base2 -> north
---   loop2 @ i j ->
---     hcomp (susp S1) (meridP S1 (loop @ j) @ i)
---                     [ (i=0) -> <_> north
---                     , (i=1) -> <k> meridP S1 base1 @ -k
---                     , (j=0) -> <k> meridP S1 base1 @ -k /\ i
---                     , (j=1) -> <k> meridP S1 base1 @ -k /\ i ]
+-- Experiment with suspension
 
--- Hopfsusp : susp S1 -> U = split
---   north -> S1
---   south -> S1
---   merid x @ i -> rotpath x @ i
+data susp (A : U) = north
+                  | south
+                  | merid (a : A) <i> [ (i=0) -> north
+                                      , (i=1) -> south ]
+
+meridP (A : U) (a : A) : Path (susp A) north south =
+  <i> merid{susp A} a @ i
+
+s2tosusps1 : S2 -> susp S1 = split
+  base2 -> north
+  loop2 @ i j ->
+    hcomp (susp S1) (meridP S1 (loop @ j) @ i)
+                    [ (i=0) -> <_> north
+                    , (i=1) -> <k> meridP S1 base1 @ -k
+                    , (j=0) -> <k> meridP S1 base1 @ -k /\ i
+                    , (j=1) -> <k> meridP S1 base1 @ -k /\ i ]
+
+
+rotpath (x : S1) : Path U S1 S1 =
+  <i> Glue S1 [ (i = 0) -> (S1,(rot x, rotIsEquiv x))
+              , (i = 1) -> (S1,idEquiv S1) ]
+
+Hopfsusp : susp S1 -> U = split
+  north -> S1
+  south -> S1
+  merid x @ i -> rotpath x @ i
+
+rotInvBase : (b : S1) -> Path S1 (rot (rot b base1) (inv b)) base1 = split
+  base1 -> <_> base1
+  loop1 @ k -> <i> hcomp S1 (rot (loop @ k \/ i) (loop @ - k))
+                            [ (k=0) -> <l> loop @ i /\ -l
+                            , (k=1) -> <_> base1
+                            , (i=0) -> <_> rot (loop @ k) (loop @ -k)
+                            , (i=1) -> <l> loop @ -k /\ -l ]
+
+rotInvLoop : (b : S1) -> PathP (<i> Path S1 (rot (rot b (loop @ i)) (inv b)) (loop @ i))
+                               (rotInvBase b) (rotInvBase b) = split
+  base1 -> <j _> loop @ j
+  loop1 @ k -> <j i> hcomp S1
+                           (rot (rot (loop @ k \/ i) (loop @ j)) (loop @ - k))
+                           [ (k=0) -> <l> rot (loop @ i /\ - l) (loop @ j)
+                           , (k=1) -> <_> loop @ j
+                           , (i=0) -> <_> rot (rot (loop @ k) (loop @ j)) (loop @ - k)
+                           , (i=1) -> <l> rot (loop @ - k /\ - l) (loop @ j) ]
+
+rotInv : (a b : S1) -> Path S1 (rot (rot b a) (inv b)) a = split
+  base1 -> rotInvBase
+  loop1 @ j -> \(b : S1) -> rotInvLoop b @ j
+
+TotalHopftoJoinS1S1 : (x : susp S1) -> Hopfsusp x -> join S1 S1 = split
+  north -> \(x : S1) -> inl x
+  south -> \(x : S1) -> inr x
+  merid y @ j -> \(x : rotpath y @ j) ->
+    hcomp (join S1 S1)
+          (push{join S1 S1}
+                (rot (unglue x S1 [ (j = 0) -> (S1,(rot y, rotIsEquiv y))
+                                  , (j = 1) -> (S1,idEquiv S1) ]) (inv y))
+                (unglue x S1 [ (j = 0) -> (S1,(rot y, rotIsEquiv y))
+                             , (j = 1) -> (S1,idEquiv S1) ]) @ j)
+          [ (j = 0) -> <t> inl (rotInv x y @ t)
+          , (j = 1) -> <_> inr x ]
 
 -- Hopf (x : S2) : U = Hopfsusp (s2tosusps1 x)
+
+-- TotalHopf2toJoinS1S1 (x : S2) : Hopf x -> join S1 S1 =
+--   TotalHopftoJoinS1S1 (s2tosusps1 x)
+
 
 -- Alternative Hopf, doesn't seem to compute differently
 -- lemSig (A : U) (B : A -> U) (pB : (x : A) -> prop (B x))

@@ -2007,11 +2007,11 @@ fibContrHopfThree_evan (p : (Omega3 S2pt).1) : HopfThree p =
 
 -- The map h from 9.3
 h (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 =
-  <i j k> tee (p @ i @ j @ k) (fibContrHopfThree_unprime p @ i @ j @ k)
+  <i j k> tee' (p @ i @ j @ k) (fibContrHopfThree_unprime p @ i @ j @ k)
 
 -- Alternative definition of the h map using fibContrHopfThree_unfolded
 h' (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 =
-  <i j k> tee (p @ i @ j @ k) (fibContrHopfThree_unfolded p @ i @ j @ k)
+  <i j k> tee' (p @ i @ j @ k) (fibContrHopfThree_unfolded p @ i @ j @ k)
 
 -- h (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 =
 --   <i j k> TotalHopf2toJoinS1S1 (p @ i @ j @ k) (fibContrHopfThree_evan p @ i @ j @ k)
@@ -2336,7 +2336,7 @@ multTwoAux' : (x : S2) -> Path (Path trS2 (g2inc x) (g2inc x)) (<_> g2inc x) (<_
 
 multTwo : S2 -> S2 -> trS2 = split
   base2 -> (\ (x : S2) -> g2inc x)
-  loop2 @ i j -> (\ (x : S2) -> multTwoAux x @ i @ j)
+  loop2 @ i j -> (\ (x : S2) -> multTwoAux' x @ i @ j)
 
 multTwoTilde (x : S2) : trS2 -> trS2 =
   g2TruncRec S2 trS2 trS2Trunc (multTwo x)

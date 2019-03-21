@@ -1981,6 +1981,8 @@ h (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 =
 h' (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 =
   <i j k> tee (p @ i @ j @ k) (fibContrHopfThree_unfolded p @ i @ j @ k)
 
+-- h (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 =
+--   <i j k> TotalHopf2toJoinS1S1 (p @ i @ j @ k) (fibContrHopfThree_evan p @ i @ j @ k)
 
 --------------------------------------------------------------------------------
 -- B.9 Going back to pi2(S2)
@@ -2766,6 +2768,8 @@ brunerie_opt : Z = f11 (f10 (f9 (f8 (f7 (f6 (f5' test0To4_rotjki))))))
 
 
 
+test631' : Z = g10 (g9 (g8 (f7 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 test0To2)))))))))))))))))))))))
+testShortcut4To5' : Z = g10 (g9 (g8 (f7 (f6 (f3 test0To2)))))
 
 -- Try to compute some shortcuts and various experiments
 

@@ -2264,6 +2264,44 @@ multTwoAux : (x : S2) -> Path (Path trS2 (g2inc x) (g2inc x)) (<_> g2inc x) (<_>
                              (<_ i j> g2inc (loop2{S2} @ i @ j)) (<_ i j> g2inc (loop2{S2} @ i @ j))
                              @ k @ l
 
+-- more direct and smaller normal form, but no noticeable performance difference
+multTwoAux' : (x : S2) -> Path (Path trS2 (g2inc x) (g2inc x)) (<_> g2inc x) (<_> g2inc x) = split
+  base2       -> <i j> g2inc (loop2{S2} @ i @ j)
+  loop2 @ k l -> <i j>
+    -- define a filler with all correct sides but one by defn, then fix the last with the truncation
+    hcomp trS2
+      (step1 @ k @ i @ j)
+      [ (i=0) -> <_> gl @ k @ l
+      , (i=1) -> <_> gl @ k @ l
+      , (j=0) -> <_> gl @ k @ l
+      , (j=1) -> <_> gl @ k @ l
+      , (k=0) -> <_> gl @ i @ j
+      , (k=1) -> <_> gl @ i @ j
+      , (l=0) -> <_> gl @ i @ j
+      , (l=1) -> <m>
+        trS2Trunc (g2inc base2) (g2inc base2) (<_> g2inc base2) (<_> g2inc base2) gl gl
+          (<k i j> step1 @ k @ i @ j) (<_ i j> gl @ i @ j)
+          @ m @ k @ i @ j
+      ]
+    where
+    gl : Path (Path trS2 (g2inc base2) (g2inc base2)) (<_> g2inc base2) (<_> g2inc base2) =
+      <m n> g2inc (loop2{S2} @ m @ n)
+
+    -- correct boundary except at l=1
+    step1 : PathP (<k> Path (Path trS2 (gl @ k @ l) (gl @ k @ l)) (<_> gl @ k @ l) (<_> gl @ k @ l)) gl gl  =
+      <k i j>
+      hcomp trS2
+        (gl @ i @ j)
+        [ (i=0) -> <m> gl @ k @ l /\ m
+        , (i=1) -> <m> gl @ k @ l /\ m
+        , (j=0) -> <m> gl @ k @ l /\ m
+        , (j=1) -> <m> gl @ k @ l /\ m
+        , (k=0) -> <_> gl @ i @ j
+        , (k=1) -> <_> gl @ i @ j
+        , (l=0) -> <_> gl @ i @ j
+        ]
+
+
 multTwo : S2 -> S2 -> trS2 = split
   base2 -> (\ (x : S2) -> g2inc x)
   loop2 @ i j -> (\ (x : S2) -> multTwoAux x @ i @ j)

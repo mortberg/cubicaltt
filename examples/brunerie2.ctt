@@ -617,6 +617,10 @@ rot : S1 -> S1 -> S1 = split
   base1 -> \(y : S1) -> y
   loop1 @ i -> \(y : S1) -> rotLoop y @ i
 
+unrot : S1 -> S1 -> S1 = split
+  base1 -> \(y : S1) -> y
+  loop1 @ i -> \(y : S1) -> rotLoop y @ -i
+
 -- Specialized version for S1:
 lemPropFS1 (P : S1 -> U) (pP : (x : S1) -> prop (P x)) 
          (b0 : P base1) : PathP (<i> P (loop @ i)) b0 b0 =
@@ -921,6 +925,47 @@ tee4 : AlmostJoinS1S1 -> join S1 S1 = split
   push x y @ i -> push{join S1 S1} (rot y x) x @ -i
 
 tee : (x : S2) -> (Hopf x -> join S1 S1) = \(x : S2) (y : Hopf x) -> tee4 (tee3 (tee2 (tee1 x y)))
+
+-- Alternate definition of tee using unglue in place of transport
+
+data AlmostJoinS1S1' =
+    inl (x : S1)
+  | inr (x : S1)
+  | push (x y : S1) <i> [ (i=0) -> inl (unrot y x) , (i=1) -> inr x ]
+
+tee12' : (x : S2) -> Hopf x -> PostTotalHopf2 = split
+  base2 -> (\ (y : S1) -> b y)
+  loop2 @ i j -> (\ (y : Hopf (loop2{S2} @ i @ j)) ->
+    hcomp PostTotalHopf2
+      (l{PostTotalHopf2}
+        (unglue y S1
+          [ (i = 0) -> (S1, idEquiv S1)
+          , (i = 1) -> (S1, idEquiv S1)
+          , (j = 0) -> (S1, (rot (loop @ i), rotIsEquiv (loop @ i)))
+          , (j = 1) -> (S1, idEquiv S1)
+          ])
+        @ i @ j)
+      [ (i=0) -> <_> b y
+      , (i=1) -> <_> b y
+      , (j=0) -> <k> b (rotrotinvloop1 y @ -i @ k)
+      , (j=1) -> <_> b y
+      ])
+
+tee3' : PostTotalHopf2 -> AlmostJoinS1S1' = split
+  b x -> inl x
+  l x @ i j -> hcomp AlmostJoinS1S1' (push{AlmostJoinS1S1'} x (loop @ i) @ j)
+                     [ (i=0) -> <k> push {AlmostJoinS1S1'} x base1 @ (j /\ -k)
+                     , (i=1) -> <k> push {AlmostJoinS1S1'} x base1 @ (j /\ -k)
+                     , (j=0) -> <_> inl (rot (loop @ -i) x)
+                     , (j=1) -> <k> push {AlmostJoinS1S1'} x base1 @ -k
+                     ]
+
+tee4' : AlmostJoinS1S1' -> join S1 S1 = split
+  inl x -> inl x
+  inr y -> inr y
+  push x y @ i -> push{join S1 S1} (unrot y x) x @ i
+
+tee' : (x : S2) -> (Hopf x -> join S1 S1) = \(x : S2) (y : Hopf x) -> tee4' (tee3' (tee12' x y))
 
 -- Experiment with suspension
 

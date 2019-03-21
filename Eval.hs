@@ -428,12 +428,12 @@ inferType v = case v of
   _ -> error $ "inferType: not neutral " ++ show (showVal v)
 
 (@@) :: ToFormula a => Val -> a -> Val
-(VTrans (VPLam i (VPathP p v0 v1)) psi u) @@ phi = case toFormula phi of
-  f -> let uf = u @@ f
-       in comp i (p @@ f) uf
-               (unionSystem (border v0 (invSystem f Zero))
-                            (unionSystem (border v1 (invSystem f One))
-                                         (border uf (invSystem psi One))))
+-- (VTrans (VPLam i (VPathP p v0 v1)) psi u) @@ phi = case toFormula phi of
+--   f -> let uf = u @@ f
+--        in comp i (p @@ f) uf
+--                (unionSystem (border v0 (invSystem f Zero))
+--                             (unionSystem (border v1 (invSystem f One))
+--                                          (border uf (invSystem psi One))))
 -- (VHComp i (VPathP p v0 v1) u us) @@ phi = case toFormula phi of
 --   f -> hcomp i (p @@ f) (u @@ f)
 --                (unionSystem (border v0 (invSystem f Zero))
@@ -631,8 +631,8 @@ fillNeg i a u ts = (fill i (a `sym` i) u (ts `sym` i)) `sym` i
 trans :: Val -> Formula -> Val -> Val
 trans _ (Dir One) u = u
 trans (VPLam i a) phi u = case a of
-  VPathP{} -> VTrans (VPLam i a) phi u
-  -- VPathP p v0 v1 -> transPath (VPLam i a) phi u
+--  VPathP{} -> VTrans (VPLam i a) phi u
+  VPathP p v0 v1 -> transPath (VPLam i a) phi u
   VSigma{} -> transSigma (VPLam i a) phi u
   VPi{} -> VTrans (VPLam i a) phi u
   VU -> u
@@ -642,9 +642,7 @@ trans (VPLam i a) phi u = case a of
   Ter (HSum _ n nass) env -> transHSum (VPLam i a) phi u
   _ -> VTrans (VPLam i a) phi u
 
-
 transPath (VPLam i a) phi u = case a of
-  -- VPathP{} -> VTrans (VPLam i a) phi u
   VPathP p v0 v1 ->
     let j = fresh (Atom i,a,phi,u)
         uj = u @@@ j
@@ -671,7 +669,7 @@ transTer (VPLam i a) phi u = case a of
 
 transHSum (VPLam i a) phi u = case a of
   Ter (HSum _ n nass) env
-    | n `elem` ["S1","S2","S3","PostTotalHopf"] -> u
+    | n `elem` ["g2Trunc","join","S1","S2","S3","PostTotalHopf"] -> u
     | otherwise -> case u of
     VCon n us -> case lookupLabel n nass of
       Just tele -> VCon n (transps i tele env phi us)
@@ -959,7 +957,7 @@ lemEqConst i eq@(VPLam _ (Ter (Sum _ n _) _)) b as
    j = fresh (eq,b,as)
    eqj = eq @@@ j
 lemEqConst i eq@(VPLam _ (Ter (HSum _ n _) _)) b as
-  | n `elem` ["S1","S2","S3","PostTotalHopf"] = (hcomp j eqj b as,hfill i eqj b as)
+  | n `elem` ["g2Trunc","join","S1","S2","S3","PostTotalHopf"] = (hcomp j eqj b as,hfill i eqj b as)
   where
    j = fresh (eq,b,as)
    eqj = eq @@@ j
@@ -1080,16 +1078,14 @@ instance Convertible Val where
       (VPLam i a,p')             -> conv ns (a `swap` (i,j)) (p' @@ j)
       (p,VPLam i' a')            -> conv ns (p @@ j) (a' `swap` (i',j))
       (VAppFormula u x,VAppFormula u' x') -> conv ns (u,x) (u',x')
-
-      (VTrans (VPLam i (VPathP _ _ _)) _ _,_) -> conv ns (u @@ j) (v @@ j)
-      (_,VTrans (VPLam i (VPathP _ _ _)) _ _) -> conv ns (u @@ j) (v @@ j)
+      -- (VTrans (VPLam i (VPathP _ _ _)) _ _,_) -> conv ns (u @@ j) (v @@ j)
+      -- (_,VTrans (VPLam i (VPathP _ _ _)) _ _) -> conv ns (u @@ j) (v @@ j)
       (VTrans a phi u,VTrans a' phi' u')  ->
         conv ns (a,invSystem phi One,u) (a',invSystem phi' One,u')
-      (VHComp _ (VPathP _ _ _) _ _,_) -> conv ns (u @@ j) (v @@ j)
-      (_,VHComp _ (VPathP _ _ _) _ _) -> conv ns (u @@ j) (v @@ j)
+      -- (VHComp _ (VPathP _ _ _) _ _,_) -> conv ns (u @@ j) (v @@ j)
+      -- (_,VHComp _ (VPathP _ _ _) _ _) -> conv ns (u @@ j) (v @@ j)
       (VHComp j a u ts,VHComp j' a' u' ts')    ->
         conv ns (a,u,mapSystem (VPLam j) ts) (a',u',mapSystem (VPLam j') ts')
-
       (VComp j a u ts,VComp j' a' u' ts')    -> conv ns (VPLam j a,u,mapSystem (VPLam j) ts) (VPLam j' a',u',mapSystem (VPLam j') ts')
       (VGlue v equivs,VGlue v' equivs')   -> conv ns (v,equivs) (v',equivs')
       (VGlueElem (VUnGlueElem b a equivs) ts,g) -> conv ns (border b equivs,b) (ts,g)
@@ -1164,16 +1160,14 @@ instance Normal Val where
     VPCon n u us phis   -> VPCon n (normal ns u) (normal ns us) phis
     VPathP a u0 u1      -> VPathP (normal ns a) (normal ns u0) (normal ns u1)
     VPLam i u           -> VPLam i (normal ns u)
-
-    u@(VTrans (VPLam _ (VPathP _ _ _)) _ _) ->
-      let j = fresh ()
-      in normal ns (VPLam j $ u @@ j)
+    -- u@(VTrans (VPLam _ (VPathP _ _ _)) _ _) ->
+    --   let j = fresh ()
+    --   in normal ns (VPLam j $ u @@ j)
     VTrans a phi u      -> VTrans (normal ns a) (normal ns phi) (normal ns u)
-    u@(VHComp _ (VPathP _ _ _) _ _) ->
-      let j = fresh ()
-      in normal ns (VPLam j $ u @@ j)
+    -- u@(VHComp _ (VPathP _ _ _) _ _) ->
+    --   let j = fresh ()
+    --   in normal ns (VPLam j $ u @@ j)
     VHComp j u v vs -> VHComp j (normal ns u) (normal ns v) (normal ns vs)
-
     VComp j u v vs      -> VComp j (normal ns u) (normal ns v) (normal ns vs)
     VGlue u equivs      -> VGlue (normal ns u) (normal ns equivs)
     -- VGlueElem (VUnGlueElem b _ _) _ -> normal ns b

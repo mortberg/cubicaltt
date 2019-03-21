@@ -429,9 +429,6 @@ inferType v = case v of
 
 (@@) :: ToFormula a => Val -> a -> Val
 (VTrans (VPLam i (VPathP p v0 v1)) psi u) @@ phi = case toFormula phi of
-  -- This actually doesn't seem to matter, probably due to laziness!
-  -- Dir 0 -> v0 `face` (i~>1)
-  -- Dir 1 -> v1 `face` (i~>1)
   f -> let uf = u @@ f
        in comp i (p @@ f) uf
                (unionSystem (border v0 (invSystem f Zero))
@@ -635,12 +632,26 @@ trans :: Val -> Formula -> Val -> Val
 trans _ (Dir One) u = u
 trans (VPLam i a) phi u = case a of
   VPathP{} -> VTrans (VPLam i a) phi u
-  -- VPathP p v0 v1 ->
-  --   let j = fresh (Atom i,a,phi,u)
-  --       uj = u @@@ j
-  --   in VPLam j $ comp i (p @@@ j) uj (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
-  --                                              (border uj (invSystem phi One)))
-  -- VId b v0 v1 -> undefined
+  -- VPathP p v0 v1 -> transPath (VPLam i a) phi u
+  VSigma{} -> transSigma (VPLam i a) phi u
+  VPi{} -> VTrans (VPLam i a) phi u
+  VU -> u
+  VGlue b equivs -> transGlue i b equivs phi u
+  VHCompU b es -> transHCompU i b es phi u
+  Ter (Sum _ n nass) env -> transTer (VPLam i a) phi u
+  Ter (HSum _ n nass) env -> transHSum (VPLam i a) phi u
+  _ -> VTrans (VPLam i a) phi u
+
+
+transPath (VPLam i a) phi u = case a of
+  -- VPathP{} -> VTrans (VPLam i a) phi u
+  VPathP p v0 v1 ->
+    let j = fresh (Atom i,a,phi,u)
+        uj = u @@@ j
+    in VPLam j $ comp i (p @@@ j) uj (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
+                                               (border uj (invSystem phi One)))
+
+transSigma (VPLam i a) phi u = case a of
   VSigma a f
     | isNonDep f -> VPair (trans (VPLam i a) phi (fstVal u))
                           (trans (VPLam i (app f (VVar "impossible" VU))) phi (sndVal u))
@@ -648,14 +659,8 @@ trans (VPLam i a) phi u = case a of
       let (u1,u2) = (fstVal u, sndVal u)
           u1f     = transFill i a phi u1
       in VPair (trans (VPLam i a) phi u1) (trans (VPLam i (app f u1f)) phi u2)
-  VPi{} -> VTrans (VPLam i a) phi u
-  VU -> u
-  -- TODO: neutrality tests in the next two cases could be removed
-  -- since there are neutral values for unglue and unglueU
-  VGlue b equivs -> -- trace "transGlue"
-    transGlue i b equivs phi u
-  VHCompU b es -> -- | not (eps `notMember` (es `face` (i ~> 0)) && isNeutral u) ->
-    transHCompU i b es phi u
+
+transTer (VPLam i a) phi u = case a of
   Ter (Sum _ n nass) env
     | n `elem` ["nat","Z","bool"] -> u -- hardcode hack
     | otherwise -> case u of
@@ -663,6 +668,8 @@ trans (VPLam i a) phi u = case a of
       Just tele -> VCon n (transps i tele env phi us)
       Nothing -> error $ "trans: missing constructor in sum " ++ n
     _ -> VTrans (VPLam i a) phi u
+
+transHSum (VPLam i a) phi u = case a of
   Ter (HSum _ n nass) env
     | n `elem` ["S1","S2","S3","g2Trunc"] -> u
     | otherwise -> case u of
@@ -670,31 +677,13 @@ trans (VPLam i a) phi u = case a of
       Just tele -> VCon n (transps i tele env phi us)
       Nothing -> error $ "trans: missing constructor in hsum " ++ n
     VPCon n _ us psis -> case lookupPLabel n nass of
-      Just (tele,is,es) ->
-        let ai1  = a `face` (i ~> 1)
-            -- vs   = transFills i tele env phi us
-            -- env' = subs (zip is psis) (updsTele tele vs env)
-            -- ves  = evalSystem env' es
-            -- ves' = mapWithKey
-            --        (\al veal -> squeeze i (a `face` al) (phi `face` al) veal)
-            --        ves
-            pc = VPCon n ai1 (transps i tele env phi us) psis
-            -- NB: restricted to phi=1, u = pc; so we could also take pc instead
-            -- uphi = border u (invSystem phi One)
-        in pc
-           --hcomp i ai1 pc ((ves' `sym` i) `unionSystem` uphi)
+      Just (tele,is,es) -> VPCon n (a `face` (i ~> 1)) (transps i tele env phi us) psis
       Nothing -> error $ "trans: missing path constructor in hsum " ++ n
     VHComp j _ v vs ->
-      -- let j = fresh (Atom i,a,phi,u)
-      -- in hcomp j (a `face` (i ~> 1)) (trans (VPLam i a) phi v)
-      --            (mapWithKey (\al val ->
-      --                 trans (VPLam i (a `face` al)) (phi `face` al) (val @@@ j)) vs)
       hcomp j (a `face` (i ~> 1)) (trans (VPLam i a) phi v)
               (mapWithKey (\al val ->
                  trans (VPLam i (a `face` al)) (phi `face` al) val) vs)
     _ -> VTrans (VPLam i a) phi u
-  _ -> VTrans (VPLam i a) phi u
-
 
 transFill :: Name -> Val -> Formula -> Val -> Val
 transFill i a phi u = trans (VPLam j (a `conj` (i,j))) (phi `orFormula` NegAtom i) u

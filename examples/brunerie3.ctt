@@ -1115,8 +1115,8 @@ f4 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S2pt).1 =
 
 test0To4 : (Omega3 S2pt).1 = f4 test0To3
 
--- Rotating test0To4 seems to make both fibContrHopfThree' and
--- fibContrHopfThree'' compute a lot faster and with smaller result.
+-- Rotating test0To4 seems to make both fibContrHopfThree compute a
+-- lot faster and with smaller result.
 
 test0To4_rotijk : (Omega3 S2pt).1 = <i j k> test0To4 @ i @ j @ k
 test0To4_rotikj : (Omega3 S2pt).1 = <i j k> test0To4 @ i @ k @ j
@@ -1124,6 +1124,32 @@ test0To4_rotjik : (Omega3 S2pt).1 = <i j k> test0To4 @ j @ i @ k
 test0To4_rotjki : (Omega3 S2pt).1 = <i j k> test0To4 @ j @ k @ i
 test0To4_rotkij : (Omega3 S2pt).1 = <i j k> test0To4 @ k @ i @ j
 test0To4_rotkji : (Omega3 S2pt).1 = <i j k> test0To4 @ k @ j @ i
+
+{- Benchmarks on Anders' Thinkpad (8GB Ram, Core i5 2.2GHz)
+
+> :n fibContrHopfThree test0To4_rotijk
+(OUT OF MEMORY)
+
+> :n fibContrHopfThree test0To4_rotikj
+#hcomps: 545101
+Time: 0m48.477s
+
+> :n fibContrHopfThree test0To4_rotjik
+(OUT OF MEMORY)
+
+> :n fibContrHopfThree test0To4_rotjki
+#hcomps: 438692
+Time: 0m48.684s
+
+> :n fibContrHopfThree test0To4_rotkij
+(OUT OF MEMORY)
+
+> :n fibContrHopfThree test0To4_rotkji
+(OUT OF MEMORY)
+
+Conclusion: rotjki is the still the best!
+
+-}
 
 f5 : (Omega3 S2pt).1 -> (Omega3 (joinpt S1pt S1)).1 = h
 
@@ -1172,7 +1198,7 @@ sorghum : (Omega3 S2pt).1 =
 
 blud : (Omega2 trS2pt).1 = f7 (f6 (f5 sorghum))
 
--- Unfold test0To4_rotjki
+-- Unfolded test0To4
 gum : (Omega3 S2pt).1 =
   <i0 i1 i2>
   hcomp S2
@@ -1321,5 +1347,5 @@ test639 : Z = g10 (g9 (g8 (f7 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f
 -- Definition of Brunerie
 brunerie : Z = g10 (g9 (g8 test0To7))
 
--- It seems like rotation test0To4 is faster?
+-- Optimized version using the optimal rotation of test0To4 (?)
 brunerie_opt : Z = g10 (g9 (g8 (f7 (f6 (f5 test0To4_rotjki)))))

@@ -164,6 +164,16 @@ alpha : join S1 S1 -> S2 = split
   inr y -> base2
   push x y @ i -> foo x y @ i
 
+-- alphaS3 : S3 -> S2 = split
+--   base3 -> base2
+--   loop3 @ i j k ->
+--     hcomp S2 (loop2{S2} @ i @ k)
+--       [ (i=0) -> <l> loop2{S2} @ j @ k /\ - l
+--       , (i=1) -> <l> loop2{S2} @ j @ k /\ - l
+--       , (k=0) -> <_> base2
+--       , (k=1) -> <l> loop2{S2} @ j @ l
+--       , (j=0) -> <l> loop2{S2} @ i @ k
+--       , (j=1) -> <l> loop2{S2} @ i @ k ]
 
 --
 Sigma (A : U) (B : A -> U) : U = (x : A) * B x

@@ -354,17 +354,10 @@ app u v = case (u,v) of
                      else comp j (app f (hfill j a w wsj)) w' ws'
     _ -> error $ "app: Split annotation not a Pi type " ++ show (showVal u)
   (Ter Split{} _,_) -> VSplit u v
-  (VTrans (VPLam i (VPi a f)) phi u0, v)
-      | isNonDep f -> trans (VPLam i (app f (VVar "impossible" VU))) phi (app u0 (transNeg i a phi v))
-      | otherwise ->
-        -- let j = fresh (u,v)
-        --     (aij,fij) = (a,f) `swap` (i,j)
-        --     w = transFillNeg j aij phi v
-        --     w0 = transNeg j aij phi v  -- w0 = w `face` (j ~> 0)
-        -- in trans (VPLam j (app fij w)) phi (app u0 w0)
-        let w = transFillNeg i a phi v
-            w0 = transNeg i a phi v  -- w0 = w `face` (j ~> 0)
-        in trans (VPLam i (app f w)) phi (app u0 w0)
+  (VTrans (VPLam i (VPi a f)) phi u0, v) ->
+    let w = transFillNeg i a phi v
+        w0 = transNeg i a phi v  -- w0 = w `face` (j ~> 0)
+    in trans (VPLam i (app f w)) phi (app u0 w0)
   (VHComp i (VPi a f) u0 us, v) ->
     -- let i = fresh (u,v)
     -- in hcomp i (app f v) (app u0 v)
@@ -638,21 +631,16 @@ trans (VPLam i a) phi u = case a of
   Ter HSum{} env -> transHSum (VPLam i a) phi u
   _ -> VTrans (VPLam i a) phi u
 
-transPath (VPLam i a) phi u = case a of
-  VPathP p v0 v1 ->
-    let j = fresh (Atom i,a,phi,u)
-        uj = u @@@ j
-    in VPLam j $ comp i (p @@@ j) uj (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
-                                               (border uj (invSystem phi One)))
+transPath (VPLam i (VPathP p v0 v1)) phi u =
+  let j = fresh (Atom i,phi,u)
+      uj = u @@@ j
+  in VPLam j $ comp i (p @@@ j) uj (insertsSystem [(j ~> 0,v0),(j ~> 1,v1)]
+                                   (border uj (invSystem phi One)))
 
-transSigma (VPLam i a) phi u = case a of
-  VSigma a f
-    | isNonDep f -> VPair (trans (VPLam i a) phi (fstVal u))
-                          (trans (VPLam i (app f (VVar "impossible" VU))) phi (sndVal u))
-    | otherwise ->
-      let (u1,u2) = (fstVal u, sndVal u)
-          u1f     = transFill i a phi u1
-      in VPair (trans (VPLam i a) phi u1) (trans (VPLam i (app f u1f)) phi u2)
+transSigma (VPLam i (VSigma a f)) phi u =
+  let (u1,u2) = (fstVal u, sndVal u)
+      u1f     = transFill i a phi u1
+  in VPair (trans (VPLam i a) phi u1) (trans (VPLam i (app f u1f)) phi u2)
 
 transTer (VPLam i a) phi u = case a of
   Ter (Sum _ n args nass) env
@@ -680,7 +668,7 @@ transHSumVPCon (VPLam i a@(Ter (HSum _ _ _ nass) env)) phi (VPCon n _ us psis) =
 transHSumHComp (VPLam i a@(Ter (HSum _ _ _ _) env)) phi (VHComp j _ v vs) =
   VHComp j (a `face` (i ~> 1))
            (trans (VPLam i a) phi v) $!
-           (mapWithKey (\al val -> trans (VPLam i (a `face` al)) (phi `face` al) val) vs)
+           (mapWithKey (\al val -> trans (VPLam i (a `face` al)) (phi `face` al) val) $! vs)
 
 
 transFill :: Name -> Val -> Formula -> Val -> Val

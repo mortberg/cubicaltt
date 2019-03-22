@@ -246,7 +246,7 @@ constPath = VPLam (Name "_")
 
 -- Check if a function is non-dependent
 isNonDep :: Val -> Bool
-isNonDep (Ter (Lam "_" _ _) _) = True
+-- isNonDep (Ter (Lam "_" _ _) _) = True
 isNonDep _ = False
 
 --------------------------------------------------------------------------------

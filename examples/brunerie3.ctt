@@ -5,13 +5,6 @@ Path (A : U) (a0 a1 : A) : U = PathP (<i> A) a0 a1
 compPath (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
   <i> hcomp A (p @ i) [ (i =0) -> <j> a, (i = 1) -> q ]
 
-compInvPath (A : U) (a b : A) (p : Path A a b) :
-  Path (Path A b b) (compPath A b a b (<i> p @ -i) p)  (<_> b) =
-   <j i> hcomp A (p @ -i \/ j)
-                 [ (i = 0) -> <_> b
-                 , (j = 1) -> <_> b
-                 , (i = 1) -> <k> p @ j \/ k ]
-
 data bool = false | true
 data nat = zero | suc (n : nat)
 
@@ -213,12 +206,6 @@ propSet (A : U) (h : prop A) : set A =
                        , (j=0) -> h a (p @ i)
                        , (j=1) -> h a (q @ i)]
 
-setGroupoid (A : U) (h : set A) : groupoid A =
-  \(a b : A) -> propSet (Path A a b) (h a b)
-
-groupoidTwoGroupoid (A : U) (h : groupoid A) : twogroupoid A =
-  \(a b : A) -> setGroupoid (Path A a b) (h a b)
-
 propIsProp (A : U) : prop (prop A) =
   \(f g : prop A) -> <i> \(a b : A) ->
     propSet A f a b (f a b) (g a b) @ i
@@ -414,10 +401,6 @@ itFibOmega3 (B : ptType) (P : B.1 -> U) (f : P (pt B)) : (Omega3 B).1 -> U =
 
 -- B.8.3 Looping the Hopf fibration
 
-HopfOne : (Omega S2pt).1 -> U = fibOmega S2pt Hopf base1
-
-HopfTwo : (Omega2 S2pt).1 -> U = itFibOmega2 S2pt Hopf base1
-
 HopfThree : (Omega3 S2pt).1 -> U = itFibOmega3 S2pt Hopf base1
 
 -------
@@ -481,9 +464,6 @@ hedbergStable (A : U) (a b : A) (h : (x : A) -> stable (Path A a x))
    r : Path A a a = f a (<_> a)
    rem2 : Square A a a a b (<_> a) p r (f b p) = hedbergLemma A a b f p
    rem3 : Square A a a a b (<_> a) q r (f b q) = hedbergLemma A a b f q
-
-hedbergS (A : U) (h : (a x : A) -> stable (Path A a x)) : set A =
- \(a b : A) -> hedbergStable A a b (h a)
 
 hedberg (A : U) (h : discrete A) : set A =
  \(a b : A) -> hedbergStable A a b (\(b : A) -> decStable (Path A a b) (h a b))
@@ -553,9 +533,6 @@ discreteZ : discrete Z = split
                        in rem (discreteNat b b1)
 
 ZSet : set Z = hedberg Z discreteZ
-
--- No need for substituting in the universe here
--- setLoop : set loopS1 = subst U set Z loopS1 (<i> loopS1equalsZ @ -i) ZSet
 
 predZ : Z -> Z = split
   pos u -> auxpredZ u
@@ -741,9 +718,6 @@ setLoop (p q : loopS1) (r s : Path loopS1 p q) : Path (Path loopS1 p q) r s =
                         , (i = 1) -> decodeEncode base1 q
                         , (j = 0) -> decodeEncode base1 (r @ i)
                         , (j = 1) -> decodeEncode base1 (s @ i) ]
-
-one : nat = suc zero
-two : nat = suc one
 
 fibContrHopfThree (p : (Omega3 S2pt).1) : HopfThree p =
   <i j k>

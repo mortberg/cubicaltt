@@ -331,7 +331,9 @@ resolveDeclData (AIdent (l,f)) tele sums p =
       pcs   = [ (unAIdent lbl,PConstructor) | PLabel lbl _ _ _ <- sums ]
       sum   = if p pcs then CTT.Sum else CTT.HSum
       d = lams tele' $ local (insertVar f) $
-            sum <$> getLoc l <*> pure f
+            sum <$> getLoc l
+                <*> pure f
+                <*> pure (tele == [] || f == "g2Trunc") -- TODO: remove the special treatment of g2Trunc
                 <*> mapM (resolveLabel (cs ++ pcs)) sums
   in (f,a,d,(f,Variable):cs ++ pcs)
 

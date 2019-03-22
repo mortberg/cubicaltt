@@ -89,10 +89,10 @@ faceEnv alpha tenv = tenv{env=env tenv `face` alpha}
 
 -- Extract the type of a label as a closure
 getLblType :: LIdent -> Val -> Typing (Tele, Env)
-getLblType c (Ter (Sum _ _ cas) r) = case lookupLabel c cas of
+getLblType c (Ter (Sum _ _ _ cas) r) = case lookupLabel c cas of
   Just as -> return (as,r)
   Nothing -> throwError ("getLblType: " ++ show c ++ " in " ++ show cas)
-getLblType c (Ter (HSum _ _ cas) r) = case lookupLabel c cas of
+getLblType c (Ter (HSum _ _ _ cas) r) = case lookupLabel c cas of
   Just as -> return (as,r)
   Nothing -> throwError ("getLblType: " ++ show c ++ " in " ++ show cas)
 getLblType c u = throwError ("expected a data type for the constructor "
@@ -134,11 +134,11 @@ check a t = case (a,t) of
     checks (bs,nu) es
   (VU,Pi f)       -> checkFam f
   (VU,Sigma f)    -> checkFam f
-  (VU,Sum _ _ bs) -> forM_ bs $ \lbl -> case lbl of
+  (VU,Sum _ _ _ bs) -> forM_ bs $ \lbl -> case lbl of
     OLabel _ tele -> checkTele tele
     PLabel _ tele is ts ->
       throwError $ "check: no path constructor allowed in " ++ show (showTer t)
-  (VU,HSum _ _ bs) -> forM_ bs $ \lbl -> case lbl of
+  (VU,HSum _ _ _ bs) -> forM_ bs $ \lbl -> case lbl of
     OLabel _ tele -> checkTele tele
     PLabel _ tele is ts -> do
       checkTele tele
@@ -154,7 +154,7 @@ check a t = case (a,t) of
             check (Ter t rho) talpha
         rho' <- asks env
         checkCompSystem (evalSystem rho' ts)
-  (VPi va@(Ter (Sum _ _ cas) nu) f,Split _ _ ty ces) -> do
+  (VPi va@(Ter (Sum _ _ _ cas) nu) f,Split _ _ ty ces) -> do
     check VU ty
     rho <- asks env
     unlessM (a === eval rho ty) $ throwError "check: split annotations"
@@ -162,7 +162,7 @@ check a t = case (a,t) of
        then sequence_ [ checkBranch (lbl,nu) f brc (Ter t rho) va
                       | (brc, lbl) <- zip ces cas ]
        else throwError "case branches does not match the data type"
-  (VPi va@(Ter (HSum _ _ cas) nu) f,Split _ _ ty ces) -> do
+  (VPi va@(Ter (HSum _ _ _ cas) nu) f,Split _ _ ty ces) -> do
     check VU ty
     rho <- asks env
     unlessM (a === eval rho ty) $ throwError "check: split annotations"

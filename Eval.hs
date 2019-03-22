@@ -522,17 +522,13 @@ hcomp i a u us = case a of
                us
         v1 = hcomp i b v (vs `unionSystem` wts)
     in glueElem v1 t1s
-  -- Ter (Sum _ "Z" nass) env -> u
-  -- Ter (Sum _ "nat" nass) env -> u  
-  Ter (Sum _ "Z" nass) env | VCon n vs <- u -> u
-  Ter (Sum _ "nat" nass) env | VCon n vs <- u -> u
-
-  Ter (Sum _ _ nass) env | VCon n vs <- u, all isCon (elems us) ->
+  Ter (Sum _ _ True _) _ | VCon n vs <- u -> u
+  Ter (Sum _ _ _ nass) env | VCon n vs <- u, all isCon (elems us) ->
     case lookupLabel n nass of
       Just as -> let usvs = transposeSystemAndList (mapSystem unCon us) vs
                  in VCon n $ hcomps i as env usvs
       Nothing -> error $ "hcomp: missing constructor in sum " ++ n
-  Ter (HSum _ _ _) _ -> VHComp i a u us -- TODO (mapSystem (VPLam i) us)
+  Ter HSum{} _ -> VHComp i a u us -- TODO (mapSystem (VPLam i) us)
   VPi{} -> VHComp i a u us -- TODO (mapSystem (VPLam i) us)
   _ -> VHComp i a u us -- TODO (mapSystem (VPLam i) us)
 
@@ -571,9 +567,9 @@ comp i a u us = case a of
     VPi{} -> VComp i a u us
     -- VU -> compUniv u (mapSystem (VPLam i) us)
     -- VCompU a es -> compU i a es u us
-    -- VGlue b equivs -> compGlue i b equivs u us    
-    Ter (Sum _ n nass) env
-      | n `elem` ["nat","Z","bool"] -> hcomp i a u us -- hardcode hack
+    -- VGlue b equivs -> compGlue i b equivs u us
+    Ter (Sum _ n args nass) env
+      | args -> hcomp i a u us
       | otherwise -> case u of
       VCon n us' | all isCon (elems us) -> case lookupLabel n nass of
                     Just as -> let usus' = transposeSystemAndList (mapSystem unCon us) us'
@@ -638,8 +634,8 @@ trans (VPLam i a) phi u = case a of
   VU -> u
   VGlue b equivs -> transGlue i b equivs phi u
   VHCompU b es -> transHCompU i b es phi u
-  Ter (Sum _ n nass) env -> transTer (VPLam i a) phi u
-  Ter (HSum _ n nass) env -> transHSum (VPLam i a) phi u
+  Ter Sum{} env -> transTer (VPLam i a) phi u
+  Ter HSum{} env -> transHSum (VPLam i a) phi u
   _ -> VTrans (VPLam i a) phi u
 
 transPath (VPLam i a) phi u = case a of
@@ -659,8 +655,8 @@ transSigma (VPLam i a) phi u = case a of
       in VPair (trans (VPLam i a) phi u1) (trans (VPLam i (app f u1f)) phi u2)
 
 transTer (VPLam i a) phi u = case a of
-  Ter (Sum _ n nass) env
-    | n `elem` ["nat","Z","bool"] -> u -- hardcode hack
+  Ter (Sum _ n args nass) env
+    | args -> u
     | otherwise -> case u of
     VCon n us -> case lookupLabel n nass of
       Just tele -> VCon n (transps i tele env phi us)
@@ -668,8 +664,8 @@ transTer (VPLam i a) phi u = case a of
     _ -> VTrans (VPLam i a) phi u
 
 transHSum (VPLam i a) phi u = case a of
-  Ter (HSum _ n nass) env
-    | n `elem` ["g2Trunc","join","S1","S2","S3","PostTotalHopf"] -> u
+  Ter (HSum _ n args nass) env
+    | args -> u
     | otherwise -> case u of
     VCon n us -> case lookupLabel n nass of
       Just tele -> VCon n (transps i tele env phi us)
@@ -741,7 +737,7 @@ transps _ _ _ _ _ = error "transps: different lengths of types and values"
 -- | HITs
 
 pcon :: LIdent -> Val -> [Val] -> [Formula] -> Val
-pcon c a@(Ter (HSum _ _ lbls) rho) us phis = case lookupPLabel c lbls of
+pcon c a@(Ter (HSum _ _ _ lbls) rho) us phis = case lookupPLabel c lbls of
   Just (tele,is,ts) | eps `member` vs -> vs ! eps
                     | otherwise       -> VPCon c a us phis
     where rho' = subs (zip is phis) (updsTele tele us rho)
@@ -951,13 +947,13 @@ transHCompU i a es psi u0 = glueElem v1' t1s'
 -- to a total one where f is transNeg of eq.  Applies the second
 -- component to the fresh name i.
 lemEqConst :: Name -> Val -> Val -> System Val -> (Val,Val)
-lemEqConst i eq@(VPLam _ (Ter (Sum _ n _) _)) b as
-  | n `elem` ["Z","nat","bool"] = (hcomp j eqj b as,hfill i eqj b as)
+lemEqConst i eq@(VPLam _ (Ter (Sum _ n args _) _)) b as
+  | args = (hcomp j eqj b as,hfill i eqj b as)
   where
    j = fresh (eq,b,as)
    eqj = eq @@@ j
-lemEqConst i eq@(VPLam _ (Ter (HSum _ n _) _)) b as
-  | n `elem` ["g2Trunc","join","S1","S2","S3","PostTotalHopf"] = (hcomp j eqj b as,hfill i eqj b as)
+lemEqConst i eq@(VPLam _ (Ter (HSum _ n args _) _)) b as
+  | args = (hcomp j eqj b as,hfill i eqj b as)
   where
    j = fresh (eq,b,as)
    eqj = eq @@@ j
@@ -1045,8 +1041,8 @@ instance Convertible Val where
         let v@(VVar n _) = mkVarNice ns x (eval e a)
         in conv (n:ns) (app u' v) (eval (upd (x,v) e) u)
       (Ter (Split _ p _ _) e,Ter (Split _ p' _ _) e') -> (p == p') && conv ns e e'
-      (Ter (Sum p _ _) e,Ter (Sum p' _ _) e')         -> (p == p') && conv ns e e'
-      (Ter (HSum p _ _) e,Ter (HSum p' _ _) e')       -> (p == p') && conv ns e e'
+      (Ter (Sum p _ _ _) e,Ter (Sum p' _ _ _) e')     -> (p == p') && conv ns e e'
+      (Ter (HSum p _ _ _) e,Ter (HSum p' _ _ _) e')   -> (p == p') && conv ns e e'
       (Ter (Undef p _) e,Ter (Undef p' _) e') -> p == p' && conv ns e e'
       (Ter (Hole p) e,Ter (Hole p') e') -> p == p' && conv ns e e'
       -- (Ter Hole{} e,_) -> True

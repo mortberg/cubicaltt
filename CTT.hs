@@ -107,8 +107,8 @@ data Ter = Pi Ter
            -- branches c1 xs1  -> M1,..., cn xsn -> Mn
          | Split Ident Loc Ter [Branch]
            -- labelled sum c1 A1s,..., cn Ans (assumes terms are constructors)
-         | Sum Loc Ident [Label] -- TODO: should only contain OLabels
-         | HSum Loc Ident [Label]
+         | Sum Loc Ident Bool [Label] -- TODO: should only contain OLabels
+         | HSum Loc Ident Bool [Label]
            -- undefined and holes
          | Undef Loc Ter -- Location and type
          | Hole Loc
@@ -406,8 +406,8 @@ showTer v = case v of
   PCon c a es phis   -> pretty c <+> braces (showTer a) <+> showTers es
                         <+> hsep (map ((pretty '@' <+>) . showFormula) phis)
   Split f _ _ _      -> pretty f
-  Sum _ n _          -> pretty n
-  HSum _ n _         -> pretty n
+  Sum _ n _ _        -> pretty n
+  HSum _ n _ _       -> pretty n
   Undef{}            -> pretty "undefined"
   Hole{}             -> pretty "?"
   PathP e0 e1 e2     -> pretty "PathP" <+> showTers [e0,e1,e2]

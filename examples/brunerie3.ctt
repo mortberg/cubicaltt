@@ -671,7 +671,7 @@ decodeEncode (x : S1) (p : Path S1 base1 x) :
               0
               (<_ _> base1)
 
--- a retract of a set is also a retract
+-- a retract of a set is also a set
 retract (A B : U) (f : A -> B) (g : B -> A) : U =
   (a : A) -> Path A (g (f a)) a
 

@@ -1180,7 +1180,7 @@ sorghum : (Omega3 S2pt).1 =
   <i0 i1 i2>
   hcomp S2
     (hcomp S2
-      (loop2 {S2} @ i2 @ i0)
+      (loop2{S2} @ i2 @ i0)
       [ (i0=0) -> <_> base2
       , (i0=1) -> <i3> loop2{S2} @ i1 @ i3
       , (i1=0) -> <_> loop2{S2} @ i2 @ i0
@@ -1203,9 +1203,9 @@ gum : (Omega3 S2pt).1 =
   <i0 i1 i2>
   hcomp S2
     (hcomp S2
-      (loop2 {S2} @ i2 @ i0)
+      (loop2{S2} @ i2 @ i0)
       [ (i0=0) -> <_> base2
-      , (i0=1) -> <i3> loop2 {S2} @ i1 @ i3
+      , (i0=1) -> <i3> loop2{S2} @ i1 @ i3
       ])
     [ (i0=0) -> <i4>
       hcomp S2
@@ -1232,26 +1232,26 @@ gum : (Omega3 S2pt).1 =
           hcomp S2
             base2
             [ (i6=1) -> <_> base2
-            , (i6=0) -> <i8> loop2 {S2} @ i1 @ i8
+            , (i6=0) -> <i8> loop2{S2} @ i1 @ i8
             ]
         , (i4=1) -> <_> base2
         ]
     , (i0=1) -> <i4>
       hcomp S2
-        (loop2 {S2} @ i2 @ -i4)
+        (loop2{S2} @ i2 @ -i4)
         [ (i4=1) -> <_> base2
         , (i4=0) -> <_> base2
         ]
     , (i1=0) -> <i4>
       hcomp S2
-        (loop2 {S2} @ i2 @ (i0 /\ -i4))
+        (loop2{S2} @ i2 @ (i0 /\ -i4))
         [ (i0=0) -> <_> base2
         , (i4=1) -> <_> base2
         , (i0=1)(i4=0) -> <_> base2
         ]
     , (i1=1) -> <i4>
       hcomp S2
-        (loop2 {S2} @ i2 @ (i0 /\ -i4))
+        (loop2{S2} @ i2 @ (i0 /\ -i4))
         [ (i0=0) -> <_> base2
         , (i4=1) -> <_> base2
         , (i0=1)(i4=0) -> <_> base2
@@ -1288,8 +1288,8 @@ gum : (Omega3 S2pt).1 =
           hcomp S2
             base2
             [ (i0=0)(i6=1) -> <_> base2
-            , (i0=1) -> <i8> loop2 {S2} @ i1 @ i8
-            , (i6=0) -> <i8> loop2 {S2} @ i1 @ i8
+            , (i0=1) -> <i8> loop2{S2} @ i1 @ i8
+            , (i6=0) -> <i8> loop2{S2} @ i1 @ i8
             ]
         , (i4=1) -> <_> base2
         ]
@@ -1325,12 +1325,71 @@ gum : (Omega3 S2pt).1 =
         , (i4=0) -> <i6>
           hcomp S2 base2
             [ (i0=0)(i6=1) -> <_> base2
-            , (i0=1) -> <i8> loop2 {S2} @ i1 @ i8
-            , (i6=0) -> <i8> loop2 {S2} @ i1 @ i8
+            , (i0=1) -> <i8> loop2{S2} @ i1 @ i8
+            , (i6=0) -> <i8> loop2{S2} @ i1 @ i8
             ]
         , (i4=1) -> <_> base2
         ]
    ]
+
+ntest0To4_rotjki : (Omega3 S2pt).1 =
+ <i j k> hcomp S2 (hcomp S2 (loop2{S2} @ i @ j)
+                           [ (j=0) -> <_> base2
+                           , (j=1) -> <l> loop2{S2} @ k @ l ])
+                 [ (j=0) -> <l> hcomp S2 (hcomp S2 base2 [ (l=1) -> <_> base2
+                                                         , (l=0) -> <_> base2])
+                                         [ (k=0) -> <m> hcomp S2 base2 [ (m=1) -> <_> base2
+                                                                       , (l=1) -> <_> base2
+                                                                       , (l=0)(m=0) -> <_> base2 ]
+                                         , (k=1) -> <m> hcomp S2 base2 [ (m=1) -> <_> base2
+                                                                       , (l=1) -> <_> base2
+                                                                       , (l=0)(m=0) -> <_> base2 ]
+                                         , (l=0) -> <m> hcomp S2 base2 [ (m=1) -> <_> base2
+                                                                       , (m=0) -> <n> loop2{S2} @ k @ n ]
+                                             , (l=1) -> <_> base2 ]
+                 , (j=1) -> <l> hcomp S2 (loop2{S2} @ i @ -l)
+                                         [ (l=1) -> <_> base2
+                                         , (l=0) -> <_> base2 ]
+                 , (k=0) -> <l> hcomp S2 (loop2{S2} @ i @ j /\ -l)
+                                         [ (j=0) -> <_> base2
+                                         , (l=1) -> <_> base2
+                                         , (j=1)(l=0) -> <_> base2 ]
+                 , (k=1) -> <l> hcomp S2 (loop2{S2} @ i @ j /\ -l)
+                                         [ (j=0) -> <_> base2
+                                         , (l=1) -> <_> base2
+                                         , (j=1)(l=0) -> <_> base2 ]
+                 , (i=0) -> <l> hcomp S2 (hcomp S2 base2 [ (l=1) -> <_> base2
+                                                         , (l=0) -> <_> base2 ])
+                                         [ (j=1) -> <m> hcomp S2 base2 [ (l=1) -> <_> base2
+                                                                       , (l=0) -> <_> base2]
+                                         , (k=0) -> <m> hcomp S2 base2 [ (j=0)(m=1) -> <_> base2
+                                                                       , (l=1) -> <_> base2
+                                                                       , (j=1)(l=0) -> <_> base2
+                                                                       , (l=0)(m=0) -> <_> base2]
+                                         , (k=1) -> <m> hcomp S2 base2 [ (j=0)(m=1) -> <_> base2
+                                                                       , (l=1) -> <_> base2
+                                                                       , (j=1)(l=0) -> <_> base2
+                                                                       , (l=0)(m=0) -> <_> base2]
+                                         , (l=0) -> <m> hcomp S2 base2 [ (j=0)(m=1) -> <_> base2
+                                                                       , (j=1) -> <n> loop2{S2} @ k @ n
+                                                                       , (m=0) -> <n> loop2{S2} @ k @ n ]
+                                         , (l=1) -> <_> base2 ]
+                 , (i=1) -> <l> hcomp S2 (hcomp S2 base2 [ (l=1) -> <_> base2
+                                                         , (l=0) -> <_> base2])
+                                         [ (j=1) -> <_> hcomp S2 base2 [ (l=1) -> <_> base2
+                                                                       , (l=0) -> <_> base2]
+                                         , (k=0) -> <m> hcomp S2 base2 [ (j=0)(m=1) -> <_> base2
+                                                                       , (l=1) -> <_> base2
+                                                                       , (j=1)(l=0) -> <_> base2
+                                                                       , (l=0)(m=0) -> <_> base2]
+                                         , (k=1) -> <m> hcomp S2 base2 [ (j=0)(m=1) -> <_> base2
+                                                                       , (l=1) -> <_> base2
+                                                                       , (j=1)(l=0) -> <_> base2
+                                                                       , (l=0)(m=0) -> <_> base2]
+                                         , (l=0) -> <m> hcomp S2 base2 [ (j=0)(m=1) -> <_> base2
+                                                                       , (j=1) -> <n> loop2{S2} @ k @ n
+                                                                       , (m=0) -> <n> loop2{S2} @ k @ n ]
+                                        , (l=1) -> <m> base2 ] ]
 
 -- test63n = loop f6-f3 n times
 test631 : Z = g10 (g9 (g8 (f7 (f6 (f3 test0To2)))))
@@ -1348,4 +1407,6 @@ test639 : Z = g10 (g9 (g8 (f7 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f
 brunerie : Z = g10 (g9 (g8 test0To7))
 
 -- Optimized version using the optimal rotation of test0To4 (?)
-brunerie_opt : Z = g10 (g9 (g8 (f7 (f6 (f5 test0To4_rotjki)))))
+brunerie_opt : Z = g10 (g9 (g8 (f7 (f6 (f5 ntest0To4_rotjki)))))
+
+

@@ -692,7 +692,7 @@ retractPath (A B : U)(f : A -> B) (g : B -> A) (rfg : retract A B f g) (x y :A) 
        ]
 
 retractSet (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g)
-           (sB : set B) (x y : A) : prop (Path A x y) =
+  (sB : set B) (x y : A) : prop (Path A x y) =
   retractProp (Path A x y) (Path B (f x) (f y)) (\(p : Path A x y) -> <i> f (p @ i))
               (retractInv A B f g rfg x y) (retractPath A B f g rfg x y) (sB (f x) (f y))
 
@@ -701,15 +701,8 @@ retractGroupoid (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g)
   retractSet (Path A x y) (Path B (f x) (f y)) (\(p : Path A x y) -> <i> f (p @ i))
               (retractInv A B f g rfg x y) (retractPath A B f g rfg x y) (sB (f x) (f y))
 
--- This direct proof only calls decodeEncode 4 times:
-setLoop (p q : loopS1) (r s : Path loopS1 p q) : Path (Path loopS1 p q) r s =
-  let f : loopS1 -> Z = encode base1
-      g : Z -> loopS1 = decode base1
-  in <j i> hcomp loopS1 (g (ZSet (f p) (f q) (<i> f (r @ i)) (<i> f (s @ i)) @ j @ i))
-                        [ (i = 0) -> decodeEncode base1 p
-                        , (i = 1) -> decodeEncode base1 q
-                        , (j = 0) -> decodeEncode base1 (r @ i)
-                        , (j = 1) -> decodeEncode base1 (s @ i) ]
+setLoop : set loopS1 =
+  retractSet loopS1 Z (encode base1) (decode base1) (decodeEncode base1) ZSet
 
 fibContrHopfThree (p : (Omega3 S2pt).1) : HopfThree p =
   <i j k>

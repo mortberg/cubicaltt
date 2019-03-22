@@ -675,17 +675,9 @@ decodeEncode (x : S1) (p : Path S1 base1 x) :
 retract (A B : U) (f : A -> B) (g : B -> A) : U =
   (a : A) -> Path A (g (f a)) a
 
-compUp (A : U) (a a' b b' : A) (p : Path A a a') (q : Path A b b')
-  (r : Path A a b) : Path A a' b' =
-    <i> hcomp A (r @ i) [(i = 0) -> p, (i = 1) -> q]
-
-lemRetract (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g)
-  (x y : A) : Path A (g (f x)) (g (f y)) -> Path A x y =
-    compUp A (g (f x)) x (g (f y)) y (rfg x) (rfg y)
-
-retractProp (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g)
-  (pB : prop B) (x y : A) : Path A x y =
-    lemRetract A B f g rfg x y (<i> g (pB (f x) (f y) @ i))
+retractProp (A B : U) (f : A -> B) (g : B -> A) (rfg : retract A B f g) (pB : prop B) (x y : A)
+  : Path A x y =
+  <i> hcomp A (g (pB (f x) (f y) @ i)) [ (i=0) -> rfg x , (i=1) -> rfg y ]
 
 retractInv (A B : U)  (f : A -> B) (g : B -> A) (rfg : retract A B f g)
   (x y : A) (q : Path B (f x) (f y)) : Path A x y =

@@ -949,11 +949,12 @@ pi3S3 (p : (Omega3 S3pt).1) : (Omega2 (g2Truncpt S2pt)).1 =
 ----------------------------------
 -- B.10 Loop spaces of truncations
 
-substTrans (A : U) (P : A -> U) (a b : A) (p : Path A a b) (e : P a) : P b =
-  transGen (<i> P (p @ i)) 0 e
-
+-- TODO: this can be proved more directly. Better normal form? What
+-- about uaRetraction?  Could maybe be simplified by mimicking
+-- https://github.com/agda/cubical/blob/master/Cubical/Foundations/Univalence.agda
+-- but I'm (Anders) is not sure...
 transEquiv' (A X : U) (p : Path U X A) : equiv X A =
-  substTrans U (\(Y : U) -> equiv Y A) A X (<i> p @ -i) (idEquiv A)
+  subst U (\(Y : U) -> equiv Y A) A X (<i> p @ -i) (idEquiv A)
 
 uaRetraction (A X : U) (p : Path U X A) : Path (Path U X A) (ua X A (transEquiv' A X p)) p =
   <j i>
@@ -1188,6 +1189,7 @@ sorghum : (Omega3 S2pt).1 =
 
 blud : (Omega2 (g2Truncpt S2pt)).1 = f7 (f6 (f5 sorghum))
 
+-- Unfold test0To4_rotjki
 gum : (Omega3 S2pt).1 =
   <i0 i1 i2>
   hcomp S2
@@ -1321,10 +1323,20 @@ gum : (Omega3 S2pt).1 =
         ]
    ]
 
+-- test63n = loop f6-f3 n times
+test631 : Z = g10 (g9 (g8 (f7 (f6 (f3 test0To2)))))
+test632 : Z = g10 (g9 (g8 (f7 (f6 (f3 (f6 (f3 test0To2)))))))
+test633 : Z = g10 (g9 (g8 (f7 (f6 (f3 (f6 (f3 (f6 (f3 test0To2)))))))))
+test634 : Z = g10 (g9 (g8 (f7 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 test0To2)))))))))))
+test635 : Z = g10 (g9 (g8 (f7 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 test0To2)))))))))))))
+test636 : Z = g10 (g9 (g8 (f7 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 test0To2)))))))))))))))
+test637 : Z = g10 (g9 (g8 (f7 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 test0To2)))))))))))))))))
+test638 : Z = g10 (g9 (g8 (f7 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 test0To2)))))))))))))))))))
+test639 : Z = g10 (g9 (g8 (f7 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 test0To2)))))))))))))))))))))
+
+
+-- Definition of Brunerie
 brunerie : Z = g10 (g9 (g8 test0To7))
 
--- This is potentially the fastest?
+-- It seems like rotation test0To4 is faster?
 brunerie_opt : Z = g10 (g9 (g8 (f7 (f6 (f5 test0To4_rotjki)))))
-
--- uses too much memory
-test633 : Z = g10 (g9 (g8 (f7 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 test0To2)))))))))))

@@ -769,18 +769,13 @@ h (p : (Omega3 S2pt).1) : (Omega3 (joinpt S1pt S1)).1 =
 --------------------------------------------------------------------------------
 -- B.9 Going back to pi2(S2)
 
--- B.9.1 Truncations
-
--- We first define these directly and then using hub-and-spoke in
--- order to see which is the most efficient for computation.
-
--- 2-Groupoid truncation
-data g2Trunc (A : U) =
-    g2inc (a : A)
-  | g2squashC (a b : g2Trunc A)
-              (p q : Path (g2Trunc A) a b)
-              (r s : Path (Path (g2Trunc A) a b) p q)
-              (t u : Path (Path (Path (g2Trunc A) a b) p q) r s)
+-- 2-Groupoid truncation of S2
+data trS2 =
+    g2inc (a : S2)
+  | g2squashC (a b : trS2)
+              (p q : Path trS2 a b)
+              (r s : Path (Path trS2 a b) p q)
+              (t u : Path (Path (Path trS2 a b) p q) r s)
               <i j k l>
                [ (i=0) -> t @ j @ k @ l
                , (i=1) -> u @ j @ k @ l
@@ -791,26 +786,26 @@ data g2Trunc (A : U) =
                , (l=0) -> a
                , (l=1) -> b ]
 
-g2Truncpt (A : ptType) : ptType = (g2Trunc A.1,g2inc (pt A))
+trS2pt : ptType = (trS2,g2inc base2)
 
-g2TruncRec (A B : U) (bG : twogroupoid B) (f : A -> B) : g2Trunc A -> B = split
-    g2inc a -> f a
-    g2squashC a b p q r s t u @ i j k l ->
-      bG (g2TruncRec A B bG f a)
-         (g2TruncRec A B bG f b)
-         (<m> g2TruncRec A B bG f (p @ m))
-         (<m> g2TruncRec A B bG f (q @ m))
-         (<m n> g2TruncRec A B bG f (r @ m @ n))
-         (<m n> g2TruncRec A B bG f (s @ m @ n))
-         (<m n o> g2TruncRec A B bG f (t @ m @ n @ o))
-         (<m n o> g2TruncRec A B bG f (u @ m @ n @ o))
-         @ i @ j @ k @ l
+trS2rec (B : U) (bG : twogroupoid B) (f : S2 -> B) : trS2 -> B = split
+  g2inc a -> f a
+  g2squashC a b p q r s t u @ i j k l ->
+    bG (trS2rec B bG f a)
+       (trS2rec B bG f b)
+       (<m> trS2rec B bG f (p @ m))
+       (<m> trS2rec B bG f (q @ m))
+       (<m n> trS2rec B bG f (r @ m @ n))
+       (<m n> trS2rec B bG f (s @ m @ n))
+       (<m n o> trS2rec B bG f (t @ m @ n @ o))
+       (<m n o> trS2rec B bG f (u @ m @ n @ o))
+       @ i @ j @ k @ l
 
-g2TruncTwoGroupoid (A : U) : twogroupoid (g2Trunc A) =
-  \(a b : g2Trunc A) (p q : Path (g2Trunc A) a b)
-   (r s : Path (Path (g2Trunc A) a b) p q)
-   (t u : Path (Path (Path (g2Trunc A) a b) p q) r s) ->
-    <i j k l> g2squashC{g2Trunc A} a b p q r s t u @ i @ j @ k @ l
+trS2Trunc : twogroupoid trS2 =
+  \(a b : trS2) (p q : Path trS2 a b)
+   (r s : Path (Path trS2 a b) p q)
+   (t u : Path (Path (Path trS2 a b) p q) r s) ->
+    <i j k l> g2squashC{trS2} a b p q r s t u @ i @ j @ k @ l
 
 -- Groupoid truncation
 data gTrunc (A : U) =
@@ -863,11 +858,6 @@ setTruncSet (A : U) : set (sTrunc A) =
     <i j> ssquashC{sTrunc A} a b p q @ i @ j
 
 -- B.9.2  Truncated higher Hopf fibration
-
-trS2 : U
-  = g2Trunc S2
-trS2Trunc : twogroupoid trS2
-  = g2TruncTwoGroupoid S2
 
 multTwoAux : (x : S2) -> Path (Path trS2 (g2inc x) (g2inc x)) (<_> g2inc x) (<_> g2inc x) = split
   base2       -> <i j> g2inc (loop2{S2} @ i @ j)
@@ -943,7 +933,7 @@ tHopf3 : S3 -> U = split
               , (k=0) -> (trS2, multTwoEquivAux @ i @ j)
               , (k=1) -> (trS2, idEquiv trS2)]
 
-pi3S3 (p : (Omega3 S3pt).1) : (Omega2 (g2Truncpt S2pt)).1 =
+pi3S3 (p : (Omega3 S3pt).1) : (Omega2 trS2pt).1 =
   <i j> transGen (<k> tHopf3 (p @ j @ k @ i)) 0 (g2inc base2)
 
 ----------------------------------
@@ -1086,20 +1076,13 @@ groupoidSET : groupoid SET =
 --------------------------------------------------------------------------------
 -- B.11 Down one more dimension
 
--- e'_2 from 12
-pi2S2' (p : (Omega2 S2pt).1) : loopS1 =
-  <i> transGen (<j> Hopf (p @ j @ i)) 0 base1
-
-e2' : sTrunc (Omega2 S2pt).1 -> loopS1 =
-  sTruncRec (Omega2 S2pt).1 loopS1 setLoop pi2S2'
-
 -- experiment with alternative definitions in place of f8-11. seems much faster.
 
 codeS2 (s : S2) : GROUPOID = (gTrunc (Hopf s), gTruncGroupoid (Hopf s))
 
-codeTruncS2 : g2Trunc S2 -> GROUPOID = g2TruncRec S2 GROUPOID twogroupoidGROUPOID codeS2
+codeTruncS2 : trS2 -> GROUPOID = trS2rec GROUPOID twogroupoidGROUPOID codeS2
 
-encodeTruncS2 (p : (Omega (g2Truncpt S2pt)).1) : gTrunc S1 = transGen (<i> (codeTruncS2 (p @ i)).1) 0 (ginc base1)
+encodeTruncS2 (p : (Omega trS2pt).1) : gTrunc S1 = transGen (<i> (codeTruncS2 (p @ i)).1) 0 (ginc base1)
 
 codeS1 (s : S1) : SET = (sTrunc (helix s), setTruncSet (helix s))
 
@@ -1109,8 +1092,8 @@ encodeS1 (p : (Omega (gTruncpt S1pt)).1) : sTrunc Z = transGen (<i> (codeTruncS1
 
 -- g8-10 replaces f8-11
 
-g8 : (Omega2 (g2Truncpt S2pt)).1 -> (Omega (gTruncpt S1pt)).1 =
-  mapOmegaRefl (Omega (g2Truncpt S2pt)) (gTrunc S1) encodeTruncS2
+g8 : (Omega2 trS2pt).1 -> (Omega (gTruncpt S1pt)).1 =
+  mapOmegaRefl (Omega trS2pt) (gTrunc S1) encodeTruncS2
 
 g9 : (Omega (gTruncpt S1pt)).1 -> sTrunc Z = encodeS1
 
@@ -1151,9 +1134,9 @@ f6 : (Omega3 (joinpt S1pt S1)).1 -> (Omega3 S3pt).1 =
 
 test0To6 : (Omega3 S3pt).1 = f6 test0To5
 
-f7 : (Omega3 S3pt).1 -> (Omega2 (g2Truncpt S2pt)).1 = pi3S3
+f7 : (Omega3 S3pt).1 -> (Omega2 trS2pt).1 = pi3S3
 
-test0To7 : (Omega2 (g2Truncpt S2pt)).1 = f7 test0To6
+test0To7 : (Omega2 trS2pt).1 = f7 test0To6
 
 foo : (Omega3 S2pt).1 = <i j k> hcomp S2 base2 [ (i=0) -> <l> loop2{S2} @ l @ l
                                                , (i=1) -> <l> loop2{S2} @ l @ l
@@ -1187,7 +1170,7 @@ sorghum : (Omega3 S2pt).1 =
     , (i2=1) -> <i4> loop2{S2} @ i1 @ (i0 \/ i4)
     ]
 
-blud : (Omega2 (g2Truncpt S2pt)).1 = f7 (f6 (f5 sorghum))
+blud : (Omega2 trS2pt).1 = f7 (f6 (f5 sorghum))
 
 -- Unfold test0To4_rotjki
 gum : (Omega3 S2pt).1 =

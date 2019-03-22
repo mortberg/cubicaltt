@@ -333,7 +333,7 @@ resolveDeclData (AIdent (l,f)) tele sums p =
       d = lams tele' $ local (insertVar f) $
             sum <$> getLoc l
                 <*> pure f
-                <*> pure (tele == [] || f == "g2Trunc") -- TODO: remove the special treatment of g2Trunc
+                <*> pure (tele == [])
                 <*> mapM (resolveLabel (cs ++ pcs)) sums
   in (f,a,d,(f,Variable):cs ++ pcs)
 

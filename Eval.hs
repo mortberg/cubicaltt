@@ -663,21 +663,25 @@ transTer (VPLam i a) phi u = case a of
       Nothing -> error $ "trans: missing constructor in sum " ++ n
     _ -> VTrans (VPLam i a) phi u
 
-transHSum (VPLam i a) phi u = case a of
-  Ter (HSum _ n args nass) env
-    | args -> u
-    | otherwise -> case u of
-    VCon n us -> case lookupLabel n nass of
-      Just tele -> VCon n (transps i tele env phi us)
-      Nothing -> error $ "trans: missing constructor in hsum " ++ n
-    VPCon n _ us psis -> case lookupPLabel n nass of
-      Just (tele,is,es) -> VPCon n (a `face` (i ~> 1)) (transps i tele env phi us) psis
-      Nothing -> error $ "trans: missing path constructor in hsum " ++ n
-    VHComp j _ v vs ->
-      hcomp j (a `face` (i ~> 1)) (trans (VPLam i a) phi v)
-              (mapWithKey (\al val ->
-                 trans (VPLam i (a `face` al)) (phi `face` al) val) vs)
-    _ -> VTrans (VPLam i a) phi u
+transHSum (VPLam i (Ter (HSum _ _ True _) _)) _ u = u
+transHSum a phi v@VCon{} = transHSumCon a phi v
+transHSum a phi v@VPCon{} = transHSumVPCon a phi v
+transHSum a phi v@VHComp{} = transHSumHComp a phi v
+transHSum a phi u = VTrans a phi u
+
+transHSumCon (VPLam i (Ter (HSum _ _ _ nass) env)) phi (VCon n us) = case lookupLabel n nass of
+  Just tele -> VCon n (transps i tele env phi us)
+  Nothing -> error $ "trans: missing constructor in hsum " ++ n
+
+transHSumVPCon (VPLam i a@(Ter (HSum _ _ _ nass) env)) phi (VPCon n _ us psis) = case lookupPLabel n nass of
+  Just (tele,_,_) -> VPCon n (a `face` (i ~> 1)) (transps i tele env phi us) psis
+  Nothing -> error $ "trans: missing path constructor in hsum " ++ n
+
+transHSumHComp (VPLam i a@(Ter (HSum _ _ _ _) env)) phi (VHComp j _ v vs) =
+  VHComp j (a `face` (i ~> 1))
+           (trans (VPLam i a) phi v) $!
+           (mapWithKey (\al val -> trans (VPLam i (a `face` al)) (phi `face` al) val) vs)
+
 
 transFill :: Name -> Val -> Formula -> Val -> Val
 transFill i a phi u = trans (VPLam j (a `conj` (i,j))) (phi `orFormula` NegAtom i) u

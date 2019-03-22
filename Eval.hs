@@ -104,7 +104,7 @@ instance Nominal Val where
     VCon _ vs               -> occurs x vs
     VPCon _ a vs phis       -> occurs x (a,vs,phis)
     VHComp i a u ts         -> if x == i then occurs x (a,u) else occurs x (a,u,ts)
-    VComp i a u ts          -> if x == i then occurs x u else occurs x (a,u,ts)    
+    VComp i a u ts          -> if x == i then occurs x u else occurs x (a,u,ts)
     VTrans a phi u          -> occurs x (a,phi,u)
     VVar _ v                -> occurs x v
     VOpaque _ v             -> occurs x v
@@ -951,16 +951,16 @@ transHCompU i a es psi u0 = glueElem v1' t1s'
 -- to a total one where f is transNeg of eq.  Applies the second
 -- component to the fresh name i.
 lemEqConst :: Name -> Val -> Val -> System Val -> (Val,Val)
-lemEqConst i eq@(VPLam _ (Ter (Sum _ n args _) _)) b as
-  | args = (hcomp j eqj b as,hfill i eqj b as)
-  where
-   j = fresh (eq,b,as)
-   eqj = eq @@@ j
-lemEqConst i eq@(VPLam _ (Ter (HSum _ n args _) _)) b as
-  | args = (hcomp j eqj b as,hfill i eqj b as)
-  where
-   j = fresh (eq,b,as)
-   eqj = eq @@@ j
+lemEqConst i eq@(VPLam _ (Ter (Sum _ n True _) _)) b as =
+  (hcomp j eqj b as,hfill i eqj b as)
+    where
+     j = fresh (eq,b,as)
+     eqj = eq @@@ j
+lemEqConst i eq@(VPLam _ (Ter (HSum _ n True _) _)) b as =
+  (hcomp j eqj b as,hfill i eqj b as)
+    where
+    j = fresh (eq,b,as)
+    eqj = eq @@@ j
 lemEqConst i eq b as = (a,p)
  where
    j = fresh (eq,b,as)
@@ -1212,4 +1212,3 @@ instance (Normal a,Normal b,Normal c,Normal d) => Normal (a,b,c,d) where
 
 instance Normal a => Normal [a] where
   normal ns = map (normal ns)
-

@@ -2407,8 +2407,50 @@ tHopf3 : S3 -> U = split
                   , (k=0) -> (trS2, (multTwoTilde (loop2{S2} @ i @ j),multTwoTildeEquiv' (loop2{S2} @ i @ j)))
                   , (k=1) -> (trS2, idEquiv')]
 
+-- begin faster version
+
+multTwoTildeAux : (t : trS2) -> Path (Path trS2 t t) (<_> t) (<_> t) = split
+  g2inc x -> multTwoAux x
+  g2squashC a b p q r s t u @ k l m n -> <i j>
+    g2squashC{trS2}
+      (multTwoTildeAux a @ i @ j) (multTwoTildeAux b @ i @ j)
+      (<k> multTwoTildeAux (p @ k) @ i @ j) (<k> multTwoTildeAux (q @ k) @ i @ j)
+      (<k l> multTwoTildeAux (r @ k @ l) @ i @ j) (<k l> multTwoTildeAux (s @ k @ l) @ i @ j)
+      (<k l m> multTwoTildeAux (t @ k @ l @ m) @ i @ j) (<k l m> multTwoTildeAux (u @ k @ l @ m) @ i @ j)
+      @ k @ l @ m @ n
+
+multTwoEquivAux : PathP (<i> Path (equiv trS2 trS2) (idEquiv trS2) (idEquiv trS2)) (<_> idEquiv trS2) (<_> idEquiv trS2) =
+  <i j>
+  ( (\(t : trS2) -> multTwoTildeAux t @ i @ j)
+  , hcomp
+      (isEquiv trS2 trS2 (\(t : trS2) -> multTwoTildeAux t @ i @ j))
+      (transGen (<k> isEquiv trS2 trS2 (\(t : trS2) -> multTwoTildeAux t @ i @ j /\ k)) (i \/ -i \/ -j)
+        (idIsEquiv trS2))
+      [ (i=0) -> <l> (isContrIdIsEquiv trS2).2 (idIsEquiv trS2) @ -l
+      , (i=1) -> <l> (isContrIdIsEquiv trS2).2 (idIsEquiv trS2) @ -l
+      , (j=0) -> <l> (isContrIdIsEquiv trS2).2 (idIsEquiv trS2) @ -l
+      , (j=1) -> <l>
+        (isContrIdIsEquiv trS2).2
+          (transGen (<k> isEquiv trS2 trS2 (\(t : trS2) -> multTwoTildeAux t @ i @ k)) (i \/ -i)
+             (idIsEquiv trS2))
+          @ -l
+      ]
+  )
+
+tHopf3' : S3 -> U = split
+  base3 -> trS2
+  loop3 @ i j k ->
+    Glue trS2 [ (i=0) -> (trS2, idEquiv trS2)
+              , (i=1) -> (trS2, idEquiv trS2)
+              , (j=0) -> (trS2, idEquiv trS2)
+              , (j=1) -> (trS2, idEquiv trS2)
+              , (k=0) -> (trS2, multTwoEquivAux @ i @ j)
+              , (k=1) -> (trS2, idEquiv trS2)]
+
+-- end faster version
+
 pi3S3 (p : (Omega3 S3pt).1) : (Omega2 (g2Truncpt S2pt)).1 =
-  <i j> transGen (<k> tHopf3 (p @ j @ k @ i)) 0 (g2inc base2) 
+  <i j> transGen (<k> tHopf3' (p @ j @ k @ i)) 0 (g2inc base2)
   -- mapOmegaRefl2 (Omega S3pt) trS2 pi3S3'
   --   where
   --   pi3S3' (p : (Omega S3pt).1) : trS2 =

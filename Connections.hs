@@ -426,12 +426,18 @@ supportFormula (phi :\/: psi) = supportFormula phi `union` supportFormula psi
 
 -- foldrWithKey (\i d a -> act x a (i,Dir d))
 face :: Nominal a => a -> Face -> a
-face x f = faceloop x (assocs f)
-  where
-  faceloop x [] = x
-  faceloop x ((i,d):xs) -- | not (i `occurs` x) = faceloop x xs
-                        -- | otherwise =
-                        = faceloop (act True x (i,Dir d)) xs
+face x f = facehelp x (assocs f)
+
+facehelp x [] = x
+facehelp x [(i,d)] = act True x (i,Dir d)
+facehelp x ((i,d):xs) = facehelp (act True x (i,Dir d)) xs
+
+  -- case assocs f offaceloop x $! (assocs f)
+  -- where
+  -- faceloop x [] = x
+  -- faceloop x ((i,d):xs) -- | not (i `occurs` x) = faceloop x xs
+  --                       -- | otherwise =
+  --                       = faceloop (act True x (i,Dir d)) xs
 
 -- the faces should be incomparable
 newtype System a = Sys [(Face,a)]

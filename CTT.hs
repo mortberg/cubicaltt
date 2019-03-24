@@ -408,7 +408,7 @@ showTer v = case v of
   Split f _ _ _      -> pretty f
   Sum _ n _ _        -> pretty n
   HSum _ n _ _       -> pretty n
-  Undef{}            -> pretty "undefined"
+  Undef l _          -> pretty "undefined" <+> showLoc l
   Hole{}             -> pretty "?"
   PathP e0 e1 e2     -> pretty "PathP" <+> showTers [e0,e1,e2]
   PLam i e           -> pretty '<' <> pretty (show i) <> pretty '>' <+> showTer e

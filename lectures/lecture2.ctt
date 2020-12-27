@@ -150,7 +150,10 @@ Exercise: draw the squares for
 
 -- The ability to construct these squares makes it easy to prove some
 -- basic results about Path-types. For instance we can prove
--- "contractibility of singletons":
+-- "contractibility of singletons".
+-- A type A is called a singleton iff for an element a : A we have
+-- a = x forall x : A. It's a terminology comes from univalent mathe-
+-- matics:
 singl (A : U) (a : A) : U = (x : A) * Path A a x
 
 contrSingl (A : U) (a b : A) (p : Path A a b) :

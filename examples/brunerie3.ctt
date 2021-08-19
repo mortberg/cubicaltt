@@ -1371,6 +1371,32 @@ test637 : Z = g10 (g9 (g8 (f7 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f
 test638 : Z = g10 (g9 (g8 (f7 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 test0To2)))))))))))))))))))
 test639 : Z = g10 (g9 (g8 (f7 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 (f6 (f3 test0To2)))))))))))))))))))))
 
+hopfy : (Omega3 S2pt).1 =
+  <l i>
+  hcomp
+    ((Omega S2pt).1)
+    (<j>
+      hcomp S2
+        (loop2{S2} @ i /\ -l @ j)
+        [ (i=0) -> <k> base2
+        , (j=0) -> <k> base2
+        , (j=1) -> <k> loop2{S2} @ -i \/ -l @ k
+        , (l=0) -> <k> loop2{S2} @ i @ j
+        , (l=1) -> <k> loop2{S2} @ -i @ j /\ k
+        ])
+    [ (i=0) -> <_ _> base2
+    , (i=1) -> <m j>
+      hcomp S2
+        (loop2{S2} @ m \/ -l @ j)
+        [ (m=1) -> <k> base2
+        , (j=0) -> <k> base2
+        , (j=1) -> <k> loop2{S2} @ -m /\ -l @ k
+        , (l=0) -> <k> loop2{S2} @ -m @ j/\ k
+        , (l=1) -> <k> loop2{S2} @ m @ j
+        ]
+    , (l=0) -> <m j> loop2{S2} @ i /\ -m @ j
+    , (l=1) -> <m j> loop2{S2} @ -i \/ m @ j
+    ]
 
 -- Definition of Brunerie
 brunerie : Z = g10 (g9 (g8 test0To7))

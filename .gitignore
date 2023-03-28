@@ -14,3 +14,4 @@ cabal.sandbox.config
 .stack-work
 .*.sw?
 
+/dist-newstyle

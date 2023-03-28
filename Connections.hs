@@ -1,5 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances,
-             GeneralizedNewtypeDeriving, TupleSections #-}
+{-# LANGUAGE FlexibleInstances, GeneralizedNewtypeDeriving, TupleSections #-}
 module Connections where
 
 import Control.Applicative
@@ -113,10 +112,10 @@ comparable alpha beta = alpha `leq` beta || beta `leq` alpha
 
 incomparables :: [Face] -> Bool
 incomparables []     = True
-incomparables (x:xs) = all (not . (x `comparable`)) xs && incomparables xs
+incomparables (x:xs) = not (any (x `comparable`) xs) && incomparables xs
 
 (~>) :: Name -> Dir -> Face
-i ~> d = singleton i d
+i ~> d = Map.singleton i d
 
 eps :: Face
 eps = Map.empty
@@ -237,8 +236,8 @@ merge a b =
 -- phi b = max {alpha : Face | phi alpha = b}
 invFormula :: Formula -> Dir -> [Face]
 invFormula (Dir b') b          = [ eps | b == b' ]
-invFormula (Atom i) b          = [ singleton i b ]
-invFormula (NegAtom i) b       = [ singleton i (- b) ]
+invFormula (Atom i) b          = [ Map.singleton i b ]
+invFormula (NegAtom i) b       = [ Map.singleton i (- b) ]
 invFormula (phi :/\: psi) Zero = invFormula phi 0 `union` invFormula psi 0
 invFormula (phi :/\: psi) One  = meets (invFormula phi 1) (invFormula psi 1)
 invFormula (phi :\/: psi) b    = invFormula (negFormula phi :/\: negFormula psi) (- b)
@@ -400,7 +399,7 @@ mkSystem :: [(Face, a)] -> System a
 mkSystem = flip insertsSystem Map.empty
 
 unionSystem :: System a -> System a -> System a
-unionSystem us vs = insertsSystem (assocs us) vs
+unionSystem us = insertsSystem (assocs us)
 
 
 joinSystem :: System (System a) -> System a

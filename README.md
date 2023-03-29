@@ -92,6 +92,22 @@ To compile and install the project using [stack](https://haskellstack.org/), run
     stack install
 ```
 
+## Nix
+
+To development the project using [Nix](https://nixos.org/), run:
+
+```sh
+    nix-shell
+    # after entering Nix shell
+    make
+```
+
+To compile the project using [Nix](https://nixos.org/), run:
+
+```sh
+    nix-build
+```
+
 Usage
 -----
 
@@ -147,7 +163,7 @@ References and notes
  * HoTT book and webpage:
    [http://homotopytypetheory.org/](http://homotopytypetheory.org/)
 
- * [Cubical Type Theory](http://www.cse.chalmers.se/~coquand/face.pdf) - 
+ * [Cubical Type Theory](http://www.cse.chalmers.se/~coquand/face.pdf) -
    Old version of the typing rules of the system. See
    [this](http://www.cse.chalmers.se/~coquand/face.pdf) for a
    variation using isomorphisms instead of equivalences.

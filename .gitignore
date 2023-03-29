@@ -15,3 +15,4 @@ cabal.sandbox.config
 .*.sw?
 
 /dist-newstyle
+result

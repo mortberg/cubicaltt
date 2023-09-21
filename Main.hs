@@ -23,6 +23,7 @@ import CTT
 import Resolver
 import qualified TypeChecker as TC
 import qualified Eval as E
+import Control.Exception 
 
 type Interpreter a = InputT IO a
 

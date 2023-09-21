@@ -3,7 +3,7 @@
 module Connections where
 
 import Control.Applicative
-import Data.List
+import Data.List hiding (singleton)
 import Data.Map (Map,(!),keys,fromList,toList,mapKeys,elems,intersectionWith
                 ,unionWith,singleton,foldrWithKey,assocs,mapWithKey
                 ,filterWithKey,member)
@@ -12,7 +12,6 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Maybe
 import Test.QuickCheck
-
 newtype Name = Name String
   deriving (Arbitrary,Eq,Ord)
 

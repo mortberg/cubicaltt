@@ -125,6 +125,7 @@ data Ter = Pi Ter
          | Id Ter Ter Ter
          | IdPair Ter (System Ter)
          | IdJ Ter Ter Ter Ter Ter Ter
+         | IdComp Ter Ter Ter Ter Ter Ter
   deriving Eq
 
 -- For an expression t, returns (u,ts) where u is no application and t = u ts
@@ -184,6 +185,7 @@ data Val = VU
          | VLam Ident Val Val
          | VUnGlueElemU Val Val (System Val)
          | VIdJ Val Val Val Val Val Val
+         | VIdComp Val Val Val Val Val Val
   deriving Eq
 
 isNeutral :: Val -> Bool
@@ -201,6 +203,7 @@ isNeutral v = case v of
   VUnGlueElemU{} -> True
   VUnGlueElem{}  -> True
   VIdJ{}         -> True
+  VIdComp{}      -> True
   _              -> False
 
 isNeutralSystem :: System Val -> Bool
@@ -390,6 +393,7 @@ showTer v = case v of
   Id a u v           -> text "Id" <+> showTers [a,u,v]
   IdPair b ts        -> text "idC" <+> showTer1 b <+> text (showSystem ts)
   IdJ a t c d x p    -> text "idJ" <+> showTers [a,t,c,d,x,p]
+  IdComp a u v w p q -> text "idComp" <+> showTers [a,u,v,w,p,q]
 
 showTers :: [Ter] -> Doc
 showTers = hsep . map showTer1
@@ -457,6 +461,7 @@ showVal v = case v of
   VId a u v           -> text "Id" <+> showVals [a,u,v]
   VIdPair b ts        -> text "idC" <+> showVal1 b <+> text (showSystem ts)
   VIdJ a t c d x p    -> text "idJ" <+> showVals [a,t,c,d,x,p]
+  VIdComp a u v w p q -> text "idComp" <+> showVals [a,u,v,w,p,q]
 
 showPLam :: Val -> Doc
 showPLam e = case e of

@@ -224,6 +224,8 @@ resolveExp e = case e of
   IdPair u ts   -> CTT.IdPair <$> resolveExp u <*> resolveSystem ts
   IdJ a t c d x p -> CTT.IdJ <$> resolveExp a <*> resolveExp t <*> resolveExp c
                              <*> resolveExp d <*> resolveExp x <*> resolveExp p
+  IdComp a u v w p q -> CTT.IdComp <$> resolveExp a <*> resolveExp u <*> resolveExp v
+                             <*> resolveExp w <*> resolveExp p <*> resolveExp q
   _ -> do
     modName <- asks envModule
     throwError ("Could not resolve " ++ show e ++ " in module " ++ modName)

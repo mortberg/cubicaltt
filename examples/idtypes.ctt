@@ -32,11 +32,23 @@ transId (A B : U) (p : Id U A B) (a : A) : B =
 transIdRef (A B : U) (p : Id U A B) (a : A) :
   Id A (transId A A (refId U A) a) a = refId A a
 
+-- NB: Use the primitive idComp for better computational properties.
+--     Leaving this definition here for backwards compatibility.
+--     See the end of this file for more details.
 compId (A : U) (a b c : A) (p : Id A a b) (q : Id A b c) : Id A a c =
   substId A (\ (z : A) -> Id A a z) b c q p
+  -- idComp A a b c p q
 
+-- Does not reduce to p
 compIdRef (A : U) (a b : A) (p : Id A a b): Id A a b =
   compId A a a b (refId A a) p
+
+-- Reduces to p
+compIdRef' (A : U) (a b : A) (p : Id A a b): Id A a b =
+  compId A a b b p (refId A b)
+
+symId (A : U) (a b : A) (p : Id A a b) : Id A b a =
+  idJ A a (\(b : A)(p : Id A a b) -> Id A b a) (refId A a) b p
 
 idToPath (A : U) (a b : A) (p : Id A a b) : Path A a b =
   idJ A a (\ (b : A) (p : Id A a b) -> Path A a b)

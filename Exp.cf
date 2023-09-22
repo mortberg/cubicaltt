@@ -46,6 +46,7 @@ UnGlueElem.   Exp3 ::= "unglue" Exp4 System ;
 Id.           Exp3 ::= "Id" Exp4 Exp4 Exp3 ;
 IdPair.       Exp3 ::= "idC" Exp4 System ;
 IdJ.          Exp3 ::= "idJ" Exp4 Exp4 Exp4 Exp4 Exp4 Exp4 ;
+IdComp.       Exp3 ::= "idComp" Exp4 Exp4 Exp4 Exp4 Exp4 Exp4 ;
 Fst.          Exp4 ::= Exp4 ".1" ;
 Snd.          Exp4 ::= Exp4 ".2" ;
 Pair.         Exp5 ::= "(" Exp "," [Exp] ")" ;

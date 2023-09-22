@@ -91,10 +91,10 @@ initLoop :: [Flag] -> FilePath -> History -> IO ()
 initLoop flags f hist = do
   -- Parse and type check files
   (_,_,mods) <- E.catch (imports True ([],[],[]) f)
-                        (\e -> do putStrLn $ unlines $
+                        (\e -> do putStrLn $ unlines
                                     ("Exception: " :
-                                     (takeWhile (/= "CallStack (from HasCallStack):")
-                                                   (lines $ show (e :: SomeException))))
+                                     takeWhile (/= "CallStack (from HasCallStack):")
+                                                   (lines $ show (e :: E.SomeException)))
                                   return ([],[],[]))
   -- Translate to TT
   let res = runResolver $ resolveModules mods
@@ -107,13 +107,13 @@ initLoop flags f hist = do
       let ns = map fst names
           uns = nub ns
           dups = ns \\ uns
-      unless (dups == []) $
+      unless (null dups) $
         putStrLn $ "Warning: the following definitions were shadowed [" ++
                    intercalate ", " dups ++ "]"
       (merr,tenv) <- TC.runDeclss TC.verboseEnv adefs
       case merr of
         Just err -> putStrLn $ "Type checking failed: " ++ shrink err
-        Nothing  -> unless (mods == []) $ putStrLn "File loaded."
+        Nothing  -> unless (null mods) $ putStrLn "File loaded."
       if Batch `elem` flags
         then return ()
         else -- Compute names for auto completion
@@ -155,10 +155,10 @@ loop flags f names tenv = do
                 start <- liftIO getCurrentTime
                 let e = mod $ E.eval (TC.env tenv) body
                 -- Let's not crash if the evaluation raises an error:
-                liftIO $ catch (putStrLn (msg ++ shrink (show e)))
+                liftIO $ E.catch (putStrLn (msg ++ shrink (show e)))
                                -- (writeFile "examples/nunivalence3.ctt" (show e))
                                (\e -> putStrLn ("Exception: " ++
-                                                show (e :: SomeException)))
+                                                show (e :: E.SomeException)))
                 stop <- liftIO getCurrentTime
                 -- Compute time and print nicely
                 let time = diffUTCTime stop start
@@ -182,7 +182,7 @@ imports v st@(notok,loaded,mods) f
   | f `elem` loaded = return st
   | otherwise       = do
     b <- doesFileExist f
-    when (not b) $ error (f ++ " does not exist")
+    unless b $ error (f ++ " does not exist")
     let prefix = dropFileName f
     s <- readFile f
     let ts = lexer s
